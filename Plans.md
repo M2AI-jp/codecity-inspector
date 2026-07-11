@@ -27,8 +27,9 @@ Ship a public, local-first Mac MVP that turns a JavaScript or TypeScript reposit
 - [x] Complete independent distribution and security review `cc:完了` (2026-07-12)
   - reviewer is read-only and separate from implementers.
 
-- [ ] Create the public GitHub repository and publish the reviewed MVP `cc:WIP`
-  - Lead alone performs commit, push, and repository publication.
+- [x] Create the public GitHub repository and publish the reviewed MVP `cc:完了` (2026-07-12)
+  - Lead published `v0.1.0-alpha.1` from the independently reviewed commit after the macOS CI run passed.
+  - The uploaded ZIP was downloaded again and matched SHA-256 `32eedbc06172aef2c1d667013fd4e891811da00362ae060911890724c19b8f1c`.
 
 ## Not in MVP
 
