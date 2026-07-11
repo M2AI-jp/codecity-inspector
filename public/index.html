@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <title>CodeCity Inspector</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <header class="masthead">
+      <div>
+        <p class="eyebrow">LOCAL REPOSITORY INSPECTION</p>
+        <h1>CodeCity Inspector</h1>
+        <p id="repo-label" class="repo-label">街の測量を準備しています…</p>
+      </div>
+      <div class="lamp-bank" aria-label="表示規則">
+        <span><i class="lamp observed"></i>観測</span>
+        <span><i class="lamp inferred"></i>推定</span>
+        <span><i class="lamp unknown"></i>未確認</span>
+      </div>
+    </header>
+
+    <main class="game-shell">
+      <section class="map-panel" aria-labelledby="map-title">
+        <div class="panel-heading">
+          <div>
+            <p class="kicker">CITY MAP</p>
+            <h2 id="map-title">コードの街</h2>
+          </div>
+          <p class="controls">クリック / 矢印キーで建物を選択・Enterで詳細</p>
+        </div>
+
+        <div class="canvas-wrap">
+          <canvas
+            id="city-canvas"
+            width="384"
+            height="336"
+            tabindex="0"
+            role="img"
+            aria-label="リポジトリのモジュールを建物として表した点検地図"
+          ></canvas>
+          <div id="map-state" class="map-state" role="status" aria-live="polite">
+            <span class="spinner" aria-hidden="true"></span>
+            <strong>街を測量しています</strong>
+            <small>ソースコードはこのMacの外へ送信しません</small>
+          </div>
+        </div>
+
+        <div class="legend" aria-label="地図の凡例">
+          <span><i class="swatch inspected"></i>テスト関連を推定</span>
+          <span><i class="swatch uninspected"></i>未検査</span>
+          <span><i class="swatch connection"></i>依存する石畳</span>
+          <span><i class="swatch broken"></i>接続切れ</span>
+          <span><i class="swatch cycle"></i>循環経路</span>
+          <span class="district-nav">
+            <button id="previous-district" type="button" aria-label="前の地区">◀</button>
+            <b id="district-label">中央街区</b>
+            <button id="next-district" type="button" aria-label="次の地区">▶</button>
+          </span>
+        </div>
+      </section>
+
+      <aside class="inspection-panel" aria-label="点検所">
+        <div class="panel-heading compact">
+          <div>
+            <p class="kicker">INSPECTION OFFICE</p>
+            <h2>街の設備点検</h2>
+          </div>
+          <button id="reload-button" type="button" class="pixel-button">再測量</button>
+        </div>
+
+        <section class="service-board" aria-labelledby="service-title">
+          <h3 id="service-title">公共サービス</h3>
+          <div id="service-list" class="service-list" aria-live="polite"></div>
+          <p class="service-note">各表示は別々の証拠です。合成した品質点数ではありません。</p>
+        </section>
+
+        <section class="building-card" aria-labelledby="building-title">
+          <div id="building-placeholder" class="placeholder">
+            <span class="pointer-hand" aria-hidden="true">☞</span>
+            <p>地図の建物を選ぶと、その区画の根拠を確認できます。</p>
+          </div>
+          <div id="building-details" hidden>
+            <p id="building-kind" class="kicker">MODULE</p>
+            <h3 id="building-title">建物名</h3>
+            <code id="building-path"></code>
+            <dl id="building-facts" class="facts"></dl>
+            <div id="building-evidence" class="evidence-list"></div>
+          </div>
+        </section>
+
+        <section class="building-index" aria-labelledby="index-title">
+          <h3 id="index-title">建物台帳</h3>
+          <div id="building-list" class="building-list"></div>
+        </section>
+      </aside>
+    </main>
+
+    <footer>
+      <p>解析対象を実行せず、静的に読めた事実だけを街へ反映します。</p>
+      <p id="scan-note"></p>
+    </footer>
+
+    <script src="/app.js" defer></script>
+  </body>
+</html>

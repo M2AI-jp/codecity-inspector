@@ -1,0 +1,24 @@
+{
+  "name": "codecity-inspector",
+  "version": "0.1.0-alpha.1",
+  "private": false,
+  "description": "Turn a local JavaScript or TypeScript repository into an inspectable 2D pixel-art city.",
+  "type": "module",
+  "bin": {
+    "codecity": "src/server.mjs"
+  },
+  "scripts": {
+    "start": "node src/server.mjs",
+    "demo": "node src/server.mjs --repo ./sample/tiny-town --open",
+    "test": "node --test",
+    "check:launcher": "zsh -n CodeCity.command",
+    "check": "npm run check:launcher && node --check src/scanner.mjs && node --check src/inspector.mjs && node --check src/server.mjs && node --check public/app.js && npm test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@babel/parser": "7.29.7"
+  }
+}
