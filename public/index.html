@@ -51,7 +51,9 @@
             ></canvas>
           </div>
 
-          <p class="canvas-hint">建物をクリックすると詳細を表示します。酒場（紫）をクリックすると接続者ギルドが開きます。</p>
+          <p id="asset-status" class="asset-status" data-status="fallback" role="status">Asset Forge素材を確認中…</p>
+
+          <p class="canvas-hint">地図にフォーカスし、矢印キーまたはWASDで移動します。建物をクリックすると詳細を表示します。</p>
 
           <ul class="legend" aria-hidden="true">
             <li><span class="legend-swatch legend-swatch-building"></span>建物</li>
@@ -198,6 +200,6 @@
       </div>
     </div>
 
-    <script src="/app.js" defer></script>
+    <script src="/app.js" type="module"></script>
   </body>
 </html>

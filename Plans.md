@@ -24,22 +24,27 @@ Ship a public, local-first Mac MVP that turns a JavaScript or TypeScript reposit
   - `public/` contains a CSP-safe procedural Canvas renderer with no image assets. It consumes only the frozen API contract.
   - done when: the endpoint is covered by tests (happy path including `layout.validation.ok === true`, invalid-layout rejection, determinism, HEAD parity, non-GET rejection, and no source leak) and the server keeps loopback-only binding plus the existing CSP and safety headers.
 
-- [ ] Rebuild the image-backed pixel-art city and playable inspection UI `cc:進行中（Asset Forge計画）`
-  - current: `public/` already renders `GET /api/town` as a procedural Canvas town with evidence-backed service gaps, building details, and the guild UI. It has no image assets or player movement yet.
-  - next: load only human-approved Asset Forge exports, keep the procedural renderer as an explicit fallback, and add a small walkable player/collision loop.
+- [ ] Rebuild the image-backed pixel-art city and playable inspection UI `cc:技術実装完了・人間レビュー待ち（2026-07-13）`
+  - current: `public/` loads only approved Asset Forge exports, reports missing/failed art visibly, retains the procedural fallback, and includes keyboard movement with walkability/building collision. Building details and guild UI remain available.
+  - next: a human supplies/licences references, visually approves candidates, performs the successful promote ceremony, then reviews the exported art, keyboard behavior, accessibility, and browser console.
   - done when: the approved export manifest drives the town art, movement and inspection work together, and a human completes visual/accessibility review.
 
 - [ ] Re-establish an original art direction `cc:進行中（Asset Forge計画）`
   - superseded: the alpha visual reference was deleted with the frontend; no art asset is owned today.
   - done when: a new original, project-bound visual reference is produced alongside the rebuilt renderer, without copying protected game assets or characters.
 
+- [x] Complete the Asset Forge engine `cc:完了（2026-07-13）`
+  - mock/dry-run, bounded job packs, PNG/JPEG/WEBP manual import, alpha/trim/grid processing, reject lifecycle, human-only promote guards, and approved-only versioned export are implemented under an independent lockfile.
+  - `codex-subscription` remains an explicit unavailable stub; no API key, OpenAI SDK, paid fallback, or external command execution exists.
+  - this completion does not claim that any candidate is human-approved or that final art direction is complete.
+
 - [x] Add Mac launch, safety documentation, CI, and onboarding `cc:完了` (2026-07-12)
   - owns: root files and `.github/workflows/ci.yml`
   - source ZIP/clone requires one explicit `npm install`; the launcher never installs dependencies.
   - done when: a Mac user can launch the demo or drag a repository onto `CodeCity.command`, and limitations are plainly documented.
 
-- [x] Complete independent distribution and security review `cc:完了` (2026-07-12)
-  - reviewer is read-only and separate from implementers.
+- [x] Complete independent distribution and security review `cc:完了` (2026-07-13)
+  - the Asset Forge/runtime/distribution delta received a fresh read-only PASS after snapshot, lifecycle recovery, variant, and package-boundary fixes; the reviewer remained separate from implementation.
 
 - [x] Create the public GitHub repository and publish the reviewed MVP `cc:完了` (2026-07-12)
   - Lead published `v0.1.0-alpha.1` from the independently reviewed commit after the macOS CI run passed.

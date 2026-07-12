@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://codecity-inspector.local/asset-forge/approval-manifest.schema.json",
+  "title": "ApprovalManifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "approvals"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "approvals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "generationId", "assetId", "reviewer", "note", "approvedAt",
+          "sourcePath", "sourceSha256", "approvedPath", "approvedSha256"
+        ],
+        "properties": {
+          "generationId": { "type": "string", "minLength": 1 },
+          "assetId": { "type": "string", "minLength": 1 },
+          "reviewer": { "const": "human" },
+          "note": { "type": "string", "minLength": 1 },
+          "approvedAt": { "type": "string", "format": "date-time" },
+          "sourcePath": {
+            "type": "string",
+            "pattern": "^(generated|processed)/(characters|buildings|fields|objects|ui|effects)/pending/[a-z0-9_-]+\\.png$"
+          },
+          "sourceSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "approvedPath": { "type": "string", "pattern": "^generated/(characters|buildings|fields|objects|ui|effects)/approved/[a-z0-9_-]+\\.png$" },
+          "approvedSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+        }
+      }
+    }
+  }
+}

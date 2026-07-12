@@ -20,12 +20,25 @@
           "assetId": { "type": "string", "minLength": 1 },
           "category": { "enum": ["character", "building", "field", "object", "ui", "effect"] },
           "status": { "enum": ["missing", "pending", "approved", "rejected", "exported"] },
-          "approvedPath": { "type": "string", "pattern": "^generated/[a-z]+/approved/" },
+          "approvedPath": { "type": "string", "pattern": "^generated/(characters|buildings|fields|objects|ui|effects)/approved/[a-z0-9_-]+\\.png$" },
           "pendingGenerationIds": { "type": "array", "items": { "type": "string" } },
           "rejectedGenerationIds": { "type": "array", "items": { "type": "string" } },
-          "exportPath": { "type": "string" },
+          "exportPath": { "type": "string", "pattern": "^/assets/forge/v1/[a-z0-9_./-]+\\.png$" },
           "lastUpdated": { "type": ["string", "null"], "format": "date-time" }
-        }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "status": { "const": "approved" } } },
+            "then": { "properties": { "approvedPath": {} }, "required": ["approvedPath"] }
+          },
+          {
+            "if": { "properties": { "status": { "const": "exported" } } },
+            "then": {
+              "properties": { "approvedPath": {}, "exportPath": {} },
+              "required": ["approvedPath", "exportPath"]
+            }
+          }
+        ]
       }
     }
   }

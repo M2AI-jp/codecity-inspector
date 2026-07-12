@@ -261,6 +261,21 @@ canvas:focus-visible,
   justify-content: center;
 }
 
+.asset-status {
+  margin: 8px 0 0;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.asset-status[data-status="fallback"] {
+  border-color: var(--warn);
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
 #town-canvas {
   display: block;
   width: 100%;

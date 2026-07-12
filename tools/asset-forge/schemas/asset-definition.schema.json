@@ -24,7 +24,7 @@
       "type": "array",
       "minItems": 1,
       "uniqueItems": true,
-      "items": { "type": "string", "pattern": "^prompts/[a-z0-9_./-]+\\.md$" }
+      "items": { "type": "string", "pattern": "^prompts/[a-z0-9_-]+(?:/[a-z0-9_-]+)*\\.md$" }
     },
     "defaultReferenceIds": {
       "type": "array",

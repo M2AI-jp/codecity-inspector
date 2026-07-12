@@ -1,8 +1,9 @@
 // public/app.js — CodeCity Inspector placeholder frontend.
 //
-// Vanilla browser JS, no build step, no dependencies, no image assets. Fetches
+// Vanilla browser JS, no build step or framework. Fetches
 // GET /api/town and renders it four ways: a procedurally-drawn pixel-grid town
-// canvas, a habitability panel (incl. the "誰も住めません" headline), a
+// canvas with approved-only Asset Forge images or a visible procedural fallback,
+// a habitability panel (incl. the "誰も住めません" headline), a
 // building-details panel that splits a facility's evidence into observed /
 // inferred / unknown, and the 5-tab 接続者ギルド roster modal.
 //
@@ -15,7 +16,9 @@
 // govern. The JP vocabulary below is mirrored from src/town/schema.mjs because
 // that module lives outside the served public/ root and cannot be imported.
 
-'use strict';
+import {
+  assetForBinding, findPlayerSpawn, loadGameAssets, movePlayer
+} from './game-runtime.mjs';
 
 // ---------------------------------------------------------------------------
 // Vocabulary mirrored from src/town/schema.mjs (frozen contract).
@@ -80,6 +83,8 @@ let currentTown = null;
 let selectedKind = null; // facilityKind driving both the details panel and the canvas outline
 let activeGuildTab = GUILD_TABS[0];
 let guildOpenerEl = null;
+let player = null;
+let gameAssets = { status: 'fallback', reason: 'not loaded', manifest: null, index: null, images: new Map() };
 
 // ---------------------------------------------------------------------------
 // DOM cache
@@ -99,6 +104,7 @@ function cacheDom() {
   el.errorBanner = document.getElementById('error-banner');
   el.canvas = document.getElementById('town-canvas');
   el.canvasEmptyState = document.getElementById('canvas-empty-state');
+  el.assetStatus = document.getElementById('asset-status');
 
   el.cannotLiveHeadline = document.getElementById('cannot-live-headline');
   el.habLevelText = document.getElementById('hab-level-text');
@@ -147,12 +153,38 @@ function init() {
   el.guildCloseBtn.addEventListener('click', closeGuildModal);
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !el.guildModal.hidden) closeGuildModal();
+    const direction = { ArrowUp: 'up', w: 'up', W: 'up', ArrowDown: 'down', s: 'down', S: 'down', ArrowLeft: 'left', a: 'left', A: 'left', ArrowRight: 'right', d: 'right', D: 'right' }[e.key];
+    if (direction && document.activeElement === el.canvas && el.guildModal.hidden && currentTown && player) {
+      e.preventDefault();
+      player = movePlayer(currentTown.layout, player, direction);
+      drawTown(currentTown.layout);
+    }
   });
   for (const tabBtn of el.guildTabs) {
     tabBtn.addEventListener('click', () => selectGuildTab(tabBtn.dataset.tab));
   }
   wireGuildTabKeyboardNav();
-  loadTown();
+  loadGameAssets().then((runtime) => {
+    gameAssets = runtime;
+    renderAssetStatus();
+  }).catch((error) => {
+    gameAssets = { status: 'fallback', reason: error.message, manifest: null, index: null, images: new Map() };
+    renderAssetStatus();
+  }).finally(loadTown);
+}
+
+function renderAssetStatus() {
+  if (!el.assetStatus) return;
+  if (gameAssets.status === 'loaded') {
+    el.assetStatus.dataset.status = 'loaded';
+    el.assetStatus.textContent = `承認済みAsset Forge素材: ${gameAssets.images.size}件`;
+  } else if (gameAssets.status === 'partial') {
+    el.assetStatus.dataset.status = 'fallback';
+    el.assetStatus.textContent = `承認済みAsset Forge素材: ${gameAssets.images.size}件 — 手続き生成を併用 (${gameAssets.reason})`;
+  } else {
+    el.assetStatus.dataset.status = 'fallback';
+    el.assetStatus.textContent = `Asset Forge素材なし — 手続き生成表示を使用 (${gameAssets.reason || 'unknown'})`;
+  }
 }
 
 async function loadTown() {
@@ -199,6 +231,7 @@ function showError(message) {
 
 function renderAll(town) {
   renderHeader(town);
+  player = findPlayerSpawn(town.layout);
   drawTown(town.layout);
   renderHabitabilityPanel(town.habitability);
   renderFacilityList(town.model);
@@ -538,7 +571,7 @@ function renderGuildBelongingItem(item) {
 }
 
 // ===========================================================================
-// Canvas town rendering (reads town.layout) — procedural, no image assets
+// Canvas town rendering — approved Asset Forge images with procedural fallback
 // ===========================================================================
 
 // FNV-1a-ish hash for stable per-tile dithering only (never layout logic).
@@ -585,6 +618,7 @@ function drawTown(layout) {
   }
   drawProps(ctx, layout.props || [], tileSize);
   drawNpcs(ctx, layout.npcs || [], tileSize);
+  drawPlayer(ctx, tileSize);
 
   el.canvas.setAttribute('aria-label', ariaSummary(currentTown));
 }
@@ -605,6 +639,11 @@ function drawTerrain(ctx, map, tileSize) {
     const row = terrain[y] || [];
     for (let x = 0; x < row.length; x += 1) {
       const type = row[x];
+      const approved = imageForBinding('TILE_TYPES', type);
+      if (approved) {
+        ctx.drawImage(approved, x * tileSize, y * tileSize, tileSize, tileSize);
+        continue;
+      }
       const base = TILE_COLORS[type] || UNKNOWN_TILE_COLOR;
       const px = x * tileSize;
       const py = y * tileSize;
@@ -767,6 +806,16 @@ function drawBuilding(ctx, building, tileSize, isSelected) {
   const ph = footprint.heightTiles * tileSize;
   const fill = FACILITY_COLORS[building.facilityKind] || UNKNOWN_FACILITY_COLOR;
 
+  const approved = imageForBinding('FACILITY_KINDS', building.facilityKind);
+  if (approved) {
+    ctx.drawImage(approved, px, py, pw, ph);
+    ctx.strokeStyle = isSelected ? '#ffe066' : 'rgba(0, 0, 0, 0.45)';
+    ctx.lineWidth = isSelected ? 3 : 1;
+    ctx.strokeRect(px + ctx.lineWidth / 2, py + ctx.lineWidth / 2, pw - ctx.lineWidth, ph - ctx.lineWidth);
+    if (building.entrance) drawEntranceMarker(ctx, building.entrance, tileSize);
+    return;
+  }
+
   ctx.save();
   if (building.state === 'vacant') ctx.globalAlpha = 0.55; // "not lit yet", never "broken"
   ctx.fillStyle = fill;
@@ -831,6 +880,11 @@ function drawProps(ctx, props, tileSize) {
   for (const prop of props) {
     const cx = prop.x * tileSize + tileSize / 2;
     const cy = prop.y * tileSize + tileSize / 2;
+    const approved = imageForBinding('PROP_KINDS', prop.kind);
+    if (approved) {
+      ctx.drawImage(approved, prop.x * tileSize, prop.y * tileSize, tileSize, tileSize);
+      continue;
+    }
     ctx.fillStyle = PROP_COLORS[prop.kind] || DEFAULT_PROP_COLOR;
     ctx.fillRect(cx - size / 2, cy - size / 2, size, size);
     ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
@@ -844,6 +898,11 @@ function drawNpcs(ctx, npcs, tileSize) {
     const isMob = NPC_MOB_ROLES.has(npc.role);
     const cx = npc.x * tileSize + tileSize / 2;
     const cy = npc.y * tileSize + tileSize / 2;
+    const approved = imageForBinding('NPC_ROLES', npc.role);
+    if (approved) {
+      ctx.drawImage(approved, npc.x * tileSize, npc.y * tileSize, tileSize, tileSize);
+      continue;
+    }
     const radius = tileSize * (isMob ? 0.2 : 0.3);
     ctx.beginPath();
     ctx.fillStyle = isMob ? '#fff3d6' : '#f2c14e';
@@ -860,6 +919,32 @@ function drawNpcs(ctx, npcs, tileSize) {
     ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
     ctx.stroke();
   }
+}
+
+function imageForBinding(vocabulary, id) {
+  const asset = assetForBinding(gameAssets.index, vocabulary, id);
+  return asset ? gameAssets.images.get(asset.assetId) || null : null;
+}
+
+function drawPlayer(ctx, tileSize) {
+  if (!player) return;
+  const approvedAsset = gameAssets.index?.bySemantic?.get('player');
+  const approved = approvedAsset ? gameAssets.images.get(approvedAsset.assetId) : null;
+  const px = player.x * tileSize;
+  const py = player.y * tileSize;
+  if (approved) {
+    ctx.drawImage(approved, px, py, tileSize, tileSize);
+    return;
+  }
+  const cx = px + tileSize / 2;
+  const cy = py + tileSize / 2;
+  ctx.fillStyle = '#f5f1df';
+  ctx.fillRect(px + tileSize * 0.25, py + tileSize * 0.18, tileSize * 0.5, tileSize * 0.64);
+  ctx.strokeStyle = '#1f2933';
+  ctx.lineWidth = Math.max(1, tileSize * 0.1);
+  ctx.strokeRect(px + tileSize * 0.25, py + tileSize * 0.18, tileSize * 0.5, tileSize * 0.64);
+  const [dx, dy] = DIRECTION_VECTORS[player.facing] || [0, 1];
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + dx * tileSize * 0.35, cy + dy * tileSize * 0.35); ctx.stroke();
 }
 
 // Pointer -> tile coordinates, correct regardless of how CSS scales the canvas.
@@ -903,7 +988,8 @@ function ariaSummary(town) {
   const buildingNote = buildings.length === 0 ? '建物なし' : `建物${buildings.length}棟`;
   return `${(repository && repository.name) || ''} の街並み。` +
     `${map.widthTiles}×${map.heightTiles}タイル、${buildingNote}、NPC${npcs.length}体。` +
-    `到達レベル Lv.${habitability.level}「${habitability.levelName}」（${habitability.canLive ? '居住可' : '居住不可'}）。`;
+    `到達レベル Lv.${habitability.level}「${habitability.levelName}」（${habitability.canLive ? '居住可' : '居住不可'}）。` +
+    (player ? `プレイヤー位置 ${player.x},${player.y}。` : 'プレイヤー配置なし。');
 }
 
 document.addEventListener('DOMContentLoaded', init);

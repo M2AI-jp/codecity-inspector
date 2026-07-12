@@ -7,13 +7,33 @@
   "bin": {
     "codecity": "src/server.mjs"
   },
+  "files": [
+    "CodeCity.command",
+    "public/",
+    "sample/",
+    "src/",
+    "tools/asset-forge/README.md",
+    "tools/asset-forge/asset-forge.config.example.json",
+    "tools/asset-forge/data/",
+    "tools/asset-forge/package-lock.json",
+    "tools/asset-forge/package.json",
+    "tools/asset-forge/prompts/",
+    "tools/asset-forge/references/README.md",
+    "tools/asset-forge/schemas/",
+    "tools/asset-forge/src/",
+    "SECURITY.md",
+    "THIRD_PARTY_NOTICES.md"
+  ],
   "scripts": {
     "start": "node src/server.mjs",
     "demo": "node src/server.mjs --repo ./sample/tiny-town --open",
     "generate:town": "node src/generate-town.mjs",
-    "test": "node --test",
+    "test": "node --test test/*.test.mjs test/town/*.test.mjs",
+    "asset:check": "npm --prefix tools/asset-forge run check",
+    "asset:dry-run": "npm --prefix tools/asset-forge run dry-run",
+    "asset:validate": "npm --prefix tools/asset-forge run validate",
     "check:launcher": "zsh -n CodeCity.command",
-    "check": "npm run check:launcher && node --check src/scanner.mjs && node --check src/inspector.mjs && node --check src/server.mjs && node --check src/generate-town.mjs && node --check public/app.js && npm test"
+    "check": "npm run check:launcher && node --check src/scanner.mjs && node --check src/inspector.mjs && node --check src/server.mjs && node --check src/generate-town.mjs && node --check public/game-runtime.mjs && node --check public/app.js && npm test"
   },
   "engines": {
     "node": ">=20"

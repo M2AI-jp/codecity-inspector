@@ -211,13 +211,29 @@ test('collectSignals against this repo root reads its real bin field, scripts, a
   assert.deepEqual(signals.packageJson.bin, { codecity: 'src/server.mjs' });
   assert.deepEqual(signals.packageJson.engines, { node: '>=20' });
   assert.equal(signals.packageJson.module, null);
-  assert.equal(signals.packageJson.files, null);
+  assert.deepEqual(signals.packageJson.files, [
+    'CodeCity.command', 'public/', 'sample/', 'src/',
+    'tools/asset-forge/README.md', 'tools/asset-forge/asset-forge.config.example.json',
+    'tools/asset-forge/data/', 'tools/asset-forge/package-lock.json', 'tools/asset-forge/package.json',
+    'tools/asset-forge/prompts/', 'tools/asset-forge/references/README.md',
+    'tools/asset-forge/schemas/', 'tools/asset-forge/src/', 'SECURITY.md', 'THIRD_PARTY_NOTICES.md'
+  ]);
 
   assert.equal(signals.scripts.hasStart, true);
   assert.equal(signals.scripts.hasTest, true);
   assert.equal(signals.scripts.hasBuild, false);
   assert.equal(signals.scripts.hasLint, false);
-  assert.deepEqual(signals.scripts.names, ['check', 'check:launcher', 'demo', 'generate:town', 'start', 'test']);
+  assert.deepEqual(signals.scripts.names, [
+    'asset:check',
+    'asset:dry-run',
+    'asset:validate',
+    'check',
+    'check:launcher',
+    'demo',
+    'generate:town',
+    'start',
+    'test'
+  ]);
 
   assert.equal(signals.distribution.hasBinField, true);
   assert.equal(signals.distribution.isPublishablePackage, true);

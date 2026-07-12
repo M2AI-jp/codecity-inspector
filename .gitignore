@@ -3,3 +3,16 @@
 node_modules/
 coverage/
 tmp/
+
+# Asset Forge local state and unapproved artifacts
+tools/asset-forge/.env
+tools/asset-forge/.env.*
+tools/asset-forge/tmp/
+tools/asset-forge/.cache/
+tools/asset-forge/data/local/
+tools/asset-forge/data/manifests/generations.local.json
+tools/asset-forge/asset-forge.local.json
+tools/asset-forge/generated/jobs/
+tools/asset-forge/generated/*/pending/
+tools/asset-forge/generated/*/rejected/
+tools/asset-forge/processed/

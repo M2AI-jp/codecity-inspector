@@ -6,7 +6,7 @@
   "additionalProperties": false,
   "required": [
     "id", "jobId", "assetId", "category", "status", "provider", "metadataPath",
-    "promptHash", "referenceImageIds", "referenceImageHashes", "dryRun",
+    "promptHash", "provenanceKey", "referenceImageIds", "referenceImageHashes", "dryRun",
     "subscriptionRun", "manualImport", "warnings", "createdAt", "inspection"
   ],
   "properties": {
@@ -14,12 +14,16 @@
     "jobId": { "type": "string", "minLength": 1 },
     "assetId": { "type": "string", "minLength": 1 },
     "category": { "enum": ["character", "building", "field", "object", "ui", "effect"] },
-    "status": { "enum": ["pending", "failed", "job-pack"] },
+    "status": { "enum": ["pending", "failed", "job-pack", "rejected", "approved"] },
     "provider": { "enum": ["mock", "job-pack", "manual-import", "codex-subscription"] },
-    "outputPath": { "type": "string" },
+    "outputPath": {
+      "type": "string",
+      "pattern": "^(generated/(characters|buildings|fields|objects|ui|effects)/(pending|rejected|approved)|processed/(characters|buildings|fields|objects|ui|effects)/pending)/[a-z0-9_-]+\\.png$"
+    },
     "outputSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
     "metadataPath": { "type": "string", "minLength": 1 },
     "promptHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "provenanceKey": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
     "referenceImageIds": { "type": "array", "items": { "type": "string" } },
     "referenceImageHashes": {
       "type": "array",
@@ -28,11 +32,131 @@
     "dryRun": { "type": "boolean" },
     "subscriptionRun": { "type": "boolean" },
     "manualImport": { "type": "boolean" },
+    "sourcePath": {
+      "type": "string",
+      "pattern": "^generated/(characters|buildings|fields|objects|ui|effects)/pending/[a-z0-9_-]+\\.source\\.(png|jpg|webp)$"
+    },
+    "sourceSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "sourceFormat": { "enum": ["png", "jpeg", "webp"] },
+    "processedFromGenerationId": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+    "outputInspection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "width", "height", "channels", "frames", "bytes"],
+      "properties": {
+        "format": { "const": "png" },
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 },
+        "channels": { "type": "integer", "minimum": 1, "maximum": 4 },
+        "frames": { "type": "integer", "minimum": 1 },
+        "bytes": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "jobPackPath": { "type": "string" },
     "error": { "type": "string" },
     "warnings": { "type": "array", "items": { "type": "string" } },
     "createdAt": { "type": "string", "format": "date-time" },
+    "rejection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reason", "rejectedAt"],
+      "properties": {
+        "reason": { "type": "string", "minLength": 1 },
+        "rejectedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reviewer", "note", "approvedAt", "approvedPath", "approvedSha256"],
+      "properties": {
+        "reviewer": { "const": "human" },
+        "note": { "type": "string", "minLength": 1 },
+        "approvedAt": { "type": "string", "format": "date-time" },
+        "approvedPath": { "type": "string", "pattern": "^generated/(characters|buildings|fields|objects|ui|effects)/approved/[a-z0-9_-]+\\.png$" },
+        "approvedSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
     "inspection": { "$ref": "#/definitions/inspection" }
   },
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "const": "pending" } } },
+      "then": {
+        "properties": { "outputPath": {}, "outputSha256": {}, "outputInspection": {} },
+        "required": ["outputPath", "outputSha256", "outputInspection"],
+        "not": { "anyOf": [
+          { "properties": { "approval": {} }, "required": ["approval"] },
+          { "properties": { "rejection": {} }, "required": ["rejection"] },
+          { "properties": { "error": {} }, "required": ["error"] },
+          { "properties": { "jobPackPath": {} }, "required": ["jobPackPath"] }
+        ] }
+      }
+    },
+    {
+      "if": { "properties": { "status": { "const": "failed" } } },
+      "then": {
+        "properties": { "error": {} }, "required": ["error"],
+        "not": { "anyOf": [
+          { "properties": { "approval": {} }, "required": ["approval"] },
+          { "properties": { "rejection": {} }, "required": ["rejection"] },
+          { "properties": { "jobPackPath": {} }, "required": ["jobPackPath"] },
+          { "properties": { "outputPath": {} }, "required": ["outputPath"] },
+          { "properties": { "outputSha256": {} }, "required": ["outputSha256"] },
+          { "properties": { "outputInspection": {} }, "required": ["outputInspection"] }
+        ] }
+      }
+    },
+    {
+      "if": { "properties": { "status": { "const": "job-pack" } } },
+      "then": {
+        "properties": { "jobPackPath": {} }, "required": ["jobPackPath"],
+        "not": { "anyOf": [
+          { "properties": { "approval": {} }, "required": ["approval"] },
+          { "properties": { "rejection": {} }, "required": ["rejection"] },
+          { "properties": { "error": {} }, "required": ["error"] },
+          { "properties": { "outputPath": {} }, "required": ["outputPath"] },
+          { "properties": { "outputSha256": {} }, "required": ["outputSha256"] },
+          { "properties": { "outputInspection": {} }, "required": ["outputInspection"] }
+        ] }
+      }
+    },
+    {
+      "if": { "properties": { "status": { "const": "rejected" } } },
+      "then": {
+        "properties": { "outputPath": {}, "outputSha256": {}, "rejection": {} },
+        "required": ["outputPath", "outputSha256", "rejection"],
+        "not": { "anyOf": [
+          { "properties": { "approval": {} }, "required": ["approval"] },
+          { "properties": { "error": {} }, "required": ["error"] },
+          { "properties": { "jobPackPath": {} }, "required": ["jobPackPath"] }
+        ] }
+      }
+    },
+    {
+      "if": { "properties": { "status": { "const": "approved" } } },
+      "then": {
+        "properties": { "outputPath": {}, "outputSha256": {}, "approval": {} },
+        "required": ["outputPath", "outputSha256", "approval"],
+        "not": { "anyOf": [
+          { "properties": { "rejection": {} }, "required": ["rejection"] },
+          { "properties": { "error": {} }, "required": ["error"] },
+          { "properties": { "jobPackPath": {} }, "required": ["jobPackPath"] }
+        ] }
+      }
+    },
+    {
+      "if": { "properties": { "provider": { "const": "manual-import" } } },
+      "then": {
+        "properties": { "manualImport": { "const": true }, "sourcePath": {}, "sourceSha256": {}, "sourceFormat": {} },
+        "required": ["sourcePath", "sourceSha256", "sourceFormat"]
+      }
+    },
+    {
+      "if": { "not": { "properties": { "provider": { "const": "manual-import" } } } },
+      "then": { "properties": { "manualImport": { "const": false } } }
+    }
+  ],
   "definitions": {
     "inspection": {
       "type": "object",

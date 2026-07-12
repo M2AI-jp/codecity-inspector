@@ -2,7 +2,7 @@
 
 JavaScript / TypeScript のリポジトリを読み取り専用で点検し、ファイルを建物、ローカルimportを道に見立てた「住める街」のデータモデルへ変換するMac向けローカルツールです。未解決の接続、循環依存、テストとの対応、生活インフラ（入口・DB・env・ログ・テスト・配布経路など）の有無を、元ファイルへ戻れる根拠と一緒に確認できます。
 
-> 現在は、街のデータモデル・住める街レベルの判定・決定論的なレイアウト生成・検証（役場検査）と、それを取り出すCLI / HTTP APIに加え、画像アセットを使わずCanvasへ街を描く暫定フロントエンドがあります。地形、建物、NPC、小物を表示し、建物、証拠区分、接続者ギルドを操作して確認できますが、最終的なピクセルアート、画像アセット、プレイヤー移動はまだありません。完成した因果関係を証明するツールでも、署名済みのMacアプリでもありません。
+> 現在は、街のデータモデル・住める街レベルの判定・決定論的なレイアウト生成・検証（役場検査）と、それを取り出すCLI / HTTP APIに加え、Canvas上を矢印キーまたはWASDで歩ける小さな街画面があります。Asset Forgeの人間承認済みmanifestがあれば画像を使い、無ければ理由を表示して手続き描画へ戻ります。画像の美観・ライセンス・採用判断は自動化せず、現時点では承認済みの本番アート一式は同梱していません。完成した因果関係を証明するツールでも、署名済みのMacアプリでもありません。
 
 ## 必要なもの
 
@@ -51,7 +51,7 @@ node src/server.mjs --repo "/path/to/your/repository" --open
 
 標準では `http://127.0.0.1:4173` で待ち受けます。別のポートが必要なら `--port 4174` のように指定できます。`CodeCity.command` をダブルクリックする、またはFinder上でリポジトリのフォルダを1つドラッグ＆ドロップしても、同じサーバーが起動します（`CodeCity.command` は依存が無ければ日本語で案内して停止し、自動インストールやネットワークアクセスはしません）。
 
-ブラウザには現在、`/api/town` を読み取ってCanvasへ手続き的に描く暫定の街画面が開きます。建物の選択、住みやすさ、観測・推測・不明の証拠区分、接続者ギルドを確認できます。画像アセットを使った最終ピクセルアートではなく、プレイヤー移動もまだありません。生のJSONは次のエンドポイントから確認できます。
+ブラウザには `/api/town` を読み取る街画面が開きます。地図へフォーカスして矢印キーまたはWASDで移動でき、建物の選択、住みやすさ、観測・推測・不明の証拠区分、接続者ギルドを確認できます。承認済みAsset Forge exportが無い／読み込めない場合は、その状態を画面に表示して手続き描画を使います。生のJSONは次のエンドポイントから確認できます。
 
 - `GET /api/city` — scanner / inspectorが読み取った生のインスペクション結果（ファイル、import、循環、テスト対応など）
 - `GET /api/town` — 街モデル・住める街レベル・検証済みレイアウトをまとめたレスポンス（下記）
@@ -124,6 +124,16 @@ node src/server.mjs --repo "/path/to/your/repository" --open
 ```sh
 npm ci
 npm run check
+
+# Asset Forgeは独立lockfile・独立依存
+npm ci --prefix tools/asset-forge
+npm run asset:check
+npm run asset:validate
 ```
 
-`npm run check` は、`CodeCity.command` の構文チェック、`src` 配下の各エントリの `node --check`、そして `node --test` によるテストを実行します。直接の実行時依存は `@babel/parser` 1件です。対象リポジトリ側で `npm install` やテスト実行を行わないでください。
+Asset Forgeのソースと独立lockfileはnpm配布物にも含まれますが、通常のルート
+`npm install` は任意機能であるAjv/Sharpを自動導入しません。ソースcheckout・npm配布物の
+どちらでも、Asset Forgeを使う前にNode.js 20.9以上で
+`npm ci --prefix tools/asset-forge` を明示的に実行してください。
+
+`npm run check` は、`CodeCity.command` の構文チェック、`src` 配下の各エントリの `node --check`、そしてルートテストを実行します。Asset Forgeは `tools/asset-forge/` 内でAjvとSharpを使い、mock、dry-run、job pack、manual import、画像処理、human-only promote guard、approved-only exportを独立テストします。`codex-subscription` は安全性・課金境界を確認できるローカルコマンドが無いため unavailable stub のままです。OpenAI API、API key、paid fallbackはありません。対象リポジトリ側で `npm install` やテスト実行を行わないでください。

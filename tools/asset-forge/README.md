@@ -1,7 +1,7 @@
 # CodeCity Asset Forge
 
 Asset Forge is the game-art workshop inside CodeCity Inspector. It defines the art the game
-needs and, in later phases, will create mock candidates, job packs, manual imports,
+needs and creates mock candidates, job packs, manual imports,
 metadata, image derivatives, and approved-only game exports.
 
 Asset Forge is not an automatic art director. It cannot decide that an image is good
@@ -13,15 +13,16 @@ metadata、透過処理、sprite抽出、approved素材のexportを管理しま�
 
 ## Current observed scope
 
-This directory currently contains the W1 contract layer: schemas, editable prompt
-templates, the complete formally requested asset catalog, reference placeholders, and
-initial tracked manifest templates. Provider implementations, the CLI implementation,
-image processing, generated candidates, approval operations, exports, and runtime/browser
-integration are later phases. Their package scripts are reserved command names, not a claim
-that those commands have been implemented or exercised.
+The Forge engine is implemented: strict schemas and path boundaries, the complete catalog,
+deterministic mock generation, dry-run, job packs, bounded PNG/JPEG/WEBP import, alpha/trim/grid
+processing, rejection, guarded human-only promotion, and approved-only export. The Canvas
+runtime consumes the export manifest and visibly falls back when approved art is absent.
+When multiple approved assets target the same runtime binding or semantic, the manifest keeps
+every variant and the runtime deterministically selects the lexicographically first asset ID;
+the indexed variant lists remain available for a future context-specific selector.
 
-No package installation, test command, generation command, subscription command, import,
-promotion, rejection, processing, or export is evidenced by these files.
+The repository does not contain a human-approved production art set. Engine completion is
+not a claim about visual quality, licensing, art direction, or human approval.
 
 ## No paid API path
 
@@ -37,8 +38,36 @@ The intended modes are:
 - `codex-subscription`: optional local adapter, unavailable unless explicitly configured and
   guarded by `--yes-subscription`
 
-Whether a safe subscription image command exists is currently unknown. Unavailability must
-not cause an API fallback.
+No safe subscription image command has been independently established, so
+`codex-subscription` is an unavailable stub. It starts no child process and never falls back
+to an API.
+
+## Commands
+
+```sh
+npm run check
+npm run validate
+npm run dry-run
+
+# Requires approved human-provided references
+npm run make-job -- --asset character.player
+
+# Accepts image bytes by signature; result remains pending
+npm run import -- --asset character.player --file /absolute/path/candidate.png
+
+# Local processing of a pending candidate
+npm run process -- --generation GEN_ID --alpha-key black --tolerance 0 --trim
+
+# Rejection requires a reason
+npm run reject -- --generation GEN_ID --reason "human review note"
+
+# Promotion refuses non-TTY/automation and requires reviewer, note, write, hash confirmation
+npm run promote -- --generation GEN_ID --reviewer human --note "human decision" --write
+
+# Approved-only export is dry-run unless --write is present
+npm run export
+npm run export -- --write
+```
 
 ## Catalog and game bindings
 
@@ -64,26 +93,26 @@ references are strong references by default. A pending reference, if supported l
 require an explicit flag. Each reference needs a SHA-256 hash and `licenseNote`.
 
 The initial reference manifest intentionally marks placeholders as `missing`.
-No reference image is included by this W1 scaffold.
+No reference image is included.
 
 ## Git and state boundary
 
 Definitions, prompts, schemas, reference declarations, and approved-asset catalog data are
 versioned. Job packs, generated pending candidates, rejected candidates, temporary files,
 and the live generations ledger must remain local and untracked. The tracked
-`generations.template.json` is only a bootstrap shape; a future runtime must copy it to an
-ignored local-state path rather than update the tracked template.
+`generations.template.json` is only a bootstrap shape; the runtime creates and updates the
+ignored `data/local/generations.json` ledger instead of changing the tracked template.
 
 Approved images and approval metadata are the only generated-image records intended for
-version control. A future root integration must add ignore rules before any generation flow
-is enabled. This W1 does not alter the root ignore policy.
+version control. Root ignore rules exclude jobs, pending, rejected, processed, and local
+ledgers.
 
 ## Human-only boundary
 
-A future `promote` command must require explicit human authority, refuse overwrites, and
-record reviewer, time, and note. Codex may implement that command but must not execute it to
-approve project assets. Export must read approved assets only, default to dry-run, and
-require `--write` for files.
+The `promote` command requires an interactive TTY, `--reviewer human`, `--write`, a nonempty
+note, and confirmation after displaying source/destination hashes. Codex may implement and
+test refusal/pure transition paths but must not execute a successful project promotion.
+Export reads approved assets only, defaults to dry-run, and requires `--write` for files.
 
 ## Anti-reward-fraud reporting
 
@@ -108,5 +137,5 @@ decisions, not broken assets.
 1. Supply original, licensed reference images.
 2. Record their paths, hashes, and license notes.
 3. Review the runtime gap list and authorize additions beyond the formal catalog.
-4. After later provider work, review pending candidates visually.
+4. Review pending candidates visually.
 5. Decide which candidates to approve; no agent may make this decision.

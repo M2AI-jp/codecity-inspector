@@ -17,7 +17,7 @@
         ],
         "properties": {
           "id": { "type": "string", "pattern": "^[a-z0-9_]+(?:\\.[a-z0-9_]+)*$" },
-          "path": { "type": "string", "pattern": "^references/(pending|approved)/[a-zA-Z0-9._/-]+$" },
+          "path": { "type": "string", "pattern": "^references/(pending|approved)/[a-zA-Z0-9_.-]+$" },
           "status": { "enum": ["missing", "pending", "approved", "rejected"] },
           "category": { "enum": ["style", "character", "building", "field", "object", "ui"] },
           "sha256": {
