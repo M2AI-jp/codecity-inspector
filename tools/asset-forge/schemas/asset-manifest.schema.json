@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://codecity-inspector.local/asset-forge/asset-manifest.schema.json",
+  "title": "AssetManifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "assets"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "assetId", "category", "status", "pendingGenerationIds",
+          "rejectedGenerationIds", "lastUpdated"
+        ],
+        "properties": {
+          "assetId": { "type": "string", "minLength": 1 },
+          "category": { "enum": ["character", "building", "field", "object", "ui", "effect"] },
+          "status": { "enum": ["missing", "pending", "approved", "rejected", "exported"] },
+          "approvedPath": { "type": "string", "pattern": "^generated/[a-z]+/approved/" },
+          "pendingGenerationIds": { "type": "array", "items": { "type": "string" } },
+          "rejectedGenerationIds": { "type": "array", "items": { "type": "string" } },
+          "exportPath": { "type": "string" },
+          "lastUpdated": { "type": ["string", "null"], "format": "date-time" }
+        }
+      }
+    }
+  }
+}

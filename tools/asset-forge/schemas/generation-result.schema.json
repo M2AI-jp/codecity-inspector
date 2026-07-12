@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://codecity-inspector.local/asset-forge/generation-result.schema.json",
+  "title": "GenerationResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id", "jobId", "assetId", "category", "status", "provider", "metadataPath",
+    "promptHash", "referenceImageIds", "referenceImageHashes", "dryRun",
+    "subscriptionRun", "manualImport", "warnings", "createdAt", "inspection"
+  ],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "jobId": { "type": "string", "minLength": 1 },
+    "assetId": { "type": "string", "minLength": 1 },
+    "category": { "enum": ["character", "building", "field", "object", "ui", "effect"] },
+    "status": { "enum": ["pending", "failed", "job-pack"] },
+    "provider": { "enum": ["mock", "job-pack", "manual-import", "codex-subscription"] },
+    "outputPath": { "type": "string" },
+    "outputSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "metadataPath": { "type": "string", "minLength": 1 },
+    "promptHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "referenceImageIds": { "type": "array", "items": { "type": "string" } },
+    "referenceImageHashes": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+    },
+    "dryRun": { "type": "boolean" },
+    "subscriptionRun": { "type": "boolean" },
+    "manualImport": { "type": "boolean" },
+    "error": { "type": "string" },
+    "warnings": { "type": "array", "items": { "type": "string" } },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "inspection": { "$ref": "#/definitions/inspection" }
+  },
+  "definitions": {
+    "inspection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "observed", "inferred", "unknown"],
+      "properties": {
+        "status": { "const": "pending-inspection" },
+        "observed": { "type": "array", "items": { "type": "string" } },
+        "inferred": { "type": "array", "items": { "type": "string" } },
+        "unknown": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

@@ -1,0 +1,1145 @@
+{
+  "$schema": "../../schemas/asset-catalog.schema.json",
+  "schemaVersion": 1,
+  "category": "building",
+  "assets": [
+    {
+      "id": "building.inn",
+      "category": "building",
+      "displayName": "Inn",
+      "gameMeaning": "Required building art for building.inn.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/buildings/00_common_building_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "building_style_master"
+      ],
+      "output": {
+        "kind": "single",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "tileSize": 16,
+        "scalePreview": 3,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "states": [
+        "normal",
+        "active",
+        "inactive",
+        "under_construction",
+        "unverified",
+        "broken",
+        "approved",
+        "warning"
+      ],
+      "tags": [
+        "building",
+        "inn"
+      ],
+      "constraints": {
+        "must": [
+          "readable entrance",
+          "tile-aligned footprint",
+          "stable architecture across states"
+        ],
+        "mustNot": [
+          "obscured footprint",
+          "labels",
+          "baked scene background"
+        ]
+      },
+      "reviewChecklist": [
+        "入口が読めるか",
+        "用途がシルエットで分かるか",
+        "状態差分で建物形状がぶれていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "building_exterior",
+        "semanticKind": "inn",
+        "drawLayer": "building",
+        "runtimeBindings": [
+          {
+            "vocabulary": "FACILITY_KINDS",
+            "id": "inn"
+          }
+        ],
+        "coverage": "exact"
+      }
+    },
+    {
+      "id": "building.pub",
+      "category": "building",
+      "displayName": "Pub",
+      "gameMeaning": "Required building art for building.pub.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/buildings/00_common_building_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "building_style_master"
+      ],
+      "output": {
+        "kind": "single",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "tileSize": 16,
+        "scalePreview": 3,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "states": [
+        "normal",
+        "active",
+        "inactive",
+        "under_construction",
+        "unverified",
+        "broken",
+        "approved",
+        "warning"
+      ],
+      "tags": [
+        "building",
+        "pub"
+      ],
+      "constraints": {
+        "must": [
+          "readable entrance",
+          "tile-aligned footprint",
+          "stable architecture across states"
+        ],
+        "mustNot": [
+          "obscured footprint",
+          "labels",
+          "baked scene background"
+        ]
+      },
+      "reviewChecklist": [
+        "入口が読めるか",
+        "用途がシルエットで分かるか",
+        "状態差分で建物形状がぶれていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "building_exterior",
+        "semanticKind": "pub",
+        "drawLayer": "building",
+        "runtimeBindings": [
+          {
+            "vocabulary": "FACILITY_KINDS",
+            "id": "pub"
+          }
+        ],
+        "coverage": "exact"
+      }
+    },
+    {
+      "id": "building.town_hall",
+      "category": "building",
+      "displayName": "Town Hall",
+      "gameMeaning": "Required building art for building.town_hall.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/buildings/00_common_building_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "building_style_master"
+      ],
+      "output": {
+        "kind": "single",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "tileSize": 16,
+        "scalePreview": 3,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "states": [
+        "normal",
+        "active",
+        "inactive",
+        "under_construction",
+        "unverified",
+        "broken",
+        "approved",
+        "warning"
+      ],
+      "tags": [
+        "building",
+        "town_hall"
+      ],
+      "constraints": {
+        "must": [
+          "readable entrance",
+          "tile-aligned footprint",
+          "stable architecture across states"
+        ],
+        "mustNot": [
+          "obscured footprint",
+          "labels",
+          "baked scene background"
+        ]
+      },
+      "reviewChecklist": [
+        "入口が読めるか",
+        "用途がシルエットで分かるか",
+        "状態差分で建物形状がぶれていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "building_exterior",
+        "semanticKind": "town_hall",
+        "drawLayer": "building",
+        "runtimeBindings": [
+          {
+            "vocabulary": "FACILITY_KINDS",
+            "id": "town_hall"
+          }
+        ],
+        "coverage": "exact"
+      }
+    },
+    {
+      "id": "building.dock",
+      "category": "building",
+      "displayName": "Dock",
+      "gameMeaning": "Required building art for building.dock.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/buildings/00_common_building_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "building_style_master"
+      ],
+      "output": {
+        "kind": "single",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "tileSize": 16,
+        "scalePreview": 3,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "states": [
+        "normal",
+        "active",
+        "inactive",
+        "under_construction",
+        "unverified",
+        "broken",
+        "approved",
+        "warning"
+      ],
+      "tags": [
+        "building",
+        "dock"
+      ],
+      "constraints": {
+        "must": [
+          "readable entrance",
+          "tile-aligned footprint",
+          "stable architecture across states"
+        ],
+        "mustNot": [
+          "obscured footprint",
+          "labels",
+          "baked scene background"
+        ]
+      },
+      "reviewChecklist": [
+        "入口が読めるか",
+        "用途がシルエットで分かるか",
+        "状態差分で建物形状がぶれていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "building_exterior",
+        "semanticKind": "dock",
+        "drawLayer": "building",
+        "runtimeBindings": [
+          {
+            "vocabulary": "FACILITY_KINDS",
+            "id": "dock"
+          }
+        ],
+        "coverage": "exact"
+      }
+    },
+    {
+      "id": "building.workshop",
+      "category": "building",
+      "displayName": "Workshop",
+      "gameMeaning": "Required building art for building.workshop.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/buildings/00_common_building_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "building_style_master"
+      ],
+      "output": {
+        "kind": "single",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "tileSize": 16,
+        "scalePreview": 3,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "states": [
+        "normal",
+        "active",
+        "inactive",
+        "under_construction",
+        "unverified",
+        "broken",
+        "approved",
+        "warning"
+      ],
+      "tags": [
+        "building",
+        "workshop"
+      ],
+      "constraints": {
+        "must": [
+          "readable entrance",
+          "tile-aligned footprint",
+          "stable architecture across states"
+        ],
+        "mustNot": [
+          "obscured footprint",
+          "labels",
+          "baked scene background"
+        ]
+      },
+      "reviewChecklist": [
+        "入口が読めるか",
+        "用途がシルエットで分かるか",
+        "状態差分で建物形状がぶれていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "building_exterior",
+        "semanticKind": "workshop",
+        "drawLayer": "building",
+        "runtimeBindings": [
+          {
+            "vocabulary": "FACILITY_KINDS",
+            "id": "workshop"
+          }
+        ],
+        "coverage": "exact"
+      }
+    },
+    {
+      "id": "building.dojo",
+      "category": "building",
+      "displayName": "Dojo",
+      "gameMeaning": "Required building art for building.dojo.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/buildings/00_common_building_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "building_style_master"
+      ],
+      "output": {
+        "kind": "single",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "tileSize": 16,
+        "scalePreview": 3,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "states": [
+        "normal",
+        "active",
+        "inactive",
+        "under_construction",
+        "unverified",
+        "broken",
+        "approved",
+        "warning"
+      ],
+      "tags": [
+        "building",
+        "dojo"
+      ],
+      "constraints": {
+        "must": [
+          "readable entrance",
+          "tile-aligned footprint",
+          "stable architecture across states"
+        ],
+        "mustNot": [
+          "obscured footprint",
+          "labels",
+          "baked scene background"
+        ]
+      },
+      "reviewChecklist": [
+        "入口が読めるか",
+        "用途がシルエットで分かるか",
+        "状態差分で建物形状がぶれていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "building_exterior",
+        "semanticKind": "dojo",
+        "drawLayer": "building",
+        "runtimeBindings": [
+          {
+            "vocabulary": "FACILITY_KINDS",
+            "id": "dojo"
+          }
+        ],
+        "coverage": "exact"
+      }
+    },
+    {
+      "id": "building.watchtower",
+      "category": "building",
+      "displayName": "Watchtower",
+      "gameMeaning": "Required building art for building.watchtower.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/buildings/00_common_building_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "building_style_master"
+      ],
+      "output": {
+        "kind": "single",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "tileSize": 16,
+        "scalePreview": 3,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "states": [
+        "normal",
+        "active",
+        "inactive",
+        "under_construction",
+        "unverified",
+        "broken",
+        "approved",
+        "warning"
+      ],
+      "tags": [
+        "building",
+        "watchtower"
+      ],
+      "constraints": {
+        "must": [
+          "readable entrance",
+          "tile-aligned footprint",
+          "stable architecture across states"
+        ],
+        "mustNot": [
+          "obscured footprint",
+          "labels",
+          "baked scene background"
+        ]
+      },
+      "reviewChecklist": [
+        "入口が読めるか",
+        "用途がシルエットで分かるか",
+        "状態差分で建物形状がぶれていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "building_exterior",
+        "semanticKind": "watchtower",
+        "drawLayer": "building",
+        "runtimeBindings": [
+          {
+            "vocabulary": "FACILITY_KINDS",
+            "id": "watchtower"
+          }
+        ],
+        "coverage": "exact"
+      }
+    },
+    {
+      "id": "building.warehouse",
+      "category": "building",
+      "displayName": "Warehouse",
+      "gameMeaning": "Required building art for building.warehouse.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/buildings/00_common_building_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "building_style_master"
+      ],
+      "output": {
+        "kind": "single",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "tileSize": 16,
+        "scalePreview": 3,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "states": [
+        "normal",
+        "active",
+        "inactive",
+        "under_construction",
+        "unverified",
+        "broken",
+        "approved",
+        "warning"
+      ],
+      "tags": [
+        "building",
+        "warehouse"
+      ],
+      "constraints": {
+        "must": [
+          "readable entrance",
+          "tile-aligned footprint",
+          "stable architecture across states"
+        ],
+        "mustNot": [
+          "obscured footprint",
+          "labels",
+          "baked scene background"
+        ]
+      },
+      "reviewChecklist": [
+        "入口が読めるか",
+        "用途がシルエットで分かるか",
+        "状態差分で建物形状がぶれていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "building_exterior",
+        "semanticKind": "warehouse",
+        "drawLayer": "building",
+        "runtimeBindings": [
+          {
+            "vocabulary": "FACILITY_KINDS",
+            "id": "warehouse"
+          }
+        ],
+        "coverage": "exact"
+      }
+    },
+    {
+      "id": "building.well",
+      "category": "building",
+      "displayName": "Well",
+      "gameMeaning": "Required building art for building.well.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/buildings/00_common_building_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "building_style_master"
+      ],
+      "output": {
+        "kind": "single",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "tileSize": 16,
+        "scalePreview": 3,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "states": [
+        "normal",
+        "active",
+        "inactive",
+        "under_construction",
+        "unverified",
+        "broken",
+        "approved",
+        "warning"
+      ],
+      "tags": [
+        "building",
+        "well"
+      ],
+      "constraints": {
+        "must": [
+          "readable entrance",
+          "tile-aligned footprint",
+          "stable architecture across states"
+        ],
+        "mustNot": [
+          "obscured footprint",
+          "labels",
+          "baked scene background"
+        ]
+      },
+      "reviewChecklist": [
+        "入口が読めるか",
+        "用途がシルエットで分かるか",
+        "状態差分で建物形状がぶれていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "building_exterior",
+        "semanticKind": "well",
+        "drawLayer": "building",
+        "runtimeBindings": [
+          {
+            "vocabulary": "FACILITY_KINDS",
+            "id": "well"
+          }
+        ],
+        "coverage": "exact"
+      }
+    },
+    {
+      "id": "building.gate",
+      "category": "building",
+      "displayName": "Gate",
+      "gameMeaning": "Required building art for building.gate.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/buildings/00_common_building_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "building_style_master"
+      ],
+      "output": {
+        "kind": "single",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "tileSize": 16,
+        "scalePreview": 3,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "states": [
+        "normal",
+        "active",
+        "inactive",
+        "under_construction",
+        "unverified",
+        "broken",
+        "approved",
+        "warning"
+      ],
+      "tags": [
+        "building",
+        "gate"
+      ],
+      "constraints": {
+        "must": [
+          "readable entrance",
+          "tile-aligned footprint",
+          "stable architecture across states"
+        ],
+        "mustNot": [
+          "obscured footprint",
+          "labels",
+          "baked scene background"
+        ]
+      },
+      "reviewChecklist": [
+        "入口が読めるか",
+        "用途がシルエットで分かるか",
+        "状態差分で建物形状がぶれていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "building_exterior",
+        "semanticKind": "gate",
+        "drawLayer": "building",
+        "runtimeBindings": [
+          {
+            "vocabulary": "FACILITY_KINDS",
+            "id": "gate"
+          }
+        ],
+        "coverage": "exact"
+      }
+    },
+    {
+      "id": "building.house.small",
+      "category": "building",
+      "displayName": "House Small",
+      "gameMeaning": "Required building art for building.house.small.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/buildings/00_common_building_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "building_style_master"
+      ],
+      "output": {
+        "kind": "single",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "tileSize": 16,
+        "scalePreview": 3,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "states": [
+        "normal",
+        "active",
+        "inactive",
+        "under_construction",
+        "unverified",
+        "broken",
+        "approved",
+        "warning"
+      ],
+      "tags": [
+        "building",
+        "house",
+        "small"
+      ],
+      "constraints": {
+        "must": [
+          "readable entrance",
+          "tile-aligned footprint",
+          "stable architecture across states"
+        ],
+        "mustNot": [
+          "obscured footprint",
+          "labels",
+          "baked scene background"
+        ]
+      },
+      "reviewChecklist": [
+        "入口が読めるか",
+        "用途がシルエットで分かるか",
+        "状態差分で建物形状がぶれていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "building_exterior",
+        "semanticKind": "house_small",
+        "drawLayer": "building",
+        "runtimeBindings": [
+          {
+            "vocabulary": "FACILITY_KINDS",
+            "id": "house"
+          }
+        ],
+        "coverage": "mapped"
+      }
+    },
+    {
+      "id": "building.house.medium",
+      "category": "building",
+      "displayName": "House Medium",
+      "gameMeaning": "Required building art for building.house.medium.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/buildings/00_common_building_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "building_style_master"
+      ],
+      "output": {
+        "kind": "single",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "tileSize": 16,
+        "scalePreview": 3,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "states": [
+        "normal",
+        "active",
+        "inactive",
+        "under_construction",
+        "unverified",
+        "broken",
+        "approved",
+        "warning"
+      ],
+      "tags": [
+        "building",
+        "house",
+        "medium"
+      ],
+      "constraints": {
+        "must": [
+          "readable entrance",
+          "tile-aligned footprint",
+          "stable architecture across states"
+        ],
+        "mustNot": [
+          "obscured footprint",
+          "labels",
+          "baked scene background"
+        ]
+      },
+      "reviewChecklist": [
+        "入口が読めるか",
+        "用途がシルエットで分かるか",
+        "状態差分で建物形状がぶれていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "building_exterior",
+        "semanticKind": "house_medium",
+        "drawLayer": "building",
+        "runtimeBindings": [
+          {
+            "vocabulary": "FACILITY_KINDS",
+            "id": "house"
+          }
+        ],
+        "coverage": "mapped"
+      }
+    },
+    {
+      "id": "building.shop",
+      "category": "building",
+      "displayName": "Shop",
+      "gameMeaning": "Required building art for building.shop.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/buildings/00_common_building_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "building_style_master"
+      ],
+      "output": {
+        "kind": "single",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "tileSize": 16,
+        "scalePreview": 3,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "states": [
+        "normal",
+        "active",
+        "inactive",
+        "under_construction",
+        "unverified",
+        "broken",
+        "approved",
+        "warning"
+      ],
+      "tags": [
+        "building",
+        "shop"
+      ],
+      "constraints": {
+        "must": [
+          "readable entrance",
+          "tile-aligned footprint",
+          "stable architecture across states"
+        ],
+        "mustNot": [
+          "obscured footprint",
+          "labels",
+          "baked scene background"
+        ]
+      },
+      "reviewChecklist": [
+        "入口が読めるか",
+        "用途がシルエットで分かるか",
+        "状態差分で建物形状がぶれていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "building_exterior",
+        "semanticKind": "shop",
+        "drawLayer": "building",
+        "runtimeBindings": [
+          {
+            "vocabulary": "FACILITY_KINDS",
+            "id": "shop"
+          }
+        ],
+        "coverage": "exact"
+      }
+    },
+    {
+      "id": "building.hut",
+      "category": "building",
+      "displayName": "Hut",
+      "gameMeaning": "Required building art for building.hut.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/buildings/00_common_building_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "building_style_master"
+      ],
+      "output": {
+        "kind": "single",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "tileSize": 16,
+        "scalePreview": 3,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "states": [
+        "normal",
+        "active",
+        "inactive",
+        "under_construction",
+        "unverified",
+        "broken",
+        "approved",
+        "warning"
+      ],
+      "tags": [
+        "building",
+        "hut"
+      ],
+      "constraints": {
+        "must": [
+          "readable entrance",
+          "tile-aligned footprint",
+          "stable architecture across states"
+        ],
+        "mustNot": [
+          "obscured footprint",
+          "labels",
+          "baked scene background"
+        ]
+      },
+      "reviewChecklist": [
+        "入口が読めるか",
+        "用途がシルエットで分かるか",
+        "状態差分で建物形状がぶれていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "building_exterior",
+        "semanticKind": "hut",
+        "drawLayer": "building",
+        "runtimeBindings": [
+          {
+            "vocabulary": "FACILITY_KINDS",
+            "id": "house"
+          }
+        ],
+        "coverage": "mapped"
+      }
+    },
+    {
+      "id": "building.ruin",
+      "category": "building",
+      "displayName": "Ruin",
+      "gameMeaning": "Required building art for building.ruin.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/buildings/00_common_building_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "building_style_master"
+      ],
+      "output": {
+        "kind": "single",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "tileSize": 16,
+        "scalePreview": 3,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "states": [
+        "normal",
+        "active",
+        "inactive",
+        "under_construction",
+        "unverified",
+        "broken",
+        "approved",
+        "warning"
+      ],
+      "tags": [
+        "building",
+        "ruin"
+      ],
+      "constraints": {
+        "must": [
+          "readable entrance",
+          "tile-aligned footprint",
+          "stable architecture across states"
+        ],
+        "mustNot": [
+          "obscured footprint",
+          "labels",
+          "baked scene background"
+        ]
+      },
+      "reviewChecklist": [
+        "入口が読めるか",
+        "用途がシルエットで分かるか",
+        "状態差分で建物形状がぶれていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "building_exterior",
+        "semanticKind": "ruin",
+        "drawLayer": "building",
+        "runtimeBindings": [
+          {
+            "vocabulary": "FACILITY_KINDS",
+            "id": "ruin"
+          }
+        ],
+        "coverage": "exact"
+      }
+    },
+    {
+      "id": "building.old_house",
+      "category": "building",
+      "displayName": "Old House",
+      "gameMeaning": "Required building art for building.old_house.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/buildings/00_common_building_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "building_style_master"
+      ],
+      "output": {
+        "kind": "single",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "tileSize": 16,
+        "scalePreview": 3,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "states": [
+        "normal",
+        "active",
+        "inactive",
+        "under_construction",
+        "unverified",
+        "broken",
+        "approved",
+        "warning"
+      ],
+      "tags": [
+        "building",
+        "old_house"
+      ],
+      "constraints": {
+        "must": [
+          "readable entrance",
+          "tile-aligned footprint",
+          "stable architecture across states"
+        ],
+        "mustNot": [
+          "obscured footprint",
+          "labels",
+          "baked scene background"
+        ]
+      },
+      "reviewChecklist": [
+        "入口が読めるか",
+        "用途がシルエットで分かるか",
+        "状態差分で建物形状がぶれていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "building_exterior",
+        "semanticKind": "old_house",
+        "drawLayer": "building",
+        "runtimeBindings": [
+          {
+            "vocabulary": "FACILITY_KINDS",
+            "id": "house"
+          }
+        ],
+        "coverage": "mapped"
+      }
+    }
+  ]
+}

@@ -1,0 +1,440 @@
+{
+  "$schema": "../../schemas/asset-catalog.schema.json",
+  "schemaVersion": 1,
+  "category": "ui",
+  "assets": [
+    {
+      "id": "ui.dialogue_window",
+      "category": "ui",
+      "displayName": "Dialogue Window",
+      "gameMeaning": "Required ui art for ui.dialogue_window.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/ui/00_common_ui_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "ui_style_master"
+      ],
+      "output": {
+        "kind": "ui-sheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "scalePreview": 3,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "tags": [
+        "ui",
+        "dialogue_window"
+      ],
+      "constraints": {
+        "must": [
+          "crisp readable border",
+          "empty content space where applicable"
+        ],
+        "mustNot": [
+          "repository-specific text",
+          "watermark",
+          "soft blur"
+        ]
+      },
+      "reviewChecklist": [
+        "実寸で読めるか",
+        "本文領域を邪魔しないか",
+        "既存UIの役割と一致するか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "ui",
+        "semanticKind": "dialogue_window",
+        "drawLayer": "ui",
+        "runtimeBindings": [],
+        "coverage": "future"
+      }
+    },
+    {
+      "id": "ui.choice_window",
+      "category": "ui",
+      "displayName": "Choice Window",
+      "gameMeaning": "Required ui art for ui.choice_window.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/ui/00_common_ui_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "ui_style_master"
+      ],
+      "output": {
+        "kind": "ui-sheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "scalePreview": 3,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "tags": [
+        "ui",
+        "choice_window"
+      ],
+      "constraints": {
+        "must": [
+          "crisp readable border",
+          "empty content space where applicable"
+        ],
+        "mustNot": [
+          "repository-specific text",
+          "watermark",
+          "soft blur"
+        ]
+      },
+      "reviewChecklist": [
+        "実寸で読めるか",
+        "本文領域を邪魔しないか",
+        "既存UIの役割と一致するか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "ui",
+        "semanticKind": "choice_window",
+        "drawLayer": "ui",
+        "runtimeBindings": [],
+        "coverage": "future"
+      }
+    },
+    {
+      "id": "ui.small_menu",
+      "category": "ui",
+      "displayName": "Small Menu",
+      "gameMeaning": "Required ui art for ui.small_menu.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/ui/00_common_ui_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "ui_style_master"
+      ],
+      "output": {
+        "kind": "ui-sheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "scalePreview": 3,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "tags": [
+        "ui",
+        "small_menu"
+      ],
+      "constraints": {
+        "must": [
+          "crisp readable border",
+          "empty content space where applicable"
+        ],
+        "mustNot": [
+          "repository-specific text",
+          "watermark",
+          "soft blur"
+        ]
+      },
+      "reviewChecklist": [
+        "実寸で読めるか",
+        "本文領域を邪魔しないか",
+        "既存UIの役割と一致するか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "ui",
+        "semanticKind": "small_menu",
+        "drawLayer": "ui",
+        "runtimeBindings": [],
+        "coverage": "future"
+      }
+    },
+    {
+      "id": "ui.guild_roster",
+      "category": "ui",
+      "displayName": "Guild Roster",
+      "gameMeaning": "Required ui art for ui.guild_roster.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/ui/00_common_ui_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "ui_style_master"
+      ],
+      "output": {
+        "kind": "ui-sheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "scalePreview": 3,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "tags": [
+        "ui",
+        "guild_roster"
+      ],
+      "constraints": {
+        "must": [
+          "crisp readable border",
+          "empty content space where applicable"
+        ],
+        "mustNot": [
+          "repository-specific text",
+          "watermark",
+          "soft blur"
+        ]
+      },
+      "reviewChecklist": [
+        "実寸で読めるか",
+        "本文領域を邪魔しないか",
+        "既存UIの役割と一致するか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "ui",
+        "semanticKind": "guild_roster",
+        "drawLayer": "ui",
+        "runtimeBindings": [],
+        "coverage": "future"
+      }
+    },
+    {
+      "id": "ui.town_hall_report",
+      "category": "ui",
+      "displayName": "Town Hall Report",
+      "gameMeaning": "Required ui art for ui.town_hall_report.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/ui/00_common_ui_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "ui_style_master"
+      ],
+      "output": {
+        "kind": "ui-sheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "scalePreview": 3,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "tags": [
+        "ui",
+        "town_hall_report"
+      ],
+      "constraints": {
+        "must": [
+          "crisp readable border",
+          "empty content space where applicable"
+        ],
+        "mustNot": [
+          "repository-specific text",
+          "watermark",
+          "soft blur"
+        ]
+      },
+      "reviewChecklist": [
+        "実寸で読めるか",
+        "本文領域を邪魔しないか",
+        "既存UIの役割と一致するか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "ui",
+        "semanticKind": "town_hall_report",
+        "drawLayer": "ui",
+        "runtimeBindings": [],
+        "coverage": "future"
+      }
+    },
+    {
+      "id": "ui.status_badges",
+      "category": "ui",
+      "displayName": "Status Badges",
+      "gameMeaning": "Required ui art for ui.status_badges.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/ui/00_common_ui_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "ui_style_master"
+      ],
+      "output": {
+        "kind": "ui-sheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "scalePreview": 3,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "tags": [
+        "ui",
+        "status_badges"
+      ],
+      "constraints": {
+        "must": [
+          "crisp readable border",
+          "empty content space where applicable"
+        ],
+        "mustNot": [
+          "repository-specific text",
+          "watermark",
+          "soft blur"
+        ]
+      },
+      "reviewChecklist": [
+        "実寸で読めるか",
+        "本文領域を邪魔しないか",
+        "既存UIの役割と一致するか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "ui",
+        "semanticKind": "status_badges",
+        "drawLayer": "ui",
+        "runtimeBindings": [],
+        "coverage": "future"
+      }
+    },
+    {
+      "id": "ui.cursor",
+      "category": "ui",
+      "displayName": "Cursor",
+      "gameMeaning": "Required ui art for ui.cursor.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/ui/00_common_ui_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "ui_style_master"
+      ],
+      "output": {
+        "kind": "ui-sheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "scalePreview": 3,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "tags": [
+        "ui",
+        "cursor"
+      ],
+      "constraints": {
+        "must": [
+          "crisp readable border",
+          "empty content space where applicable"
+        ],
+        "mustNot": [
+          "repository-specific text",
+          "watermark",
+          "soft blur"
+        ]
+      },
+      "reviewChecklist": [
+        "実寸で読めるか",
+        "本文領域を邪魔しないか",
+        "既存UIの役割と一致するか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "ui",
+        "semanticKind": "cursor",
+        "drawLayer": "ui",
+        "runtimeBindings": [],
+        "coverage": "future"
+      }
+    },
+    {
+      "id": "ui.icons.facilities",
+      "category": "ui",
+      "displayName": "Icons Facilities",
+      "gameMeaning": "Required ui art for ui.icons.facilities.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/ui/00_common_ui_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "ui_style_master"
+      ],
+      "output": {
+        "kind": "ui-sheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "scalePreview": 3,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "tags": [
+        "ui",
+        "icons",
+        "facilities"
+      ],
+      "constraints": {
+        "must": [
+          "crisp readable border",
+          "empty content space where applicable"
+        ],
+        "mustNot": [
+          "repository-specific text",
+          "watermark",
+          "soft blur"
+        ]
+      },
+      "reviewChecklist": [
+        "実寸で読めるか",
+        "本文領域を邪魔しないか",
+        "既存UIの役割と一致するか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "ui",
+        "semanticKind": "icons.facilities",
+        "drawLayer": "ui",
+        "runtimeBindings": [],
+        "coverage": "future"
+      }
+    }
+  ]
+}

@@ -1,0 +1,511 @@
+{
+  "$schema": "../../schemas/asset-catalog.schema.json",
+  "schemaVersion": 1,
+  "category": "effect",
+  "assets": [
+    {
+      "id": "effect.window_light",
+      "category": "effect",
+      "displayName": "Window Light",
+      "gameMeaning": "Required effect art for effect.window_light.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/effects/00_common_effect_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "effect_style_master"
+      ],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 16,
+          "height": 16
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "frames": [
+          "frame_1",
+          "frame_2",
+          "frame_3",
+          "frame_4"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 1,
+          "frameWidth": 16,
+          "frameHeight": 16
+        }
+      },
+      "tags": [
+        "effect",
+        "window_light"
+      ],
+      "constraints": {
+        "must": [
+          "stable frame bounds",
+          "readable short animation"
+        ],
+        "mustNot": [
+          "soft blur",
+          "labels",
+          "baked scene background"
+        ]
+      },
+      "reviewChecklist": [
+        "フレーム間で位置がぶれないか",
+        "効果の意味が読めるか",
+        "背景が透過されているか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "effect",
+        "semanticKind": "window_light",
+        "drawLayer": "effect",
+        "runtimeBindings": [],
+        "coverage": "future"
+      }
+    },
+    {
+      "id": "effect.lantern_light",
+      "category": "effect",
+      "displayName": "Lantern Light",
+      "gameMeaning": "Required effect art for effect.lantern_light.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/effects/00_common_effect_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "effect_style_master"
+      ],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 16,
+          "height": 16
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "frames": [
+          "frame_1",
+          "frame_2",
+          "frame_3",
+          "frame_4"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 1,
+          "frameWidth": 16,
+          "frameHeight": 16
+        }
+      },
+      "tags": [
+        "effect",
+        "lantern_light"
+      ],
+      "constraints": {
+        "must": [
+          "stable frame bounds",
+          "readable short animation"
+        ],
+        "mustNot": [
+          "soft blur",
+          "labels",
+          "baked scene background"
+        ]
+      },
+      "reviewChecklist": [
+        "フレーム間で位置がぶれないか",
+        "効果の意味が読めるか",
+        "背景が透過されているか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "effect",
+        "semanticKind": "lantern_light",
+        "drawLayer": "effect",
+        "runtimeBindings": [],
+        "coverage": "future"
+      }
+    },
+    {
+      "id": "effect.warning_flash",
+      "category": "effect",
+      "displayName": "Warning Flash",
+      "gameMeaning": "Required effect art for effect.warning_flash.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/effects/00_common_effect_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "effect_style_master"
+      ],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 16,
+          "height": 16
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "frames": [
+          "frame_1",
+          "frame_2",
+          "frame_3",
+          "frame_4"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 1,
+          "frameWidth": 16,
+          "frameHeight": 16
+        }
+      },
+      "tags": [
+        "effect",
+        "warning_flash"
+      ],
+      "constraints": {
+        "must": [
+          "stable frame bounds",
+          "readable short animation"
+        ],
+        "mustNot": [
+          "soft blur",
+          "labels",
+          "baked scene background"
+        ]
+      },
+      "reviewChecklist": [
+        "フレーム間で位置がぶれないか",
+        "効果の意味が読めるか",
+        "背景が透過されているか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "effect",
+        "semanticKind": "warning_flash",
+        "drawLayer": "effect",
+        "runtimeBindings": [],
+        "coverage": "future"
+      }
+    },
+    {
+      "id": "effect.construction_dust",
+      "category": "effect",
+      "displayName": "Construction Dust",
+      "gameMeaning": "Required effect art for effect.construction_dust.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/effects/00_common_effect_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "effect_style_master"
+      ],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 16,
+          "height": 16
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "frames": [
+          "frame_1",
+          "frame_2",
+          "frame_3",
+          "frame_4"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 1,
+          "frameWidth": 16,
+          "frameHeight": 16
+        }
+      },
+      "tags": [
+        "effect",
+        "construction_dust"
+      ],
+      "constraints": {
+        "must": [
+          "stable frame bounds",
+          "readable short animation"
+        ],
+        "mustNot": [
+          "soft blur",
+          "labels",
+          "baked scene background"
+        ]
+      },
+      "reviewChecklist": [
+        "フレーム間で位置がぶれないか",
+        "効果の意味が読めるか",
+        "背景が透過されているか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "effect",
+        "semanticKind": "construction_dust",
+        "drawLayer": "effect",
+        "runtimeBindings": [],
+        "coverage": "future"
+      }
+    },
+    {
+      "id": "effect.water_ripple",
+      "category": "effect",
+      "displayName": "Water Ripple",
+      "gameMeaning": "Required effect art for effect.water_ripple.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/effects/00_common_effect_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "effect_style_master"
+      ],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 16,
+          "height": 16
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "frames": [
+          "frame_1",
+          "frame_2",
+          "frame_3",
+          "frame_4"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 1,
+          "frameWidth": 16,
+          "frameHeight": 16
+        }
+      },
+      "tags": [
+        "effect",
+        "water_ripple"
+      ],
+      "constraints": {
+        "must": [
+          "stable frame bounds",
+          "readable short animation"
+        ],
+        "mustNot": [
+          "soft blur",
+          "labels",
+          "baked scene background"
+        ]
+      },
+      "reviewChecklist": [
+        "フレーム間で位置がぶれないか",
+        "効果の意味が読めるか",
+        "背景が透過されているか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "effect",
+        "semanticKind": "water_ripple",
+        "drawLayer": "effect",
+        "runtimeBindings": [],
+        "coverage": "future"
+      }
+    },
+    {
+      "id": "effect.ship_departure",
+      "category": "effect",
+      "displayName": "Ship Departure",
+      "gameMeaning": "Required effect art for effect.ship_departure.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/effects/00_common_effect_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "effect_style_master"
+      ],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 16,
+          "height": 16
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "frames": [
+          "frame_1",
+          "frame_2",
+          "frame_3",
+          "frame_4"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 1,
+          "frameWidth": 16,
+          "frameHeight": 16
+        }
+      },
+      "tags": [
+        "effect",
+        "ship_departure"
+      ],
+      "constraints": {
+        "must": [
+          "stable frame bounds",
+          "readable short animation"
+        ],
+        "mustNot": [
+          "soft blur",
+          "labels",
+          "baked scene background"
+        ]
+      },
+      "reviewChecklist": [
+        "フレーム間で位置がぶれないか",
+        "効果の意味が読めるか",
+        "背景が透過されているか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "effect",
+        "semanticKind": "ship_departure",
+        "drawLayer": "effect",
+        "runtimeBindings": [],
+        "coverage": "future"
+      }
+    },
+    {
+      "id": "effect.resident_walk_marker",
+      "category": "effect",
+      "displayName": "Resident Walk Marker",
+      "gameMeaning": "Required effect art for effect.resident_walk_marker.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/effects/00_common_effect_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "effect_style_master"
+      ],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 16,
+          "height": 16
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "frames": [
+          "frame_1",
+          "frame_2",
+          "frame_3",
+          "frame_4"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 1,
+          "frameWidth": 16,
+          "frameHeight": 16
+        }
+      },
+      "tags": [
+        "effect",
+        "resident_walk_marker"
+      ],
+      "constraints": {
+        "must": [
+          "stable frame bounds",
+          "readable short animation"
+        ],
+        "mustNot": [
+          "soft blur",
+          "labels",
+          "baked scene background"
+        ]
+      },
+      "reviewChecklist": [
+        "フレーム間で位置がぶれないか",
+        "効果の意味が読めるか",
+        "背景が透過されているか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "effect",
+        "semanticKind": "resident_walk_marker",
+        "drawLayer": "effect",
+        "runtimeBindings": [],
+        "coverage": "future"
+      }
+    }
+  ]
+}

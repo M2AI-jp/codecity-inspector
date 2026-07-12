@@ -1,0 +1,837 @@
+{
+  "schemaVersion": 1,
+  "assets": [
+    {
+      "assetId": "character.player",
+      "category": "character",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "character.innkeeper",
+      "category": "character",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "character.tavern_master",
+      "category": "character",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "character.town_clerk",
+      "category": "character",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "character.workshop_artisan",
+      "category": "character",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "character.dojo_inspector",
+      "category": "character",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "character.watchtower_guard",
+      "category": "character",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "character.dock_ferryman",
+      "category": "character",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "character.warehouse_keeper",
+      "category": "character",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "character.external_contractor_agent",
+      "category": "character",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "character.llm_librarian",
+      "category": "character",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "character.llm_bard",
+      "category": "character",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "character.llm_counselor",
+      "category": "character",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "character.treasurer",
+      "category": "character",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "character.mail_carrier",
+      "category": "character",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "character.gatekeeper",
+      "category": "character",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "character.mob.townsfolk_male",
+      "category": "character",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "character.mob.townsfolk_female",
+      "category": "character",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "character.mob.elder",
+      "category": "character",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "character.mob.child",
+      "category": "character",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "character.mob.traveler",
+      "category": "character",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "character.mob.merchant",
+      "category": "character",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "character.mob.artisan",
+      "category": "character",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "character.mob.tavern_guest",
+      "category": "character",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "character.mob.inn_guest",
+      "category": "character",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "character.mob.dock_worker",
+      "category": "character",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "character.mob.delivery_person",
+      "category": "character",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "building.inn",
+      "category": "building",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "building.pub",
+      "category": "building",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "building.town_hall",
+      "category": "building",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "building.dock",
+      "category": "building",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "building.workshop",
+      "category": "building",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "building.dojo",
+      "category": "building",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "building.watchtower",
+      "category": "building",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "building.warehouse",
+      "category": "building",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "building.well",
+      "category": "building",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "building.gate",
+      "category": "building",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "building.house.small",
+      "category": "building",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "building.house.medium",
+      "category": "building",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "building.shop",
+      "category": "building",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "building.hut",
+      "category": "building",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "building.ruin",
+      "category": "building",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "building.old_house",
+      "category": "building",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "field.cobblestone",
+      "category": "field",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "field.dirt_path",
+      "category": "field",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "field.grass",
+      "category": "field",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "field.snow",
+      "category": "field",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "field.water",
+      "category": "field",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "field.river_edge",
+      "category": "field",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "field.bridge_stone",
+      "category": "field",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "field.bridge_wood",
+      "category": "field",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "field.stairs_stone",
+      "category": "field",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "field.cliff",
+      "category": "field",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "field.wall_stone",
+      "category": "field",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "field.fence_wood",
+      "category": "field",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "field.dock_floor",
+      "category": "field",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "field.plaza",
+      "category": "field",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "field.road_corner",
+      "category": "field",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "field.road_edge",
+      "category": "field",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "field.road_intersection",
+      "category": "field",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "object.barrel",
+      "category": "object",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "object.crate",
+      "category": "object",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "object.stacked_crates",
+      "category": "object",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "object.cart",
+      "category": "object",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "object.lamp",
+      "category": "object",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "object.streetlight",
+      "category": "object",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "object.signboard",
+      "category": "object",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "object.notice_board",
+      "category": "object",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "object.guild_roster_stand",
+      "category": "object",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "object.menu_board",
+      "category": "object",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "object.well",
+      "category": "object",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "object.bench",
+      "category": "object",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "object.flowerbed",
+      "category": "object",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "object.grass_patch",
+      "category": "object",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "object.snow_pile",
+      "category": "object",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "object.firewood",
+      "category": "object",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "object.rope",
+      "category": "object",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "object.construction_sign",
+      "category": "object",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "object.unverified_tag",
+      "category": "object",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "object.warning_stake",
+      "category": "object",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "object.red_flag",
+      "category": "object",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "object.yellow_flag",
+      "category": "object",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "object.blue_flag",
+      "category": "object",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "object.harbor_cargo",
+      "category": "object",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "object.ledger",
+      "category": "object",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "object.inspection_table",
+      "category": "object",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "object.tool_table",
+      "category": "object",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "object.smoke_white",
+      "category": "object",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "object.smoke_black",
+      "category": "object",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "ui.dialogue_window",
+      "category": "ui",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "ui.choice_window",
+      "category": "ui",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "ui.small_menu",
+      "category": "ui",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "ui.guild_roster",
+      "category": "ui",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "ui.town_hall_report",
+      "category": "ui",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "ui.status_badges",
+      "category": "ui",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "ui.cursor",
+      "category": "ui",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "ui.icons.facilities",
+      "category": "ui",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "effect.window_light",
+      "category": "effect",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "effect.lantern_light",
+      "category": "effect",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "effect.warning_flash",
+      "category": "effect",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "effect.construction_dust",
+      "category": "effect",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "effect.water_ripple",
+      "category": "effect",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "effect.ship_departure",
+      "category": "effect",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "effect.resident_walk_marker",
+      "category": "effect",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    }
+  ]
+}

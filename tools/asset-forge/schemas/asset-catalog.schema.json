@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://codecity-inspector.local/asset-forge/asset-catalog.schema.json",
+  "title": "AssetCatalog",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "category", "assets"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": 1 },
+    "category": {
+      "enum": ["character", "building", "field", "object", "ui", "effect"]
+    },
+    "assets": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "asset-definition.schema.json" }
+    }
+  }
+}

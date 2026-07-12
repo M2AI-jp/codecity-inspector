@@ -1,0 +1,27 @@
+{
+  "name": "@codecity-inspector/asset-forge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local-first game asset workshop for CodeCity Inspector; no paid API provider.",
+  "scripts": {
+    "check": "node --test",
+    "test": "node --test",
+    "dry-run": "node src/cli.mjs generate --asset character.tavern_master --provider mock --dry-run",
+    "generate": "node src/cli.mjs generate",
+    "batch": "node src/cli.mjs batch",
+    "make-job": "node src/cli.mjs make-job",
+    "import": "node src/cli.mjs import",
+    "validate": "node src/cli.mjs validate",
+    "process": "node src/cli.mjs process",
+    "promote": "node src/cli.mjs promote",
+    "reject": "node src/cli.mjs reject",
+    "export": "node src/cli.mjs export",
+    "list": "node src/cli.mjs list",
+    "doctor": "node src/cli.mjs doctor"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}

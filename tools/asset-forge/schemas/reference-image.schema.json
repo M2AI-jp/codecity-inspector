@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://codecity-inspector.local/asset-forge/reference-image.schema.json",
+  "title": "ReferenceImageManifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "references"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "references": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id", "path", "status", "category", "sha256", "providedBy", "licenseNote"
+        ],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9_]+(?:\\.[a-z0-9_]+)*$" },
+          "path": { "type": "string", "pattern": "^references/(pending|approved)/[a-zA-Z0-9._/-]+$" },
+          "status": { "enum": ["missing", "pending", "approved", "rejected"] },
+          "category": { "enum": ["style", "character", "building", "field", "object", "ui"] },
+          "sha256": {
+            "oneOf": [
+              { "type": "null" },
+              { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+            ]
+          },
+          "providedBy": { "const": "human" },
+          "licenseNote": { "type": "string", "minLength": 1 },
+          "notes": { "type": "string" }
+        }
+      }
+    }
+  }
+}

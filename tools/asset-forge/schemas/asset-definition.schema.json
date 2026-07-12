@@ -1,0 +1,166 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://codecity-inspector.local/asset-forge/asset-definition.schema.json",
+  "title": "AssetDefinition",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id", "category", "displayName", "gameMeaning", "required", "promptFiles",
+    "defaultReferenceIds", "output", "pixelArt", "tags", "constraints",
+    "reviewChecklist", "gameBinding"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^(character|building|field|object|ui|effect)\\.[a-z0-9_]+(?:\\.[a-z0-9_]+)*$"
+    },
+    "category": {
+      "enum": ["character", "building", "field", "object", "ui", "effect"]
+    },
+    "displayName": { "type": "string", "minLength": 1 },
+    "gameMeaning": { "type": "string", "minLength": 1 },
+    "required": { "type": "boolean" },
+    "promptFiles": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^prompts/[a-z0-9_./-]+\\.md$" }
+    },
+    "defaultReferenceIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[a-z0-9_]+(?:\\.[a-z0-9_]+)*$" }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "preferredFormat", "background", "needsTransparency", "needsTrim"],
+      "properties": {
+        "kind": { "enum": ["single", "spritesheet", "tileset", "ui-sheet"] },
+        "preferredFormat": { "const": "png" },
+        "background": { "enum": ["transparent", "black", "white", "scene"] },
+        "needsTransparency": { "type": "boolean" },
+        "needsTrim": { "type": "boolean" }
+      }
+    },
+    "pixelArt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nearestNeighbor", "allowAntiAlias"],
+      "properties": {
+        "logicalSpriteSize": { "$ref": "#/definitions/positiveSize" },
+        "tileSize": { "type": "integer", "minimum": 1 },
+        "scalePreview": { "type": "integer", "minimum": 1 },
+        "nearestNeighbor": { "type": "boolean" },
+        "allowAntiAlias": { "type": "boolean" }
+      }
+    },
+    "sprites": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "directions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "enum": ["front", "back", "left", "right"] }
+        },
+        "frames": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "grid": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["columns", "rows"],
+          "properties": {
+            "columns": { "type": "integer", "minimum": 1 },
+            "rows": { "type": "integer", "minimum": 1 },
+            "frameWidth": { "type": "integer", "minimum": 1 },
+            "frameHeight": { "type": "integer", "minimum": 1 }
+          }
+        }
+      }
+    },
+    "states": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "tags": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["must", "mustNot"],
+      "properties": {
+        "must": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "mustNot": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "reviewChecklist": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "gameBinding": { "$ref": "#/definitions/gameBinding" }
+  },
+  "definitions": {
+    "positiveSize": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["width", "height"],
+      "properties": {
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "gameBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rendererCategory", "semanticKind", "drawLayer", "runtimeBindings", "coverage"
+      ],
+      "properties": {
+        "rendererCategory": {
+          "enum": [
+            "tile", "building_exterior", "building_interior", "npc", "mob",
+            "creature", "prop", "vehicle", "effect", "ui"
+          ]
+        },
+        "semanticKind": { "type": "string", "minLength": 1 },
+        "drawLayer": {
+          "enum": ["ground", "object", "building", "character", "roof", "effect", "ui"]
+        },
+        "runtimeBindings": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["vocabulary", "id"],
+            "properties": {
+              "vocabulary": {
+                "enum": [
+                  "TILE_TYPES", "NPC_ROLES", "PROP_KINDS",
+                  "FACILITY_KINDS", "BUILDING_STATES"
+                ]
+              },
+              "id": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "coverage": { "enum": ["exact", "mapped", "future"] }
+      }
+    }
+  }
+}

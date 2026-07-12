@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "references": [
+    {
+      "id": "character_style_master",
+      "path": "references/approved/character_style_master.png",
+      "status": "missing",
+      "category": "style",
+      "sha256": null,
+      "providedBy": "human",
+      "licenseNote": "to be provided by project owner"
+    },
+    {
+      "id": "building_style_master",
+      "path": "references/approved/building_style_master.png",
+      "status": "missing",
+      "category": "style",
+      "sha256": null,
+      "providedBy": "human",
+      "licenseNote": "to be provided by project owner"
+    },
+    {
+      "id": "field_style_master",
+      "path": "references/approved/field_style_master.png",
+      "status": "missing",
+      "category": "style",
+      "sha256": null,
+      "providedBy": "human",
+      "licenseNote": "to be provided by project owner"
+    },
+    {
+      "id": "object_style_master",
+      "path": "references/approved/object_style_master.png",
+      "status": "missing",
+      "category": "style",
+      "sha256": null,
+      "providedBy": "human",
+      "licenseNote": "to be provided by project owner"
+    },
+    {
+      "id": "ui_style_master",
+      "path": "references/approved/ui_style_master.png",
+      "status": "missing",
+      "category": "style",
+      "sha256": null,
+      "providedBy": "human",
+      "licenseNote": "to be provided by project owner"
+    },
+    {
+      "id": "effect_style_master",
+      "path": "references/approved/effect_style_master.png",
+      "status": "missing",
+      "category": "style",
+      "sha256": null,
+      "providedBy": "human",
+      "licenseNote": "to be provided by project owner"
+    }
+  ]
+}

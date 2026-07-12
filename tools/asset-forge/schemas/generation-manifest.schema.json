@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://codecity-inspector.local/asset-forge/generation-manifest.schema.json",
+  "title": "LocalGenerationManifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "tracked", "results"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "tracked": { "const": false },
+    "results": {
+      "type": "array",
+      "items": { "$ref": "generation-result.schema.json" }
+    }
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://codecity-inspector.local/asset-forge/runtime-coverage.schema.json",
+  "title": "RuntimeCoverage",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "observedAtCommit", "status", "vocabularies",
+    "uncovered", "lossyMappings", "stateMap"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "observedAtCommit": { "type": "string", "pattern": "^[a-f0-9]{7,40}$" },
+    "status": { "const": "pending-inspection" },
+    "vocabularies": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "uniqueItems": true,
+        "items": { "type": "string" }
+      }
+    },
+    "uncovered": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["vocabulary", "runtimeId", "reason", "suggestedAssetId"],
+        "properties": {
+          "vocabulary": { "type": "string" },
+          "runtimeId": { "type": "string" },
+          "reason": { "type": "string" },
+          "suggestedAssetId": { "type": "string" }
+        }
+      }
+    },
+    "lossyMappings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["vocabulary", "runtimeId", "assetIds", "note"],
+        "properties": {
+          "vocabulary": { "type": "string" },
+          "runtimeId": { "type": "string" },
+          "assetIds": { "type": "array", "items": { "type": "string" } },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "stateMap": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    }
+  }
+}
