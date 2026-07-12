@@ -7,6 +7,7 @@ import { createServer } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { inspectRepository } from './inspector.mjs';
+import { buildTownPayload } from './town/index.mjs';
 
 const PROJECT_ROOT = fileURLToPath(new URL('..', import.meta.url));
 const DEFAULT_PUBLIC_ROOT = path.join(PROJECT_ROOT, 'public');
@@ -155,6 +156,16 @@ export async function startServer({
         sendJson(response, 200, await inspectCurrentRepository(), headOnly);
       } catch {
         sendText(response, 500, 'Unable to inspect repository', headOnly);
+      }
+      return;
+    }
+
+    if (request.url?.split(/[?#]/, 1)[0] === '/api/town') {
+      try {
+        const inspection = await inspectCurrentRepository();
+        sendJson(response, 200, await buildTownPayload(repoPath, inspection), headOnly);
+      } catch {
+        sendText(response, 500, 'Unable to generate town', headOnly);
       }
       return;
     }

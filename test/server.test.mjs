@@ -69,6 +69,52 @@ test('serves the city report and assets on loopback without source bodies', asyn
   assert.match(head.headers['content-type'], /text\/javascript/);
 });
 
+test('serves the town model, habitability, and validated layout without leaking source', async (t) => {
+  const fixture = await serverFixture();
+  const running = await startServer({ ...fixture, repoPath: fixture.repo, port: 0 });
+  t.after(running.close);
+  const port = running.server.address().port;
+
+  const api = await rawRequest(port, '/api/town');
+  assert.equal(api.status, 200);
+  assert.match(api.headers['content-type'], /application\/json/);
+  assert.equal(api.body.includes('SOURCE_MUST_NOT_LEAK'), false);
+
+  const town = JSON.parse(api.body);
+  assert.equal(town.schemaVersion, 1);
+  assert.equal(town.repository.name, 'repo');
+  assert.equal(typeof town.generatorVersion, 'string');
+  assert.equal(typeof town.seed, 'string');
+
+  assert.equal(Array.isArray(town.model.facilities), true);
+  assert.equal(typeof town.model.guild, 'object');
+  assert.equal(typeof town.model.external, 'object');
+  assert.equal(typeof town.model.summary, 'object');
+
+  assert.equal(Number.isInteger(town.habitability.level), true);
+  assert.equal(town.habitability.level >= 0 && town.habitability.level <= 5, true);
+  assert.equal(typeof town.habitability.levelName, 'string');
+  assert.equal(typeof town.habitability.canLive, 'boolean');
+
+  assert.equal(Array.isArray(town.layout.buildings), true);
+  assert.equal(typeof town.layout.validation, 'object');
+  assert.notEqual(town.layout.validation, null);
+
+  // Deterministic: an unchanged repository yields a byte-identical payload.
+  const repeat = await rawRequest(port, '/api/town');
+  assert.equal(repeat.status, 200);
+  assert.equal(repeat.body, api.body);
+
+  // HEAD mirrors GET headers with an empty body (same guards as /api/city).
+  const townHead = await rawRequest(port, '/api/town', 'HEAD');
+  assert.equal(townHead.status, 200);
+  assert.equal(townHead.body, '');
+  assert.match(townHead.headers['content-type'], /application\/json/);
+
+  const post = await rawRequest(port, '/api/town', 'POST');
+  assert.equal(post.status, 405);
+});
+
 test('rescans the repository after each completed city request and recovers from scan errors', async (t) => {
   const fixture = await serverFixture();
   const running = await startServer({ ...fixture, repoPath: fixture.repo, port: 0 });
