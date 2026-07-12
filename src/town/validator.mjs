@@ -25,13 +25,15 @@
 // TownRoad.fromBuildingId <-> TownRoad.toBuildingId edges, NOT a raw terrain
 // flood-fill. `noOverlap` = "no two building footprints overlap, and no footprint
 // sits on a blocked tile"; "blocked tile" here means a NATURAL obstacle
-// (water / rock / tree), never 'wall' (a building's own shell) or 'floor' (its
-// own interior), which a footprint legitimately covers.
+// (water / rock / tree / cliff — 'cliff' being the non-walkable rim of a raised
+// plateau), never 'wall' (a building's own shell) or 'floor' (its own interior),
+// which a footprint legitimately covers.
 //
 // Every check maps to exactly one issue code (NO_OVERLAP, ENTRANCE_CLEAR,
 // WALKABLE, REACHABLE, DOCK_ON_WATER, DENSITY_SPARSE / DENSITY_CRAMPED,
-// NPC_NOT_IN_WALL). `ok` is false whenever any issue has severity 'error' OR any
-// of the three named hard invariants (noOverlap / walkable /
+// NPC_NOT_IN_WALL, and the terrain-feature codes BRIDGE_SPANS_WATER /
+// STAIRS_CONNECT_ELEVATION). `ok` is false whenever any issue has severity
+// 'error' OR any of the three named hard invariants (noOverlap / walkable /
 // importantBuildingsReachable) is false — matching the frozen contract verbatim.
 //
 // DEFENSIVE BY CONSTRUCTION. A malformed / partial TownLayout (missing map,
@@ -53,18 +55,24 @@ const MAIN_FACILITY_KINDS = ['inn', 'pub', 'town_hall', 'workshop', 'dojo', 'doc
 
 // Tiles a building footprint may NEVER cover. Per ./schema.mjs's TILE_TYPES doc,
 // 'wall' is a building's own shell and 'floor' its own interior, so a footprint
-// legitimately sits on those; grass / dirt / path / road / sand / bridge / plaza
-// are harmless ground a footprint may render over. It is specifically the natural
-// obstacles below that no building can be built on top of ("no footprint sits on
-// a blocked tile", per the frozen noOverlap contract).
-const NATURAL_OBSTACLE_TILES = new Set(['water', 'rock', 'tree']);
+// legitimately sits on those; grass / dirt / path / road / sand / bridge /
+// stairs / plaza are harmless walkable ground a footprint may render over. It is
+// specifically the natural obstacles below — including 'water' (the waterway a
+// 'bridge' crosses) and 'cliff' (the non-walkable rim of a raised plateau) — that
+// no building can be built on top of ("no footprint sits on a blocked tile", per
+// the frozen noOverlap contract). Because 'water' and 'cliff' are also absent
+// from WALKABLE_TILE_TYPES, an entrance or NPC landing on one is already caught
+// by ENTRANCE_CLEAR / NPC_NOT_IN_WALL; listing them here additionally forbids a
+// footprint from covering them.
+const NATURAL_OBSTACLE_TILES = new Set(['water', 'rock', 'tree', 'cliff']);
 
 const WALKABLE_TILE_SET = new Set(WALKABLE_TILE_TYPES);
 
 // Tiles an NPC may stand on: every walkable tile EXCEPT 'floor'. A 'floor' tile
 // is a building interior (see TILE_TYPES), and NPC_NOT_IN_WALL forbids "a
-// wall / building-interior / water tile" — i.e. everything except genuine outdoor
-// ground and the walkable road network.
+// wall / building-interior / water / cliff tile" (and any other non-walkable
+// tile) — i.e. everything except genuine outdoor ground and the walkable road
+// network, which now also includes 'bridge' and 'stairs'.
 const NPC_STANDABLE_TILE_SET = new Set(WALKABLE_TILE_TYPES.filter((tile) => tile !== 'floor'));
 
 // Advisory footprint-coverage band for DENSITY. Below the floor the town reads as
@@ -137,6 +145,22 @@ function firstObstacleUnder(rect, dims) {
     }
   }
   return null;
+}
+
+/**
+ * Every in-bounds terrain cell equal to `type`, in row-major (y, then x) order —
+ * deterministic with no further sort. Reads through terrainAt, so a malformed or
+ * ragged grid degrades to "no such tiles" instead of throwing.
+ * @returns {Array<{ x: number, y: number }>}
+ */
+function tilesOfType(dims, type) {
+  const out = [];
+  for (let y = 0; y < dims.heightTiles; y++) {
+    for (let x = 0; x < dims.widthTiles; x++) {
+      if (terrainAt(dims, x, y) === type) out.push({ x, y });
+    }
+  }
+  return out;
 }
 
 // --- building-geometry helpers ------------------------------------------------
@@ -445,6 +469,74 @@ function checkDockOnWater(buildings, dims) {
 }
 
 /**
+ * BRIDGE_SPANS_WATER: every 'bridge' tile is walkable AND actually spans a
+ * waterway — a bridge carries a road across the water line the generator carved.
+ * The test is symmetric on the two axes: along ONE axis (the waterway) both
+ * neighbours are 'water', and along the PERPENDICULAR axis (the road it carries)
+ * both neighbours are walkable, so the crossing lands on dry, walkable ground on
+ * either bank. A 'bridge' that spans no water gap, or that dead-ends into water
+ * instead of connecting both banks, is a broken terrain feature (error). A flat
+ * town with no 'bridge' tiles produces no issues, so this can never regress a
+ * layout that the generator left flat.
+ */
+function checkBridgeSpansWater(dims) {
+  const issues = [];
+  for (const { x, y } of tilesOfType(dims, 'bridge')) {
+    if (!isWalkableAt(dims, x, y)) {
+      issues.push(issue('BRIDGE_SPANS_WATER', `bridge tile (${x},${y}) is not walkable terrain.`, 'error'));
+      continue;
+    }
+    const waterVertical = terrainAt(dims, x, y - 1) === 'water' && terrainAt(dims, x, y + 1) === 'water';
+    const waterHorizontal = terrainAt(dims, x - 1, y) === 'water' && terrainAt(dims, x + 1, y) === 'water';
+    const walkVertical = isWalkableAt(dims, x, y - 1) && isWalkableAt(dims, x, y + 1);
+    const walkHorizontal = isWalkableAt(dims, x - 1, y) && isWalkableAt(dims, x + 1, y);
+    const spans = (waterVertical && walkHorizontal) || (waterHorizontal && walkVertical);
+    if (!spans) {
+      issues.push(issue(
+        'BRIDGE_SPANS_WATER',
+        `bridge tile (${x},${y}) does not span a waterway: it needs 'water' on both sides of one axis and walkable ground on both sides of the other.`,
+        'error'
+      ));
+    }
+  }
+  return issues;
+}
+
+/**
+ * STAIRS_CONNECT_ELEVATION: every 'stairs' tile is walkable AND is the single
+ * walkable seam that joins a raised plateau to the surrounding ground. It must be
+ * 4-adjacent to at least one 'cliff' tile (the plateau's non-walkable rim — the
+ * 高低差 the stairs bridges) AND have walkable ground on two OPPOSITE sides (the
+ * raised interior on one side, the lower ground / road it connects to on the
+ * other), so it is a genuine through-path rather than a dead end set into the
+ * cliff. A 'stairs' meeting neither is a broken terrain feature (error). A flat
+ * town with no 'stairs' tiles produces no issues, so this can never regress a
+ * layout that the generator left flat.
+ */
+function checkStairsConnectElevation(dims) {
+  const issues = [];
+  for (const { x, y } of tilesOfType(dims, 'stairs')) {
+    if (!isWalkableAt(dims, x, y)) {
+      issues.push(issue('STAIRS_CONNECT_ELEVATION', `stairs tile (${x},${y}) is not walkable terrain.`, 'error'));
+      continue;
+    }
+    const touchesCliff = [[x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]]
+      .some(([nx, ny]) => terrainAt(dims, nx, ny) === 'cliff');
+    const throughPath =
+      (isWalkableAt(dims, x, y - 1) && isWalkableAt(dims, x, y + 1)) ||
+      (isWalkableAt(dims, x - 1, y) && isWalkableAt(dims, x + 1, y));
+    if (!touchesCliff || !throughPath) {
+      issues.push(issue(
+        'STAIRS_CONNECT_ELEVATION',
+        `stairs tile (${x},${y}) does not connect a raised plateau to the ground: it needs an adjacent 'cliff' rim tile and walkable ground on two opposite sides.`,
+        'error'
+      ));
+    }
+  }
+  return issues;
+}
+
+/**
  * DENSITY: densityScore = sum(footprint area) / totalTiles. Outside the advisory
  * [DENSITY_MIN, DENSITY_MAX] band this raises a warning (DENSITY_SPARSE below,
  * DENSITY_CRAMPED above) — never an error, so it can never flip `ok`.
@@ -558,6 +650,8 @@ export function validateLayout(layout) {
     ...checkConnectivity(buildings, adjacency),
     ...checkReachable(buildings, adjacency),
     ...checkDockOnWater(buildings, dims),
+    ...checkBridgeSpansWater(dims),
+    ...checkStairsConnectElevation(dims),
     ...densityIssues,
     ...checkNpcNotInWall(npcs, rects, dims)
   ].sort(compareIssues);

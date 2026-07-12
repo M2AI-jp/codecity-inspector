@@ -9,7 +9,10 @@
 // different seed, buildings placed only for present facilities (plus the
 // always-present town_hall and an evidence-backed gate), every building
 // footprint inside the map bounds, and a fresh layout that passes
-// validateLayout(...).ok === true.
+// validateLayout(...).ok === true. It also covers the v1.1.0 terrain features:
+// a waterway crossed by walkable bridges, and a raised plateau ringed by cliff
+// and joined to the network by walkable stairs — added deterministically and
+// only when they keep the layout valid (else the town stays flat).
 //
 // SAFETY: the only functions that ever touch sample/tiny-town are
 // inspectRepository and collectSignals (via buildTown), both read-only
@@ -28,7 +31,7 @@ import { buildTownModel } from '../../src/town/detect.mjs';
 import { generateLayout } from '../../src/town/generator.mjs';
 import { validateLayout } from '../../src/town/validator.mjs';
 import { repoFingerprint } from '../../src/town/rng.mjs';
-import { GENERATOR_VERSION, FACILITY_KINDS } from '../../src/town/schema.mjs';
+import { GENERATOR_VERSION, FACILITY_KINDS, WALKABLE_TILE_TYPES } from '../../src/town/schema.mjs';
 
 const SAMPLE_REPO = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../sample/tiny-town');
 
@@ -133,4 +136,105 @@ test('the produced layout passes validateLayout(...).ok === true', () => {
 test('generateLayout output always reports the frozen GENERATOR_VERSION, regardless of the generatorVersion argument', () => {
   const layout = generateLayout({ model, seed: 's', generatorVersion: 'not-the-real-version', repoFingerprint: fingerprint });
   assert.equal(layout.generatorVersion, GENERATOR_VERSION);
+});
+
+// --- v1.1.0 terrain features: waterway+bridge, elevation+stairs --------------
+// The sample town has a road network and open grass, so both features are always
+// added to it; the assertions below exercise the shape of each, plus the schema
+// walkability contract for the four tile ids and that validation still passes.
+
+const WALKABLE_TILE_SET = new Set(WALKABLE_TILE_TYPES);
+
+/** Collect the terrain grid plus tile helpers for one generated layout. */
+function terrainOf(layout) {
+  const { widthTiles, heightTiles, terrain } = layout.map;
+  const at = (x, y) => terrain[y]?.[x];
+  const walkableAt = (x, y) => typeof at(x, y) === 'string' && WALKABLE_TILE_SET.has(at(x, y));
+  const cells = [];
+  for (let y = 0; y < heightTiles; y++) {
+    for (let x = 0; x < widthTiles; x++) cells.push({ x, y, tile: terrain[y][x] });
+  }
+  return { widthTiles, heightTiles, at, walkableAt, cells };
+}
+
+test('a waterway is carved and every crossing bridge is walkable and truly spans the water', () => {
+  const layout = generateLayout({ model, seed: 'waterway-check', repoFingerprint: fingerprint });
+  const g = terrainOf(layout);
+  const water = g.cells.filter((c) => c.tile === 'water');
+  const bridges = g.cells.filter((c) => c.tile === 'bridge');
+
+  assert.ok(water.length > 0, 'the sample town (with roads) must gain a waterway of water tiles');
+  assert.ok(bridges.length > 0, 'a road crossing the waterway must become at least one bridge');
+
+  for (const { x, y } of bridges) {
+    assert.ok(g.walkableAt(x, y), `bridge (${x},${y}) must be walkable terrain`);
+    // spans: 'water' on both sides of one axis, walkable ground on both sides of the other.
+    const waterVertical = g.at(x, y - 1) === 'water' && g.at(x, y + 1) === 'water';
+    const waterHorizontal = g.at(x - 1, y) === 'water' && g.at(x + 1, y) === 'water';
+    const spans =
+      (waterVertical && g.walkableAt(x - 1, y) && g.walkableAt(x + 1, y)) ||
+      (waterHorizontal && g.walkableAt(x, y - 1) && g.walkableAt(x, y + 1));
+    assert.ok(spans, `bridge (${x},${y}) must carry a road across the water, not dead-end into it`);
+  }
+  assert.equal(validateLayout(layout).ok, true, 'a bridged waterway must keep the layout valid');
+});
+
+test('a raised plateau is ringed with non-walkable cliff and joined by exactly-connecting walkable stairs', () => {
+  const layout = generateLayout({ model, seed: 'plateau-check', repoFingerprint: fingerprint });
+  const g = terrainOf(layout);
+  const cliffs = g.cells.filter((c) => c.tile === 'cliff');
+  const stairs = g.cells.filter((c) => c.tile === 'stairs');
+
+  assert.ok(cliffs.length > 0, 'the sample town has room for a plateau ringed by cliff');
+  assert.ok(stairs.length > 0, 'the plateau must be linked to the ground by a stairs tile');
+  assert.ok(!WALKABLE_TILE_SET.has('cliff'), 'cliff must be a non-walkable tile type');
+  for (const { x, y } of cliffs) assert.ok(!g.walkableAt(x, y), `cliff (${x},${y}) must be non-walkable`);
+
+  for (const { x, y } of stairs) {
+    assert.ok(g.walkableAt(x, y), `stairs (${x},${y}) must be walkable terrain`);
+    const touchesCliff = [[x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]].some(([nx, ny]) => g.at(nx, ny) === 'cliff');
+    const throughPath =
+      (g.walkableAt(x, y - 1) && g.walkableAt(x, y + 1)) ||
+      (g.walkableAt(x - 1, y) && g.walkableAt(x + 1, y));
+    assert.ok(touchesCliff, `stairs (${x},${y}) must adjoin the cliff rim it bridges`);
+    assert.ok(throughPath, `stairs (${x},${y}) must have walkable ground on two opposite sides`);
+  }
+  assert.equal(validateLayout(layout).ok, true, 'a stair-linked plateau must keep the layout valid');
+});
+
+test('the new terrain tiles honour the schema walkability contract, deterministically, without breaking validation', () => {
+  for (const seed of ['t-1', 't-2', 't-3', 't-4', 't-5', repoFingerprint({})]) {
+    const first = generateLayout({ model, seed, repoFingerprint: fingerprint });
+    const again = generateLayout({ model, seed, repoFingerprint: fingerprint });
+    assert.equal(JSON.stringify(first), JSON.stringify(again), `terrain features must be deterministic for seed "${seed}"`);
+
+    const g = terrainOf(first);
+    for (const { x, y, tile } of g.cells) {
+      if (tile === 'bridge' || tile === 'stairs') assert.ok(g.walkableAt(x, y), `"${tile}" at (${x},${y}) must be walkable`);
+      if (tile === 'water' || tile === 'cliff') assert.ok(!g.walkableAt(x, y), `"${tile}" at (${x},${y}) must be non-walkable`);
+    }
+    assert.equal(validateLayout(first).ok, true, `seed "${seed}" must still validate with terrain features`);
+  }
+});
+
+test('the large repo-root town actually gains bridge and/or stairs terrain, deterministically, and still validates', async () => {
+  // A big map (the whole codecity-inspector repo, not the tiny sample) proves the
+  // features really fire on a large layout, not just the sample. inspectRepository
+  // is the same read-only static scanner used everywhere else in this file.
+  const rootRepo = path.join(path.dirname(fileURLToPath(import.meta.url)), '../..');
+  const rootInspection = await inspectRepository(rootRepo);
+  const { model: rootModel } = await buildTown(rootRepo, rootInspection);
+  const rootFingerprint = repoFingerprint(rootInspection);
+
+  const first = generateLayout({ model: rootModel, seed: 'root-run', repoFingerprint: rootFingerprint });
+  const again = generateLayout({ model: rootModel, seed: 'root-run', repoFingerprint: rootFingerprint });
+  assert.equal(JSON.stringify(first), JSON.stringify(again), 'the large town must be byte-identical for the same seed');
+
+  const g = terrainOf(first);
+  const bridges = g.cells.filter((c) => c.tile === 'bridge').length;
+  const stairs = g.cells.filter((c) => c.tile === 'stairs').length;
+  assert.ok(bridges > 0 || stairs > 0, 'a large map must actually gain a bridge and/or stairs, not fall flat');
+
+  const validation = validateLayout(first);
+  assert.equal(validation.ok, true, `the large repo-root town must validate: ${JSON.stringify(validation.issues)}`);
 });

@@ -36,12 +36,16 @@ const EVIDENCE_LABELS = { observed: '観測', inferred: '推測', unknown: '不�
 // show it once, prominently, in its dedicated headline element instead.
 const HEADLINE_CANNOT_LIVE = 'このままだと誰も住めません！';
 
-// One fill per TILE_TYPES id (12); unmapped ids get the loud fallback so a
-// vocabulary drift is visible rather than silent.
+// One fill per TILE_TYPES id (14); unmapped ids get the loud fallback so a
+// vocabulary drift is visible rather than silent. water/bridge/cliff/stairs also
+// get a procedural pixel pass in drawTerrainDetail() so the elevation + waterway
+// terrain reads at a glance (rippling water, planks over the banks, a rocky rim,
+// stepped treads) without any image assets.
 const TILE_COLORS = {
   grass: '#4a8f3c', dirt: '#8a6a3f', path: '#c7ac7c', road: '#b89a63',
-  sand: '#e3d2a0', water: '#3a72b0', bridge: '#9c7a4f', plaza: '#d8cdb0',
-  floor: '#e9e4d6', wall: '#33302b', rock: '#8a8a86', tree: '#2f6b2a'
+  sand: '#e3d2a0', water: '#3a72b0', bridge: '#9c7a4f', stairs: '#cabf99',
+  plaza: '#d8cdb0', floor: '#e9e4d6', wall: '#33302b', rock: '#8a8a86',
+  tree: '#2f6b2a', cliff: '#544b40'
 };
 const UNKNOWN_TILE_COLOR = '#b23a9c';
 
@@ -585,15 +589,135 @@ function drawTown(layout) {
   el.canvas.setAttribute('aria-label', ariaSummary(currentTown));
 }
 
+// Tiles that get an extra procedural pass on top of their flat base fill so the
+// waterway + elevation terrain reads without image assets. Everything else is a
+// plain dithered square.
+const DETAILED_TILES = new Set(['water', 'bridge', 'cliff', 'stairs']);
+
+function terrainTypeAt(terrain, x, y) {
+  const row = terrain[y];
+  return row ? row[x] : undefined;
+}
+
 function drawTerrain(ctx, map, tileSize) {
   const terrain = map.terrain;
   for (let y = 0; y < terrain.length; y += 1) {
     const row = terrain[y] || [];
     for (let x = 0; x < row.length; x += 1) {
-      const base = TILE_COLORS[row[x]] || UNKNOWN_TILE_COLOR;
-      const dither = (hash(`${x},${y},${row[x]}`) & 3) === 0;
+      const type = row[x];
+      const base = TILE_COLORS[type] || UNKNOWN_TILE_COLOR;
+      const px = x * tileSize;
+      const py = y * tileSize;
+      const dither = (hash(`${x},${y},${type}`) & 3) === 0;
       ctx.fillStyle = dither ? shade(base, -0.05) : base;
-      ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+      ctx.fillRect(px, py, tileSize, tileSize);
+      if (DETAILED_TILES.has(type)) {
+        drawTerrainDetail(ctx, terrain, x, y, type, px, py, tileSize, base);
+      }
+    }
+  }
+}
+
+// Placeholder pixel detailing for terrain tiles that carry meaning beyond a flat
+// colour. Every mark is an axis-aligned fillRect (no images, no blur) so the art
+// stays crisp when CSS upscales the canvas. CSP is unaffected: this is 2D canvas
+// drawing, not element styling.
+function drawTerrainDetail(ctx, terrain, x, y, type, px, py, ts, base) {
+  if (type === 'water') { drawWaterTile(ctx, x, y, px, py, ts, base); return; }
+  if (type === 'bridge') { drawBridgeTile(ctx, terrain, x, y, px, py, ts, base); return; }
+  if (type === 'cliff') { drawCliffTile(ctx, x, y, px, py, ts, base); return; }
+  if (type === 'stairs') { drawStairsTile(ctx, terrain, x, y, px, py, ts, base); }
+}
+
+// Water: two faint lighter ripple dashes so the blue reads as moving water.
+function drawWaterTile(ctx, x, y, px, py, ts, base) {
+  const crest = shade(base, 0.16);
+  const thick = Math.max(1, Math.round(ts * 0.09));
+  const half = Math.max(2, Math.round(ts * 0.5));
+  const shift = (hash(`${x},${y},wave`) & 1) ? half : 0;
+  ctx.fillStyle = crest;
+  ctx.fillRect(px + shift, py + Math.round(ts * 0.3), half, thick);
+  ctx.fillRect(px + (shift ? 0 : half), py + Math.round(ts * 0.64), half, thick);
+}
+
+// Bridge: tan deck planks with the blue water it spans peeking out along the two
+// banks. Orientation follows whichever axis the adjacent water runs on, so a
+// deck always shows water on exactly the sides it bridges (the generator lays a
+// full column/row of water, so a bridge tile's neighbours on that line ARE
+// water).
+function drawBridgeTile(ctx, terrain, x, y, px, py, ts, base) {
+  const seam = shade(base, -0.32);
+  const sheen = shade(base, 0.16);
+  const bank = Math.max(1, Math.round(ts * 0.16));
+  const step = Math.max(2, Math.round(ts / 4));
+  // Water gap runs top<->bottom unless it is strictly on the east/west axis.
+  const spanVertical =
+    terrainTypeAt(terrain, x, y - 1) === 'water' ||
+    terrainTypeAt(terrain, x, y + 1) === 'water' ||
+    !(terrainTypeAt(terrain, x - 1, y) === 'water' ||
+      terrainTypeAt(terrain, x + 1, y) === 'water');
+
+  ctx.fillStyle = TILE_COLORS.water;
+  if (spanVertical) {
+    ctx.fillRect(px, py, ts, bank);              // water at the top bank
+    ctx.fillRect(px, py + ts - bank, ts, bank);  // ... and the bottom bank
+    for (let sx = px + step; sx < px + ts; sx += step) {
+      ctx.fillStyle = seam;
+      ctx.fillRect(sx, py + bank, 1, ts - bank * 2);      // plank seam
+      ctx.fillStyle = sheen;
+      ctx.fillRect(sx + 1, py + bank, 1, ts - bank * 2);  // plank sheen
+    }
+  } else {
+    ctx.fillRect(px, py, bank, ts);              // water on the left bank
+    ctx.fillRect(px + ts - bank, py, bank, ts);  // ... and the right bank
+    for (let sy = py + step; sy < py + ts; sy += step) {
+      ctx.fillStyle = seam;
+      ctx.fillRect(px + bank, sy, ts - bank * 2, 1);
+      ctx.fillStyle = sheen;
+      ctx.fillRect(px + bank, sy + 1, ts - bank * 2, 1);
+    }
+  }
+}
+
+// Cliff: a dark rock block with a sunlit top lip and a shadowed foot so it reads
+// as a raised, non-walkable edge, plus one deterministic crack in the face.
+function drawCliffTile(ctx, x, y, px, py, ts, base) {
+  const lip = Math.max(1, Math.round(ts * 0.22));
+  ctx.fillStyle = shade(base, 0.2);
+  ctx.fillRect(px, py, ts, lip);                 // sunlit top rim
+  ctx.fillStyle = shade(base, -0.3);
+  ctx.fillRect(px, py + ts - lip, ts, lip);      // shadow at the foot
+  const cx = px + 2 + (hash(`${x},${y},crack`) % Math.max(1, ts - 4));
+  ctx.fillStyle = shade(base, -0.45);
+  ctx.fillRect(cx, py + lip, 1, ts - lip * 2);   // crack in the rock face
+}
+
+// Stairs: light treads split by dark risers. The step lines run parallel to the
+// adjacent cliff edge (the generator seats a stairs tile on a plateau rim), so
+// the flight visibly climbs toward the cliff; horizontal by default.
+function drawStairsTile(ctx, terrain, x, y, px, py, ts, base) {
+  const riser = shade(base, -0.32);
+  const tread = shade(base, 0.18);
+  const steps = 4;
+  // Cliff along the E/W neighbours means an east-west rim -> horizontal steps.
+  const horizontal =
+    terrainTypeAt(terrain, x - 1, y) === 'cliff' ||
+    terrainTypeAt(terrain, x + 1, y) === 'cliff' ||
+    !(terrainTypeAt(terrain, x, y - 1) === 'cliff' ||
+      terrainTypeAt(terrain, x, y + 1) === 'cliff');
+  for (let i = 1; i < steps; i += 1) {
+    if (horizontal) {
+      const yy = py + Math.round((ts * i) / steps);
+      ctx.fillStyle = tread;
+      ctx.fillRect(px, yy - 1, ts, 1);
+      ctx.fillStyle = riser;
+      ctx.fillRect(px, yy, ts, 1);
+    } else {
+      const xx = px + Math.round((ts * i) / steps);
+      ctx.fillStyle = tread;
+      ctx.fillRect(xx - 1, py, 1, ts);
+      ctx.fillStyle = riser;
+      ctx.fillRect(xx, py, 1, ts);
     }
   }
 }

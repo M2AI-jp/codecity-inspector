@@ -52,9 +52,26 @@
 // present main facility and the whole network is one connected component. A
 // placed dock gets a water tile carved just past its entrance so it touches
 // water without blocking the entrance itself.
+//
+// TERRAIN FEATURES (v1.1.0, placeholder tiles only). After the roads and dock
+// water are laid down, two optional features are attempted, each guarded by a
+// HARD SAFETY re-check (terrainNetworkSafe): a WATERWAY — one deterministically
+// chosen full-height column, avoiding every footprint and entrance, flooded to
+// 'water' except where it crosses a road, which becomes a walkable 'bridge' (so
+// the road keeps crossing and at least one bridge spans the water); and an
+// ELEVATION plateau — a small empty grass square whose rim becomes non-walkable
+// 'cliff' except one 'stairs' tile that links its raised (still-walkable)
+// interior to the network. A feature is committed only if, afterwards, the
+// walkable graph still joins the hub to every building entrance and no footprint
+// or entrance sits on water/cliff; otherwise it is reverted and the town stays
+// flat there. Worst case a layout is identical-quality to the flat pre-1.1.0
+// output; best case it gains a bridged waterway and/or a stair-linked plateau —
+// never at the cost of REACHABLE / WALKABLE / DOCK_ON_WATER / NPC-not-in-wall.
+// Determinism is preserved: the seeded rng only chooses among candidates
+// enumerated in a fixed (ascending-x, then row-major) order.
 
 import { makeRng } from './rng.mjs';
-import { GENERATOR_VERSION, FACILITY_KINDS, DIRECTIONS, NPC_ROLES, PROP_KINDS, isFacilityKind } from './schema.mjs';
+import { GENERATOR_VERSION, FACILITY_KINDS, DIRECTIONS, NPC_ROLES, PROP_KINDS, WALKABLE_TILE_TYPES, isFacilityKind } from './schema.mjs';
 
 /** @typedef {import('./schema.mjs').TownModel} TownModel */
 /** @typedef {import('./schema.mjs').Facility} Facility */
@@ -92,6 +109,16 @@ const RIGHT_PAD = 2;
 const BOTTOM_PAD = 2;
 /** How many tiles out from a footprint counts as "near it" when scattering props. */
 const NEARBY_RADIUS = 2;
+
+// --- terrain-feature sizing (v1.1.0: waterway+bridge, elevation+stairs) -------
+/**
+ * Preferred and minimum square edge (tiles) of a raised plateau. Edge >= 3 so it
+ * keeps a walkable interior ringed by cliff; the generator prefers the larger
+ * edge and falls back to the smaller so smaller maps can still host one. A map
+ * with no empty all-grass square this big simply gets no plateau (flat fallback).
+ */
+const PLATEAU_MAX_EDGE = 4;
+const PLATEAU_MIN_EDGE = 3;
 
 /**
  * Fixed footprint size per facility kind, in tiles. town_hall is the largest
@@ -427,6 +454,236 @@ function nearbyGrass(terrain, box, radius, mapW, mapH, occupied) {
   return out;
 }
 
+// --- terrain features: waterway+bridge, elevation+stairs (v1.1.0) ------------
+// Both run AFTER roads/dock and BEFORE npcs/props, each applied only if the HARD
+// SAFETY re-check (terrainNetworkSafe) still holds afterwards; otherwise it is
+// reverted so the new water/bridge/cliff/stairs tiles can never regress the
+// validator's REACHABLE / WALKABLE / DOCK_ON_WATER / NPC_NOT_IN_WALL invariants.
+
+/** Walkable terrain ids (schema contract) and the blocked ids a footprint /
+ *  entrance must never end up on once a feature is carved. */
+const WALKABLE_TERRAIN = new Set(WALKABLE_TILE_TYPES);
+const FEATURE_BLOCKED_TILES = new Set(['water', 'cliff']);
+
+/** @param {string[][]} terrain @param {number} x @param {number} y @returns {boolean} */
+function isWalkableTile(terrain, x, y) {
+  const tile = terrain[y]?.[x];
+  return typeof tile === 'string' && WALKABLE_TERRAIN.has(tile);
+}
+
+/**
+ * HARD SAFETY re-check shared by every terrain feature. Over the CURRENT terrain
+ * it confirms that (a) no building footprint cell and no entrance sits on a
+ * blocked (water/cliff) tile, and (b) a 4-neighbour flood-fill of the walkable
+ * terrain from the hub entrance still reaches every placed building's entrance —
+ * i.e. the gate-to-facility network the validator grades stays intact. Pure read
+ * over `terrain`; never mutates. @returns {boolean}
+ * @param {string[][]} terrain @param {number} mapW @param {number} mapH
+ * @param {Map<string, { box:{x:number,y:number,w:number,h:number}, entrance:{x:number,y:number} }>} placements
+ * @param {{x:number,y:number}} hubEntrance
+ */
+function terrainNetworkSafe(terrain, mapW, mapH, placements, hubEntrance) {
+  for (const { box, entrance } of placements.values()) {
+    for (let y = box.y; y < box.y + box.h; y++) {
+      for (let x = box.x; x < box.x + box.w; x++) {
+        if (FEATURE_BLOCKED_TILES.has(terrain[y]?.[x])) return false; // a feature overwrote a footprint
+      }
+    }
+    if (!isWalkableTile(terrain, entrance.x, entrance.y)) return false; // entrance blocked
+  }
+  if (!isWalkableTile(terrain, hubEntrance.x, hubEntrance.y)) return false;
+  const seen = new Set([keyOf(hubEntrance.x, hubEntrance.y)]);
+  const stack = [[hubEntrance.x, hubEntrance.y]];
+  while (stack.length > 0) {
+    const [x, y] = stack.pop();
+    for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
+      if (nx < 0 || ny < 0 || nx >= mapW || ny >= mapH) continue;
+      const key = keyOf(nx, ny);
+      if (seen.has(key) || !isWalkableTile(terrain, nx, ny)) continue;
+      seen.add(key);
+      stack.push([nx, ny]);
+    }
+  }
+  for (const { entrance } of placements.values()) {
+    if (!seen.has(keyOf(entrance.x, entrance.y))) return false;
+  }
+  return true;
+}
+
+/**
+ * Apply the [x, y, newTile] `cells` to `terrain`, keeping them only if `isSafe()`
+ * still holds; otherwise restore every original tile and report failure. The rng
+ * draw that chose the feature is spent either way, so a reverted feature stays
+ * fully deterministic. @returns {boolean} whether the feature was kept.
+ * @param {string[][]} terrain @param {Array<[number,number,string]>} cells @param {() => boolean} isSafe
+ */
+function commitFeature(terrain, cells, isSafe) {
+  if (cells.length === 0) return false;
+  const original = cells.map(([x, y]) => terrain[y][x]);
+  for (const [x, y, tile] of cells) terrain[y][x] = tile;
+  if (isSafe()) return true;
+  cells.forEach(([x, y], i) => { terrain[y][x] = original[i]; });
+  return false;
+}
+
+/**
+ * Deterministically choose a full-height column to flood into a waterway: skips
+ * the road spine and every column that passes through a building footprint or an
+ * entrance, and keeps only columns crossing >= 1 road tile (so a 'bridge' is
+ * guaranteed to carry that road across). Returns the chosen x, or null when no
+ * such column exists (the town stays flat). One rng draw when >= 1 candidate.
+ * @param {string[][]} terrain @param {number} mapW @param {number} mapH
+ * @param {Map<string, { box:{x:number,y:number,w:number,h:number}, entrance:{x:number,y:number} }>} placements
+ * @param {Rng} rng @returns {number | null}
+ */
+function chooseWaterwayColumn(terrain, mapW, mapH, placements, rng) {
+  const footprintX = new Set();
+  const entranceX = new Set();
+  for (const { box, entrance } of placements.values()) {
+    for (let x = box.x; x < box.x + box.w; x++) footprintX.add(x);
+    entranceX.add(entrance.x);
+  }
+  const candidates = [];
+  for (let x = 0; x < mapW; x++) {
+    if (x === SPINE_X || footprintX.has(x) || entranceX.has(x)) continue;
+    let roadCrossings = 0;
+    let carvable = true;
+    for (let y = 0; y < mapH; y++) {
+      const tile = terrain[y][x];
+      if (tile === 'road') roadCrossings++;
+      else if (tile !== 'grass' && tile !== 'water') { carvable = false; break; } // wall/floor/etc: not a clean column
+    }
+    if (carvable && roadCrossings > 0) candidates.push(x);
+  }
+  return candidates.length > 0 ? rng.pick(candidates) : null;
+}
+
+/** The [x,y,tile] edits flooding column `x`: road -> bridge, grass -> water (a
+ *  pre-existing dock 'water' tile stays water). @returns {Array<[number,number,string]>}
+ *  @param {string[][]} terrain @param {number} mapH @param {number} x */
+function waterwayColumnCells(terrain, mapH, x) {
+  const cells = [];
+  for (let y = 0; y < mapH; y++) {
+    const tile = terrain[y][x];
+    if (tile === 'road') cells.push([x, y, 'bridge']);
+    else if (tile === 'grass') cells.push([x, y, 'water']);
+  }
+  return cells;
+}
+
+/**
+ * Choose the plateau's single walkable 'stairs' seam so it satisfies the
+ * validator's STAIRS_CONNECT_ELEVATION rule: a NON-corner perimeter (edge-mid)
+ * tile whose OUTWARD neighbour — the tile just outside the plateau — is walkable
+ * ground. Such a tile then has the raised interior (walkable grass) on its inward
+ * side and that lower ground on its outward side, i.e. "walkable ground on two
+ * opposite sides", and its two same-edge neighbours are the 'cliff' rim, giving
+ * "an adjacent cliff tile". Edge-mid tiles only exist for size >= 3 (which
+ * PLATEAU_MIN_EDGE guarantees), so the plateau always keeps an interior. Scanned
+ * in a fixed order (top then bottom then left then right, ascending along each),
+ * preferring a seam whose outward neighbour is a road so the stairs meet the road
+ * network. Returns null when no edge-mid tile has a walkable exterior (the
+ * plateau would be a sealed box), so that location is rejected.
+ * @param {string[][]} terrain @param {number} px @param {number} py @param {number} size
+ * @returns {{x:number,y:number} | null}
+ */
+function chooseStairsSeam(terrain, px, py, size) {
+  /** @type {Array<{x:number,y:number,ox:number,oy:number}>} edge-mid tile + its outward neighbour */
+  const seams = [];
+  for (let x = px + 1; x < px + size - 1; x++) {
+    seams.push({ x, y: py, ox: x, oy: py - 1 });               // top edge, outward = up
+    seams.push({ x, y: py + size - 1, ox: x, oy: py + size });  // bottom edge, outward = down
+  }
+  for (let y = py + 1; y < py + size - 1; y++) {
+    seams.push({ x: px, y, ox: px - 1, oy: y });                // left edge, outward = left
+    seams.push({ x: px + size - 1, y, ox: px + size, oy: y });  // right edge, outward = right
+  }
+  let roadSeam = null;
+  let walkSeam = null;
+  for (const s of seams) {
+    if (terrain[s.oy]?.[s.ox] === 'road') { if (!roadSeam) roadSeam = { x: s.x, y: s.y }; }
+    else if (isWalkableTile(terrain, s.ox, s.oy) && !walkSeam) walkSeam = { x: s.x, y: s.y };
+  }
+  return roadSeam ?? walkSeam;
+}
+
+/**
+ * Generator-side mirror of the validator's BRIDGE_SPANS_WATER rule for a single
+ * 'bridge' tile: walkable, with 'water' on both sides of one axis and walkable
+ * ground on both sides of the perpendicular axis. Used only as a HARD SAFETY
+ * backstop — a waterway whose bridge would not span is reverted to flat.
+ * @param {string[][]} terrain @param {number} x @param {number} y @returns {boolean}
+ */
+function bridgeSpansWater(terrain, x, y) {
+  if (!isWalkableTile(terrain, x, y)) return false;
+  const waterV = terrain[y - 1]?.[x] === 'water' && terrain[y + 1]?.[x] === 'water';
+  const waterH = terrain[y]?.[x - 1] === 'water' && terrain[y]?.[x + 1] === 'water';
+  const walkV = isWalkableTile(terrain, x, y - 1) && isWalkableTile(terrain, x, y + 1);
+  const walkH = isWalkableTile(terrain, x - 1, y) && isWalkableTile(terrain, x + 1, y);
+  return (waterV && walkH) || (waterH && walkV);
+}
+
+/**
+ * Generator-side mirror of the validator's STAIRS_CONNECT_ELEVATION rule for a
+ * single 'stairs' tile: walkable, 4-adjacent to a 'cliff' rim, and with walkable
+ * ground on two opposite sides. Used only as a HARD SAFETY backstop — a plateau
+ * whose stairs would not connect is reverted to flat.
+ * @param {string[][]} terrain @param {number} x @param {number} y @returns {boolean}
+ */
+function stairsConnectsElevation(terrain, x, y) {
+  if (!isWalkableTile(terrain, x, y)) return false;
+  const touchesCliff = [[x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]]
+    .some(([nx, ny]) => terrain[ny]?.[nx] === 'cliff');
+  const throughPath =
+    (isWalkableTile(terrain, x, y - 1) && isWalkableTile(terrain, x, y + 1)) ||
+    (isWalkableTile(terrain, x - 1, y) && isWalkableTile(terrain, x + 1, y));
+  return touchesCliff && throughPath;
+}
+
+/**
+ * Deterministically choose an empty all-'grass' square plateau that has a valid
+ * stairs seam, preferring the larger edge and scanning candidates in row-major
+ * order. Returns { px, py, size, seam } or null (flat fallback). One rng draw
+ * when >= 1 candidate exists.
+ * @param {string[][]} terrain @param {number} mapW @param {number} mapH @param {Rng} rng
+ * @returns {{px:number,py:number,size:number,seam:{x:number,y:number}} | null}
+ */
+function choosePlateau(terrain, mapW, mapH, rng) {
+  const allGrass = (px, py, size) => {
+    for (let y = py; y < py + size; y++) {
+      for (let x = px; x < px + size; x++) if (terrain[y]?.[x] !== 'grass') return false;
+    }
+    return true;
+  };
+  for (let size = PLATEAU_MAX_EDGE; size >= PLATEAU_MIN_EDGE; size--) {
+    const spots = [];
+    for (let py = 0; py + size <= mapH; py++) {
+      for (let px = 0; px + size <= mapW; px++) {
+        if (!allGrass(px, py, size)) continue;
+        const seam = chooseStairsSeam(terrain, px, py, size);
+        if (seam) spots.push({ px, py, size, seam });
+      }
+    }
+    if (spots.length > 0) return rng.pick(spots);
+  }
+  return null;
+}
+
+/** The [x,y,tile] edits raising a plateau: perimeter -> cliff except the one
+ *  'stairs' seam; the interior stays walkable grass (a raised area).
+ *  @returns {Array<[number,number,string]>}
+ *  @param {number} px @param {number} py @param {number} size @param {{x:number,y:number}} seam */
+function plateauCells(px, py, size, seam) {
+  const cells = [];
+  for (let y = py; y < py + size; y++) {
+    for (let x = px; x < px + size; x++) {
+      if (!(x === px || y === py || x === px + size - 1 || y === py + size - 1)) continue; // interior stays grass
+      cells.push([x, y, x === seam.x && y === seam.y ? 'stairs' : 'cliff']);
+    }
+  }
+  return cells;
+}
+
 // --- connections (informational, from model.guild) --------------------------
 
 /**
@@ -578,6 +835,32 @@ export function generateLayout({ model, habitability, seed, generatorVersion, re
   if (placedKinds.includes('dock')) {
     const dockEntrance = placements.get('dock').entrance;
     for (const dx of [0, -1, 1]) tryPlaceWater(terrain, dockEntrance.x + dx, dockEntrance.y + 1);
+  }
+
+  // --- 5.5 terrain features (v1.1.0): waterway+bridge, then elevation+stairs -
+  // Carved here so the npcs/props placed below (on entrances, road tiles, and
+  // grass) naturally avoid the new water/cliff tiles. Each feature is kept only
+  // if the HARD SAFETY re-check still holds; otherwise it reverts and the town
+  // stays flat there — never regressing REACHABLE / WALKABLE / DOCK_ON_WATER.
+  const hubEntrance = hub.entrance;
+  const networkSafe = () => terrainNetworkSafe(terrain, mapWidth, mapHeight, placements, hubEntrance);
+
+  // Waterway: kept only if the network stays intact AND every new bridge truly
+  // spans the water (validator BRIDGE_SPANS_WATER), else reverted to flat.
+  const waterColumn = chooseWaterwayColumn(terrain, mapWidth, mapHeight, placements, rng);
+  if (waterColumn !== null) {
+    const cells = waterwayColumnCells(terrain, mapHeight, waterColumn);
+    commitFeature(terrain, cells, () => networkSafe()
+      && cells.every(([cx, cy, tile]) => tile !== 'bridge' || bridgeSpansWater(terrain, cx, cy)));
+  }
+
+  // Plateau: kept only if the network stays intact AND its stairs connects the
+  // elevation (validator STAIRS_CONNECT_ELEVATION), else reverted to flat.
+  const plateau = choosePlateau(terrain, mapWidth, mapHeight, rng);
+  if (plateau) {
+    const cells = plateauCells(plateau.px, plateau.py, plateau.size, plateau.seam);
+    commitFeature(terrain, cells, () => networkSafe()
+      && stairsConnectsElevation(terrain, plateau.seam.x, plateau.seam.y));
   }
 
   // --- 6. one representative NPC per placed facility, at its entrance -------

@@ -166,31 +166,35 @@ export const GUILD_TABS = deepFreeze(['なかま', 'うけつけ', 'いらい', 
  * invalidates previously cached layouts.
  * @type {string}
  */
-export const GENERATOR_VERSION = '1.0.0';
+export const GENERATOR_VERSION = '1.1.0';
 
 /**
  * Every valid terrain tile id: the allowed cell values of a
  * TownLayout.map.terrain grid, which is row-major (terrain[y][x]). 'floor' is a
  * building interior and 'wall' a building shell; 'water' is what a dock must sit
- * against; 'path' / 'road' / 'bridge' / 'plaza' carry the walkable road network;
- * 'rock' / 'tree' are natural obstacles.
+ * against and what a 'bridge' carries a road across; 'path' / 'road' / 'bridge'
+ * / 'stairs' / 'plaza' carry the walkable road network, 'stairs' being the one
+ * walkable seam that connects a raised plateau to it; 'rock' / 'tree' / 'cliff'
+ * are natural obstacles, 'cliff' being the non-walkable rim of such a plateau.
  * @type {ReadonlyArray<string>}
  */
 export const TILE_TYPES = deepFreeze([
   'grass', 'dirt', 'path', 'road', 'sand', 'water',
-  'bridge', 'plaza', 'floor', 'wall', 'rock', 'tree'
+  'bridge', 'stairs', 'plaza', 'floor', 'wall', 'rock', 'tree', 'cliff'
 ]);
 
 /**
  * The subset of TILE_TYPES an entity may stand on or move across. Every tile
- * NOT in this list — water, wall, rock, tree — blocks movement. The validator
- * uses exactly this set to decide walkability, unblocked entrances, and whether
- * required buildings are reachable; the generator must route roads and place
- * entrance cells only on these tiles.
+ * NOT in this list — water, wall, rock, tree, cliff — blocks movement. The
+ * validator uses exactly this set to decide walkability, unblocked entrances,
+ * and whether required buildings are reachable; the generator must route roads
+ * and place entrance cells only on these tiles. 'bridge' keeps a road walkable
+ * where it crosses water, and 'stairs' the single walkable cell that joins a
+ * raised plateau to the network.
  * @type {ReadonlyArray<string>}
  */
 export const WALKABLE_TILE_TYPES = deepFreeze([
-  'grass', 'dirt', 'path', 'road', 'sand', 'bridge', 'plaza', 'floor'
+  'grass', 'dirt', 'path', 'road', 'sand', 'bridge', 'stairs', 'plaza', 'floor'
 ]);
 
 /**

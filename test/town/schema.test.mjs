@@ -23,7 +23,11 @@ import {
   ASSET_CATEGORIES,
   DRAW_LAYERS,
   GUILD_TABS,
+  TILE_TYPES,
+  WALKABLE_TILE_TYPES,
+  GENERATOR_VERSION,
   isFacilityKind,
+  isTileType,
   makeEvidence
 } from '../../src/town/schema.mjs';
 import { inspectRepository } from '../../src/inspector.mjs';
@@ -243,6 +247,53 @@ test('DRAW_LAYERS lists the 7 back-to-front layers in paint order', () => {
 test('GUILD_TABS lists the 5 connections-guild panel tabs in display order', () => {
   assert.deepEqual(GUILD_TABS, ['なかま', 'うけつけ', 'いらい', 'もちもの', 'じょうたい']);
   assert.ok(Object.isFrozen(GUILD_TABS));
+});
+
+// --- terrain tile contract: TILE_TYPES / WALKABLE_TILE_TYPES / GENERATOR_VERSION ---
+// This is the byte-for-byte agreement the layout GENERATOR and VALIDATOR both
+// import; the bridge/stairs/cliff terrain features live or die on it. water,
+// cliff, and wall MUST stay non-walkable so a footprint / entrance / NPC can
+// never legally sit on one; bridge and stairs MUST be walkable so a road can
+// cross water and a plateau can join the network.
+
+test('TILE_TYPES lists every terrain id in canonical order with no duplicates', () => {
+  assert.deepEqual(TILE_TYPES, [
+    'grass', 'dirt', 'path', 'road', 'sand', 'water',
+    'bridge', 'stairs', 'plaza', 'floor', 'wall', 'rock', 'tree', 'cliff'
+  ]);
+  assert.equal(new Set(TILE_TYPES).size, TILE_TYPES.length);
+  assert.ok(Object.isFrozen(TILE_TYPES));
+  assert.throws(() => TILE_TYPES.push('lava'), TypeError);
+});
+
+test('WALKABLE_TILE_TYPES is the walkable subset: bridge/stairs walkable, water/cliff/wall not', () => {
+  assert.deepEqual(WALKABLE_TILE_TYPES, [
+    'grass', 'dirt', 'path', 'road', 'sand', 'bridge', 'stairs', 'plaza', 'floor'
+  ]);
+  // every walkable tile is a real terrain id (subset invariant, no drift)
+  for (const tile of WALKABLE_TILE_TYPES) assert.ok(TILE_TYPES.includes(tile), tile);
+  // the road network's two new connectors are walkable
+  for (const tile of ['bridge', 'stairs']) assert.ok(WALKABLE_TILE_TYPES.includes(tile), tile);
+  // the hard non-walkable tiles block movement (regression guard for reachability)
+  for (const tile of ['water', 'cliff', 'wall', 'rock', 'tree']) {
+    assert.ok(!WALKABLE_TILE_TYPES.includes(tile), `${tile} must stay non-walkable`);
+  }
+  assert.ok(Object.isFrozen(WALKABLE_TILE_TYPES));
+});
+
+test('isTileType accepts every id in TILE_TYPES and nothing else', () => {
+  for (const tile of TILE_TYPES) assert.equal(isTileType(tile), true, tile);
+  assert.equal(isTileType('lava'), false);
+  assert.equal(isTileType('Bridge'), false); // case-sensitive
+  assert.equal(isTileType('cliff '), false); // no trimming
+  for (const value of [null, undefined, 0, {}, ['grass']]) {
+    assert.doesNotThrow(() => isTileType(value));
+    assert.equal(isTileType(value), false, String(value));
+  }
+});
+
+test('GENERATOR_VERSION is bumped to 1.1.0 for the bridge/stairs/cliff layout shape', () => {
+  assert.equal(GENERATOR_VERSION, '1.1.0');
 });
 
 // --- typedef sanity: objects shaped per the documented @typedefs -----------

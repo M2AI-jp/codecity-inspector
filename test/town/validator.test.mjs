@@ -73,6 +73,17 @@ function buildingById(layout, id) {
   return found;
 }
 
+/** First terrain cell (row-major) equal to `type`, or null. */
+function firstTileOfType(layout, type) {
+  const { widthTiles, heightTiles, terrain } = layout.map;
+  for (let y = 0; y < heightTiles; y++) {
+    for (let x = 0; x < widthTiles; x++) {
+      if (terrain[y][x] === type) return { x, y };
+    }
+  }
+  return null;
+}
+
 // --- known-good baseline ------------------------------------------------------
 
 test('validateLayout on the real generated baseline layout: ok true, zero issues, every hard invariant true', () => {
@@ -176,10 +187,13 @@ test('disconnected facility: dropping a main facility\'s only road fails REACHAB
 
 test('DOCK_ON_WATER: a dock whose entrance no longer touches water fails with ok:false', () => {
   const layout = structuredClone(baselineLayout());
-  for (let y = 0; y < layout.map.heightTiles; y++) {
-    for (let x = 0; x < layout.map.widthTiles; x++) {
-      if (layout.map.terrain[y][x] === 'water') layout.map.terrain[y][x] = 'grass';
-    }
+  // Dry out only the water the dock's entrance actually touches (its 4-neighbours),
+  // not every water tile on the map: the v1.1.0 waterway/bridges live elsewhere and
+  // must stay intact, so this corruption isolates DOCK_ON_WATER and nothing else.
+  const dock = buildingById(layout, 'building-dock');
+  const { x: ex, y: ey } = dock.entrance;
+  for (const [nx, ny] of [[ex + 1, ey], [ex - 1, ey], [ex, ey + 1], [ex, ey - 1]]) {
+    if (layout.map.terrain[ny]?.[nx] === 'water') layout.map.terrain[ny][nx] = 'grass';
   }
 
   const result = validateLayout(layout);
@@ -200,6 +214,94 @@ test('NPC_NOT_IN_WALL: an NPC standing inside a building footprint fails with ok
   assert.equal(result.ok, false);
   assert.ok(result.issues.some((i) => i.code === 'NPC_NOT_IN_WALL' && i.severity === 'error' && i.message.includes('npc-house')));
   assert.ok(result.issues.every((i) => i.code === 'NPC_NOT_IN_WALL'), 'this corruption should trip nothing else');
+});
+
+// --- v1.1.0 terrain features: bridge spans, stairs connects, cliff obstacle ---
+// The baseline is a real generated layout, so it already carries a bridged
+// waterway and a stair-linked plateau. The anchor test proves those pass their
+// new codes cleanly; each corruption then breaks exactly one feature and asserts
+// only its code fires -- proving BRIDGE_SPANS_WATER / STAIRS_CONNECT_ELEVATION
+// are live and that a flat/valid layout never trips them spuriously.
+
+test('a valid bridge and stairs in the baseline pass BRIDGE_SPANS_WATER / STAIRS_CONNECT_ELEVATION cleanly', () => {
+  const layout = baselineLayout();
+  assert.ok(firstTileOfType(layout, 'bridge'), 'the fixture must carve a waterway crossed by at least one bridge');
+  assert.ok(firstTileOfType(layout, 'stairs'), 'the fixture must raise a plateau joined by a stairs tile');
+
+  const result = validateLayout(layout);
+  assert.equal(result.ok, true);
+  assert.ok(result.issues.every((i) => i.code !== 'BRIDGE_SPANS_WATER'), 'a real spanning bridge must not trip BRIDGE_SPANS_WATER');
+  assert.ok(result.issues.every((i) => i.code !== 'STAIRS_CONNECT_ELEVATION'), 'a real connecting stairs must not trip STAIRS_CONNECT_ELEVATION');
+});
+
+test('BRIDGE_SPANS_WATER: a bridge that no longer spans water fails with ok:false', () => {
+  const layout = structuredClone(baselineLayout());
+  const bridge = firstTileOfType(layout, 'bridge');
+  assert.ok(bridge, 'baseline must contain a bridge to corrupt');
+  const T = layout.map.terrain;
+  // Dry out one of the two water tiles the bridge spans, so it dead-ends into
+  // dry ground instead of carrying the road across a gap.
+  if (T[bridge.y - 1]?.[bridge.x] === 'water' && T[bridge.y + 1]?.[bridge.x] === 'water') {
+    T[bridge.y - 1][bridge.x] = 'grass';
+  } else {
+    T[bridge.y][bridge.x - 1] = 'grass';
+  }
+
+  const result = validateLayout(layout);
+  assert.equal(result.ok, false);
+  assert.ok(result.issues.some((i) => i.code === 'BRIDGE_SPANS_WATER' && i.severity === 'error'
+    && i.message.includes(`(${bridge.x},${bridge.y})`)));
+  assert.ok(result.issues.every((i) => i.code === 'BRIDGE_SPANS_WATER'), 'this corruption should trip nothing else');
+});
+
+test('STAIRS_CONNECT_ELEVATION: a stairs no longer adjoining the cliff rim fails with ok:false', () => {
+  const layout = structuredClone(baselineLayout());
+  const stairs = firstTileOfType(layout, 'stairs');
+  assert.ok(stairs, 'baseline must contain a stairs to corrupt');
+  const T = layout.map.terrain;
+  // Erase the plateau rim next to the stairs so it adjoins no cliff -- the stairs
+  // now "connects" no elevation, which STAIRS_CONNECT_ELEVATION must catch.
+  for (const [nx, ny] of [[stairs.x, stairs.y - 1], [stairs.x, stairs.y + 1], [stairs.x - 1, stairs.y], [stairs.x + 1, stairs.y]]) {
+    if (T[ny]?.[nx] === 'cliff') T[ny][nx] = 'grass';
+  }
+
+  const result = validateLayout(layout);
+  assert.equal(result.ok, false);
+  assert.ok(result.issues.some((i) => i.code === 'STAIRS_CONNECT_ELEVATION' && i.severity === 'error'
+    && i.message.includes(`(${stairs.x},${stairs.y})`)));
+  assert.ok(result.issues.every((i) => i.code === 'STAIRS_CONNECT_ELEVATION'), 'this corruption should trip nothing else');
+});
+
+test('NO_OVERLAP: a footprint covering a natural obstacle (water or cliff) fails with ok:false', () => {
+  for (const obstacle of ['water', 'cliff']) {
+    const layout = structuredClone(baselineLayout());
+    const house = buildingById(layout, 'building-house');
+    layout.map.terrain[house.y][house.x] = obstacle; // paint the obstacle under the footprint's own tile
+
+    const result = validateLayout(layout);
+    assert.equal(result.ok, false, `a footprint over ${obstacle} must fail`);
+    assert.equal(result.noOverlap, false);
+    assert.ok(result.issues.some((i) => i.code === 'NO_OVERLAP' && i.severity === 'error' && i.message.includes(obstacle)));
+    assert.ok(result.issues.every((i) => i.code === 'NO_OVERLAP'), `${obstacle} under a footprint should trip nothing else`);
+  }
+});
+
+test('NPC_NOT_IN_WALL: an NPC standing on water or cliff fails with ok:false', () => {
+  for (const obstacle of ['water', 'cliff']) {
+    const layout = structuredClone(baselineLayout());
+    const spot = firstTileOfType(layout, obstacle);
+    assert.ok(spot, `baseline must contain a ${obstacle} tile`);
+    const npc = layout.npcs.find((n) => n.id === 'npc-shop');
+    assert.ok(npc, 'expected an npc-shop fixture NPC');
+    npc.x = spot.x;
+    npc.y = spot.y;
+
+    const result = validateLayout(layout);
+    assert.equal(result.ok, false, `an NPC on ${obstacle} must fail`);
+    assert.ok(result.issues.some((i) => i.code === 'NPC_NOT_IN_WALL' && i.severity === 'error'
+      && i.message.includes('npc-shop') && i.message.includes(obstacle)));
+    assert.ok(result.issues.every((i) => i.code === 'NPC_NOT_IN_WALL'), `an NPC on ${obstacle} should trip nothing else`);
+  }
 });
 
 // --- issue ordering -------------------------------------------------------
