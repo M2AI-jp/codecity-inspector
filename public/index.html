@@ -1,44 +1,203 @@
 <!doctype html>
-<html lang="en">
+<html lang="ja">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>CodeCity Inspector — backend</title>
+    <title>CodeCity Inspector — 街</title>
+    <link rel="stylesheet" href="/styles.css">
   </head>
   <body>
-    <main>
-      <h1>CodeCity Inspector — backend</h1>
-      <p>
-        This is the backend status page. The pixel-art town frontend has been
-        removed and is being rebuilt; for now only the read-only inspection
-        backend is running here.
-      </p>
+    <div class="app-shell">
+      <header class="app-header">
+        <div class="repo-info">
+          <h1 id="repo-name" class="repo-name">読み込み中…</h1>
+          <button id="seed-badge" type="button" class="seed-badge" title="">
+            seed: <span id="seed-short">----</span>
+          </button>
+        </div>
 
-      <h2>HTTP endpoints (loopback only)</h2>
-      <ul>
-        <li>
-          <a href="/api/town"><code>GET /api/town</code></a>
-          — the habitable-town model, habitability report, and validated town
-          layout, as JSON.
-        </li>
-        <li>
-          <a href="/api/city"><code>GET /api/city</code></a>
-          — the raw repository inspection, as JSON.
-        </li>
-      </ul>
+        <div id="level-badge" class="level-badge" data-level="0" aria-live="polite">
+          <span class="level-badge-num">Lv.<span id="level-num">0</span></span>
+          <span id="level-name" class="level-badge-name">-</span>
+        </div>
 
-      <h2>Command line</h2>
-      <p>
-        Generate a deterministic <code>town.layout.json</code> artifact without
-        starting the server:
-      </p>
-      <p><code>npm run generate:town</code></p>
+        <div class="header-actions">
+          <button id="open-guild-btn" type="button" class="btn btn-guild" disabled>
+            接続者ギルド
+          </button>
+          <button id="reload-btn" type="button" class="btn btn-reload">
+            再読み込み
+          </button>
+        </div>
+      </header>
 
-      <p>
-        The target repository is read as data only; its code is never executed.
-        The server binds to <code>127.0.0.1</code> and serves JSON and this page
-        under a strict Content-Security-Policy.
-      </p>
-    </main>
+      <div id="error-banner" class="error-banner" hidden role="alert"></div>
+
+      <main class="app-main">
+        <section class="canvas-section" aria-labelledby="canvas-heading">
+          <h2 id="canvas-heading" class="visually-hidden">町の地図</h2>
+
+          <div id="canvas-empty-state" class="canvas-empty-state" hidden>
+            この街にはまだ建物がありません（layout.buildings が空です）。地形だけを表示しています。
+          </div>
+
+          <div class="canvas-wrap">
+            <canvas
+              id="town-canvas"
+              width="240"
+              height="240"
+              tabindex="0"
+              aria-label="町の地図。読み込み中です。"
+            ></canvas>
+          </div>
+
+          <p class="canvas-hint">建物をクリックすると詳細を表示します。酒場（紫）をクリックすると接続者ギルドが開きます。</p>
+
+          <ul class="legend" aria-hidden="true">
+            <li><span class="legend-swatch legend-swatch-building"></span>建物</li>
+            <li><span class="legend-swatch legend-swatch-pub"></span>酒場</li>
+            <li><span class="legend-swatch legend-swatch-entrance"></span>入口</li>
+            <li><span class="legend-swatch legend-swatch-npc"></span>NPC</li>
+            <li><span class="legend-swatch legend-swatch-prop"></span>小物</li>
+          </ul>
+        </section>
+
+        <aside class="side-panels">
+          <section id="habitability-panel" class="panel habitability-panel" aria-labelledby="habitability-heading">
+            <h2 id="habitability-heading">住みやすさ</h2>
+
+            <div id="cannot-live-headline" class="cannot-live-headline" hidden>
+              このままだと誰も住めません！
+            </div>
+
+            <dl class="hab-summary">
+              <div class="hab-summary-row">
+                <dt>レベル</dt>
+                <dd id="hab-level-text">-</dd>
+              </div>
+              <div class="hab-summary-row">
+                <dt>居住可否</dt>
+                <dd id="hab-can-live-text">-</dd>
+              </div>
+            </dl>
+
+            <div class="hab-group hab-group-blockers">
+              <h3>ブロッカー <span id="hab-blockers-count" class="count-badge">0</span></h3>
+              <ul id="hab-blockers-list" class="hab-list"></ul>
+            </div>
+
+            <div class="hab-group hab-group-warnings">
+              <h3>警告（汚れ） <span id="hab-warnings-count" class="count-badge">0</span></h3>
+              <ul id="hab-warnings-list" class="hab-list"></ul>
+            </div>
+
+            <div class="hab-group hab-group-pending">
+              <h3>検査待ち <span id="hab-pending-count" class="count-badge">0</span></h3>
+              <p class="hab-group-note">外部の工務店（LLM）による自己申告です。まだ確認された成果ではありません。</p>
+              <ul id="hab-pending-list" class="hab-list"></ul>
+            </div>
+
+            <div class="hab-group hab-group-reasons">
+              <h3>判定理由</h3>
+              <ul id="hab-reasons-list" class="hab-list"></ul>
+            </div>
+          </section>
+
+          <section id="building-details-panel" class="panel building-details-panel" aria-labelledby="building-details-heading">
+            <h2 id="building-details-heading">建物情報</h2>
+
+            <div id="building-details-empty" class="building-details-empty">
+              建物をクリックするか、下の一覧から選んでください。
+            </div>
+
+            <div id="building-details-content" class="building-details-content" hidden>
+              <h3 id="bd-facility-label">-</h3>
+              <dl class="bd-stats">
+                <div class="bd-stats-row">
+                  <dt>種別</dt>
+                  <dd id="bd-facility-kind">-</dd>
+                </div>
+                <div class="bd-stats-row">
+                  <dt>存在</dt>
+                  <dd id="bd-facility-present">-</dd>
+                </div>
+                <div class="bd-stats-row">
+                  <dt>件数</dt>
+                  <dd id="bd-facility-count">-</dd>
+                </div>
+                <div class="bd-stats-row">
+                  <dt>状態</dt>
+                  <dd id="bd-building-state">-</dd>
+                </div>
+              </dl>
+
+              <div class="evidence-groups">
+                <div class="evidence-group evidence-observed">
+                  <h4>観測 (observed)</h4>
+                  <ul id="bd-evidence-observed" class="evidence-list"></ul>
+                </div>
+                <div class="evidence-group evidence-inferred">
+                  <h4>推測 (inferred)</h4>
+                  <ul id="bd-evidence-inferred" class="evidence-list"></ul>
+                </div>
+                <div class="evidence-group evidence-unknown">
+                  <h4>不明 (unknown)</h4>
+                  <ul id="bd-evidence-unknown" class="evidence-list"></ul>
+                </div>
+              </div>
+            </div>
+
+            <h3 class="facility-list-heading">施設一覧</h3>
+            <ul id="facility-list" class="facility-list"></ul>
+          </section>
+        </aside>
+      </main>
+    </div>
+
+    <div id="guild-modal" class="guild-modal" hidden>
+      <button id="guild-backdrop" type="button" class="guild-backdrop" aria-label="接続者ギルドを閉じる"></button>
+
+      <div class="guild-panel" role="dialog" aria-modal="true" aria-labelledby="guild-modal-title">
+        <header class="guild-panel-header">
+          <h2 id="guild-modal-title">接続者ギルド</h2>
+          <button id="guild-close-btn" type="button" class="btn-close" aria-label="閉じる">×</button>
+        </header>
+
+        <div id="guild-unavailable" class="guild-unavailable" hidden>
+          酒場がありません。
+        </div>
+
+        <div id="guild-body" class="guild-body">
+          <nav class="guild-tabs" role="tablist" aria-label="接続者ギルドのタブ">
+            <button type="button" role="tab" class="guild-tab" data-tab="なかま" id="guild-tabbtn-nakama" aria-controls="guild-tabpanel-nakama" aria-selected="true">なかま</button>
+            <button type="button" role="tab" class="guild-tab" data-tab="うけつけ" id="guild-tabbtn-uketsuke" aria-controls="guild-tabpanel-uketsuke" aria-selected="false" tabindex="-1">うけつけ</button>
+            <button type="button" role="tab" class="guild-tab" data-tab="いらい" id="guild-tabbtn-irai" aria-controls="guild-tabpanel-irai" aria-selected="false" tabindex="-1">いらい</button>
+            <button type="button" role="tab" class="guild-tab" data-tab="もちもの" id="guild-tabbtn-mochimono" aria-controls="guild-tabpanel-mochimono" aria-selected="false" tabindex="-1">もちもの</button>
+            <button type="button" role="tab" class="guild-tab" data-tab="じょうたい" id="guild-tabbtn-jotai" aria-controls="guild-tabpanel-jotai" aria-selected="false" tabindex="-1">じょうたい</button>
+          </nav>
+
+          <div class="guild-tabpanels">
+            <p class="guild-tabpanel-note">各項目は evidenceClass（観測 / 推測 / 不明）を正直に表示します。</p>
+            <div role="tabpanel" id="guild-tabpanel-nakama" class="guild-tabpanel" data-tabpanel="なかま" aria-labelledby="guild-tabbtn-nakama">
+              <ul class="guild-item-list"></ul>
+            </div>
+            <div role="tabpanel" id="guild-tabpanel-uketsuke" class="guild-tabpanel" data-tabpanel="うけつけ" aria-labelledby="guild-tabbtn-uketsuke" hidden>
+              <ul class="guild-item-list"></ul>
+            </div>
+            <div role="tabpanel" id="guild-tabpanel-irai" class="guild-tabpanel" data-tabpanel="いらい" aria-labelledby="guild-tabbtn-irai" hidden>
+              <ul class="guild-item-list"></ul>
+            </div>
+            <div role="tabpanel" id="guild-tabpanel-mochimono" class="guild-tabpanel" data-tabpanel="もちもの" aria-labelledby="guild-tabbtn-mochimono" hidden>
+              <ul class="guild-item-list"></ul>
+            </div>
+            <div role="tabpanel" id="guild-tabpanel-jotai" class="guild-tabpanel" data-tabpanel="じょうたい" aria-labelledby="guild-tabbtn-jotai" hidden>
+              <ul class="guild-item-list"></ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="/app.js" defer></script>
   </body>
 </html>

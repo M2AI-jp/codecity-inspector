@@ -13,7 +13,7 @@
     "generate:town": "node src/generate-town.mjs",
     "test": "node --test",
     "check:launcher": "zsh -n CodeCity.command",
-    "check": "npm run check:launcher && node --check src/scanner.mjs && node --check src/inspector.mjs && node --check src/server.mjs && node --check src/generate-town.mjs && npm test"
+    "check": "npm run check:launcher && node --check src/scanner.mjs && node --check src/inspector.mjs && node --check src/server.mjs && node --check src/generate-town.mjs && node --check public/app.js && npm test"
   },
   "engines": {
     "node": ">=20"
