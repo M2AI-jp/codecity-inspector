@@ -131,6 +131,9 @@ export async function buildTownPayload(repoPath, inspection, options = {}) {
     generatorVersion: GENERATOR_VERSION,
     repoFingerprint: fingerprint
   }));
+  if (layout.validation?.ok !== true) {
+    throw new Error('Generated town layout failed validation');
+  }
   return {
     schemaVersion: 1,
     repository: { name: inspection?.repository?.name ?? '' },

@@ -117,7 +117,8 @@ export async function startServer({
   repoPath = DEFAULT_REPOSITORY,
   port = DEFAULT_PORT,
   publicRoot = DEFAULT_PUBLIC_ROOT,
-  scannerOptions = {}
+  scannerOptions = {},
+  townPayloadBuilder = buildTownPayload
 } = {}) {
   if (!Number.isSafeInteger(port) || port < 0 || port > 65_535) throw new Error('Invalid port');
   const actualPublicRoot = await realpath(path.resolve(publicRoot));
@@ -163,7 +164,11 @@ export async function startServer({
     if (request.url?.split(/[?#]/, 1)[0] === '/api/town') {
       try {
         const inspection = await inspectCurrentRepository();
-        sendJson(response, 200, await buildTownPayload(repoPath, inspection), headOnly);
+        const payload = await townPayloadBuilder(repoPath, inspection);
+        if (payload?.layout?.validation?.ok !== true) {
+          throw new Error('Town payload contains an invalid layout');
+        }
+        sendJson(response, 200, payload, headOnly);
       } catch {
         sendText(response, 500, 'Unable to generate town', headOnly);
       }

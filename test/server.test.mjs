@@ -22,13 +22,14 @@ function rawRequest(port, requestPath, method = 'GET', headers = {}) {
   });
 }
 
-async function serverFixture() {
+async function serverFixture({ withEntrypoint = true } = {}) {
   const workspace = await mkdtemp(path.join(os.tmpdir(), 'codecity-server-'));
   const repo = path.join(workspace, 'repo');
   const publicRoot = path.join(workspace, 'public');
   await mkdir(path.join(repo, 'src'), { recursive: true });
   await mkdir(publicRoot, { recursive: true });
   await writeFile(path.join(repo, 'src', 'index.js'), "export const secret = 'SOURCE_MUST_NOT_LEAK';\n");
+  if (withEntrypoint) await writeFile(path.join(repo, 'package.json'), '{"main":"src/index.js"}\n');
   await writeFile(path.join(publicRoot, 'index.html'), '<h1>CodeCity</h1>');
   await writeFile(path.join(publicRoot, 'app.js'), 'document.body.dataset.ready = "yes";');
   const outside = path.join(workspace, 'outside.txt');
@@ -99,6 +100,7 @@ test('serves the town model, habitability, and validated layout without leaking 
   assert.equal(Array.isArray(town.layout.buildings), true);
   assert.equal(typeof town.layout.validation, 'object');
   assert.notEqual(town.layout.validation, null);
+  assert.equal(town.layout.validation.ok, true);
 
   // Deterministic: an unchanged repository yields a byte-identical payload.
   const repeat = await rawRequest(port, '/api/town');
@@ -113,6 +115,38 @@ test('serves the town model, habitability, and validated layout without leaking 
 
   const post = await rawRequest(port, '/api/town', 'POST');
   assert.equal(post.status, 405);
+});
+
+test('refuses to return a town payload whose layout did not pass validation', async (t) => {
+  const fixture = await serverFixture();
+  const running = await startServer({
+    ...fixture,
+    repoPath: fixture.repo,
+    port: 0,
+    townPayloadBuilder: async () => ({
+      layout: { validation: { ok: false } }
+    })
+  });
+  t.after(running.close);
+
+  const response = await rawRequest(running.server.address().port, '/api/town');
+  assert.equal(response.status, 500);
+  assert.equal(response.body, 'Unable to generate town\n');
+  assert.equal(response.body.includes('validation'), false);
+
+  const head = await rawRequest(running.server.address().port, '/api/town', 'HEAD');
+  assert.equal(head.status, 500);
+  assert.equal(head.body, '');
+});
+
+test('the real town builder rejects an invalid layout instead of returning it', async (t) => {
+  const fixture = await serverFixture({ withEntrypoint: false });
+  const running = await startServer({ ...fixture, repoPath: fixture.repo, port: 0 });
+  t.after(running.close);
+
+  const response = await rawRequest(running.server.address().port, '/api/town');
+  assert.equal(response.status, 500);
+  assert.equal(response.body, 'Unable to generate town\n');
 });
 
 test('rescans the repository after each completed city request and recovers from scan errors', async (t) => {
