@@ -26,6 +26,7 @@
       },
       "pixelArt": {
         "tileSize": 16,
+        "logicalSpriteSize": { "width": 48, "height": 48 },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false
@@ -97,6 +98,7 @@
       },
       "pixelArt": {
         "tileSize": 16,
+        "logicalSpriteSize": { "width": 48, "height": 48 },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false
@@ -168,6 +170,7 @@
       },
       "pixelArt": {
         "tileSize": 16,
+        "logicalSpriteSize": { "width": 64, "height": 64 },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false
@@ -239,6 +242,7 @@
       },
       "pixelArt": {
         "tileSize": 16,
+        "logicalSpriteSize": { "width": 48, "height": 48 },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false
@@ -310,6 +314,7 @@
       },
       "pixelArt": {
         "tileSize": 16,
+        "logicalSpriteSize": { "width": 48, "height": 48 },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false
@@ -381,6 +386,7 @@
       },
       "pixelArt": {
         "tileSize": 16,
+        "logicalSpriteSize": { "width": 48, "height": 48 },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false
@@ -452,6 +458,7 @@
       },
       "pixelArt": {
         "tileSize": 16,
+        "logicalSpriteSize": { "width": 32, "height": 48 },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false
@@ -523,6 +530,7 @@
       },
       "pixelArt": {
         "tileSize": 16,
+        "logicalSpriteSize": { "width": 48, "height": 48 },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false
@@ -594,6 +602,7 @@
       },
       "pixelArt": {
         "tileSize": 16,
+        "logicalSpriteSize": { "width": 32, "height": 32 },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false
@@ -665,6 +674,7 @@
       },
       "pixelArt": {
         "tileSize": 16,
+        "logicalSpriteSize": { "width": 32, "height": 32 },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false
@@ -736,6 +746,7 @@
       },
       "pixelArt": {
         "tileSize": 16,
+        "logicalSpriteSize": { "width": 32, "height": 32 },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false
@@ -808,6 +819,7 @@
       },
       "pixelArt": {
         "tileSize": 16,
+        "logicalSpriteSize": { "width": 32, "height": 32 },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false
@@ -880,6 +892,7 @@
       },
       "pixelArt": {
         "tileSize": 16,
+        "logicalSpriteSize": { "width": 32, "height": 32 },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false
@@ -951,6 +964,7 @@
       },
       "pixelArt": {
         "tileSize": 16,
+        "logicalSpriteSize": { "width": 32, "height": 32 },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false
@@ -1022,6 +1036,7 @@
       },
       "pixelArt": {
         "tileSize": 16,
+        "logicalSpriteSize": { "width": 32, "height": 32 },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false
@@ -1093,6 +1108,7 @@
       },
       "pixelArt": {
         "tileSize": 16,
+        "logicalSpriteSize": { "width": 32, "height": 32 },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false
@@ -1164,6 +1180,7 @@
       },
       "pixelArt": {
         "tileSize": 16,
+        "logicalSpriteSize": { "width": 48, "height": 48 },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false
