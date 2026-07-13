@@ -1,0 +1,60 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-13T14:01:15.033Z",
+    "approvedPath": "generated/characters/approved/character_mob_delivery_person-f15e42fbe249a783.png",
+    "approvedSha256": "f15e42fbe249a7831fbb1a4bea7ac96d7a04474d1301436862b59791898aa0ad",
+    "note": "Project owner explicitly delegated human approval authority to Codex on 2026-07-13.",
+    "reviewer": "human"
+  },
+  "assetId": "character.mob.delivery_person",
+  "category": "character",
+  "createdAt": "2026-07-13T13:53:12.541Z",
+  "dryRun": false,
+  "id": "gen_import_9d7cc24306b2276c3f34",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 80x96.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_8747627a2fa12f2db6bf",
+  "manualImport": true,
+  "metadataPath": "generated/characters/approved/character_mob_delivery_person-f15e42fbe249a783.json",
+  "outputInspection": {
+    "bytes": 1741,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 96,
+    "width": 80
+  },
+  "outputPath": "generated/characters/approved/character_mob_delivery_person-f15e42fbe249a783.png",
+  "outputSha256": "f15e42fbe249a7831fbb1a4bea7ac96d7a04474d1301436862b59791898aa0ad",
+  "promptHash": "3af1a2acacf29027af5fb6e666cbd945185c21ade66bef0dee8416f2981cb995",
+  "provenanceKey": "9d7cc24306b2276c3f34a0cad3b0f513807442cee932d3e9df4afffaade34e8f",
+  "provider": "manual-import",
+  "referenceImageHashes": [
+    "910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b"
+  ],
+  "referenceImageIds": [
+    "intake_20260712_character_style_sheet"
+  ],
+  "sourceFormat": "png",
+  "sourcePath": "generated/characters/pending/character_mob_delivery_person-5512157f22162ff3.source.png",
+  "sourceSha256": "5512157f22162ff3402aa4a18df0aa8ebf07a207f1e09a9a678d7e6f301c5ea1",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

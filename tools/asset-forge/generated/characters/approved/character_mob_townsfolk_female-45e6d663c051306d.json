@@ -1,0 +1,60 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-13T14:01:14.314Z",
+    "approvedPath": "generated/characters/approved/character_mob_townsfolk_female-45e6d663c051306d.png",
+    "approvedSha256": "45e6d663c051306dde21efed464bcb75dbd377d712429ff7b1f63193ca728b89",
+    "note": "Project owner explicitly delegated human approval authority to Codex on 2026-07-13.",
+    "reviewer": "human"
+  },
+  "assetId": "character.mob.townsfolk_female",
+  "category": "character",
+  "createdAt": "2026-07-13T13:53:09.792Z",
+  "dryRun": false,
+  "id": "gen_import_bb77c1ae1c9a9e25e08e",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 80x96.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_578cd35148bae415981c",
+  "manualImport": true,
+  "metadataPath": "generated/characters/approved/character_mob_townsfolk_female-45e6d663c051306d.json",
+  "outputInspection": {
+    "bytes": 1803,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 96,
+    "width": 80
+  },
+  "outputPath": "generated/characters/approved/character_mob_townsfolk_female-45e6d663c051306d.png",
+  "outputSha256": "45e6d663c051306dde21efed464bcb75dbd377d712429ff7b1f63193ca728b89",
+  "promptHash": "3af1a2acacf29027af5fb6e666cbd945185c21ade66bef0dee8416f2981cb995",
+  "provenanceKey": "bb77c1ae1c9a9e25e08e7f7a9cc96141beb780964cc25c1d1949b407d276a775",
+  "provider": "manual-import",
+  "referenceImageHashes": [
+    "910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b"
+  ],
+  "referenceImageIds": [
+    "intake_20260712_character_style_sheet"
+  ],
+  "sourceFormat": "png",
+  "sourcePath": "generated/characters/pending/character_mob_townsfolk_female-877f1c8317fd082d.source.png",
+  "sourceSha256": "877f1c8317fd082d033af937ea42caf1a55f1a7807c270c2e2e577557721ff38",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

@@ -428,6 +428,40 @@
         "field.wall_stone"
       ],
       "notes": "Composite cobblestone, road, wall, and stair style sheet. Regenerate or extract tile-aligned assets; the sheet itself is not seamless 16px output."
+    },
+    {
+      "id": "intake_20260712_character_style_sheet",
+      "path": "references/pending/character_style_reference_sheet.png",
+      "status": "pending",
+      "category": "character",
+      "sha256": "910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b",
+      "providedBy": "human",
+      "licenseNote": "Human-provided ChatGPT-generated reference; project owner rights/license confirmation pending.",
+      "targetAssetIds": [
+        "character.player",
+        "character.innkeeper",
+        "character.tavern_master",
+        "character.town_clerk",
+        "character.workshop_artisan",
+        "character.dojo_inspector",
+        "character.watchtower_guard",
+        "character.dock_ferryman",
+        "character.warehouse_keeper",
+        "character.gatekeeper",
+        "character.mob.townsfolk_male",
+        "character.mob.townsfolk_female",
+        "character.mob.elder",
+        "character.mob.child",
+        "character.mob.traveler",
+        "character.mob.merchant",
+        "character.mob.artisan",
+        "character.mob.tavern_guest",
+        "character.mob.inn_guest",
+        "character.mob.dock_worker",
+        "character.mob.delivery_person",
+        "character.guildmaster"
+      ],
+      "notes": "Character style reference sheet supplied by the project owner. Use only as a style and silhouette reference; every final candidate must be a transparent 80x96 sprite sheet with the declared 4-by-3 grid."
     }
   ]
 }

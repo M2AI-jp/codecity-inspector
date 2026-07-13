@@ -1,0 +1,57 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-13T14:01:17.062Z",
+    "approvedPath": "generated/objects/approved/object_lamp-60ca92071d511ffe.png",
+    "approvedSha256": "60ca92071d511ffefa1c7181c073247f9d9aa42b0c8fc36c35b3a1682a88634f",
+    "note": "Project owner explicitly delegated human approval authority to Codex on 2026-07-13.",
+    "reviewer": "human"
+  },
+  "assetId": "object.lamp",
+  "category": "object",
+  "createdAt": "2026-07-13T13:18:12.729Z",
+  "dryRun": false,
+  "id": "gen_import_11ee27fcc51b7e9236ce",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 16x16.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_1ee57e5fcf9ee846b514",
+  "manualImport": true,
+  "metadataPath": "generated/objects/approved/object_lamp-60ca92071d511ffe.json",
+  "outputInspection": {
+    "bytes": 162,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 16,
+    "width": 16
+  },
+  "outputPath": "generated/objects/approved/object_lamp-60ca92071d511ffe.png",
+  "outputSha256": "60ca92071d511ffefa1c7181c073247f9d9aa42b0c8fc36c35b3a1682a88634f",
+  "promptHash": "422bce337d2a5cb66102734f96e2bbcccf619563899e5015ad3ba6f6496f4e41",
+  "provenanceKey": "11ee27fcc51b7e9236ceddfda0673d2e862663eb9779ab9005e8e99e1bc32c7e",
+  "provider": "manual-import",
+  "referenceImageHashes": [],
+  "referenceImageIds": [],
+  "sourceFormat": "png",
+  "sourcePath": "generated/objects/pending/object_lamp-41e157771f74f3ed.source.png",
+  "sourceSha256": "41e157771f74f3ed432faf0f77f0eeec53558d82a546eb38ed631b7b6f8a67cf",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Reference object_style_master is missing; it was not included.",
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

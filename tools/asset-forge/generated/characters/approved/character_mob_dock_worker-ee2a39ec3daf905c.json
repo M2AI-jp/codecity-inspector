@@ -1,0 +1,60 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-13T14:01:14.973Z",
+    "approvedPath": "generated/characters/approved/character_mob_dock_worker-ee2a39ec3daf905c.png",
+    "approvedSha256": "ee2a39ec3daf905c72abac3dbe578e2e5979f24ef44dc85f367e40dd36616446",
+    "note": "Project owner explicitly delegated human approval authority to Codex on 2026-07-13.",
+    "reviewer": "human"
+  },
+  "assetId": "character.mob.dock_worker",
+  "category": "character",
+  "createdAt": "2026-07-13T13:53:12.263Z",
+  "dryRun": false,
+  "id": "gen_import_bd763c446ca635f161e8",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 80x96.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_91206e5afb027ca51476",
+  "manualImport": true,
+  "metadataPath": "generated/characters/approved/character_mob_dock_worker-ee2a39ec3daf905c.json",
+  "outputInspection": {
+    "bytes": 1791,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 96,
+    "width": 80
+  },
+  "outputPath": "generated/characters/approved/character_mob_dock_worker-ee2a39ec3daf905c.png",
+  "outputSha256": "ee2a39ec3daf905c72abac3dbe578e2e5979f24ef44dc85f367e40dd36616446",
+  "promptHash": "3af1a2acacf29027af5fb6e666cbd945185c21ade66bef0dee8416f2981cb995",
+  "provenanceKey": "bd763c446ca635f161e8c00556f18c3f4cfb56a719371f3cda1fe2f5739dede8",
+  "provider": "manual-import",
+  "referenceImageHashes": [
+    "910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b"
+  ],
+  "referenceImageIds": [
+    "intake_20260712_character_style_sheet"
+  ],
+  "sourceFormat": "png",
+  "sourcePath": "generated/characters/pending/character_mob_dock_worker-c323a1502be3955f.source.png",
+  "sourceSha256": "c323a1502be3955f62927e93e16a67d756056b945b474ef30f687ad5c66b3c38",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

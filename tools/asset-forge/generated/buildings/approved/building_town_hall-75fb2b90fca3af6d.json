@@ -1,0 +1,57 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-13T14:01:12.465Z",
+    "approvedPath": "generated/buildings/approved/building_town_hall-75fb2b90fca3af6d.png",
+    "approvedSha256": "75fb2b90fca3af6d7b04980399e2ab46a0b931ef52d1ed280f2d4ac4e2a981ff",
+    "note": "Project owner explicitly delegated human approval authority to Codex on 2026-07-13.",
+    "reviewer": "human"
+  },
+  "assetId": "building.town_hall",
+  "category": "building",
+  "createdAt": "2026-07-13T10:52:15.706Z",
+  "dryRun": false,
+  "id": "gen_import_7a224954806464fee552",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 64x64.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_25586beb512f987c4555",
+  "manualImport": true,
+  "metadataPath": "generated/buildings/approved/building_town_hall-75fb2b90fca3af6d.json",
+  "outputInspection": {
+    "bytes": 1835,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 64,
+    "width": 64
+  },
+  "outputPath": "generated/buildings/approved/building_town_hall-75fb2b90fca3af6d.png",
+  "outputSha256": "75fb2b90fca3af6d7b04980399e2ab46a0b931ef52d1ed280f2d4ac4e2a981ff",
+  "promptHash": "982d62b89c3c4cc3d545275bc615cf17f677c1ce407197b368e8f8974cded63b",
+  "provenanceKey": "7a224954806464fee552d6d5c1f30e6411df0b448ceeb1217fd2c93d615d58cf",
+  "provider": "manual-import",
+  "referenceImageHashes": [],
+  "referenceImageIds": [],
+  "sourceFormat": "png",
+  "sourcePath": "generated/buildings/pending/building_town_hall-0c0a4e751bbc58ea.source.png",
+  "sourceSha256": "0c0a4e751bbc58ea3aae0ef7ec59540530c0f93ee7727dc44ba4129d70bed771",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Reference building_style_master is missing; it was not included.",
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

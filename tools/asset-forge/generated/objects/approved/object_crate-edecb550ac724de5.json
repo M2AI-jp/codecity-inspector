@@ -1,0 +1,57 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-13T14:01:16.858Z",
+    "approvedPath": "generated/objects/approved/object_crate-edecb550ac724de5.png",
+    "approvedSha256": "edecb550ac724de512501794d5e0f9759cb8b48ccede9536a291ffc66eafe27a",
+    "note": "Project owner explicitly delegated human approval authority to Codex on 2026-07-13.",
+    "reviewer": "human"
+  },
+  "assetId": "object.crate",
+  "category": "object",
+  "createdAt": "2026-07-13T13:18:12.143Z",
+  "dryRun": false,
+  "id": "gen_import_bbb5fe1b9b45b3aa6a15",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 16x16.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_0572dd676fed22ec6aff",
+  "manualImport": true,
+  "metadataPath": "generated/objects/approved/object_crate-edecb550ac724de5.json",
+  "outputInspection": {
+    "bytes": 166,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 16,
+    "width": 16
+  },
+  "outputPath": "generated/objects/approved/object_crate-edecb550ac724de5.png",
+  "outputSha256": "edecb550ac724de512501794d5e0f9759cb8b48ccede9536a291ffc66eafe27a",
+  "promptHash": "422bce337d2a5cb66102734f96e2bbcccf619563899e5015ad3ba6f6496f4e41",
+  "provenanceKey": "bbb5fe1b9b45b3aa6a1594d8df2435ea3aa1e200d56954b3cb1f7b19d9372791",
+  "provider": "manual-import",
+  "referenceImageHashes": [],
+  "referenceImageIds": [],
+  "sourceFormat": "png",
+  "sourcePath": "generated/objects/pending/object_crate-9110ab48356dde67.source.png",
+  "sourceSha256": "9110ab48356dde67169b1220495982ac95e06e1fc037cc7edaeb4a734e1aedb9",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Reference object_style_master is missing; it was not included.",
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

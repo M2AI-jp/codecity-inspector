@@ -1,0 +1,60 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-13T14:01:13.640Z",
+    "approvedPath": "generated/characters/approved/character_tavern_master-bb17b5b04d72b7f7.png",
+    "approvedSha256": "bb17b5b04d72b7f72ef2031ce2a2d9fd9852b750b422eda89a4c254896ceb42c",
+    "note": "Project owner explicitly delegated human approval authority to Codex on 2026-07-13.",
+    "reviewer": "human"
+  },
+  "assetId": "character.tavern_master",
+  "category": "character",
+  "createdAt": "2026-07-13T13:53:07.069Z",
+  "dryRun": false,
+  "id": "gen_import_4b0d33380ba6fc17a97d",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 80x96.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_dfe6b132b1794fea9336",
+  "manualImport": true,
+  "metadataPath": "generated/characters/approved/character_tavern_master-bb17b5b04d72b7f7.json",
+  "outputInspection": {
+    "bytes": 1794,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 96,
+    "width": 80
+  },
+  "outputPath": "generated/characters/approved/character_tavern_master-bb17b5b04d72b7f7.png",
+  "outputSha256": "bb17b5b04d72b7f72ef2031ce2a2d9fd9852b750b422eda89a4c254896ceb42c",
+  "promptHash": "3af1a2acacf29027af5fb6e666cbd945185c21ade66bef0dee8416f2981cb995",
+  "provenanceKey": "4b0d33380ba6fc17a97d24e4e648a6a9483f09f5c6e523dd113868379004ef56",
+  "provider": "manual-import",
+  "referenceImageHashes": [
+    "910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b"
+  ],
+  "referenceImageIds": [
+    "intake_20260712_character_style_sheet"
+  ],
+  "sourceFormat": "png",
+  "sourcePath": "generated/characters/pending/character_tavern_master-42a05c431371cab7.source.png",
+  "sourceSha256": "42a05c431371cab73a81bcad2cc7665a799082df911fd74fbe1166228ccaecee",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

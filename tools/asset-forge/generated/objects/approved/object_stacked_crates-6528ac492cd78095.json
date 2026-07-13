@@ -1,0 +1,57 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-13T14:01:16.963Z",
+    "approvedPath": "generated/objects/approved/object_stacked_crates-6528ac492cd78095.png",
+    "approvedSha256": "6528ac492cd7809506a4bd57813eb331ccef9b554f4edc4fe32c635af59a8d7f",
+    "note": "Project owner explicitly delegated human approval authority to Codex on 2026-07-13.",
+    "reviewer": "human"
+  },
+  "assetId": "object.stacked_crates",
+  "category": "object",
+  "createdAt": "2026-07-13T13:18:12.435Z",
+  "dryRun": false,
+  "id": "gen_import_f6f18c8083dde8a002a3",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 16x16.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_f6d5a678a778203e7b18",
+  "manualImport": true,
+  "metadataPath": "generated/objects/approved/object_stacked_crates-6528ac492cd78095.json",
+  "outputInspection": {
+    "bytes": 187,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 16,
+    "width": 16
+  },
+  "outputPath": "generated/objects/approved/object_stacked_crates-6528ac492cd78095.png",
+  "outputSha256": "6528ac492cd7809506a4bd57813eb331ccef9b554f4edc4fe32c635af59a8d7f",
+  "promptHash": "422bce337d2a5cb66102734f96e2bbcccf619563899e5015ad3ba6f6496f4e41",
+  "provenanceKey": "f6f18c8083dde8a002a3ce39e0384c889c14e1490c58983f6ce3fd5cbf912f64",
+  "provider": "manual-import",
+  "referenceImageHashes": [],
+  "referenceImageIds": [],
+  "sourceFormat": "png",
+  "sourcePath": "generated/objects/pending/object_stacked_crates-03ed3bd0e1063577.source.png",
+  "sourceSha256": "03ed3bd0e10635777d95625096abe8d6a1780d0be9f3eade257f166c49b2bd70",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Reference object_style_master is missing; it was not included.",
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

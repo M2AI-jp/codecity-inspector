@@ -1,0 +1,57 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-13T14:01:17.245Z",
+    "approvedPath": "generated/objects/approved/object_notice_board-8963874bf1b55386.png",
+    "approvedSha256": "8963874bf1b553865fd4248785403911ae7b740b1c7bce139f5bf9ccf145cd9e",
+    "note": "Project owner explicitly delegated human approval authority to Codex on 2026-07-13.",
+    "reviewer": "human"
+  },
+  "assetId": "object.notice_board",
+  "category": "object",
+  "createdAt": "2026-07-13T13:18:13.617Z",
+  "dryRun": false,
+  "id": "gen_import_01b1935b8ea4dacf3945",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 16x16.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_9b30b979700f4ddf2a6b",
+  "manualImport": true,
+  "metadataPath": "generated/objects/approved/object_notice_board-8963874bf1b55386.json",
+  "outputInspection": {
+    "bytes": 164,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 16,
+    "width": 16
+  },
+  "outputPath": "generated/objects/approved/object_notice_board-8963874bf1b55386.png",
+  "outputSha256": "8963874bf1b553865fd4248785403911ae7b740b1c7bce139f5bf9ccf145cd9e",
+  "promptHash": "422bce337d2a5cb66102734f96e2bbcccf619563899e5015ad3ba6f6496f4e41",
+  "provenanceKey": "01b1935b8ea4dacf3945ff77457a090ebf2892e40719fdde4d8837450af2c5e6",
+  "provider": "manual-import",
+  "referenceImageHashes": [],
+  "referenceImageIds": [],
+  "sourceFormat": "png",
+  "sourcePath": "generated/objects/pending/object_notice_board-633616ab6a8a26ce.source.png",
+  "sourceSha256": "633616ab6a8a26ce6cf31c76e0192b4a3efd5fe442c330f1d2b1d97c749907f0",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Reference object_style_master is missing; it was not included.",
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

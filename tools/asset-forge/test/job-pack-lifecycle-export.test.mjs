@@ -30,6 +30,18 @@ async function forgeInputsWithReference() {
   return root;
 }
 
+function resetAssetManifestToMissing(manifest) {
+  for (const asset of manifest.assets) {
+    asset.status = 'missing';
+    asset.pendingGenerationIds = [];
+    asset.rejectedGenerationIds = [];
+    asset.lastUpdated = null;
+    delete asset.approvedPath;
+    delete asset.exportPath;
+  }
+  return manifest;
+}
+
 test('job pack is self-contained and does not generate or approve an image', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'forge-pack-state-'));
   const forgeRoot = await forgeInputsWithReference();
@@ -92,7 +104,7 @@ test('approved-only export verifies ledger hashes and never includes pending ass
   await writeFile(approvedPath, bytes);
   const hash = sha256(bytes);
   const assetsPath = path.join(root, 'data', 'manifests', 'assets.json');
-  const assets = JSON.parse(await readFile(assetsPath, 'utf8'));
+  const assets = resetAssetManifestToMissing(JSON.parse(await readFile(assetsPath, 'utf8')));
   const player = assets.assets.find((entry) => entry.assetId === 'character.player');
   player.status = 'approved'; player.approvedPath = approvedRelative; player.lastUpdated = '2026-07-13T00:00:00.000Z';
   await writeFile(assetsPath, JSON.stringify(assets));
@@ -163,6 +175,9 @@ test('approved-only export verifies ledger hashes and never includes pending ass
 test('export completes only when every scoped required asset and runtime binding is present', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'forge-export-complete-'));
   await cp(path.join(FORGE_ROOT, 'data'), path.join(root, 'data'), { recursive: true });
+  const assetManifestPath = path.join(root, 'data', 'manifests', 'assets.json');
+  const assetManifest = resetAssetManifestToMissing(JSON.parse(await readFile(assetManifestPath, 'utf8')));
+  await writeFile(assetManifestPath, JSON.stringify(assetManifest));
   const empty = await exportApproved({}, { root, forgeRoot: FORGE_ROOT });
   assert.equal(empty.manifest.complete, false);
   for (const assetId of ['character.player', 'effect.construction_dust', 'effect.water_ripple']) {
@@ -187,8 +202,6 @@ test('export completes only when every scoped required asset and runtime binding
     { assetId: 'effect.construction_dust', directory: 'effects', width: 64, height: 16 },
     { assetId: 'effect.water_ripple', directory: 'effects', width: 64, height: 16 }
   ];
-  const assetManifestPath = path.join(root, 'data', 'manifests', 'assets.json');
-  const assetManifest = JSON.parse(await readFile(assetManifestPath, 'utf8'));
   const approvals = [];
   for (const [index, fixture] of fixtures.entries()) {
     const bytes = createMockPng({

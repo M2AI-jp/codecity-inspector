@@ -1,0 +1,60 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-13T14:01:13.417Z",
+    "approvedPath": "generated/characters/approved/character_player-ebd57b8d9adc8b80.png",
+    "approvedSha256": "ebd57b8d9adc8b80984bd5fbb19a8cb6878c81a21bec5f9f28d3db86f0d32d36",
+    "note": "Project owner explicitly delegated human approval authority to Codex on 2026-07-13.",
+    "reviewer": "human"
+  },
+  "assetId": "character.player",
+  "category": "character",
+  "createdAt": "2026-07-13T13:53:06.448Z",
+  "dryRun": false,
+  "id": "gen_import_31038a37c850f8ea3198",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 80x96.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_5ad7f1884a9db02ce384",
+  "manualImport": true,
+  "metadataPath": "generated/characters/approved/character_player-ebd57b8d9adc8b80.json",
+  "outputInspection": {
+    "bytes": 1768,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 96,
+    "width": 80
+  },
+  "outputPath": "generated/characters/approved/character_player-ebd57b8d9adc8b80.png",
+  "outputSha256": "ebd57b8d9adc8b80984bd5fbb19a8cb6878c81a21bec5f9f28d3db86f0d32d36",
+  "promptHash": "3af1a2acacf29027af5fb6e666cbd945185c21ade66bef0dee8416f2981cb995",
+  "provenanceKey": "31038a37c850f8ea3198b1f4f170fed037df823ec8e612378a964cf56d96d23d",
+  "provider": "manual-import",
+  "referenceImageHashes": [
+    "910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b"
+  ],
+  "referenceImageIds": [
+    "intake_20260712_character_style_sheet"
+  ],
+  "sourceFormat": "png",
+  "sourcePath": "generated/characters/pending/character_player-5ac69fae0ef55a1e.source.png",
+  "sourceSha256": "5ac69fae0ef55a1ef46c1b40f2151b3a6f74846431f1729530691293ed8ab1ff",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

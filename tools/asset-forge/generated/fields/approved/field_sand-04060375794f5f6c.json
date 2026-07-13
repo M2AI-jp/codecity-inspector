@@ -1,0 +1,57 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-13T14:01:16.463Z",
+    "approvedPath": "generated/fields/approved/field_sand-04060375794f5f6c.png",
+    "approvedSha256": "04060375794f5f6ce07218ca3b34b259b87451a47792e2a9fd1792a3516dd831",
+    "note": "Project owner explicitly delegated human approval authority to Codex on 2026-07-13.",
+    "reviewer": "human"
+  },
+  "assetId": "field.sand",
+  "category": "field",
+  "createdAt": "2026-07-13T13:09:00.574Z",
+  "dryRun": false,
+  "id": "gen_import_5e9fbd9619db1b4f1371",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 16x16.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_2ede153fa33fefc7624b",
+  "manualImport": true,
+  "metadataPath": "generated/fields/approved/field_sand-04060375794f5f6c.json",
+  "outputInspection": {
+    "bytes": 219,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 16,
+    "width": 16
+  },
+  "outputPath": "generated/fields/approved/field_sand-04060375794f5f6c.png",
+  "outputSha256": "04060375794f5f6ce07218ca3b34b259b87451a47792e2a9fd1792a3516dd831",
+  "promptHash": "d24cb3ba481285038ffff0edc27ce7410cef258517c133c25c0ba5a1e669e0bd",
+  "provenanceKey": "5e9fbd9619db1b4f1371f3f98bfd57af0f9a506f77b876e6c058bd13aa98eba7",
+  "provider": "manual-import",
+  "referenceImageHashes": [],
+  "referenceImageIds": [],
+  "sourceFormat": "png",
+  "sourcePath": "generated/fields/pending/field_sand-b19c4427dd3f9eb8.source.png",
+  "sourceSha256": "b19c4427dd3f9eb8efbddc01ccb78fda6d7f1a688f0784c6aab845b8e89e47cd",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Reference field_style_master is missing; it was not included.",
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

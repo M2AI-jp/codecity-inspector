@@ -1,0 +1,57 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-13T14:01:15.433Z",
+    "approvedPath": "generated/fields/approved/field_grass-47b645ebca69a1b9.png",
+    "approvedSha256": "47b645ebca69a1b904bec39ae5ecf573cc3667210870b7b808577796cec459ca",
+    "note": "Project owner explicitly delegated human approval authority to Codex on 2026-07-13.",
+    "reviewer": "human"
+  },
+  "assetId": "field.grass",
+  "category": "field",
+  "createdAt": "2026-07-13T13:08:55.695Z",
+  "dryRun": false,
+  "id": "gen_import_30a86ddb1c2e533d0c45",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 16x16.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_8005c14794b214f0cf06",
+  "manualImport": true,
+  "metadataPath": "generated/fields/approved/field_grass-47b645ebca69a1b9.json",
+  "outputInspection": {
+    "bytes": 237,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 16,
+    "width": 16
+  },
+  "outputPath": "generated/fields/approved/field_grass-47b645ebca69a1b9.png",
+  "outputSha256": "47b645ebca69a1b904bec39ae5ecf573cc3667210870b7b808577796cec459ca",
+  "promptHash": "d24cb3ba481285038ffff0edc27ce7410cef258517c133c25c0ba5a1e669e0bd",
+  "provenanceKey": "30a86ddb1c2e533d0c45e801c3110771bc3175cf0498208072c42f1db577078e",
+  "provider": "manual-import",
+  "referenceImageHashes": [],
+  "referenceImageIds": [],
+  "sourceFormat": "png",
+  "sourcePath": "generated/fields/pending/field_grass-a51c1a0870f2df6d.source.png",
+  "sourceSha256": "a51c1a0870f2df6dc41cef705c8d9bf6967ba8c43e1075e9d5074f71bf809630",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Reference field_style_master is missing; it was not included.",
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

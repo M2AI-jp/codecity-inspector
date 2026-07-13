@@ -1,0 +1,57 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-13T14:01:16.275Z",
+    "approvedPath": "generated/fields/approved/field_road_corner-a959fbf86f807ffd.png",
+    "approvedSha256": "a959fbf86f807ffd0b49b74b1e1f15ea8e294902e5601d1b95241a8a1c437526",
+    "note": "Project owner explicitly delegated human approval authority to Codex on 2026-07-13.",
+    "reviewer": "human"
+  },
+  "assetId": "field.road_corner",
+  "category": "field",
+  "createdAt": "2026-07-13T13:08:59.496Z",
+  "dryRun": false,
+  "id": "gen_import_181e525476cc178f4703",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 16x16.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_86c7bc48a3a6087224b5",
+  "manualImport": true,
+  "metadataPath": "generated/fields/approved/field_road_corner-a959fbf86f807ffd.json",
+  "outputInspection": {
+    "bytes": 275,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 16,
+    "width": 16
+  },
+  "outputPath": "generated/fields/approved/field_road_corner-a959fbf86f807ffd.png",
+  "outputSha256": "a959fbf86f807ffd0b49b74b1e1f15ea8e294902e5601d1b95241a8a1c437526",
+  "promptHash": "d24cb3ba481285038ffff0edc27ce7410cef258517c133c25c0ba5a1e669e0bd",
+  "provenanceKey": "181e525476cc178f4703e393de0beda4cc92f42eb510a5cf6cf9ca58fbc396a8",
+  "provider": "manual-import",
+  "referenceImageHashes": [],
+  "referenceImageIds": [],
+  "sourceFormat": "png",
+  "sourcePath": "generated/fields/pending/field_road_corner-2cc51838f95f655f.source.png",
+  "sourceSha256": "2cc51838f95f655fcc4f3a666ef98953bf0b4f2539a616ff1e3c59e11980da70",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Reference field_style_master is missing; it was not included.",
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

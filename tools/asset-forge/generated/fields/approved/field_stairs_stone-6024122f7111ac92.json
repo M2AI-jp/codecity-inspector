@@ -1,0 +1,57 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-13T14:01:15.899Z",
+    "approvedPath": "generated/fields/approved/field_stairs_stone-6024122f7111ac92.png",
+    "approvedSha256": "6024122f7111ac929709df8079dc3ce6f1a1ae6e5574d7fda71a548cf65db0b6",
+    "note": "Project owner explicitly delegated human approval authority to Codex on 2026-07-13.",
+    "reviewer": "human"
+  },
+  "assetId": "field.stairs_stone",
+  "category": "field",
+  "createdAt": "2026-07-13T13:08:57.412Z",
+  "dryRun": false,
+  "id": "gen_import_a9de1e56eb215f24268e",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 16x16.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_7b2a2a1834b32afd9315",
+  "manualImport": true,
+  "metadataPath": "generated/fields/approved/field_stairs_stone-6024122f7111ac92.json",
+  "outputInspection": {
+    "bytes": 128,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 16,
+    "width": 16
+  },
+  "outputPath": "generated/fields/approved/field_stairs_stone-6024122f7111ac92.png",
+  "outputSha256": "6024122f7111ac929709df8079dc3ce6f1a1ae6e5574d7fda71a548cf65db0b6",
+  "promptHash": "d24cb3ba481285038ffff0edc27ce7410cef258517c133c25c0ba5a1e669e0bd",
+  "provenanceKey": "a9de1e56eb215f24268ef32157db6884afc9e5758d52db94ec4c1d1f08822c06",
+  "provider": "manual-import",
+  "referenceImageHashes": [],
+  "referenceImageIds": [],
+  "sourceFormat": "png",
+  "sourcePath": "generated/fields/pending/field_stairs_stone-0f21216aab24049a.source.png",
+  "sourceSha256": "0f21216aab24049a9be7132cfe73c84fba1a7a66177944170825e56967935560",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Reference field_style_master is missing; it was not included.",
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

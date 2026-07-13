@@ -1,0 +1,60 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-13T14:01:14.917Z",
+    "approvedPath": "generated/characters/approved/character_mob_inn_guest-96d4b502ca6c61f6.png",
+    "approvedSha256": "96d4b502ca6c61f6b23b9843890a52d72c61fc582ef12a86d7a077c0f3a0f940",
+    "note": "Project owner explicitly delegated human approval authority to Codex on 2026-07-13.",
+    "reviewer": "human"
+  },
+  "assetId": "character.mob.inn_guest",
+  "category": "character",
+  "createdAt": "2026-07-13T13:53:11.902Z",
+  "dryRun": false,
+  "id": "gen_import_1611bb6104803c183618",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 80x96.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_640f41877d966e7ffc90",
+  "manualImport": true,
+  "metadataPath": "generated/characters/approved/character_mob_inn_guest-96d4b502ca6c61f6.json",
+  "outputInspection": {
+    "bytes": 1784,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 96,
+    "width": 80
+  },
+  "outputPath": "generated/characters/approved/character_mob_inn_guest-96d4b502ca6c61f6.png",
+  "outputSha256": "96d4b502ca6c61f6b23b9843890a52d72c61fc582ef12a86d7a077c0f3a0f940",
+  "promptHash": "3af1a2acacf29027af5fb6e666cbd945185c21ade66bef0dee8416f2981cb995",
+  "provenanceKey": "1611bb6104803c183618c6965593a6fd06f6a5f4c5ef8dae5d5a20b7e471d4cc",
+  "provider": "manual-import",
+  "referenceImageHashes": [
+    "910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b"
+  ],
+  "referenceImageIds": [
+    "intake_20260712_character_style_sheet"
+  ],
+  "sourceFormat": "png",
+  "sourcePath": "generated/characters/pending/character_mob_inn_guest-7ea3f7220f0ba9fc.source.png",
+  "sourceSha256": "7ea3f7220f0ba9fc0d31a0c425df00d7494c829076dcb95737bde0b8e266e9db",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

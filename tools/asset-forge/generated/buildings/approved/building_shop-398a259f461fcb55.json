@@ -1,0 +1,57 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-13T14:01:13.073Z",
+    "approvedPath": "generated/buildings/approved/building_shop-398a259f461fcb55.png",
+    "approvedSha256": "398a259f461fcb55d6f24aabd458ea764833f8532993b6bf8d14e264bfd02252",
+    "note": "Project owner explicitly delegated human approval authority to Codex on 2026-07-13.",
+    "reviewer": "human"
+  },
+  "assetId": "building.shop",
+  "category": "building",
+  "createdAt": "2026-07-13T12:52:33.371Z",
+  "dryRun": false,
+  "id": "gen_import_6dfd595e6737651dd6c1",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 32x32.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_232cd179050b4c9f48d8",
+  "manualImport": true,
+  "metadataPath": "generated/buildings/approved/building_shop-398a259f461fcb55.json",
+  "outputInspection": {
+    "bytes": 665,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 32,
+    "width": 32
+  },
+  "outputPath": "generated/buildings/approved/building_shop-398a259f461fcb55.png",
+  "outputSha256": "398a259f461fcb55d6f24aabd458ea764833f8532993b6bf8d14e264bfd02252",
+  "promptHash": "982d62b89c3c4cc3d545275bc615cf17f677c1ce407197b368e8f8974cded63b",
+  "provenanceKey": "6dfd595e6737651dd6c1dea141ac25718c4307935c78cc376a32affd2d55f8bb",
+  "provider": "manual-import",
+  "referenceImageHashes": [],
+  "referenceImageIds": [],
+  "sourceFormat": "png",
+  "sourcePath": "generated/buildings/pending/building_shop-218170a5a2533ab2.source.png",
+  "sourceSha256": "218170a5a2533ab2fcec5bc87a167b0ce9c4ddc9615ed16b2cfd0ca4387cb49f",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Reference building_style_master is missing; it was not included.",
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

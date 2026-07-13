@@ -1,0 +1,57 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-13T14:01:15.174Z",
+    "approvedPath": "generated/effects/approved/effect_construction_dust-e61f1cb9477787b1.png",
+    "approvedSha256": "e61f1cb9477787b1c3bb29781c6611d4602f89ab7c0b91eea99cc3b23da62ef7",
+    "note": "Project owner explicitly delegated human approval authority to Codex on 2026-07-13.",
+    "reviewer": "human"
+  },
+  "assetId": "effect.construction_dust",
+  "category": "effect",
+  "createdAt": "2026-07-13T13:18:17.899Z",
+  "dryRun": false,
+  "id": "gen_import_f3360ed04b09bc7ae90f",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 64x16.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_0bbdfa40b324e0323287",
+  "manualImport": true,
+  "metadataPath": "generated/effects/approved/effect_construction_dust-e61f1cb9477787b1.json",
+  "outputInspection": {
+    "bytes": 283,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 16,
+    "width": 64
+  },
+  "outputPath": "generated/effects/approved/effect_construction_dust-e61f1cb9477787b1.png",
+  "outputSha256": "e61f1cb9477787b1c3bb29781c6611d4602f89ab7c0b91eea99cc3b23da62ef7",
+  "promptHash": "ac8a2c0dc64ba9b07e32606698e259f334b300b95acce26c7ff60d9eef396704",
+  "provenanceKey": "f3360ed04b09bc7ae90fec417d7d0e09a832214e568f0f9434f03465a192bef6",
+  "provider": "manual-import",
+  "referenceImageHashes": [],
+  "referenceImageIds": [],
+  "sourceFormat": "png",
+  "sourcePath": "generated/effects/pending/effect_construction_dust-61635dad9328784e.source.png",
+  "sourceSha256": "61635dad9328784e175a548dfdd3725e41e85856020cddab1a1e33301337fa41",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Reference effect_style_master is missing; it was not included.",
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}
