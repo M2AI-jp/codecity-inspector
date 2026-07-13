@@ -10,6 +10,15 @@ async function fixtureRoot() {
   const root = await mkdtemp(path.join(os.tmpdir(), 'forge-validate-'));
   await cp(path.join(FORGE_ROOT, 'data'), path.join(root, 'data'), { recursive: true });
   await cp(path.join(FORGE_ROOT, 'prompts'), path.join(root, 'prompts'), { recursive: true });
+  const referencesFile = path.join(root, 'data', 'manifests', 'references.json');
+  const references = JSON.parse(await readFile(referencesFile, 'utf8'));
+  for (const reference of references.references) {
+    if (reference.status === 'pending') {
+      reference.status = 'missing';
+      reference.sha256 = null;
+    }
+  }
+  await writeFile(referencesFile, JSON.stringify(references));
   return root;
 }
 
@@ -44,4 +53,15 @@ test('cross-file validation reports undeclared references and unreported runtime
   const result = await validateRepository({ root });
   assert.ok(result.issues.some((issue) => issue.code === 'MISSING_REFERENCE_DECLARATION'));
   assert.ok(result.issues.some((issue) => issue.code === 'UNREPORTED_RUNTIME_GAP' && issue.runtimeId === 'sand'));
+});
+
+test('cross-file validation reports unknown reference targets', async () => {
+  const root = await fixtureRoot();
+  const referencesFile = path.join(root, 'data', 'manifests', 'references.json');
+  const references = JSON.parse(await readFile(referencesFile, 'utf8'));
+  references.references[0].targetAssetIds = ['building.not_declared'];
+  await writeFile(referencesFile, JSON.stringify(references));
+  const result = await validateRepository({ root });
+  assert.ok(result.issues.some((issue) => issue.code === 'UNKNOWN_REFERENCE_TARGET'
+    && issue.targetAssetId === 'building.not_declared'));
 });

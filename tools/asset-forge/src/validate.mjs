@@ -54,6 +54,7 @@ export async function validateRepository({ root = FORGE_ROOT } = {}) {
 
   const assets = catalogs.flatMap((catalog) => catalog.assets ?? []);
   const ids = assets.map((asset) => asset.id);
+  const assetIds = new Set(ids);
   for (const id of duplicateValues(ids)) issues.push({ code: 'DUPLICATE_ID', id });
   for (const catalog of catalogs) {
     for (const asset of catalog.assets ?? []) {
@@ -97,6 +98,11 @@ export async function validateRepository({ root = FORGE_ROOT } = {}) {
     }
   }
   for (const reference of references) {
+    for (const targetAssetId of reference.targetAssetIds ?? []) {
+      if (!assetIds.has(targetAssetId)) {
+        issues.push({ code: 'UNKNOWN_REFERENCE_TARGET', id: reference.id, targetAssetId });
+      }
+    }
     if (!['approved', 'pending'].includes(reference.status)) continue;
     try {
       if (!reference.sha256) throw new Error('hash is required for a present reference');
