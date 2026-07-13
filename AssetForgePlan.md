@@ -1,6 +1,6 @@
 # CodeCity Inspector — Asset Forge development plan
 
-Status: implemented; required 78 assets approved/exported and integrated, external rights sign-off pending
+Status: implemented; required 78 assets approved/exported and integrated, owner provenance/visual sign-off recorded
 Date: 2026-07-12
 Lead: Codex `/root`
 Middle manager: Terra `/root/terra`

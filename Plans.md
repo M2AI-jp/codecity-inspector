@@ -30,9 +30,9 @@ Ship a public, local-first Mac MVP that turns a JavaScript or TypeScript reposit
   - verification: root checks pass 190/190; Asset Forge checks pass 45/45; catalog validation reports 110 definitions, 78 required, and zero issues. A loopback-only browser run observed 78/78 loaded, 78 inspection cards with zero failures, movement, both modal focus traps/Escape/focus restoration, guild tab keyboard navigation, live canvas animation, and zero console warnings/errors.
   - the checked-in `sample/tiny-town` is intentionally an evidence-honest Lv.1 habitable settlement; Lv.5 is not a completion criterion for that sample.
 
-- [ ] Complete the external art-rights and final visual sign-off `cc:コード外確認待ち`
-  - character assets record the user-provided style reference sheet in their provenance. The 56 non-character assets have no style-reference ID recorded.
-  - the runtime and approval/export history are complete, but the repository cannot prove source rights, licence suitability, or final artistic quality. A human must clear those points before the next public release; untested rights are unknown, not a claim of infringement.
+- [x] Record the asset provenance and final visual sign-off `cc:ユーザー確認済み（2026-07-14）`
+  - the project owner confirms that all 78 required assets were generated with ChatGPT Pro and accepts them for the game. This resolves the project-level provenance and visual-approval gate recorded in this plan.
+  - OpenAI's current [Terms of Use](https://openai.com/policies/terms-of-use/) assign Output to the user as between the user and OpenAI, to the extent permitted by law; its [ChatGPT FAQ](https://help.openai.com/en/articles/6783457-how-chatgpt-works) states that commercial use is allowed for free and paid plans, subject to the Terms and policies. This record is not a warranty of exclusivity or non-infringement: third-party input rights, applicable law, and final release compliance remain the owner's responsibility.
 
 - [x] Complete the Asset Forge engine `cc:完了（2026-07-13）`
   - mock/dry-run, bounded job packs, PNG/JPEG/WEBP manual import, alpha/trim/grid processing, reject lifecycle, human-only promote guards, and approved-only versioned export are implemented under an independent lockfile.

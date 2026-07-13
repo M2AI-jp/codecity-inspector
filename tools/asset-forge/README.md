@@ -148,9 +148,9 @@ empty. Legacy v1 manifests remain readable but are always reported as partial be
 not carry these guarantees. Road corners/edges, river edges, and bridges also state the
 canonical unrotated direction used by the renderer.
 
-## Remaining human decisions
+## Recorded owner decision
 
-1. Confirm the source and usage rights recorded outside automated inspection.
-2. Review the exported 78 assets in the game and in the manifest-backed asset inspector.
+1. On 2026-07-14, the project owner confirmed that all 78 required assets were generated with ChatGPT Pro and accepted their visual use in the game.
+2. OpenAI's current Terms and policies govern use of the generated output; the owner remains responsible for third-party input rights, applicable law, and release suitability.
 3. Keep the optional 32 future assets outside the required completion gate unless product scope changes.
 4. Regenerate, reapprove, or re-export an approved asset only after an explicit product decision.
