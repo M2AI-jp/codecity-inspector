@@ -1,5 +1,10 @@
 # Asset Forge: image-production handoff
 
+> Status update (2026-07-14): this production handoff is complete and retained as historical
+> context. Required assets 78/78 were approved and exported in commit `047ef91`. Do not resume
+> generation, promotion, or export from the instructions below unless the project owner explicitly
+> requests a replacement. The remaining external decision is final source/usage-rights confirmation.
+
 Use this document to resume candidate-asset production after changing the ChatGPT browser session.
 
 ## Objective
@@ -125,4 +130,3 @@ Then state separately:
 ## Browser ChatGPT resumption
 
 The user reports that browser ChatGPT access is available after a session switch.  At resumption, first verify the active account/session in the in-app browser.  Use it only if signed in and only to generate image candidates from the user-provided visual references; Codex built-in image generation remains the primary no-API-cost path.
-

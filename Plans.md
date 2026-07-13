@@ -4,7 +4,7 @@ The approved implementation program for the no-API-billing game asset pipeline a
 
 ## Goal
 
-Ship a public, local-first Mac MVP that turns a JavaScript or TypeScript repository into an evidence-based habitable-town model, renders it with the current procedural Canvas, and then replaces that fallback with a human-approved 2D pixel-art city — without uploading or executing the target code.
+Ship a public, local-first Mac MVP that turns a JavaScript or TypeScript repository into an evidence-based habitable-town model and renders it as a playable, image-backed 2D pixel-art city — without uploading or executing the target code. The procedural Canvas remains only as an explicit fallback when a published image cannot be loaded.
 
 ## MVP tasks
 
@@ -21,24 +21,25 @@ Ship a public, local-first Mac MVP that turns a JavaScript or TypeScript reposit
 - [x] Expose the town pipeline as a frozen `/api/town` HTTP contract `cc:完了` (2026-07-12)
   - owns: `src/server.mjs`, `src/town/index.mjs`, `test/server.test.mjs`, `public/index.html`
   - `GET /api/town` returns `{ schemaVersion:1, repository:{name}, generatorVersion, seed, habitability:{level,levelName,canLive,blockers,warnings,pendingInspections,reasons}, model:{facilities,guild,external,summary}, layout }`, where `layout` is the validated, annotated `TownLayout` including `layout.validation`. The existing `GET /api/city` (raw inspection) is unchanged.
-  - `public/` contains a CSP-safe procedural Canvas renderer with no image assets. It consumes only the frozen API contract.
+  - `public/` contains a CSP-safe image-backed Canvas renderer with a procedural fallback. It consumes only the frozen API contract and the published Asset Forge manifest.
   - done when: the endpoint is covered by tests (happy path including `layout.validation.ok === true`, invalid-layout rejection, determinism, HEAD parity, non-GET rejection, and no source leak) and the server keeps loopback-only binding plus the existing CSP and safety headers.
 
-- [ ] Rebuild the image-backed pixel-art city and playable inspection UI `cc:技術実装完了・人間レビュー待ち（2026-07-13）`
-  - current: `public/` uses approved Asset Forge export schema v2 as the complete contract; legacy v1 remains readable only as an explicitly partial result. Missing/failed art is reported visibly, the procedural fallback remains, and keyboard movement keeps walkability/building collision. Sprite frames, state cues, contextual terrain/building/NPC/prop variants, water ripple, and construction dust are connected. Building details and the HTML/CSS guild UI remain available.
-  - catalog: 110 definitions exist; 78 are required by the current runtime and 32 are optional future enhancements. Runtime vocabulary coverage has zero uncovered IDs, but every tracked image row is still `missing` until a human supplies and approves art.
-  - next: a human supplies/licences references, visually approves candidates, performs the successful promote ceremony, then reviews the exported art, keyboard behavior, accessibility, and browser console.
-  - done when: the approved export manifest drives the town art, movement and inspection work together, and a human completes visual/accessibility review.
+- [x] Rebuild the image-backed pixel-art city and playable inspection UI `cc:完了（2026-07-14）`
+  - `public/` uses the approved Asset Forge schema-v2 export as its only public image contract. All 78 required assets are approved, exported, hash/dimension validated, and exposed through an in-game inspection view; the procedural fallback remains visible and honest for load failures.
+  - the runtime connects terrain/building/NPC/prop variants, full character sheets, four-frame water ripple and construction dust, keyboard movement with collision, walk-to-idle player motion, building details, and the five-tab guild UI.
+  - verification: root checks pass 190/190; Asset Forge checks pass 45/45; catalog validation reports 110 definitions, 78 required, and zero issues. A loopback-only browser run observed 78/78 loaded, 78 inspection cards with zero failures, movement, both modal focus traps/Escape/focus restoration, guild tab keyboard navigation, live canvas animation, and zero console warnings/errors.
+  - the checked-in `sample/tiny-town` is intentionally an evidence-honest Lv.1 habitable settlement; Lv.5 is not a completion criterion for that sample.
 
-- [ ] Re-establish an original art direction `cc:進行中（Asset Forge計画）`
-  - superseded: the alpha visual reference was deleted with the frontend; no art asset is owned today.
-  - done when: a new original, project-bound visual reference is produced alongside the rebuilt renderer, without copying protected game assets or characters.
+- [ ] Complete the external art-rights and final visual sign-off `cc:コード外確認待ち`
+  - character assets record the user-provided style reference sheet in their provenance. The 56 non-character assets have no style-reference ID recorded.
+  - the runtime and approval/export history are complete, but the repository cannot prove source rights, licence suitability, or final artistic quality. A human must clear those points before the next public release; untested rights are unknown, not a claim of infringement.
 
 - [x] Complete the Asset Forge engine `cc:完了（2026-07-13）`
   - mock/dry-run, bounded job packs, PNG/JPEG/WEBP manual import, alpha/trim/grid processing, reject lifecycle, human-only promote guards, and approved-only versioned export are implemented under an independent lockfile.
   - export schema v2 carries frame/state/variant metadata; sprite-grid dimensions and runtime integration rules are covered by tests.
   - `codex-subscription` remains an explicit unavailable stub; no API key, OpenAI SDK, paid fallback, or external command execution exists.
-  - this completion does not claim that any candidate is human-approved or that final art direction is complete.
+  - the 78 runtime-required candidates were subsequently approved and exported at commit `047ef91`; 32 catalog entries remain optional future enhancements.
+  - this completion does not claim that provenance, licence suitability, or final visual quality has been independently cleared.
 
 - [x] Add Mac launch, safety documentation, CI, and onboarding `cc:完了` (2026-07-12)
   - owns: root files and `.github/workflows/ci.yml`
@@ -51,7 +52,7 @@ Ship a public, local-first Mac MVP that turns a JavaScript or TypeScript reposit
 - [x] Create the public GitHub repository and publish the reviewed MVP `cc:完了` (2026-07-12)
   - Lead published `v0.1.0-alpha.1` from the independently reviewed commit after the macOS CI run passed.
   - The uploaded ZIP was downloaded again and matched SHA-256 `32eedbc06172aef2c1d667013fd4e891811da00362ae060911890724c19b8f1c`.
-  - Note: that alpha ZIP predates the current procedural Canvas frontend. The current source tree has a no-image renderer but no approved image asset set.
+  - Note: that published alpha ZIP predates the current image-backed frontend. The completed 78-asset integration described above is newer local work and is not claimed as pushed or released by this plan.
 
 ## Not in MVP
 

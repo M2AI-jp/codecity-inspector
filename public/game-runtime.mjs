@@ -228,13 +228,40 @@ export function spriteSourceRect(renderSpec, {
 }
 
 export function staticEffectSourceRect(renderSpec) {
+  const frames = renderSpec?.sprites?.frames;
+  const frameIndex = Array.isArray(frames) ? frames.indexOf('frame_1') : -1;
+  return frameIndex < 0 ? null : animatedEffectSourceRect(renderSpec, { paused: true });
+}
+
+export function animatedEffectSourceRect(renderSpec, {
+  elapsedMs = 0,
+  frameDurationMs = 180,
+  phaseKey = null,
+  phaseIndex = 0,
+  paused = false
+} = {}) {
   try {
     validateRenderSpec(renderSpec);
   } catch {
     return null;
   }
-  if (renderSpec.kind !== 'spritesheet' || !renderSpec.sprites.frames.includes('frame_1')) return null;
-  return spriteSourceRect(renderSpec, { frameName: 'frame_1' });
+  if (renderSpec.kind !== 'spritesheet' || renderSpec.sprites.directions.length !== 0) return null;
+  const frames = renderSpec.sprites.frames;
+  if (frames.length === 0) return null;
+  const safeElapsedMs = Number.isFinite(elapsedMs) && elapsedMs >= 0 ? elapsedMs : 0;
+  const safeFrameDurationMs = Number.isFinite(frameDurationMs) && frameDurationMs > 0
+    ? frameDurationMs
+    : 180;
+  const requestedPhase = phaseKey === null || phaseKey === undefined
+    ? phaseIndex
+    : stableHash(String(phaseKey));
+  const safePhase = Number.isFinite(requestedPhase) ? Math.trunc(requestedPhase) : 0;
+  const phase = ((safePhase % frames.length) + frames.length) % frames.length;
+  const pausedFrameIndex = frames.indexOf('frame_1');
+  const frameIndex = paused
+    ? (pausedFrameIndex < 0 ? 0 : pausedFrameIndex)
+    : (Math.floor(safeElapsedMs / safeFrameDurationMs) + phase) % frames.length;
+  return spriteSourceRect(renderSpec, { frameName: frames[frameIndex] });
 }
 
 export function selectLoadedStaticEffect(index, semanticKind, availableAssetIds) {
@@ -244,6 +271,62 @@ export function selectLoadedStaticEffect(index, semanticKind, availableAssetIds)
     || !availableAssetIds.has(asset.assetId)) return null;
   const source = staticEffectSourceRect(asset.renderSpec);
   return source ? { asset, source } : null;
+}
+
+export function selectLoadedAnimatedEffect(index, semanticKind, availableAssetIds, animation = {}) {
+  if (!availableAssetIds?.has) return null;
+  const asset = index?.bySemantic?.get(semanticKind);
+  if (!asset || asset.gameBinding?.rendererCategory !== 'effect'
+    || !availableAssetIds.has(asset.assetId)) return null;
+  const source = animatedEffectSourceRect(asset.renderSpec, animation);
+  return source ? { asset, source } : null;
+}
+
+const ASSET_INSPECTION_CATEGORY_ORDER = Object.freeze([
+  'field', 'building', 'character', 'object', 'effect', 'ui'
+]);
+
+export function buildAssetInspectionInventory(manifest, availableAssetIds) {
+  if (manifest?.schemaVersion !== 2) throw new Error('Asset inspection requires a v2 manifest');
+  validateGameAssetManifest(manifest);
+  const canCheckAvailability = Boolean(availableAssetIds?.has);
+  const categoryRank = new Map(ASSET_INSPECTION_CATEGORY_ORDER.map((category, index) => [category, index]));
+  const assets = [...manifest.assets].sort((left, right) => {
+    const categoryDifference = (categoryRank.get(left.category) ?? 999) - (categoryRank.get(right.category) ?? 999);
+    if (categoryDifference !== 0) return categoryDifference;
+    if (left.assetId === right.assetId) return 0;
+    return left.assetId < right.assetId ? -1 : 1;
+  });
+  const groups = [];
+  let loadedCount = 0;
+  for (const asset of assets) {
+    const loaded = canCheckAvailability && availableAssetIds.has(asset.assetId);
+    if (loaded) loadedCount += 1;
+    let group = groups[groups.length - 1];
+    if (!group || group.category !== asset.category) {
+      group = { category: asset.category, assets: [] };
+      groups.push(group);
+    }
+    group.assets.push({
+      assetId: asset.assetId,
+      publicPath: asset.publicPath,
+      renderKind: asset.renderSpec.kind,
+      spriteGrid: asset.renderSpec.sprites ? {
+        columns: asset.renderSpec.sprites.grid.columns,
+        rows: asset.renderSpec.sprites.grid.rows,
+        directions: [...asset.renderSpec.sprites.directions],
+        frames: [...asset.renderSpec.sprites.frames]
+      } : null,
+      loaded
+    });
+  }
+  return {
+    manifestComplete: manifest.complete,
+    totalCount: assets.length,
+    loadedCount,
+    failedCount: assets.length - loadedCount,
+    groups
+  };
 }
 
 export function buildingStateVisuals(state) {

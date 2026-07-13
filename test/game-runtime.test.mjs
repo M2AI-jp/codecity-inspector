@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  assetForBinding, buildingOccupiesTile, buildingStateVisuals, canPlayerEnter, findPlayerSpawn,
+  animatedEffectSourceRect, assetForBinding, buildAssetInspectionInventory,
+  buildingOccupiesTile, buildingStateVisuals, canPlayerEnter, findPlayerSpawn,
   cardinalTerrainNeighbors, characterDestinationRect, indexGameAssets, loadGameAssets, movePlayer,
-  selectBuildingAsset, selectLoadedStaticEffect, selectNpcAsset, selectPropAsset, selectTerrainAsset,
+  selectBuildingAsset, selectLoadedAnimatedEffect, selectLoadedStaticEffect, selectNpcAsset,
+  selectPropAsset, selectTerrainAsset,
   spriteDirectionForFacing, spriteSourceRect, staticEffectSourceRect, validateGameAssetManifest
 } from '../public/game-runtime.mjs';
 
@@ -285,6 +287,86 @@ test('static effects accept only a loaded v2 spritesheet frame_1 source rectangl
   assert.equal(selectLoadedStaticEffect({
     bySemantic: new Map([['water_ripple', malformedAsset]])
   }, 'water_ripple', loaded), null);
+});
+
+test('animated effects advance declared frames, wrap safely, and keep stable instance phases', () => {
+  assert.deepEqual(animatedEffectSourceRect(effectRenderSpec, { elapsedMs: 0 }), {
+    sx: 0, sy: 0, sw: 16, sh: 16
+  });
+  assert.deepEqual(animatedEffectSourceRect(effectRenderSpec, { elapsedMs: 179 }), {
+    sx: 0, sy: 0, sw: 16, sh: 16
+  });
+  assert.deepEqual(animatedEffectSourceRect(effectRenderSpec, { elapsedMs: 180 }), {
+    sx: 16, sy: 0, sw: 16, sh: 16
+  });
+  assert.deepEqual(animatedEffectSourceRect(effectRenderSpec, { elapsedMs: 720 }), {
+    sx: 0, sy: 0, sw: 16, sh: 16
+  });
+  assert.deepEqual(animatedEffectSourceRect(effectRenderSpec, { phaseIndex: -1 }), {
+    sx: 48, sy: 0, sw: 16, sh: 16
+  });
+  assert.deepEqual(
+    animatedEffectSourceRect(effectRenderSpec, { elapsedMs: 360, phaseKey: 'water:3,7' }),
+    animatedEffectSourceRect(effectRenderSpec, { elapsedMs: 360, phaseKey: 'water:3,7' })
+  );
+  assert.deepEqual(animatedEffectSourceRect(effectRenderSpec, {
+    elapsedMs: 540, phaseIndex: 3, paused: true
+  }), { sx: 0, sy: 0, sw: 16, sh: 16 });
+  const reorderedEffectSpec = structuredClone(effectRenderSpec);
+  reorderedEffectSpec.sprites.frames = ['frame_2', 'frame_1', 'frame_3', 'frame_4'];
+  assert.deepEqual(animatedEffectSourceRect(reorderedEffectSpec, {
+    elapsedMs: 540, phaseKey: 'water:3,7', paused: true
+  }), { sx: 16, sy: 0, sw: 16, sh: 16 });
+  assert.deepEqual(animatedEffectSourceRect(effectRenderSpec, {
+    elapsedMs: Number.NaN, frameDurationMs: 0, phaseIndex: Number.NaN
+  }), { sx: 0, sy: 0, sw: 16, sh: 16 });
+  assert.equal(animatedEffectSourceRect(null), null);
+
+  const loaded = new Map(effectAssets.map(({ assetId }) => [assetId, {}]));
+  const ripple = selectLoadedAnimatedEffect(effectIndex, 'water_ripple', loaded, { elapsedMs: 180 });
+  assert.equal(ripple.asset.assetId, 'effect.water_ripple');
+  assert.deepEqual(ripple.source, { sx: 16, sy: 0, sw: 16, sh: 16 });
+  assert.equal(selectLoadedAnimatedEffect(effectIndex, 'water_ripple', new Map(), { elapsedMs: 180 }), null);
+});
+
+test('asset inspection inventory covers every v2 asset in deterministic category and id order', () => {
+  const inspectionManifest = {
+    schemaVersion: 2,
+    generatedAt: '2026-07-13T00:00:00.000Z',
+    complete: true,
+    missingBindings: [],
+    missingAssets: [],
+    assets: [...effectAssets, ...contextualAssets].reverse()
+  };
+  const available = new Map(inspectionManifest.assets
+    .filter((_, index) => index % 2 === 0)
+    .map(({ assetId }) => [assetId, {}]));
+  const inventory = buildAssetInspectionInventory(inspectionManifest, available);
+  assert.deepEqual(inventory.groups.map(({ category }) => category), [
+    'field', 'building', 'character', 'object', 'effect'
+  ]);
+  assert.equal(inventory.totalCount, inspectionManifest.assets.length);
+  assert.equal(inventory.loadedCount, available.size);
+  assert.equal(inventory.failedCount, inventory.totalCount - available.size);
+  assert.equal(inventory.manifestComplete, true);
+  assert.deepEqual(
+    inventory.groups.flatMap(({ assets }) => assets).map(({ assetId }) => assetId).sort(),
+    inspectionManifest.assets.map(({ assetId }) => assetId).sort()
+  );
+  for (const { assets } of inventory.groups) {
+    const ids = assets.map(({ assetId }) => assetId);
+    assert.deepEqual(ids, [...ids].sort());
+  }
+  const effectEntry = inventory.groups
+    .find(({ category }) => category === 'effect').assets
+    .find(({ assetId }) => assetId === 'effect.water_ripple');
+  assert.deepEqual(effectEntry.spriteGrid, {
+    columns: 4,
+    rows: 1,
+    directions: [],
+    frames: ['frame_1', 'frame_2', 'frame_3', 'frame_4']
+  });
+  assert.throws(() => buildAssetInspectionInventory({ schemaVersion: 1 }), /requires a v2 manifest/);
 });
 
 test('building state visuals retain distinct approved-image cues without treating vacancy as damage', () => {

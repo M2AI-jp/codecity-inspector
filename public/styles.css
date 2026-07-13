@@ -1,10 +1,9 @@
-/* CodeCity Inspector — placeholder frontend styles.
+/* CodeCity Inspector — image-backed town and procedural fallback styles.
  *
  * CSP-safe: this is the ONLY place appearance/layout lives. index.html carries
  * no <style> or style="" and app.js never writes el.style.* — every visual
- * state is toggled with classes and the [hidden] attribute. The town canvas is
- * drawn procedurally in app.js (no image assets); this file only sizes/scales
- * it and keeps the pixels crisp.
+ * state is toggled with classes and the [hidden] attribute. This file also
+ * keeps approved pixel assets crisp in the town and inspection views.
  */
 
 :root {
@@ -16,7 +15,7 @@
   --text: #e8e9f5;
   --text-dim: #9aa0c4;
   --accent: #f0c14b;
-  --danger: #e0556f;
+  --danger: #f06f87;
   --danger-bg: #3a1420;
   --warn: #e0a83d;
   --warn-bg: #362a10;
@@ -25,7 +24,13 @@
   --ok: #5fbf7f;
   --evidence-observed: #5fbf7f;
   --evidence-inferred: #e0a83d;
-  --evidence-unknown: #8a7fa8;
+  --evidence-unknown: #968bae;
+  --level-0: #f06f87;
+  --level-1: #e0a83d;
+  --level-2: #d0c04a;
+  --level-3: #5fbf7f;
+  --level-4: #5fb0d9;
+  --level-5: #f0c14b;
   --radius: 4px;
   --font-main: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Courier New', monospace;
 }
@@ -39,9 +44,23 @@
     --border-light: #6c68a3;
     --text: #1c1a30;
     --text-dim: #514d78;
+    --accent: #715000;
+    --danger: #a51d3d;
     --danger-bg: #fbe4ea;
+    --warn: #765000;
     --warn-bg: #f7ecd4;
+    --pending: #3049a5;
     --pending-bg: #e7eafb;
+    --ok: #176c3b;
+    --evidence-observed: #176c3b;
+    --evidence-inferred: #765000;
+    --evidence-unknown: #5d526f;
+    --level-0: #a51d3d;
+    --level-1: #765000;
+    --level-2: #625a00;
+    --level-3: #176c3b;
+    --level-4: #155f79;
+    --level-5: #715000;
   }
 }
 
@@ -53,9 +72,23 @@
   --border-light: #545e94;
   --text: #e8e9f5;
   --text-dim: #9aa0c4;
+  --accent: #f0c14b;
+  --danger: #f06f87;
   --danger-bg: #3a1420;
+  --warn: #e0a83d;
   --warn-bg: #362a10;
+  --pending: #7a8ce0;
   --pending-bg: #171c3a;
+  --ok: #5fbf7f;
+  --evidence-observed: #5fbf7f;
+  --evidence-inferred: #e0a83d;
+  --evidence-unknown: #968bae;
+  --level-0: #f06f87;
+  --level-1: #e0a83d;
+  --level-2: #d0c04a;
+  --level-3: #5fbf7f;
+  --level-4: #5fb0d9;
+  --level-5: #f0c14b;
 }
 
 :root[data-theme="light"] {
@@ -66,9 +99,23 @@
   --border-light: #6c68a3;
   --text: #1c1a30;
   --text-dim: #514d78;
+  --accent: #715000;
+  --danger: #a51d3d;
   --danger-bg: #fbe4ea;
+  --warn: #765000;
   --warn-bg: #f7ecd4;
+  --pending: #3049a5;
   --pending-bg: #e7eafb;
+  --ok: #176c3b;
+  --evidence-observed: #176c3b;
+  --evidence-inferred: #765000;
+  --evidence-unknown: #5d526f;
+  --level-0: #a51d3d;
+  --level-1: #765000;
+  --level-2: #625a00;
+  --level-3: #176c3b;
+  --level-4: #155f79;
+  --level-5: #715000;
 }
 
 * { box-sizing: border-box; }
@@ -114,7 +161,8 @@ button:disabled {
 
 button:focus-visible,
 canvas:focus-visible,
-[role="tab"]:focus-visible {
+[role="tab"]:focus-visible,
+[role="dialog"] a:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -185,18 +233,18 @@ canvas:focus-visible,
 
 .level-badge-name { color: var(--text-dim); }
 
-.level-badge[data-level="0"] { border-color: #7a4a4a; }
-.level-badge[data-level="0"] .level-badge-num { color: #e0556f; }
-.level-badge[data-level="1"] { border-color: #8a6a3a; }
-.level-badge[data-level="1"] .level-badge-num { color: #e0a83d; }
-.level-badge[data-level="2"] { border-color: #7a7a3a; }
-.level-badge[data-level="2"] .level-badge-num { color: #d0c04a; }
-.level-badge[data-level="3"] { border-color: #3a7a5a; }
-.level-badge[data-level="3"] .level-badge-num { color: #5fbf7f; }
-.level-badge[data-level="4"] { border-color: #3a6a7a; }
-.level-badge[data-level="4"] .level-badge-num { color: #5fb0d9; }
-.level-badge[data-level="5"] { border-color: #7a6a3a; }
-.level-badge[data-level="5"] .level-badge-num { color: var(--accent); }
+.level-badge[data-level="0"] { border-color: var(--level-0); }
+.level-badge[data-level="0"] .level-badge-num { color: var(--level-0); }
+.level-badge[data-level="1"] { border-color: var(--level-1); }
+.level-badge[data-level="1"] .level-badge-num { color: var(--level-1); }
+.level-badge[data-level="2"] { border-color: var(--level-2); }
+.level-badge[data-level="2"] .level-badge-num { color: var(--level-2); }
+.level-badge[data-level="3"] { border-color: var(--level-3); }
+.level-badge[data-level="3"] .level-badge-num { color: var(--level-3); }
+.level-badge[data-level="4"] { border-color: var(--level-4); }
+.level-badge[data-level="4"] .level-badge-num { color: var(--level-4); }
+.level-badge[data-level="5"] { border-color: var(--level-5); }
+.level-badge[data-level="5"] .level-badge-num { color: var(--level-5); }
 
 .header-actions {
   display: flex;
@@ -215,6 +263,7 @@ canvas:focus-visible,
 .btn:hover:not(:disabled) { border-color: var(--accent); }
 
 .btn-guild { border-color: #7a4a9a; }
+.btn-assets { border-color: var(--ok); }
 .btn-reload { border-color: var(--border-light); }
 
 /* ---------- Error banner / notices ---------- */
@@ -556,9 +605,10 @@ canvas:focus-visible,
 .evidence-badge-inferred { color: var(--evidence-inferred); border-color: var(--evidence-inferred); }
 .evidence-badge-unknown { color: var(--evidence-unknown); border-color: var(--evidence-unknown); }
 
-/* ---------- Guild modal ---------- */
+/* ---------- Modal shells ---------- */
 
-.guild-modal {
+.guild-modal,
+.asset-inspection-modal {
   position: fixed;
   inset: 0;
   z-index: 50;
@@ -568,7 +618,8 @@ canvas:focus-visible,
   padding: 16px;
 }
 
-.guild-backdrop {
+.guild-backdrop,
+.asset-inspection-backdrop {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -579,7 +630,8 @@ canvas:focus-visible,
   cursor: pointer;
 }
 
-.guild-panel {
+.guild-panel,
+.asset-inspection-panel {
   position: relative;
   z-index: 1;
   width: min(640px, 100%);
@@ -592,7 +644,8 @@ canvas:focus-visible,
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
-.guild-panel-header {
+.guild-panel-header,
+.asset-inspection-panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -600,7 +653,8 @@ canvas:focus-visible,
   border-bottom: 1px solid var(--border);
 }
 
-.guild-panel-header h2 { margin: 0; font-size: 16px; }
+.guild-panel-header h2,
+.asset-inspection-panel-header h2 { margin: 0; font-size: 16px; }
 
 .btn-close {
   background: transparent;
@@ -723,4 +777,130 @@ canvas:focus-visible,
   color: var(--text-dim);
   font-size: 12.5px;
   padding: 8px 0;
+}
+
+/* ---------- Published asset inspection ---------- */
+
+.asset-inspection-panel {
+  width: min(1120px, 100%);
+  max-height: min(90vh, 900px);
+}
+
+.asset-inspection-body {
+  padding: 12px 14px 18px;
+  overflow-y: auto;
+}
+
+.asset-inspection-summary {
+  margin: 0 0 6px;
+  color: var(--ok);
+  font-weight: bold;
+}
+
+.asset-inspection-scope {
+  margin: 0 0 14px;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.asset-inspection-group + .asset-inspection-group {
+  margin-top: 18px;
+}
+
+.asset-inspection-group h3 {
+  margin: 0 0 8px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+
+.asset-inspection-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.asset-inspection-card {
+  margin: 0;
+  padding: 8px;
+  min-width: 0;
+  background: var(--bg-panel-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.asset-inspection-card[data-status="failed"] {
+  border-color: var(--danger);
+}
+
+.asset-inspection-preview {
+  min-height: 126px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background-color: #d8d8d8;
+  background-image:
+    linear-gradient(45deg, #b8b8b8 25%, transparent 25%),
+    linear-gradient(-45deg, #b8b8b8 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #b8b8b8 75%),
+    linear-gradient(-45deg, transparent 75%, #b8b8b8 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+}
+
+.asset-inspection-preview img {
+  display: block;
+  width: 96px;
+  max-width: 100%;
+  height: auto;
+  max-height: 180px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.asset-inspection-card[data-render-kind="spritesheet"] .asset-inspection-preview img {
+  width: 180px;
+}
+
+.asset-inspection-card figcaption {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 7px;
+  font-size: 11px;
+}
+
+.asset-inspection-card code {
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.asset-inspection-card-status {
+  color: var(--ok);
+}
+
+.asset-inspection-card[data-status="failed"] .asset-inspection-card-status,
+.asset-inspection-failure {
+  color: var(--danger);
+}
+
+.asset-inspection-grid-note {
+  color: var(--text-dim);
+}
+
+.asset-inspection-failure {
+  padding: 12px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+@media (max-width: 520px) {
+  .asset-inspection-grid { grid-template-columns: 1fr; }
+  .header-actions { width: 100%; flex-wrap: wrap; }
+  .header-actions .btn { flex: 1 1 auto; }
 }

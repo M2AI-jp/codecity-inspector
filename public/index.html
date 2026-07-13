@@ -22,6 +22,9 @@
         </div>
 
         <div class="header-actions">
+          <button id="open-asset-inspection-btn" type="button" class="btn btn-assets" disabled>
+            アセット検査
+          </button>
           <button id="open-guild-btn" type="button" class="btn btn-guild" disabled>
             接続者ギルド
           </button>
@@ -157,7 +160,7 @@
     </div>
 
     <div id="guild-modal" class="guild-modal" hidden>
-      <button id="guild-backdrop" type="button" class="guild-backdrop" aria-label="接続者ギルドを閉じる"></button>
+      <button id="guild-backdrop" type="button" class="guild-backdrop" aria-label="接続者ギルドを閉じる" tabindex="-1"></button>
 
       <div class="guild-panel" role="dialog" aria-modal="true" aria-labelledby="guild-modal-title">
         <header class="guild-panel-header">
@@ -196,6 +199,25 @@
               <ul class="guild-item-list"></ul>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="asset-inspection-modal" class="asset-inspection-modal" hidden>
+      <button id="asset-inspection-backdrop" type="button" class="asset-inspection-backdrop" aria-label="アセット検査を閉じる" tabindex="-1"></button>
+
+      <div class="asset-inspection-panel" role="dialog" aria-modal="true" aria-labelledby="asset-inspection-title" aria-describedby="asset-inspection-scope">
+        <header class="asset-inspection-panel-header">
+          <h2 id="asset-inspection-title">公開アセット検査</h2>
+          <button id="asset-inspection-close-btn" type="button" class="btn-close" aria-label="閉じる">×</button>
+        </header>
+
+        <div class="asset-inspection-body">
+          <p id="asset-inspection-summary" class="asset-inspection-summary" role="status"></p>
+          <p id="asset-inspection-scope" class="asset-inspection-scope">
+            公開マニフェストにあるPNG全体をカテゴリ別に表示します。ここで確認できるのはブラウザでの読込状態です。視覚品質や権利の適否を自動判定するものではありません。
+          </p>
+          <div id="asset-inspection-groups"></div>
         </div>
       </div>
     </div>

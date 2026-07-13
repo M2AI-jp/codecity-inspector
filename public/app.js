@@ -1,8 +1,8 @@
-// public/app.js — CodeCity Inspector placeholder frontend.
+// public/app.js — CodeCity Inspector image-backed frontend with safe fallbacks.
 //
 // Vanilla browser JS, no build step or framework. Fetches
-// GET /api/town and renders it four ways: a procedurally-drawn pixel-grid town
-// canvas with approved-only Asset Forge images or a visible procedural fallback,
+// GET /api/town and renders it four ways: a pixel-grid town canvas with
+// published Asset Forge images or a visible procedural fallback,
 // a habitability panel (incl. the "誰も住めません" headline), a
 // building-details panel that splits a facility's evidence into observed /
 // inferred / unknown, and the 5-tab 接続者ギルド roster modal.
@@ -17,9 +17,9 @@
 // that module lives outside the served public/ root and cannot be imported.
 
 import {
-  buildingStateVisuals, cardinalTerrainNeighbors, characterDestinationRect,
+  buildAssetInspectionInventory, buildingStateVisuals, cardinalTerrainNeighbors, characterDestinationRect,
   findPlayerSpawn, loadGameAssets, movePlayer, selectBuildingAsset, selectNpcAsset,
-  selectLoadedStaticEffect, selectPropAsset, selectTerrainAsset, spriteSourceRect
+  selectLoadedAnimatedEffect, selectPropAsset, selectTerrainAsset, spriteSourceRect
 } from './game-runtime.mjs';
 
 // ---------------------------------------------------------------------------
@@ -76,6 +76,12 @@ const DEFAULT_PROP_COLOR = '#8a7a5f';
 const NPC_MOB_ROLES = new Set(['townsfolk', 'traveler', 'child']);
 
 const DIRECTION_VECTORS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+const EFFECT_FRAME_DURATION_MS = 180;
+const PLAYER_IDLE_DELAY_MS = 140;
+const FOCUSABLE_SELECTOR = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+const ASSET_CATEGORY_LABELS = {
+  field: '地形', building: '建物', character: 'キャラクター', object: '小物', effect: 'エフェクト', ui: 'UI'
+};
 
 // ---------------------------------------------------------------------------
 // State
@@ -85,8 +91,15 @@ let currentTown = null;
 let selectedKind = null; // facilityKind driving both the details panel and the canvas outline
 let activeGuildTab = GUILD_TABS[0];
 let guildOpenerEl = null;
+let assetInspectionOpenerEl = null;
+let assetInspectionRendered = false;
 let player = null;
 let playerFrameName = 'idle';
+let playerIdleTimer = null;
+let effectElapsedMs = 0;
+let effectAnimationTimer = null;
+const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+let effectAnimationPaused = document.hidden || reducedMotionQuery.matches;
 let gameAssets = { status: 'fallback', reason: 'not loaded', manifest: null, index: null, images: new Map() };
 
 // ---------------------------------------------------------------------------
@@ -108,6 +121,7 @@ function cacheDom() {
   el.canvas = document.getElementById('town-canvas');
   el.canvasEmptyState = document.getElementById('canvas-empty-state');
   el.assetStatus = document.getElementById('asset-status');
+  el.openAssetInspectionBtn = document.getElementById('open-asset-inspection-btn');
 
   el.cannotLiveHeadline = document.getElementById('cannot-live-headline');
   el.habLevelText = document.getElementById('hab-level-text');
@@ -139,6 +153,12 @@ function cacheDom() {
   el.guildBody = document.getElementById('guild-body');
   el.guildTabs = Array.from(document.querySelectorAll('.guild-tab'));
   el.guildTabpanels = Array.from(document.querySelectorAll('.guild-tabpanel'));
+
+  el.assetInspectionModal = document.getElementById('asset-inspection-modal');
+  el.assetInspectionBackdrop = document.getElementById('asset-inspection-backdrop');
+  el.assetInspectionCloseBtn = document.getElementById('asset-inspection-close-btn');
+  el.assetInspectionSummary = document.getElementById('asset-inspection-summary');
+  el.assetInspectionGroups = document.getElementById('asset-inspection-groups');
 }
 
 // ---------------------------------------------------------------------------
@@ -154,22 +174,38 @@ function init() {
   el.canvas.addEventListener('click', onCanvasClick);
   el.guildBackdrop.addEventListener('click', closeGuildModal);
   el.guildCloseBtn.addEventListener('click', closeGuildModal);
+  el.openAssetInspectionBtn.addEventListener('click', () => openAssetInspection(el.openAssetInspectionBtn));
+  el.assetInspectionBackdrop.addEventListener('click', closeAssetInspection);
+  el.assetInspectionCloseBtn.addEventListener('click', closeAssetInspection);
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !el.guildModal.hidden) closeGuildModal();
+    const openModal = activeModal();
+    if (e.key === 'Escape' && openModal) {
+      e.preventDefault();
+      if (openModal === el.assetInspectionModal) closeAssetInspection();
+      else closeGuildModal();
+      return;
+    }
+    if (e.key === 'Tab' && openModal) {
+      trapModalFocus(openModal, e);
+      return;
+    }
     const direction = { ArrowUp: 'up', w: 'up', W: 'up', ArrowDown: 'down', s: 'down', S: 'down', ArrowLeft: 'left', a: 'left', A: 'left', ArrowRight: 'right', d: 'right', D: 'right' }[e.key];
-    if (direction && document.activeElement === el.canvas && el.guildModal.hidden && currentTown && player) {
+    if (direction && document.activeElement === el.canvas && !openModal && currentTown && player) {
       e.preventDefault();
       const previous = player;
       player = movePlayer(currentTown.layout, player, direction);
       const moved = player.x !== previous.x || player.y !== previous.y;
       playerFrameName = moved ? (playerFrameName === 'walk_1' ? 'walk_2' : 'walk_1') : 'idle';
       drawTown(currentTown.layout);
+      schedulePlayerIdle(moved);
     }
   });
   for (const tabBtn of el.guildTabs) {
     tabBtn.addEventListener('click', () => selectGuildTab(tabBtn.dataset.tab));
   }
   wireGuildTabKeyboardNav();
+  document.addEventListener('visibilitychange', onVisibilityChange);
+  reducedMotionQuery.addEventListener?.('change', restartEffectAnimation);
   loadGameAssets().then((runtime) => {
     gameAssets = runtime;
     renderAssetStatus();
@@ -181,15 +217,21 @@ function init() {
 
 function renderAssetStatus() {
   if (!el.assetStatus) return;
+  const publishedCount = gameAssets.manifest?.assets?.length ?? 0;
+  const hasInspectableManifest = gameAssets.manifest?.schemaVersion === 2 && publishedCount > 0;
+  el.openAssetInspectionBtn.disabled = !hasInspectableManifest;
+  el.openAssetInspectionBtn.textContent = hasInspectableManifest
+    ? `アセット検査 (${publishedCount})`
+    : 'アセット検査';
   if (gameAssets.status === 'loaded') {
     el.assetStatus.dataset.status = 'loaded';
-    el.assetStatus.textContent = `承認済みAsset Forge素材: ${gameAssets.images.size}件`;
+    el.assetStatus.textContent = `公開素材 ${gameAssets.images.size}/${publishedCount} 読込済み`;
   } else if (gameAssets.status === 'partial') {
     el.assetStatus.dataset.status = 'fallback';
-    el.assetStatus.textContent = `承認済みAsset Forge素材: ${gameAssets.images.size}件 — 手続き生成を併用 (${gameAssets.reason})`;
+    el.assetStatus.textContent = `公開素材 ${gameAssets.images.size}/${publishedCount} 読込済み — 手続き生成を併用 (${gameAssets.reason})`;
   } else {
     el.assetStatus.dataset.status = 'fallback';
-    el.assetStatus.textContent = `Asset Forge素材なし — 手続き生成表示を使用 (${gameAssets.reason || 'unknown'})`;
+    el.assetStatus.textContent = `公開素材を利用できません — 手続き生成表示を使用 (${gameAssets.reason || 'unknown'})`;
   }
 }
 
@@ -210,6 +252,8 @@ async function loadTown() {
     renderAll(town);
   } catch (err) {
     currentTown = null;
+    resetPlayerIdleFrame();
+    restartEffectAnimation();
     showError(`町の読み込みに失敗しました: ${err && err.message ? err.message : err}`);
   } finally {
     el.reloadBtn.disabled = false;
@@ -237,9 +281,13 @@ function showError(message) {
 
 function renderAll(town) {
   renderHeader(town);
+  if (playerIdleTimer !== null) window.clearTimeout(playerIdleTimer);
+  playerIdleTimer = null;
   player = findPlayerSpawn(town.layout);
   playerFrameName = 'idle';
+  effectElapsedMs = 0;
   drawTown(town.layout);
+  restartEffectAnimation();
   renderHabitabilityPanel(town.habitability);
   renderFacilityList(town.model);
   selectKind(null);
@@ -403,10 +451,39 @@ function renderEvidenceList(ulEl, items) {
 // 接続者ギルド roster modal (reads town.model.guild[tab])
 // ===========================================================================
 
+function activeModal() {
+  if (!el.assetInspectionModal.hidden) return el.assetInspectionModal;
+  if (!el.guildModal.hidden) return el.guildModal;
+  return null;
+}
+
+function trapModalFocus(modal, event) {
+  const dialog = modal.querySelector('[role="dialog"]');
+  const focusable = Array.from(dialog?.querySelectorAll(FOCUSABLE_SELECTOR) ?? [])
+    .filter((element) => !element.closest('[hidden]'));
+  if (focusable.length === 0) {
+    event.preventDefault();
+    return;
+  }
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (!dialog.contains(document.activeElement)) {
+    event.preventDefault();
+    first.focus();
+  } else if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
+}
+
 function openGuildModal(model, openerEl) {
   const pubFacility = findFacility(model, 'pub');
   const pubPresent = Boolean(pubFacility && pubFacility.present);
 
+  resetPlayerIdleFrame();
   guildOpenerEl = openerEl || document.activeElement;
   el.guildModal.hidden = false;
 
@@ -426,6 +503,7 @@ function openGuildModal(model, openerEl) {
 }
 
 function closeGuildModal() {
+  if (el.guildModal.hidden) return;
   el.guildModal.hidden = true;
   if (guildOpenerEl && typeof guildOpenerEl.focus === 'function') guildOpenerEl.focus();
   guildOpenerEl = null;
@@ -578,6 +656,97 @@ function renderGuildBelongingItem(item) {
 }
 
 // ===========================================================================
+// Published Asset Forge inspection (lazy, v2 manifest only)
+// ===========================================================================
+
+function openAssetInspection(openerEl) {
+  if (gameAssets.manifest?.schemaVersion !== 2) return;
+  if (!assetInspectionRendered) renderAssetInspection();
+  resetPlayerIdleFrame();
+  assetInspectionOpenerEl = openerEl || document.activeElement;
+  el.assetInspectionModal.hidden = false;
+  el.assetInspectionCloseBtn.focus();
+  restartEffectAnimation();
+}
+
+function closeAssetInspection() {
+  if (el.assetInspectionModal.hidden) return;
+  el.assetInspectionModal.hidden = true;
+  if (assetInspectionOpenerEl && typeof assetInspectionOpenerEl.focus === 'function') {
+    assetInspectionOpenerEl.focus();
+  }
+  assetInspectionOpenerEl = null;
+  restartEffectAnimation();
+}
+
+function renderAssetInspection() {
+  const inventory = buildAssetInspectionInventory(gameAssets.manifest, gameAssets.images);
+  el.assetInspectionSummary.textContent = inventory.failedCount === 0
+    ? `公開素材 ${inventory.loadedCount}/${inventory.totalCount} 読込済み`
+    : `公開素材 ${inventory.loadedCount}/${inventory.totalCount} 読込済み・${inventory.failedCount}件読込失敗`;
+  el.assetInspectionGroups.textContent = '';
+  const fragment = document.createDocumentFragment();
+  for (const group of inventory.groups) {
+    const section = document.createElement('section');
+    section.className = 'asset-inspection-group';
+    section.dataset.category = group.category;
+
+    const heading = document.createElement('h3');
+    heading.textContent = `${ASSET_CATEGORY_LABELS[group.category] || group.category} (${group.assets.length})`;
+    section.appendChild(heading);
+
+    const grid = document.createElement('div');
+    grid.className = 'asset-inspection-grid';
+    for (const asset of group.assets) grid.appendChild(renderAssetInspectionCard(asset));
+    section.appendChild(grid);
+    fragment.appendChild(section);
+  }
+  el.assetInspectionGroups.appendChild(fragment);
+  assetInspectionRendered = true;
+}
+
+function renderAssetInspectionCard(asset) {
+  const figure = document.createElement('figure');
+  figure.className = 'asset-inspection-card';
+  figure.dataset.status = asset.loaded ? 'loaded' : 'failed';
+  figure.dataset.renderKind = asset.renderKind;
+
+  const preview = document.createElement('div');
+  preview.className = 'asset-inspection-preview';
+  if (asset.loaded) {
+    const image = document.createElement('img');
+    image.src = asset.publicPath;
+    image.alt = `${asset.assetId} の公開PNG全体`;
+    image.loading = 'lazy';
+    image.decoding = 'async';
+    preview.appendChild(image);
+  } else {
+    const failure = document.createElement('span');
+    failure.className = 'asset-inspection-failure';
+    failure.textContent = '画像を読み込めませんでした';
+    preview.appendChild(failure);
+  }
+  figure.appendChild(preview);
+
+  const caption = document.createElement('figcaption');
+  const id = document.createElement('code');
+  id.textContent = asset.assetId;
+  caption.appendChild(id);
+  const status = document.createElement('span');
+  status.className = 'asset-inspection-card-status';
+  status.textContent = asset.loaded ? '読込済み' : '読込失敗';
+  caption.appendChild(status);
+  if (asset.spriteGrid) {
+    const grid = document.createElement('span');
+    grid.className = 'asset-inspection-grid-note';
+    grid.textContent = `${asset.spriteGrid.columns}列×${asset.spriteGrid.rows}行・全${asset.spriteGrid.columns * asset.spriteGrid.rows}セル`;
+    caption.appendChild(grid);
+  }
+  figure.appendChild(caption);
+  return figure;
+}
+
+// ===========================================================================
 // Canvas town rendering — approved Asset Forge images with procedural fallback
 // ===========================================================================
 
@@ -600,6 +769,80 @@ function shade(hex, amount) {
   const g = clamp8(((n >> 8) & 255) + Math.round(255 * amount));
   const b = clamp8((n & 255) + Math.round(255 * amount));
   return `rgb(${r}, ${g}, ${b})`;
+}
+
+function schedulePlayerIdle(moved) {
+  if (playerIdleTimer !== null) window.clearTimeout(playerIdleTimer);
+  playerIdleTimer = null;
+  if (!moved) return;
+  playerIdleTimer = window.setTimeout(() => {
+    playerIdleTimer = null;
+    playerFrameName = 'idle';
+    if (currentTown) drawTown(currentTown.layout);
+  }, PLAYER_IDLE_DELAY_MS);
+}
+
+function resetPlayerIdleFrame() {
+  if (playerIdleTimer !== null) window.clearTimeout(playerIdleTimer);
+  playerIdleTimer = null;
+  if (playerFrameName === 'idle') return;
+  playerFrameName = 'idle';
+  if (currentTown) drawTown(currentTown.layout);
+}
+
+function loadedEffectAsset(semanticKind) {
+  const asset = gameAssets.index?.bySemantic?.get(semanticKind);
+  return asset && gameAssets.images.has(asset.assetId) ? asset : null;
+}
+
+function hasLoadedAnimatedEffect() {
+  return Boolean(loadedEffectAsset('water_ripple') || loadedEffectAsset('construction_dust'));
+}
+
+function townHasDrawableEffect() {
+  const layout = currentTown?.layout;
+  const terrain = layout?.map?.terrain;
+  const hasWater = loadedEffectAsset('water_ripple')
+    && Array.isArray(terrain)
+    && terrain.some((row) => Array.isArray(row) && row.includes('water'));
+  const hasConstruction = loadedEffectAsset('construction_dust')
+    && (layout?.buildings ?? []).some((building) => building.state === 'under_construction');
+  return Boolean(hasWater || hasConstruction);
+}
+
+function effectAnimationEligible() {
+  return hasLoadedAnimatedEffect()
+    && (townHasDrawableEffect() || el.assetInspectionModal?.hidden === false);
+}
+
+function onVisibilityChange() {
+  if (document.hidden) resetPlayerIdleFrame();
+  restartEffectAnimation();
+}
+
+function restartEffectAnimation() {
+  if (effectAnimationTimer !== null) window.clearTimeout(effectAnimationTimer);
+  effectAnimationTimer = null;
+  const paused = document.hidden || reducedMotionQuery.matches;
+  const pauseChanged = paused !== effectAnimationPaused;
+  effectAnimationPaused = paused;
+  if (paused) {
+    effectElapsedMs = 0;
+    if (pauseChanged && currentTown) drawTown(currentTown.layout);
+    return;
+  }
+  if (pauseChanged && currentTown) drawTown(currentTown.layout);
+  if (!currentTown || !effectAnimationEligible()) return;
+  effectAnimationTimer = window.setTimeout(() => {
+    effectAnimationTimer = null;
+    if (!currentTown || document.hidden || reducedMotionQuery.matches || !effectAnimationEligible()) {
+      restartEffectAnimation();
+      return;
+    }
+    effectElapsedMs += EFFECT_FRAME_DURATION_MS;
+    drawTown(currentTown.layout);
+    restartEffectAnimation();
+  }, EFFECT_FRAME_DURATION_MS);
 }
 
 function drawTown(layout) {
@@ -667,8 +910,8 @@ function drawTerrain(ctx, map, tileSize) {
           drawTerrainDetail(ctx, terrain, x, y, type, px, py, tileSize, base);
         }
       }
-      if (type === 'water') drawStaticEffect(
-        ctx, 'water_ripple', x * tileSize, y * tileSize, tileSize, tileSize
+      if (type === 'water') drawAnimatedEffect(
+        ctx, 'water_ripple', `water:${x},${y}`, x * tileSize, y * tileSize, tileSize, tileSize
       );
     }
   }
@@ -687,8 +930,13 @@ function drawRotatedTile(ctx, image, px, py, tileSize, quarterTurns = 0) {
   ctx.restore();
 }
 
-function drawStaticEffect(ctx, semanticKind, dx, dy, dw, dh) {
-  const selected = selectLoadedStaticEffect(gameAssets.index, semanticKind, gameAssets.images);
+function drawAnimatedEffect(ctx, semanticKind, phaseKey, dx, dy, dw, dh) {
+  const selected = selectLoadedAnimatedEffect(gameAssets.index, semanticKind, gameAssets.images, {
+    elapsedMs: effectElapsedMs,
+    frameDurationMs: EFFECT_FRAME_DURATION_MS,
+    phaseKey,
+    paused: document.hidden || reducedMotionQuery.matches
+  });
   const image = selected ? gameAssets.images.get(selected.asset.assetId) : null;
   if (!image) return false;
   const { sx, sy, sw, sh } = selected.source;
@@ -852,9 +1100,10 @@ function drawBuildingBusyCue(ctx, stateVisuals, px, py, pw, tileSize) {
 
 function drawBuildingConstructionEffect(ctx, building, px, py, pw, ph, tileSize) {
   if (building.state !== 'under_construction') return;
-  drawStaticEffect(
+  drawAnimatedEffect(
     ctx,
     'construction_dust',
+    `construction:${building.id ?? `${building.facilityKind}:${building.x},${building.y}`}`,
     px + (pw - tileSize) / 2,
     py + ph - tileSize,
     tileSize,

@@ -24,9 +24,9 @@ Character and effect sheets are cropped from validated frame metadata; they are 
 as whole sheets into one tile.
 
 The catalog contains 110 definitions: 78 are required by the current game and 32 are optional
-future enhancements. All tracked asset rows are currently `missing`; the repository does not
-contain a human-approved production art set. Engine completion is not a claim about visual
-quality, licensing, art direction, or human approval.
+future enhancements. The required 78 have approval-ledger entries and are exported through the
+complete schema v2 game manifest; the optional 32 remain outside the required export. Content
+readiness is not a claim that automated checks decided visual quality, licensing, or art direction.
 
 ## No paid API path
 
@@ -112,7 +112,11 @@ ignored `data/local/generations.json` ledger instead of changing the tracked tem
 
 Approved images and approval metadata are the only generated-image records intended for
 version control. Root ignore rules exclude jobs, pending, rejected, processed, and local
-ledgers.
+ledgers. The package is marked `private` and is a repository-internal development tool, not a
+standalone release artifact. Its `.npmignore` is a defence against accidentally packing local
+work state; it does not make a Forge tarball publishable. In particular, the tracked pending
+reference sheets remain outside the game distribution and require a separate rights-cleared
+snapshot if Asset Forge itself is ever archived or distributed.
 
 ## Human-only boundary
 
@@ -144,10 +148,9 @@ empty. Legacy v1 manifests remain readable but are always reported as partial be
 not carry these guarantees. Road corners/edges, river edges, and bridges also state the
 canonical unrotated direction used by the renderer.
 
-## Human next steps
+## Remaining human decisions
 
-1. Supply original, licensed reference images.
-2. Record their paths, hashes, and license notes.
-3. Produce and review candidates for the 78 currently required definitions.
-4. Decide which candidates to approve; no agent may make this decision.
-5. Export approved art and complete the browser visual/accessibility review.
+1. Confirm the source and usage rights recorded outside automated inspection.
+2. Review the exported 78 assets in the game and in the manifest-backed asset inspector.
+3. Keep the optional 32 future assets outside the required completion gate unless product scope changes.
+4. Regenerate, reapprove, or re-export an approved asset only after an explicit product decision.
