@@ -1140,6 +1140,77 @@
         ],
         "coverage": "mapped"
       }
+    },
+    {
+      "id": "building.guild",
+      "category": "building",
+      "displayName": "Guild",
+      "gameMeaning": "Required building art for building.guild.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/buildings/00_common_building_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "building_style_master"
+      ],
+      "output": {
+        "kind": "single",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "tileSize": 16,
+        "scalePreview": 3,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "states": [
+        "normal",
+        "active",
+        "inactive",
+        "under_construction",
+        "unverified",
+        "broken",
+        "approved",
+        "warning"
+      ],
+      "tags": [
+        "building",
+        "guild"
+      ],
+      "constraints": {
+        "must": [
+          "readable entrance",
+          "tile-aligned footprint",
+          "stable architecture across states"
+        ],
+        "mustNot": [
+          "obscured footprint",
+          "labels",
+          "baked scene background"
+        ]
+      },
+      "reviewChecklist": [
+        "入口が読めるか",
+        "用途がシルエットで分かるか",
+        "状態差分で建物形状がぶれていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "building_exterior",
+        "semanticKind": "guild",
+        "drawLayer": "building",
+        "runtimeBindings": [
+          {
+            "vocabulary": "FACILITY_KINDS",
+            "id": "guild"
+          }
+        ],
+        "coverage": "exact"
+      }
     }
   ]
 }

@@ -143,14 +143,19 @@ test('refuses to return a town payload whose layout did not pass validation', as
   assert.equal(head.body, '');
 });
 
-test('the real town builder rejects an invalid layout instead of returning it', async (t) => {
+test('a repository with buildings but no entrypoint returns an honest uninhabitable town', async (t) => {
   const fixture = await serverFixture({ withEntrypoint: false });
   const running = await startServer({ ...fixture, repoPath: fixture.repo, port: 0 });
   t.after(running.close);
 
   const response = await rawRequest(running.server.address().port, '/api/town');
-  assert.equal(response.status, 500);
-  assert.equal(response.body, 'Unable to generate town\n');
+  assert.equal(response.status, 200);
+  const town = JSON.parse(response.body);
+  assert.equal(town.habitability.canLive, false);
+  assert.ok(town.habitability.blockers.some((entry) => /入口/.test(entry)));
+  assert.equal(town.layout.validation.ok, true);
+  assert.equal(town.layout.validation.importantBuildingsReachable, false);
+  assert.ok(town.layout.validation.issues.some((entry) => entry.code === 'REACHABLE' && entry.severity === 'warning'));
 });
 
 test('rescans the repository after each completed city request and recovers from scan errors', async (t) => {

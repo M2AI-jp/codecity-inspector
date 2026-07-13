@@ -74,44 +74,7 @@
       "ruined"
     ]
   },
-  "uncovered": [
-    {
-      "vocabulary": "TILE_TYPES",
-      "runtimeId": "sand",
-      "reason": "No formally requested field asset represents sand.",
-      "suggestedAssetId": "field.sand"
-    },
-    {
-      "vocabulary": "TILE_TYPES",
-      "runtimeId": "rock",
-      "reason": "No formally requested field or object asset represents the rock terrain tile.",
-      "suggestedAssetId": "field.rock"
-    },
-    {
-      "vocabulary": "TILE_TYPES",
-      "runtimeId": "tree",
-      "reason": "No formally requested field or object asset represents the tree terrain tile.",
-      "suggestedAssetId": "field.tree"
-    },
-    {
-      "vocabulary": "NPC_ROLES",
-      "runtimeId": "guildmaster",
-      "reason": "No formally requested character is the guildmaster.",
-      "suggestedAssetId": "character.guildmaster"
-    },
-    {
-      "vocabulary": "PROP_KINDS",
-      "runtimeId": "rubble",
-      "reason": "No formally requested object is rubble.",
-      "suggestedAssetId": "object.rubble"
-    },
-    {
-      "vocabulary": "FACILITY_KINDS",
-      "runtimeId": "guild",
-      "reason": "No formally requested building is a dedicated guild building.",
-      "suggestedAssetId": "building.guild"
-    }
-  ],
+  "uncovered": [],
   "lossyMappings": [
     {
       "vocabulary": "TILE_TYPES",
@@ -213,6 +176,45 @@
         "character.mob.dock_worker"
       ],
       "note": "Many authored roles collapse to one runtime role."
+    },
+    {
+      "vocabulary": "NPC_ROLES",
+      "runtimeId": "traveler",
+      "assetIds": [
+        "character.mob.traveler",
+        "character.mob.delivery_person"
+      ],
+      "note": "Runtime traveler requires deterministic selection from loaded character variants."
+    },
+    {
+      "vocabulary": "PROP_KINDS",
+      "runtimeId": "crate",
+      "assetIds": [
+        "object.crate",
+        "object.stacked_crates",
+        "object.harbor_cargo"
+      ],
+      "note": "Runtime crate requires deterministic selection from loaded prop variants; object.harbor_cargo is an optional contextual future asset because the current layout has no harbor context."
+    },
+    {
+      "vocabulary": "PROP_KINDS",
+      "runtimeId": "lamp",
+      "assetIds": [
+        "object.lamp",
+        "object.streetlight"
+      ],
+      "note": "Runtime lamp requires deterministic selection from loaded prop variants."
+    },
+    {
+      "vocabulary": "PROP_KINDS",
+      "runtimeId": "signboard",
+      "assetIds": [
+        "object.signboard",
+        "object.notice_board",
+        "object.guild_roster_stand",
+        "object.menu_board"
+      ],
+      "note": "Runtime signboard requires deterministic selection from loaded prop variants; object.guild_roster_stand and object.menu_board are optional contextual future assets because the current layout has no guild or menu context."
     },
     {
       "vocabulary": "PROP_KINDS",

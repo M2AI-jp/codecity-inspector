@@ -18,11 +18,15 @@ deterministic mock generation, dry-run, job packs, bounded PNG/JPEG/WEBP import,
 processing, rejection, guarded human-only promotion, and approved-only export. The Canvas
 runtime consumes the export manifest and visibly falls back when approved art is absent.
 When multiple approved assets target the same runtime binding or semantic, the manifest keeps
-every variant and the runtime deterministically selects the lexicographically first asset ID;
-the indexed variant lists remain available for a future context-specific selector.
+every variant. The runtime uses explicit deterministic rules for road topology, water edges,
+bridge style/orientation, house state/size, resident/townsfolk identity, plants, and flags.
+Character and effect sheets are cropped from validated frame metadata; they are never shrunk
+as whole sheets into one tile.
 
-The repository does not contain a human-approved production art set. Engine completion is
-not a claim about visual quality, licensing, art direction, or human approval.
+The catalog contains 110 definitions: 78 are required by the current game and 32 are optional
+future enhancements. All tracked asset rows are currently `missing`; the repository does not
+contain a human-approved production art set. Engine completion is not a claim about visual
+quality, licensing, art direction, or human approval.
 
 ## No paid API path
 
@@ -85,6 +89,9 @@ Every asset definition includes an explicit `gameBinding`:
 
 This avoids changing the current town schema merely to fit the authoring taxonomy.
 `data/manifests/runtime-coverage.json` records incomplete and lossy mappings explicitly.
+Its current `uncovered` list is empty. `coverage: future` definitions remain available without
+blocking MVP art completion unless their image is already consumed by the runtime (the player,
+water ripple, and construction dust are the current exceptions).
 
 ## References
 
@@ -122,20 +129,25 @@ determinism where promised, path containment, manifest consistency, and the unch
 approved tree. External image generation is nondeterministic; only the mock provider is
 required to be deterministic. Untested does not mean broken.
 
-## Known content gaps
+## Runtime coverage
 
-The formal catalog is complete as a requirements list, but it does not directly cover every
-current runtime vocabulary item. The authoritative gap list is
-`data/manifests/runtime-coverage.json`. Notable no-candidate gaps are
-`TILE_TYPES: sand, rock, tree`, `NPC_ROLES: guildmaster`,
-`PROP_KINDS: rubble`, and `FACILITY_KINDS: guild` as a dedicated building.
-Several other runtime meanings are covered only by lossy mappings. These are pending product
-decisions, not broken assets.
+Every current runtime vocabulary item has at least one formal candidate. The former gaps for
+`sand`, `rock`, `tree`, `guildmaster`, `rubble`, and the dedicated `guild` building now have
+exact definitions. Lossy mappings remain explicit where several authored variants implement
+one runtime meaning; the runtime selector resolves those mappings from stable game context.
+
+Export schema v2 carries render kind, logical size, tile size, sprite axes/frames, states, and
+variant tags. Approved spritesheets are rejected when the PNG dimensions do not equal their
+declared frame grid. Its sorted `missingAssets` inventory lists every required definition that
+lacks approved art; `complete` is true only when both that inventory and `missingBindings` are
+empty. Legacy v1 manifests remain readable but are always reported as partial because they do
+not carry these guarantees. Road corners/edges, river edges, and bridges also state the
+canonical unrotated direction used by the renderer.
 
 ## Human next steps
 
 1. Supply original, licensed reference images.
 2. Record their paths, hashes, and license notes.
-3. Review the runtime gap list and authorize additions beyond the formal catalog.
-4. Review pending candidates visually.
-5. Decide which candidates to approve; no agent may make this decision.
+3. Produce and review candidates for the 78 currently required definitions.
+4. Decide which candidates to approve; no agent may make this decision.
+5. Export approved art and complete the browser visual/accessibility review.

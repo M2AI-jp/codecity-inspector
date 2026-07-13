@@ -28,10 +28,13 @@
 //
 // SAFETY: the scanned repository is read-only. The ONLY file this tool writes is
 // its output artifact at --out, which defaults to ./town.layout.json in the
-// current working directory — never inside the scanned repository unless the
-// caller explicitly points --out there.
+// current working directory. An output path inside the scanned repository (even
+// through a symlinked ancestor) is rejected before any write.
 
-import { writeFileSync } from 'node:fs';
+import {
+  closeSync, constants as fsConstants, fsyncSync, openSync, renameSync, unlinkSync, writeFileSync
+} from 'node:fs';
+import { lstat, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { inspectRepository } from './inspector.mjs';
@@ -44,6 +47,79 @@ import { GENERATOR_VERSION } from './town/schema.mjs';
 const PROJECT_ROOT = fileURLToPath(new URL('..', import.meta.url));
 const DEFAULT_REPOSITORY = path.join(PROJECT_ROOT, 'sample', 'tiny-town');
 const DEFAULT_OUTPUT = 'town.layout.json';
+
+function containedBy(root, candidate) {
+  const relative = path.relative(root, candidate);
+  return relative === '' || (!relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative));
+}
+
+async function actualPathForPotentialFile(candidate) {
+  let current = path.resolve(candidate);
+  const missingSegments = [];
+  while (true) {
+    try {
+      const stat = await lstat(current);
+      if (current === path.resolve(candidate) && stat.isSymbolicLink()) {
+        throw new Error('Output file must not be a symbolic link');
+      }
+      const actual = await realpath(current);
+      return path.resolve(actual, ...missingSegments);
+    } catch (error) {
+      if (error?.message === 'Output file must not be a symbolic link') throw error;
+      if (error?.code !== 'ENOENT') throw error;
+      const parent = path.dirname(current);
+      if (parent === current) throw error;
+      missingSegments.unshift(path.basename(current));
+      current = parent;
+    }
+  }
+}
+
+/**
+ * Prove that the sole CLI output remains outside the inspected repository.
+ * Checks both lexical and real paths so a symlinked parent cannot redirect an
+ * apparently external output back into the target.
+ */
+export async function assertSafeOutputPath(repoPath, outPath) {
+  const requestedRepo = path.resolve(repoPath);
+  const actualRepo = await realpath(requestedRepo);
+  const requestedOut = path.resolve(outPath);
+  const actualOut = await actualPathForPotentialFile(requestedOut);
+  if (containedBy(requestedRepo, requestedOut) || containedBy(actualRepo, actualOut)) {
+    throw new Error('Refusing to write town.layout.json inside the inspected repository');
+  }
+  return actualOut;
+}
+
+export function writeOutputAtomic(outPath, contents) {
+  const directory = path.dirname(outPath);
+  const basename = path.basename(outPath);
+  const flags = fsConstants.O_WRONLY | fsConstants.O_CREAT | fsConstants.O_EXCL | fsConstants.O_NOFOLLOW;
+  let lastError;
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const temporary = path.join(directory, `.${basename}.${process.pid}.${attempt}.tmp`);
+    let descriptor;
+    let created = false;
+    try {
+      descriptor = openSync(temporary, flags, 0o600);
+      created = true;
+      writeFileSync(descriptor, contents, 'utf8');
+      fsyncSync(descriptor);
+      closeSync(descriptor);
+      descriptor = undefined;
+      renameSync(temporary, outPath);
+      return;
+    } catch (error) {
+      lastError = error;
+      if (descriptor !== undefined) closeSync(descriptor);
+      if (created) {
+        try { unlinkSync(temporary); } catch { /* no temporary file to clean */ }
+      }
+      if (error?.code !== 'EEXIST') throw error;
+    }
+  }
+  throw lastError ?? new Error('Unable to allocate a temporary town output file');
+}
 
 /**
  * Parse argv (already sliced past `node script`) into CLI options, mirroring the
@@ -182,7 +258,8 @@ async function main() {
       return;
     }
     const json = JSON.stringify(layout, null, 2);
-    writeFileSync(options.outPath, `${json}\n`, 'utf8');
+    const safeOutputPath = await assertSafeOutputPath(options.repoPath, options.outPath);
+    writeOutputAtomic(safeOutputPath, `${json}\n`);
     if (options.print) process.stdout.write(`${json}\n`);
     process.stdout.write(`${formatSummary({ layout, habitability, seed, outPath: options.outPath })}\n`);
   } catch (error) {

@@ -36,7 +36,7 @@ node src/generate-town.mjs --repo "/path/to/your/repository" --out ./town.layout
 
 - `--repo` を省略すると同梱の `sample/tiny-town` を点検します。
 - `--seed` を省略すると、リポジトリの状態から求めたfingerprintがそのままseedになります。コードが変わらなければ、再実行しても同じ `town.layout.json` になります。
-- `--out` を省略すると実行時のカレントディレクトリの `./town.layout.json` に書き出します。指定しない限り、点検対象リポジトリの中には書き込みません。
+- `--out` を省略すると実行時のカレントディレクトリの `./town.layout.json` に書き出します。点検対象リポジトリの内側は明示指定しても拒否し、シンボリックリンク経由で内側へ戻る出力先も拒否します。
 - `--print` を付けると、レイアウトJSON全体を標準出力にも書き出します。
 
 ### サーバーを起動してAPIで見る
@@ -52,6 +52,8 @@ node src/server.mjs --repo "/path/to/your/repository" --open
 標準では `http://127.0.0.1:4173` で待ち受けます。別のポートが必要なら `--port 4174` のように指定できます。`CodeCity.command` をダブルクリックする、またはFinder上でリポジトリのフォルダを1つドラッグ＆ドロップしても、同じサーバーが起動します（`CodeCity.command` は依存が無ければ日本語で案内して停止し、自動インストールやネットワークアクセスはしません）。
 
 ブラウザには `/api/town` を読み取る街画面が開きます。地図へフォーカスして矢印キーまたはWASDで移動でき、建物の選択、住みやすさ、観測・推測・不明の証拠区分、接続者ギルドを確認できます。承認済みAsset Forge exportが無い／読み込めない場合は、その状態を画面に表示して手続き描画を使います。生のJSONは次のエンドポイントから確認できます。
+
+Asset Forgeの定義は合計110件で、現在のゲーム完成に必要なのは78件、残り32件は任意の将来拡張です。現時点では全画像が `missing` のため、上記の手続き描画が表示されます。人間が承認したexport schema v2を置くと、道路・水辺・橋・建物状態・NPC・小物を街の文脈から決定的に選び、キャラクター／エフェクトは検証済みの1フレームだけを切り抜いて描画します。
 
 - `GET /api/city` — scanner / inspectorが読み取った生のインスペクション結果（ファイル、import、循環、テスト対応など）
 - `GET /api/town` — 街モデル・住める街レベル・検証済みレイアウトをまとめたレスポンス（下記）
@@ -95,6 +97,7 @@ node src/server.mjs --repo "/path/to/your/repository" --open
   | 5 | 見せたくなる街 | 船着場（配布）も整い、未解決の警告もない |
 
 - `layout` は `src/town/generator.mjs` が生成し `src/town/validator.mjs`（役場検査）が検証・注釈した `TownLayout` そのもので、`layout.validation.ok` が false になる結果は `/api/town` からも返りません（CLIの `town.layout.json` と同じ規約です）。
+- 観測できるentrypointが無いリポジトリは、壊れたレイアウトとして500にせず、入口のない街として返します。この場合は構造検査を通したうえで `habitability.canLive=false`、`importantBuildingsReachable=false`、`REACHABLE` warningとなり、画面に「誰も住めません」と理由を表示できます。
 - `generatorVersion` + `repoFingerprint`（内部の決定論キー） + `seed` の組が同じであれば、`layout` は常にバイト単位で同一になります。日付やランダム値は一切使いません。同じリポジトリ状態なら、`/api/town` の `layout` と `npm run generate:town` が書き出す `town.layout.json` はバイト単位で一致します。
 
 ## 街モデルの読み方（証拠の区分）
@@ -117,7 +120,7 @@ node src/server.mjs --repo "/path/to/your/repository" --open
 
 ## プライバシーと安全性
 
-対象リポジトリは読み取り専用のデータとして扱います。対象のコード、テスト、hook、package script、package managerは実行せず、ファイルも変更しません。`npm install` はCodeCity自身のparserを取得する初回準備であり、点検対象のフォルダでは実行しません。解析時にソース本文を外部へ送信せず、サーバーはMac内のループバックアドレス（`127.0.0.1`）だけで待ち受け、ループバックを指さない `Host` ヘッダーは拒否します。`npm run generate:town` が書き出すのは指定した `--out` 先のJSONファイル1つだけで、既定では点検対象リポジトリの外（カレントディレクトリ）に置かれます。詳しくは [SECURITY.md](SECURITY.md) と [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) を参照してください。
+対象リポジトリは読み取り専用のデータとして扱います。対象のコード、テスト、hook、package script、package managerは実行せず、ファイルも変更しません。`npm install` はCodeCity自身のparserを取得する初回準備であり、点検対象のフォルダでは実行しません。解析時にソース本文を外部へ送信せず、サーバーはMac内のループバックアドレス（`127.0.0.1`）だけで待ち受け、ループバックを指さない `Host` ヘッダーは拒否します。`npm run generate:town` が書き出すのは、点検対象の外側にある指定 `--out` 先のJSONファイル1つだけです。出力は同じフォルダの一時ファイルを同期してから置き換え、既存のハードリンク先を経由して対象ファイルを書き換えません。詳しくは [SECURITY.md](SECURITY.md) と [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) を参照してください。
 
 ## 開発者向け
 

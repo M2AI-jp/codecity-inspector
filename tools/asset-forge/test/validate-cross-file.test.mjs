@@ -37,10 +37,10 @@ test('cross-file validation reports undeclared references and unreported runtime
   const characters = JSON.parse(await readFile(characterFile, 'utf8'));
   characters.assets[0].defaultReferenceIds = ['missing_reference'];
   await writeFile(characterFile, JSON.stringify(characters));
-  const coverageFile = path.join(root, 'data', 'manifests', 'runtime-coverage.json');
-  const coverage = JSON.parse(await readFile(coverageFile, 'utf8'));
-  coverage.uncovered = coverage.uncovered.filter((entry) => !(entry.vocabulary === 'TILE_TYPES' && entry.runtimeId === 'sand'));
-  await writeFile(coverageFile, JSON.stringify(coverage));
+  const fieldFile = path.join(root, 'data', 'asset-definitions', 'fields.json');
+  const fields = JSON.parse(await readFile(fieldFile, 'utf8'));
+  fields.assets.find((asset) => asset.id === 'field.sand').gameBinding.runtimeBindings = [];
+  await writeFile(fieldFile, JSON.stringify(fields));
   const result = await validateRepository({ root });
   assert.ok(result.issues.some((issue) => issue.code === 'MISSING_REFERENCE_DECLARATION'));
   assert.ok(result.issues.some((issue) => issue.code === 'UNREPORTED_RUNTIME_GAP' && issue.runtimeId === 'sand'));

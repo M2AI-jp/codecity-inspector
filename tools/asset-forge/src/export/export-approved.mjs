@@ -5,6 +5,7 @@ import { atomicReplaceJson, atomicWriteFile, readJson, withFileLock } from '../f
 import { canonicalJson, sha256 as hashBytes } from '../hashing.mjs';
 import { readAssetDefinitions } from '../jobs/define-assets.mjs';
 import { assertExistingStateFile, assetFileStem } from '../paths.mjs';
+import { inspectPng } from '../png-core.mjs';
 import { validateWith } from '../schemas.mjs';
 
 function bindingGaps(definitions, coverage) {
@@ -20,6 +21,57 @@ function bindingGaps(definitions, coverage) {
     for (const runtimeId of ids) if (!bound.has(`${vocabulary}\0${runtimeId}`)) gaps.push({ vocabulary, runtimeId });
   }
   return gaps;
+}
+
+function spriteAxes(assetId, sprites) {
+  const directions = [...(sprites?.directions ?? [])];
+  const frames = [...(sprites?.frames ?? [])];
+  const grid = sprites?.grid ? { ...sprites.grid } : null;
+  if (!grid || frames.length === 0) throw new Error(`Spritesheet definition is incomplete: ${assetId}`);
+  let directionAxis = null;
+  let frameAxis = null;
+  if (directions.length) {
+    if (directions.length === grid.columns && frames.length === grid.rows) {
+      directionAxis = 'column'; frameAxis = 'row';
+    } else if (directions.length === grid.rows && frames.length === grid.columns) {
+      directionAxis = 'row'; frameAxis = 'column';
+    }
+  } else if (frames.length === grid.columns && grid.rows === 1) {
+    frameAxis = 'column';
+  } else if (frames.length === grid.rows && grid.columns === 1) {
+    frameAxis = 'row';
+  }
+  if (!frameAxis) throw new Error(`Spritesheet axes do not match its grid: ${assetId}`);
+  return { directions, frames, grid, directionAxis, frameAxis };
+}
+
+function renderSpecFor(definition) {
+  const kind = definition.output.kind;
+  return {
+    kind,
+    logicalSize: definition.pixelArt.logicalSpriteSize ? { ...definition.pixelArt.logicalSpriteSize } : null,
+    tileSize: definition.pixelArt.tileSize ?? null,
+    nearestNeighbor: definition.pixelArt.nearestNeighbor,
+    allowAntiAlias: definition.pixelArt.allowAntiAlias,
+    sprites: kind === 'spritesheet' ? spriteAxes(definition.id, definition.sprites) : null,
+    states: [...(definition.states ?? [])],
+    variantTags: [...definition.tags]
+  };
+}
+
+function inspectApprovedPng(assetId, bytes, renderSpec) {
+  const inspection = inspectPng(bytes);
+  if (renderSpec.kind !== 'spritesheet') return inspection;
+  const { columns, rows, frameWidth, frameHeight } = renderSpec.sprites.grid;
+  const expectedWidth = columns * frameWidth;
+  const expectedHeight = rows * frameHeight;
+  if (inspection.width !== expectedWidth || inspection.height !== expectedHeight) {
+    throw new Error(
+      `Approved spritesheet dimensions do not match its grid: ${assetId} ` +
+      `(got ${inspection.width}x${inspection.height}, expected ${expectedWidth}x${expectedHeight})`
+    );
+  }
+  return inspection;
 }
 
 async function writeContentAddressed(root, destination, bytes, expectedHash) {
@@ -68,11 +120,14 @@ async function exportApprovedUnlocked({ write = false, publicRoot, now = () => n
     const bytes = await readFile(source);
     const sha256 = hashBytes(bytes);
     if (sha256 !== approval.approvedSha256) throw new Error(`Approved hash mismatch: ${entry.assetId}`);
+    const renderSpec = renderSpecFor(definition);
+    inspectApprovedPng(entry.assetId, bytes, renderSpec);
     const relative = path.join('assets', 'forge', 'v1', sha256.slice(0, 16), `${assetFileStem(entry.assetId)}.png`);
     assets.push({
       assetId: entry.assetId, category: entry.category, sha256,
       publicPath: `/${relative.split(path.sep).join('/')}`,
-      gameBinding: definition.gameBinding
+      gameBinding: definition.gameBinding,
+      renderSpec
     });
     exportedDefinitions.push(definition);
     copies.push({ assetId: entry.assetId, bytes, relative, sha256 });
@@ -80,7 +135,19 @@ async function exportApprovedUnlocked({ write = false, publicRoot, now = () => n
   assets.sort((left, right) => left.assetId.localeCompare(right.assetId));
   copies.sort((left, right) => left.assetId.localeCompare(right.assetId));
   const missingBindings = bindingGaps(exportedDefinitions, coverage);
-  const manifest = { schemaVersion: 1, generatedAt: now(), complete: missingBindings.length === 0, assets, missingBindings };
+  const exportedAssetIds = new Set(assets.map(({ assetId }) => assetId));
+  const missingAssets = [...new Set(definitions
+    .filter((definition) => definition.required && !exportedAssetIds.has(definition.id))
+    .map((definition) => definition.id))]
+    .sort((left, right) => left.localeCompare(right));
+  const manifest = {
+    schemaVersion: 2,
+    generatedAt: now(),
+    complete: missingBindings.length === 0 && missingAssets.length === 0,
+    assets,
+    missingBindings,
+    missingAssets
+  };
   const validation = validateWith('game-export.schema.json', manifest);
   if (!validation.ok) throw new Error(`Invalid game export: ${JSON.stringify(validation.errors)}`);
   const manifestSha256 = hashBytes(canonicalJson(manifest));

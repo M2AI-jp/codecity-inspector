@@ -196,8 +196,8 @@
       "id": "object.cart",
       "category": "object",
       "displayName": "Cart",
-      "gameMeaning": "Required object art for object.cart.",
-      "required": true,
+      "gameMeaning": "Optional future enhancement for object.cart; the current game remains complete without it.",
+      "required": false,
       "promptFiles": [
         "prompts/common/pixel-art-style.md",
         "prompts/objects/00_common_object_style.md",
@@ -506,8 +506,8 @@
       "id": "object.guild_roster_stand",
       "category": "object",
       "displayName": "Guild Roster Stand",
-      "gameMeaning": "Required object art for object.guild_roster_stand.",
-      "required": true,
+      "gameMeaning": "Optional contextual future enhancement for object.guild_roster_stand; the current layout has no guild-roster context.",
+      "required": false,
       "promptFiles": [
         "prompts/common/pixel-art-style.md",
         "prompts/objects/00_common_object_style.md",
@@ -562,15 +562,15 @@
             "id": "signboard"
           }
         ],
-        "coverage": "mapped"
+        "coverage": "future"
       }
     },
     {
       "id": "object.menu_board",
       "category": "object",
       "displayName": "Menu Board",
-      "gameMeaning": "Required object art for object.menu_board.",
-      "required": true,
+      "gameMeaning": "Optional contextual future enhancement for object.menu_board; the current layout has no menu context.",
+      "required": false,
       "promptFiles": [
         "prompts/common/pixel-art-style.md",
         "prompts/objects/00_common_object_style.md",
@@ -625,7 +625,7 @@
             "id": "signboard"
           }
         ],
-        "coverage": "mapped"
+        "coverage": "future"
       }
     },
     {
@@ -884,8 +884,8 @@
       "id": "object.snow_pile",
       "category": "object",
       "displayName": "Snow Pile",
-      "gameMeaning": "Required object art for object.snow_pile.",
-      "required": true,
+      "gameMeaning": "Optional future enhancement for object.snow_pile; the current game remains complete without it.",
+      "required": false,
       "promptFiles": [
         "prompts/common/pixel-art-style.md",
         "prompts/objects/00_common_object_style.md",
@@ -942,8 +942,8 @@
       "id": "object.firewood",
       "category": "object",
       "displayName": "Firewood",
-      "gameMeaning": "Required object art for object.firewood.",
-      "required": true,
+      "gameMeaning": "Optional future enhancement for object.firewood; the current game remains complete without it.",
+      "required": false,
       "promptFiles": [
         "prompts/common/pixel-art-style.md",
         "prompts/objects/00_common_object_style.md",
@@ -1000,8 +1000,8 @@
       "id": "object.rope",
       "category": "object",
       "displayName": "Rope",
-      "gameMeaning": "Required object art for object.rope.",
-      "required": true,
+      "gameMeaning": "Optional future enhancement for object.rope; the current game remains complete without it.",
+      "required": false,
       "promptFiles": [
         "prompts/common/pixel-art-style.md",
         "prompts/objects/00_common_object_style.md",
@@ -1436,8 +1436,8 @@
       "id": "object.harbor_cargo",
       "category": "object",
       "displayName": "Harbor Cargo",
-      "gameMeaning": "Required object art for object.harbor_cargo.",
-      "required": true,
+      "gameMeaning": "Optional contextual future enhancement for object.harbor_cargo; the current layout has no harbor context.",
+      "required": false,
       "promptFiles": [
         "prompts/common/pixel-art-style.md",
         "prompts/objects/00_common_object_style.md",
@@ -1492,15 +1492,15 @@
             "id": "crate"
           }
         ],
-        "coverage": "mapped"
+        "coverage": "future"
       }
     },
     {
       "id": "object.ledger",
       "category": "object",
       "displayName": "Ledger",
-      "gameMeaning": "Required object art for object.ledger.",
-      "required": true,
+      "gameMeaning": "Optional future enhancement for object.ledger; the current game remains complete without it.",
+      "required": false,
       "promptFiles": [
         "prompts/common/pixel-art-style.md",
         "prompts/objects/00_common_object_style.md",
@@ -1557,8 +1557,8 @@
       "id": "object.inspection_table",
       "category": "object",
       "displayName": "Inspection Table",
-      "gameMeaning": "Required object art for object.inspection_table.",
-      "required": true,
+      "gameMeaning": "Optional future enhancement for object.inspection_table; the current game remains complete without it.",
+      "required": false,
       "promptFiles": [
         "prompts/common/pixel-art-style.md",
         "prompts/objects/00_common_object_style.md",
@@ -1615,8 +1615,8 @@
       "id": "object.tool_table",
       "category": "object",
       "displayName": "Tool Table",
-      "gameMeaning": "Required object art for object.tool_table.",
-      "required": true,
+      "gameMeaning": "Optional future enhancement for object.tool_table; the current game remains complete without it.",
+      "required": false,
       "promptFiles": [
         "prompts/common/pixel-art-style.md",
         "prompts/objects/00_common_object_style.md",
@@ -1673,8 +1673,8 @@
       "id": "object.smoke_white",
       "category": "object",
       "displayName": "Smoke White",
-      "gameMeaning": "Required object art for object.smoke_white.",
-      "required": true,
+      "gameMeaning": "Optional future enhancement for object.smoke_white; the current game remains complete without it.",
+      "required": false,
       "promptFiles": [
         "prompts/common/pixel-art-style.md",
         "prompts/objects/00_common_object_style.md",
@@ -1731,8 +1731,8 @@
       "id": "object.smoke_black",
       "category": "object",
       "displayName": "Smoke Black",
-      "gameMeaning": "Required object art for object.smoke_black.",
-      "required": true,
+      "gameMeaning": "Optional future enhancement for object.smoke_black; the current game remains complete without it.",
+      "required": false,
       "promptFiles": [
         "prompts/common/pixel-art-style.md",
         "prompts/objects/00_common_object_style.md",
@@ -1783,6 +1783,69 @@
         "drawLayer": "effect",
         "runtimeBindings": [],
         "coverage": "future"
+      }
+    },
+    {
+      "id": "object.rubble",
+      "category": "object",
+      "displayName": "Rubble",
+      "gameMeaning": "Required object art for object.rubble.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/objects/00_common_object_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "object_style_master"
+      ],
+      "output": {
+        "kind": "single",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 16,
+          "height": 16
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "tags": [
+        "object",
+        "rubble"
+      ],
+      "constraints": {
+        "must": [
+          "clear map-scale silhouette",
+          "consistent tile footprint"
+        ],
+        "mustNot": [
+          "scene background",
+          "labels",
+          "oversized detail"
+        ]
+      },
+      "reviewChecklist": [
+        "小サイズで識別できるか",
+        "他の小物と縮尺が合うか",
+        "背景が混入していないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "prop",
+        "semanticKind": "rubble",
+        "drawLayer": "object",
+        "runtimeBindings": [
+          {
+            "vocabulary": "PROP_KINDS",
+            "id": "rubble"
+          }
+        ],
+        "coverage": "exact"
       }
     }
   ]

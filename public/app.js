@@ -17,7 +17,9 @@
 // that module lives outside the served public/ root and cannot be imported.
 
 import {
-  assetForBinding, findPlayerSpawn, loadGameAssets, movePlayer
+  buildingStateVisuals, cardinalTerrainNeighbors, characterDestinationRect,
+  findPlayerSpawn, loadGameAssets, movePlayer, selectBuildingAsset, selectNpcAsset,
+  selectLoadedStaticEffect, selectPropAsset, selectTerrainAsset, spriteSourceRect
 } from './game-runtime.mjs';
 
 // ---------------------------------------------------------------------------
@@ -84,6 +86,7 @@ let selectedKind = null; // facilityKind driving both the details panel and the 
 let activeGuildTab = GUILD_TABS[0];
 let guildOpenerEl = null;
 let player = null;
+let playerFrameName = 'idle';
 let gameAssets = { status: 'fallback', reason: 'not loaded', manifest: null, index: null, images: new Map() };
 
 // ---------------------------------------------------------------------------
@@ -156,7 +159,10 @@ function init() {
     const direction = { ArrowUp: 'up', w: 'up', W: 'up', ArrowDown: 'down', s: 'down', S: 'down', ArrowLeft: 'left', a: 'left', A: 'left', ArrowRight: 'right', d: 'right', D: 'right' }[e.key];
     if (direction && document.activeElement === el.canvas && el.guildModal.hidden && currentTown && player) {
       e.preventDefault();
+      const previous = player;
       player = movePlayer(currentTown.layout, player, direction);
+      const moved = player.x !== previous.x || player.y !== previous.y;
+      playerFrameName = moved ? (playerFrameName === 'walk_1' ? 'walk_2' : 'walk_1') : 'idle';
       drawTown(currentTown.layout);
     }
   });
@@ -232,6 +238,7 @@ function showError(message) {
 function renderAll(town) {
   renderHeader(town);
   player = findPlayerSpawn(town.layout);
+  playerFrameName = 'idle';
   drawTown(town.layout);
   renderHabitabilityPanel(town.habitability);
   renderFacilityList(town.model);
@@ -639,22 +646,54 @@ function drawTerrain(ctx, map, tileSize) {
     const row = terrain[y] || [];
     for (let x = 0; x < row.length; x += 1) {
       const type = row[x];
-      const approved = imageForBinding('TILE_TYPES', type);
+      const selection = selectTerrainAsset(gameAssets.index, {
+        tileType: type,
+        neighbors: cardinalTerrainNeighbors(terrain, x, y),
+        x,
+        y,
+        availableAssetIds: gameAssets.images
+      });
+      const approved = selection?.asset ? gameAssets.images.get(selection.asset.assetId) : null;
       if (approved) {
-        ctx.drawImage(approved, x * tileSize, y * tileSize, tileSize, tileSize);
-        continue;
+        drawRotatedTile(ctx, approved, x * tileSize, y * tileSize, tileSize, selection.quarterTurns);
+      } else {
+        const base = TILE_COLORS[type] || UNKNOWN_TILE_COLOR;
+        const px = x * tileSize;
+        const py = y * tileSize;
+        const dither = (hash(`${x},${y},${type}`) & 3) === 0;
+        ctx.fillStyle = dither ? shade(base, -0.05) : base;
+        ctx.fillRect(px, py, tileSize, tileSize);
+        if (DETAILED_TILES.has(type)) {
+          drawTerrainDetail(ctx, terrain, x, y, type, px, py, tileSize, base);
+        }
       }
-      const base = TILE_COLORS[type] || UNKNOWN_TILE_COLOR;
-      const px = x * tileSize;
-      const py = y * tileSize;
-      const dither = (hash(`${x},${y},${type}`) & 3) === 0;
-      ctx.fillStyle = dither ? shade(base, -0.05) : base;
-      ctx.fillRect(px, py, tileSize, tileSize);
-      if (DETAILED_TILES.has(type)) {
-        drawTerrainDetail(ctx, terrain, x, y, type, px, py, tileSize, base);
-      }
+      if (type === 'water') drawStaticEffect(
+        ctx, 'water_ripple', x * tileSize, y * tileSize, tileSize, tileSize
+      );
     }
   }
+}
+
+function drawRotatedTile(ctx, image, px, py, tileSize, quarterTurns = 0) {
+  const turns = ((quarterTurns % 4) + 4) % 4;
+  if (turns === 0) {
+    ctx.drawImage(image, px, py, tileSize, tileSize);
+    return;
+  }
+  ctx.save();
+  ctx.translate(px + tileSize / 2, py + tileSize / 2);
+  ctx.rotate(turns * Math.PI / 2);
+  ctx.drawImage(image, -tileSize / 2, -tileSize / 2, tileSize, tileSize);
+  ctx.restore();
+}
+
+function drawStaticEffect(ctx, semanticKind, dx, dy, dw, dh) {
+  const selected = selectLoadedStaticEffect(gameAssets.index, semanticKind, gameAssets.images);
+  const image = selected ? gameAssets.images.get(selected.asset.assetId) : null;
+  if (!image) return false;
+  const { sx, sy, sw, sh } = selected.source;
+  ctx.drawImage(image, sx, sy, sw, sh, dx, dy, dw, dh);
+  return true;
 }
 
 // Placeholder pixel detailing for terrain tiles that carry meaning beyond a flat
@@ -798,6 +837,31 @@ function drawHatching(ctx, px, py, pw, ph) {
   ctx.restore();
 }
 
+function drawBuildingDamageCue(ctx, stateVisuals, px, py, pw, ph) {
+  if (stateVisuals.hatch) drawHatching(ctx, px, py, pw, ph);
+}
+
+function drawBuildingBusyCue(ctx, stateVisuals, px, py, pw, tileSize) {
+  if (!stateVisuals.busy) return;
+  ctx.fillStyle = '#fff2b0';
+  ctx.font = `${Math.max(8, Math.round(tileSize * 0.5))}px sans-serif`;
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'top';
+  ctx.fillText('*', px + pw - 2, py + 1);
+}
+
+function drawBuildingConstructionEffect(ctx, building, px, py, pw, ph, tileSize) {
+  if (building.state !== 'under_construction') return;
+  drawStaticEffect(
+    ctx,
+    'construction_dust',
+    px + (pw - tileSize) / 2,
+    py + ph - tileSize,
+    tileSize,
+    tileSize
+  );
+}
+
 function drawBuilding(ctx, building, tileSize, isSelected) {
   const footprint = building.footprint || { widthTiles: 1, heightTiles: 1 };
   const px = building.x * tileSize;
@@ -805,38 +869,41 @@ function drawBuilding(ctx, building, tileSize, isSelected) {
   const pw = footprint.widthTiles * tileSize;
   const ph = footprint.heightTiles * tileSize;
   const fill = FACILITY_COLORS[building.facilityKind] || UNKNOWN_FACILITY_COLOR;
+  const stateVisuals = buildingStateVisuals(building.state);
 
-  const approved = imageForBinding('FACILITY_KINDS', building.facilityKind);
+  const approvedAsset = selectBuildingAsset(gameAssets.index, {
+    building,
+    availableAssetIds: gameAssets.images
+  });
+  const approved = approvedAsset ? gameAssets.images.get(approvedAsset.assetId) : null;
   if (approved) {
+    ctx.save();
+    ctx.globalAlpha = stateVisuals.opacity; // dim means unverified, never broken
     ctx.drawImage(approved, px, py, pw, ph);
+    ctx.restore();
+    drawBuildingDamageCue(ctx, stateVisuals, px, py, pw, ph);
     ctx.strokeStyle = isSelected ? '#ffe066' : 'rgba(0, 0, 0, 0.45)';
     ctx.lineWidth = isSelected ? 3 : 1;
     ctx.strokeRect(px + ctx.lineWidth / 2, py + ctx.lineWidth / 2, pw - ctx.lineWidth, ph - ctx.lineWidth);
+    drawBuildingBusyCue(ctx, stateVisuals, px, py, pw, tileSize);
+    drawBuildingConstructionEffect(ctx, building, px, py, pw, ph, tileSize);
     if (building.entrance) drawEntranceMarker(ctx, building.entrance, tileSize);
     return;
   }
 
   ctx.save();
-  if (building.state === 'vacant') ctx.globalAlpha = 0.55; // "not lit yet", never "broken"
+  ctx.globalAlpha = stateVisuals.opacity; // "not lit yet", never "broken"
   ctx.fillStyle = fill;
   ctx.fillRect(px, py, pw, ph);
   ctx.restore();
 
-  if (building.state === 'ruined' || building.state === 'under_construction') {
-    drawHatching(ctx, px, py, pw, ph);
-  }
+  drawBuildingDamageCue(ctx, stateVisuals, px, py, pw, ph);
 
   ctx.strokeStyle = isSelected ? '#ffe066' : shade(fill, -0.35);
   ctx.lineWidth = isSelected ? 3 : 1;
   ctx.strokeRect(px + ctx.lineWidth / 2, py + ctx.lineWidth / 2, pw - ctx.lineWidth, ph - ctx.lineWidth);
 
-  if (building.state === 'busy') {
-    ctx.fillStyle = '#fff2b0';
-    ctx.font = `${Math.max(8, Math.round(tileSize * 0.5))}px sans-serif`;
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'top';
-    ctx.fillText('*', px + pw - 2, py + 1);
-  }
+  drawBuildingBusyCue(ctx, stateVisuals, px, py, pw, tileSize);
 
   const label = FACILITY_LABELS[building.facilityKind] || building.facilityKind;
   const fontSize = Math.max(7, Math.min(14, Math.floor(Math.min(pw, ph) * 0.42)));
@@ -849,6 +916,7 @@ function drawBuilding(ctx, building, tileSize, isSelected) {
   ctx.fillStyle = '#fbf6e8';
   ctx.fillText(label, px + pw / 2, py + ph / 2);
 
+  drawBuildingConstructionEffect(ctx, building, px, py, pw, ph, tileSize);
   if (building.entrance) drawEntranceMarker(ctx, building.entrance, tileSize);
 }
 
@@ -880,7 +948,8 @@ function drawProps(ctx, props, tileSize) {
   for (const prop of props) {
     const cx = prop.x * tileSize + tileSize / 2;
     const cy = prop.y * tileSize + tileSize / 2;
-    const approved = imageForBinding('PROP_KINDS', prop.kind);
+    const approvedAsset = selectPropAsset(gameAssets.index, { prop, availableAssetIds: gameAssets.images });
+    const approved = approvedAsset ? gameAssets.images.get(approvedAsset.assetId) : null;
     if (approved) {
       ctx.drawImage(approved, prop.x * tileSize, prop.y * tileSize, tileSize, tileSize);
       continue;
@@ -898,9 +967,12 @@ function drawNpcs(ctx, npcs, tileSize) {
     const isMob = NPC_MOB_ROLES.has(npc.role);
     const cx = npc.x * tileSize + tileSize / 2;
     const cy = npc.y * tileSize + tileSize / 2;
-    const approved = imageForBinding('NPC_ROLES', npc.role);
-    if (approved) {
-      ctx.drawImage(approved, npc.x * tileSize, npc.y * tileSize, tileSize, tileSize);
+    const approvedAsset = selectNpcAsset(gameAssets.index, { npc, availableAssetIds: gameAssets.images });
+    const approvedImage = approvedAsset ? gameAssets.images.get(approvedAsset.assetId) : null;
+    const approved = approvedAsset && approvedImage ? { asset: approvedAsset, image: approvedImage } : null;
+    if (approved && drawLoadedCharacter(
+      ctx, approved, npc.facing, 'idle', npc.x, npc.y, tileSize
+    )) {
       continue;
     }
     const radius = tileSize * (isMob ? 0.2 : 0.3);
@@ -921,9 +993,19 @@ function drawNpcs(ctx, npcs, tileSize) {
   }
 }
 
-function imageForBinding(vocabulary, id) {
-  const asset = assetForBinding(gameAssets.index, vocabulary, id);
-  return asset ? gameAssets.images.get(asset.assetId) || null : null;
+function drawLoadedCharacter(ctx, loaded, facing, frameName, tileX, tileY, tileSize) {
+  const source = spriteSourceRect(loaded.asset.renderSpec, { facing, frameName });
+  const destination = characterDestinationRect(loaded.asset.renderSpec, { tileX, tileY, tileSize });
+  if (source && destination) {
+    ctx.drawImage(
+      loaded.image,
+      source.sx, source.sy, source.sw, source.sh,
+      destination.dx, destination.dy, destination.dw, destination.dh
+    );
+    return true;
+  }
+  // Without verified frame metadata an image may be a sheet; use procedural art.
+  return false;
 }
 
 function drawPlayer(ctx, tileSize) {
@@ -932,8 +1014,13 @@ function drawPlayer(ctx, tileSize) {
   const approved = approvedAsset ? gameAssets.images.get(approvedAsset.assetId) : null;
   const px = player.x * tileSize;
   const py = player.y * tileSize;
-  if (approved) {
-    ctx.drawImage(approved, px, py, tileSize, tileSize);
+  if (approved && drawLoadedCharacter(
+      ctx,
+      { asset: approvedAsset, image: approved },
+      player.facing,
+      playerFrameName,
+      player.x, player.y, tileSize
+  )) {
     return;
   }
   const cx = px + tileSize / 2;

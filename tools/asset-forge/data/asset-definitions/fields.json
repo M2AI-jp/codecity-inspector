@@ -194,8 +194,8 @@
       "id": "field.snow",
       "category": "field",
       "displayName": "Snow",
-      "gameMeaning": "Required field art for field.snow.",
-      "required": true,
+      "gameMeaning": "Optional future enhancement for field.snow; the current game remains complete without it.",
+      "required": false,
       "promptFiles": [
         "prompts/common/pixel-art-style.md",
         "prompts/fields/00_common_field_style.md",
@@ -342,7 +342,8 @@
         "must": [
           "tile-aligned edges",
           "repeatable texture",
-          "walkability meaning remains visible"
+          "walkability meaning remains visible",
+          "quarterTurns=0 canonical orientation has the dry bank on the top (north) edge"
         ],
         "mustNot": [
           "characters",
@@ -353,7 +354,8 @@
       "reviewChecklist": [
         "継ぎ目が目立たないか",
         "接続方向が読めるか",
-        "地形の意味が変わっていないか"
+        "地形の意味が変わっていないか",
+        "quarterTurns=0 で乾いた岸が上（北）にあるか"
       ],
       "gameBinding": {
         "rendererCategory": "tile",
@@ -403,7 +405,8 @@
         "must": [
           "tile-aligned edges",
           "repeatable texture",
-          "walkability meaning remains visible"
+          "walkability meaning remains visible",
+          "quarterTurns=0 canonical orientation has the bridge deck left-to-right (east-west) over water north-to-south"
         ],
         "mustNot": [
           "characters",
@@ -414,7 +417,8 @@
       "reviewChecklist": [
         "継ぎ目が目立たないか",
         "接続方向が読めるか",
-        "地形の意味が変わっていないか"
+        "地形の意味が変わっていないか",
+        "quarterTurns=0 で橋桁が左右（東西）、水面が上下（南北）に通るか"
       ],
       "gameBinding": {
         "rendererCategory": "tile",
@@ -464,7 +468,8 @@
         "must": [
           "tile-aligned edges",
           "repeatable texture",
-          "walkability meaning remains visible"
+          "walkability meaning remains visible",
+          "quarterTurns=0 canonical orientation has the bridge deck left-to-right (east-west) over water north-to-south"
         ],
         "mustNot": [
           "characters",
@@ -475,7 +480,8 @@
       "reviewChecklist": [
         "継ぎ目が目立たないか",
         "接続方向が読めるか",
-        "地形の意味が変わっていないか"
+        "地形の意味が変わっていないか",
+        "quarterTurns=0 で橋桁が左右（東西）、水面が上下（南北）に通るか"
       ],
       "gameBinding": {
         "rendererCategory": "tile",
@@ -891,7 +897,8 @@
         "must": [
           "tile-aligned edges",
           "repeatable texture",
-          "walkability meaning remains visible"
+          "walkability meaning remains visible",
+          "quarterTurns=0 canonical orientation connects road up and right (north + east)"
         ],
         "mustNot": [
           "characters",
@@ -902,7 +909,8 @@
       "reviewChecklist": [
         "継ぎ目が目立たないか",
         "接続方向が読めるか",
-        "地形の意味が変わっていないか"
+        "地形の意味が変わっていないか",
+        "quarterTurns=0 で道が上＋右（北＋東）へ接続するか"
       ],
       "gameBinding": {
         "rendererCategory": "tile",
@@ -952,7 +960,8 @@
         "must": [
           "tile-aligned edges",
           "repeatable texture",
-          "walkability meaning remains visible"
+          "walkability meaning remains visible",
+          "quarterTurns=0 canonical orientation connects the road up (north)"
         ],
         "mustNot": [
           "characters",
@@ -963,7 +972,8 @@
       "reviewChecklist": [
         "継ぎ目が目立たないか",
         "接続方向が読めるか",
-        "地形の意味が変わっていないか"
+        "地形の意味が変わっていないか",
+        "quarterTurns=0 で道が上（北）へ接続するか"
       ],
       "gameBinding": {
         "rendererCategory": "tile",
@@ -1037,6 +1047,189 @@
           }
         ],
         "coverage": "mapped"
+      }
+    },
+    {
+      "id": "field.sand",
+      "category": "field",
+      "displayName": "Sand",
+      "gameMeaning": "Required field art for field.sand.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/fields/00_common_field_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "field_style_master"
+      ],
+      "output": {
+        "kind": "tileset",
+        "preferredFormat": "png",
+        "background": "scene",
+        "needsTransparency": false,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "tileSize": 16,
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "tags": [
+        "field",
+        "sand"
+      ],
+      "constraints": {
+        "must": [
+          "tile-aligned edges",
+          "repeatable texture",
+          "walkability meaning remains visible"
+        ],
+        "mustNot": [
+          "characters",
+          "labels",
+          "soft antialiasing"
+        ]
+      },
+      "reviewChecklist": [
+        "継ぎ目が目立たないか",
+        "接続方向が読めるか",
+        "地形の意味が変わっていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "tile",
+        "semanticKind": "sand",
+        "drawLayer": "ground",
+        "runtimeBindings": [
+          {
+            "vocabulary": "TILE_TYPES",
+            "id": "sand"
+          }
+        ],
+        "coverage": "exact"
+      }
+    },
+    {
+      "id": "field.rock",
+      "category": "field",
+      "displayName": "Rock",
+      "gameMeaning": "Required field art for field.rock.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/fields/00_common_field_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "field_style_master"
+      ],
+      "output": {
+        "kind": "tileset",
+        "preferredFormat": "png",
+        "background": "scene",
+        "needsTransparency": false,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "tileSize": 16,
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "tags": [
+        "field",
+        "rock"
+      ],
+      "constraints": {
+        "must": [
+          "tile-aligned edges",
+          "repeatable texture",
+          "walkability meaning remains visible"
+        ],
+        "mustNot": [
+          "characters",
+          "labels",
+          "soft antialiasing"
+        ]
+      },
+      "reviewChecklist": [
+        "継ぎ目が目立たないか",
+        "接続方向が読めるか",
+        "地形の意味が変わっていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "tile",
+        "semanticKind": "rock",
+        "drawLayer": "ground",
+        "runtimeBindings": [
+          {
+            "vocabulary": "TILE_TYPES",
+            "id": "rock"
+          }
+        ],
+        "coverage": "exact"
+      }
+    },
+    {
+      "id": "field.tree",
+      "category": "field",
+      "displayName": "Tree",
+      "gameMeaning": "Required field art for field.tree.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/fields/00_common_field_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "field_style_master"
+      ],
+      "output": {
+        "kind": "tileset",
+        "preferredFormat": "png",
+        "background": "scene",
+        "needsTransparency": false,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "tileSize": 16,
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "tags": [
+        "field",
+        "tree"
+      ],
+      "constraints": {
+        "must": [
+          "tile-aligned edges",
+          "repeatable texture",
+          "walkability meaning remains visible"
+        ],
+        "mustNot": [
+          "characters",
+          "labels",
+          "soft antialiasing"
+        ]
+      },
+      "reviewChecklist": [
+        "継ぎ目が目立たないか",
+        "接続方向が読めるか",
+        "地形の意味が変わっていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "tile",
+        "semanticKind": "tree",
+        "drawLayer": "ground",
+        "runtimeBindings": [
+          {
+            "vocabulary": "TILE_TYPES",
+            "id": "tree"
+          }
+        ],
+        "coverage": "exact"
       }
     }
   ]

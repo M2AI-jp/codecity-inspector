@@ -785,8 +785,8 @@
       "id": "character.external_contractor_agent",
       "category": "character",
       "displayName": "External Contractor Agent",
-      "gameMeaning": "Required character art for character.external_contractor_agent.",
-      "required": true,
+      "gameMeaning": "Optional future enhancement for character.external_contractor_agent; the current game remains complete without it.",
+      "required": false,
       "promptFiles": [
         "prompts/common/pixel-art-style.md",
         "prompts/characters/00_common_character_style.md",
@@ -867,8 +867,8 @@
       "id": "character.llm_librarian",
       "category": "character",
       "displayName": "Llm Librarian",
-      "gameMeaning": "Required character art for character.llm_librarian.",
-      "required": true,
+      "gameMeaning": "Optional future enhancement for character.llm_librarian; the current game remains complete without it.",
+      "required": false,
       "promptFiles": [
         "prompts/common/pixel-art-style.md",
         "prompts/characters/00_common_character_style.md",
@@ -949,8 +949,8 @@
       "id": "character.llm_bard",
       "category": "character",
       "displayName": "Llm Bard",
-      "gameMeaning": "Required character art for character.llm_bard.",
-      "required": true,
+      "gameMeaning": "Optional future enhancement for character.llm_bard; the current game remains complete without it.",
+      "required": false,
       "promptFiles": [
         "prompts/common/pixel-art-style.md",
         "prompts/characters/00_common_character_style.md",
@@ -1031,8 +1031,8 @@
       "id": "character.llm_counselor",
       "category": "character",
       "displayName": "Llm Counselor",
-      "gameMeaning": "Required character art for character.llm_counselor.",
-      "required": true,
+      "gameMeaning": "Optional future enhancement for character.llm_counselor; the current game remains complete without it.",
+      "required": false,
       "promptFiles": [
         "prompts/common/pixel-art-style.md",
         "prompts/characters/00_common_character_style.md",
@@ -1113,8 +1113,8 @@
       "id": "character.treasurer",
       "category": "character",
       "displayName": "Treasurer",
-      "gameMeaning": "Required character art for character.treasurer.",
-      "required": true,
+      "gameMeaning": "Optional future enhancement for character.treasurer; the current game remains complete without it.",
+      "required": false,
       "promptFiles": [
         "prompts/common/pixel-art-style.md",
         "prompts/characters/00_common_character_style.md",
@@ -1195,8 +1195,8 @@
       "id": "character.mail_carrier",
       "category": "character",
       "displayName": "Mail Carrier",
-      "gameMeaning": "Required character art for character.mail_carrier.",
-      "required": true,
+      "gameMeaning": "Optional future enhancement for character.mail_carrier; the current game remains complete without it.",
+      "required": false,
       "promptFiles": [
         "prompts/common/pixel-art-style.md",
         "prompts/characters/00_common_character_style.md",
@@ -2326,6 +2326,93 @@
           }
         ],
         "coverage": "mapped"
+      }
+    },
+    {
+      "id": "character.guildmaster",
+      "category": "character",
+      "displayName": "Guildmaster",
+      "gameMeaning": "Required character art for character.guildmaster.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/characters/00_common_character_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "character_style_master"
+      ],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "black",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 20,
+          "height": 32
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "directions": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "frames": [
+          "idle",
+          "walk_1",
+          "walk_2"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 3,
+          "frameWidth": 20,
+          "frameHeight": 32
+        }
+      },
+      "tags": [
+        "character",
+        "guildmaster"
+      ],
+      "constraints": {
+        "must": [
+          "small map-scale sprite",
+          "slim vertical silhouette",
+          "controlled palette"
+        ],
+        "mustNot": [
+          "chibi proportions",
+          "large anime eyes",
+          "labels or UI frames"
+        ]
+      },
+      "reviewChecklist": [
+        "顔が大きくなっていないか",
+        "丸顔になっていないか",
+        "体が横に太くなっていないか",
+        "縦長シルエットが保たれているか",
+        "服・髪・ポーズで役割が読めるか",
+        "小さな街歩きスプライトに見えるか",
+        "現代的なSDキャラに寄っていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "npc",
+        "semanticKind": "guildmaster",
+        "drawLayer": "character",
+        "runtimeBindings": [
+          {
+            "vocabulary": "NPC_ROLES",
+            "id": "guildmaster"
+          }
+        ],
+        "coverage": "exact"
       }
     }
   ]

@@ -21,7 +21,7 @@
 // implemented exactly as the FROZEN TownLayoutValidation JSDoc in ./schema.mjs
 // defines them: `walkable` = "every road cell is walkable and the roads form a
 // connected network" and `importantBuildingsReachable` = "every required
-// facility's entrance is reachable via roads" — i.e. as a graph over
+// facility's entrance is reachable via roads when a gate exists — i.e. as a graph over
 // TownRoad.fromBuildingId <-> TownRoad.toBuildingId edges, NOT a raw terrain
 // flood-fill. `noOverlap` = "no two building footprints overlap, and no footprint
 // sits on a blocked tile"; "blocked tile" here means a NATURAL obstacle
@@ -29,19 +29,24 @@
 // plateau), never 'wall' (a building's own shell) or 'floor' (its own interior),
 // which a footprint legitimately covers.
 //
-// Every check maps to exactly one issue code (NO_OVERLAP, ENTRANCE_CLEAR,
+// Every check maps to exactly one issue code (STRUCTURE, NO_OVERLAP, ENTRANCE_CLEAR,
 // WALKABLE, REACHABLE, DOCK_ON_WATER, DENSITY_SPARSE / DENSITY_CRAMPED,
 // NPC_NOT_IN_WALL, and the terrain-feature codes BRIDGE_SPANS_WATER /
 // STAIRS_CONNECT_ELEVATION). `ok` is false whenever any issue has severity
-// 'error' OR any of the three named hard invariants (noOverlap / walkable /
-// importantBuildingsReachable) is false — matching the frozen contract verbatim.
+// 'error'. A missing gate is an honest uninhabitable-repository state rather
+// than malformed generated geometry: it leaves importantBuildingsReachable
+// false and records a warning, while an existing-but-disconnected gate remains
+// an error and therefore cannot be adopted.
 //
 // DEFENSIVE BY CONSTRUCTION. A malformed / partial TownLayout (missing map,
 // non-array buildings, NaN coordinates, a null layout, ...) never throws: each
 // unreadable field degrades to a concrete, honest issue instead. An unreadable
 // layout is never a passing one.
 
-import { WALKABLE_TILE_TYPES, deepFreeze } from './schema.mjs';
+import {
+  BUILDING_STATES, DIRECTIONS, FACILITY_KINDS, NPC_ROLES, PROP_KINDS,
+  TILE_TYPES, WALKABLE_TILE_TYPES, deepFreeze
+} from './schema.mjs';
 
 /** @typedef {import('./schema.mjs').TownLayout} TownLayout */
 /** @typedef {import('./schema.mjs').TownLayoutValidation} TownLayoutValidation */
@@ -67,6 +72,12 @@ const MAIN_FACILITY_KINDS = ['inn', 'pub', 'town_hall', 'workshop', 'dojo', 'doc
 const NATURAL_OBSTACLE_TILES = new Set(['water', 'rock', 'tree', 'cliff']);
 
 const WALKABLE_TILE_SET = new Set(WALKABLE_TILE_TYPES);
+const TILE_TYPE_SET = new Set(TILE_TYPES);
+const FACILITY_KIND_SET = new Set(FACILITY_KINDS);
+const BUILDING_STATE_SET = new Set(BUILDING_STATES);
+const DIRECTION_SET = new Set(DIRECTIONS);
+const NPC_ROLE_SET = new Set(NPC_ROLES);
+const PROP_KIND_SET = new Set(PROP_KINDS);
 
 // Tiles an NPC may stand on: every walkable tile EXCEPT 'floor'. A 'floor' tile
 // is a building interior (see TILE_TYPES), and NPC_NOT_IN_WALL forbids "a
@@ -134,6 +145,115 @@ function terrainAt(dims, x, y) {
 function isWalkableAt(dims, x, y) {
   const tile = terrainAt(dims, x, y);
   return typeof tile === 'string' && WALKABLE_TILE_SET.has(tile);
+}
+
+function checkStructure(layout, dims) {
+  const issues = [];
+  if (!isPlainObject(layout) || !isPlainObject(layout.map)) {
+    issues.push(issue('STRUCTURE', 'layout and layout.map must be objects.', 'error'));
+    return issues;
+  }
+  if (typeof layout.townId !== 'string' || layout.townId.length === 0) {
+    issues.push(issue('STRUCTURE', 'layout.townId must be a nonempty string.', 'error'));
+  }
+  if (typeof layout.repoFingerprint !== 'string' || !/^[a-f0-9]{64}$/.test(layout.repoFingerprint)) {
+    issues.push(issue('STRUCTURE', 'layout.repoFingerprint must be a 64-character lowercase SHA-256 digest.', 'error'));
+  }
+  if (typeof layout.generatorVersion !== 'string' || layout.generatorVersion.length === 0) {
+    issues.push(issue('STRUCTURE', 'layout.generatorVersion must be a nonempty string.', 'error'));
+  }
+  if (typeof layout.seed !== 'string') {
+    issues.push(issue('STRUCTURE', 'layout.seed must be a string.', 'error'));
+  }
+  if (dims.widthTiles === 0 || dims.heightTiles === 0 || !Number.isInteger(layout.map.tileSize) || layout.map.tileSize <= 0) {
+    issues.push(issue('STRUCTURE', 'map dimensions and tileSize must be positive integers.', 'error'));
+  }
+  if (dims.terrain.length !== dims.heightTiles) {
+    issues.push(issue('STRUCTURE', 'terrain row count must equal map.heightTiles.', 'error'));
+  }
+  for (let y = 0; y < dims.heightTiles; y += 1) {
+    const row = dims.terrain[y];
+    if (!Array.isArray(row) || row.length !== dims.widthTiles) {
+      issues.push(issue('STRUCTURE', `terrain row ${y} must contain exactly map.widthTiles cells.`, 'error'));
+      continue;
+    }
+    for (let x = 0; x < dims.widthTiles; x += 1) {
+      if (!TILE_TYPE_SET.has(row[x])) {
+        issues.push(issue('STRUCTURE', `terrain cell (${x},${y}) has an unsupported tile type.`, 'error'));
+      }
+    }
+  }
+  for (const field of ['districts', 'buildings', 'roads', 'npcs', 'props', 'connections']) {
+    if (!Array.isArray(layout[field])) issues.push(issue('STRUCTURE', `layout.${field} must be an array.`, 'error'));
+  }
+  const idFields = ['districts', 'buildings', 'roads', 'npcs', 'props'];
+  for (const field of idFields) {
+    if (!Array.isArray(layout[field])) continue;
+    const seen = new Set();
+    for (let index = 0; index < layout[field].length; index += 1) {
+      const entity = layout[field][index];
+      if (!isPlainObject(entity)) {
+        issues.push(issue('STRUCTURE', `layout.${field}[${index}] must be an object.`, 'error'));
+        continue;
+      }
+      if (typeof entity.id !== 'string' || entity.id.length === 0) {
+        issues.push(issue('STRUCTURE', `layout.${field}[${index}].id must be a nonempty string.`, 'error'));
+      } else if (seen.has(entity.id)) {
+        issues.push(issue('STRUCTURE', `layout.${field} contains duplicate id "${entity.id}".`, 'error'));
+      } else {
+        seen.add(entity.id);
+      }
+    }
+  }
+  for (const [index, building] of (Array.isArray(layout.buildings) ? layout.buildings : []).entries()) {
+    if (!isPlainObject(building)) continue;
+    const footprint = building.footprint;
+    const entrance = building.entrance;
+    if (!FACILITY_KIND_SET.has(building.facilityKind) || !BUILDING_STATE_SET.has(building.state)
+      || !Number.isInteger(building.x) || !Number.isInteger(building.y)
+      || !isPlainObject(footprint) || !Number.isInteger(footprint.widthTiles) || footprint.widthTiles <= 0
+      || !Number.isInteger(footprint.heightTiles) || footprint.heightTiles <= 0
+      || !isPlainObject(entrance) || !Number.isInteger(entrance.x) || !Number.isInteger(entrance.y)
+      || !DIRECTION_SET.has(entrance.direction)) {
+      issues.push(issue('STRUCTURE', `layout.buildings[${index}] does not match the TownBuilding contract.`, 'error'));
+    }
+  }
+  for (const [index, road] of (Array.isArray(layout.roads) ? layout.roads : []).entries()) {
+    if (!isPlainObject(road)) continue;
+    if (typeof road.fromBuildingId !== 'string' || road.fromBuildingId.length === 0
+      || typeof road.toBuildingId !== 'string' || road.toBuildingId.length === 0
+      || !Array.isArray(road.tiles) || road.tiles.length === 0
+      || road.tiles.some((tile) => !Array.isArray(tile) || tile.length !== 2 || !tile.every(Number.isInteger))) {
+      issues.push(issue('STRUCTURE', `layout.roads[${index}] does not match the TownRoad contract.`, 'error'));
+    }
+  }
+  for (const [index, npc] of (Array.isArray(layout.npcs) ? layout.npcs : []).entries()) {
+    if (!isPlainObject(npc)) continue;
+    if (!NPC_ROLE_SET.has(npc.role) || !Number.isInteger(npc.x) || !Number.isInteger(npc.y) || !DIRECTION_SET.has(npc.facing)) {
+      issues.push(issue('STRUCTURE', `layout.npcs[${index}] does not match the TownNpc contract.`, 'error'));
+    }
+  }
+  for (const [index, prop] of (Array.isArray(layout.props) ? layout.props : []).entries()) {
+    if (!isPlainObject(prop)) continue;
+    if (!PROP_KIND_SET.has(prop.kind) || !Number.isInteger(prop.x) || !Number.isInteger(prop.y)) {
+      issues.push(issue('STRUCTURE', `layout.props[${index}] does not match the TownProp contract.`, 'error'));
+    }
+  }
+  for (const [index, district] of (Array.isArray(layout.districts) ? layout.districts : []).entries()) {
+    if (!isPlainObject(district)) continue;
+    if (typeof district.kind !== 'string' || district.kind.length === 0
+      || !Number.isInteger(district.x) || !Number.isInteger(district.y)
+      || !Number.isInteger(district.widthTiles) || district.widthTiles <= 0
+      || !Number.isInteger(district.heightTiles) || district.heightTiles <= 0) {
+      issues.push(issue('STRUCTURE', `layout.districts[${index}] does not match the TownDistrict contract.`, 'error'));
+    }
+  }
+  for (const [index, connection] of (Array.isArray(layout.connections) ? layout.connections : []).entries()) {
+    if (!isPlainObject(connection) || !['from', 'to', 'kind'].every((field) => typeof connection[field] === 'string' && connection[field].length > 0)) {
+      issues.push(issue('STRUCTURE', `layout.connections[${index}] does not match the TownConnection contract.`, 'error'));
+    }
+  }
+  return issues;
 }
 
 /** The first natural-obstacle cell under a footprint rectangle, or null. */
@@ -301,7 +421,8 @@ function checkEntranceClear(buildings, rects, props, dims) {
     if (Number.isInteger(prop.x) && Number.isInteger(prop.y)) propTiles.add(`${prop.x},${prop.y}`);
   }
 
-  for (const building of buildings) {
+  for (let buildingIndex = 0; buildingIndex < buildings.length; buildingIndex += 1) {
+    const building = buildings[buildingIndex];
     const id = idOf(building);
     const entrance = isPlainObject(building.entrance) ? building.entrance : null;
     if (!entrance || !Number.isInteger(entrance.x) || !Number.isInteger(entrance.y)) {
@@ -309,6 +430,20 @@ function checkEntranceClear(buildings, rects, props, dims) {
       continue;
     }
     const { x, y } = entrance;
+    const rect = rects[buildingIndex];
+    const onNamedSide = rectValid(rect) && (
+      (entrance.direction === 'up' && y === rect.y - 1 && x >= rect.x && x < rect.x + rect.width)
+      || (entrance.direction === 'down' && y === rect.y + rect.height && x >= rect.x && x < rect.x + rect.width)
+      || (entrance.direction === 'left' && x === rect.x - 1 && y >= rect.y && y < rect.y + rect.height)
+      || (entrance.direction === 'right' && x === rect.x + rect.width && y >= rect.y && y < rect.y + rect.height)
+    );
+    if (!onNamedSide) {
+      issues.push(issue(
+        'ENTRANCE_CLEAR',
+        `building "${id}" entrance (${x},${y}) is not immediately outside the footprint on its "${entrance.direction}" side.`,
+        'error'
+      ));
+    }
     if (!inBounds(dims, x, y)) {
       issues.push(issue('ENTRANCE_CLEAR', `building "${id}" entrance (${x},${y}) is outside the ${dims.widthTiles}x${dims.heightTiles} map.`, 'error'));
       continue;
@@ -419,8 +554,10 @@ function checkConnectivity(buildings, adjacency) {
 /**
  * REACHABLE: the gate connects, via the road graph, to every present main
  * facility (inn / pub / town_hall / workshop / dojo / dock / watchtower, whichever
- * exist). A missing gate is itself a failure — with no entrance, reachability
- * cannot be established.
+ * exist). A missing gate means reachability cannot be established, but it is a
+ * legitimate degraded town state backed by habitability.canLive=false, so it is
+ * a warning rather than a structural layout error. A present gate that cannot
+ * reach a main facility is still an error.
  */
 function checkReachable(buildings, adjacency) {
   const issues = [];
@@ -429,7 +566,7 @@ function checkReachable(buildings, adjacency) {
     .sort((a, b) => compareStrings(a.id, b.id));
 
   if (gates.length === 0) {
-    issues.push(issue('REACHABLE', 'no gate building is present, so reachability from the town entrance cannot be established.', 'error'));
+    issues.push(issue('REACHABLE', 'no gate building is present, so reachability from the town entrance cannot be established.', 'warning'));
     return issues;
   }
 
@@ -617,11 +754,9 @@ function compareIssues(a, b) {
  * structurally identical input return byte-identical output.
  *
  * `ok` is false whenever any issue has severity 'error' OR any of noOverlap /
- * walkable / importantBuildingsReachable is false — mirroring the frozen
- * TownLayoutValidation contract exactly. The three booleans are derived from the
- * presence of their own issue codes (NO_OVERLAP / WALKABLE / REACHABLE), and the
- * explicit AND keeps the invariant correct regardless of how a caller might merge
- * further issues into the result later.
+ * walkable is false or any error exists. importantBuildingsReachable remains an
+ * independent fact: it is false for the valid-but-uninhabitable no-gate state as
+ * well as for a malformed disconnected gate.
  *
  * @param {TownLayout} layout
  * @returns {TownLayoutValidation} deeply frozen; safe to embed directly in a layout
@@ -644,6 +779,7 @@ export function validateLayout(layout) {
 
   const { issues: densityIssues, densityScore } = checkDensity(rects, dims);
   const issues = [
+    ...checkStructure(layout, dims),
     ...checkNoOverlap(buildings, rects, dims),
     ...checkEntranceClear(buildings, rects, props, dims),
     ...checkRoadTiles(roads, buildingById, dims),
@@ -661,7 +797,6 @@ export function validateLayout(layout) {
   const importantBuildingsReachable = !issues.some((entry) => entry.code === 'REACHABLE');
   const ok = noOverlap
     && walkable
-    && importantBuildingsReachable
     && !issues.some((entry) => entry.severity === 'error');
 
   return deepFreeze({

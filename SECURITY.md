@@ -6,7 +6,8 @@ CodeCity Inspectorは、点検対象のリポジトリを信頼できない入�
 
 - 対象のJavaScript / TypeScriptをimport・実行しません。
 - 対象のコマンド、テスト、hook、package script、package managerを実行しません。
-- 対象リポジトリへ書き込みません。シンボリックリンク先を追って解析しません。
+- 対象リポジトリへ書き込みません。固定シグナルの読取経路では途中のシンボリックリンクも拒否し、リンク先を追って解析しません。
+- `generate-town --out` は点検対象の内側（シンボリックリンク経由を含む）を拒否します。外側の同一フォルダに新しい一時ファイルを作り、同期後に置き換えるため、既存出力が対象内ファイルへのハードリンクでも対象側のinodeを変更しません。
 - ローカルサーバーは `127.0.0.1` のみで待ち受け、ループバックを指さない `Host` ヘッダーを拒否します。これは同じMac上の他プロセスからのアクセスまで隔離するOS sandboxではありません。
 - ブラウザへ返すのはファイルパス、接続、状態、根拠などの構造メタデータで、ソース本文ではありません。
 - ソースや解析結果を外部サービスへアップロードせず、テレメトリもありません。
@@ -19,7 +20,7 @@ CodeCity Inspectorは、点検対象のリポジトリを信頼できない入�
 - Asset Forgeは `tools/asset-forge/` に隔離され、独立したlockfileでAjvとSharpを利用します。通常のリポジトリ点検にこれらの依存は不要です。
 - mockとdry-runが安全な既定です。job packは画像を生成せず、manual importはPNG/JPEG/WEBPのsignature、入力byte数、decode後の寸法・pixel数・frame数を制限してからPNGへ正規化します。SVGは受け付けません。
 - pending、rejected、processedはローカル状態です。自動処理はapprovedへ移動しません。promoteはTTY、人間reviewer、`--write`、note、hash表示後の明示確認を要求し、成功操作は人間だけが行います。
-- exportはapproval ledger、category別approved path、SHA-256、game bindingを照合し、approvedだけをversioned public pathへno-overwriteで書きます。既定はdry-runです。
+- exportはapproval ledger、category別approved path、SHA-256、game bindingを照合し、approvedだけをversioned public pathへno-overwriteで書きます。spritesheetは宣言したframe gridとPNG実寸も照合し、必須画像の未承認一覧が空になるまでmanifestをcompleteとしません。既定はdry-runです。
 - `codex-subscription` はunavailable stubです。子プロセスを起動せず、OpenAI API、`OPENAI_API_KEY`、paid API fallback、外部upload経路はありません。
 - 画像のライセンス、出所、美観、ゲーム内での適合性は人間の確認事項です。技術検査に通ったpending画像を承認済みとは扱いません。
 

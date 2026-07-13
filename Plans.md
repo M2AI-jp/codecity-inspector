@@ -25,7 +25,8 @@ Ship a public, local-first Mac MVP that turns a JavaScript or TypeScript reposit
   - done when: the endpoint is covered by tests (happy path including `layout.validation.ok === true`, invalid-layout rejection, determinism, HEAD parity, non-GET rejection, and no source leak) and the server keeps loopback-only binding plus the existing CSP and safety headers.
 
 - [ ] Rebuild the image-backed pixel-art city and playable inspection UI `cc:技術実装完了・人間レビュー待ち（2026-07-13）`
-  - current: `public/` loads only approved Asset Forge exports, reports missing/failed art visibly, retains the procedural fallback, and includes keyboard movement with walkability/building collision. Building details and guild UI remain available.
+  - current: `public/` uses approved Asset Forge export schema v2 as the complete contract; legacy v1 remains readable only as an explicitly partial result. Missing/failed art is reported visibly, the procedural fallback remains, and keyboard movement keeps walkability/building collision. Sprite frames, state cues, contextual terrain/building/NPC/prop variants, water ripple, and construction dust are connected. Building details and the HTML/CSS guild UI remain available.
+  - catalog: 110 definitions exist; 78 are required by the current runtime and 32 are optional future enhancements. Runtime vocabulary coverage has zero uncovered IDs, but every tracked image row is still `missing` until a human supplies and approves art.
   - next: a human supplies/licences references, visually approves candidates, performs the successful promote ceremony, then reviews the exported art, keyboard behavior, accessibility, and browser console.
   - done when: the approved export manifest drives the town art, movement and inspection work together, and a human completes visual/accessibility review.
 
@@ -35,6 +36,7 @@ Ship a public, local-first Mac MVP that turns a JavaScript or TypeScript reposit
 
 - [x] Complete the Asset Forge engine `cc:完了（2026-07-13）`
   - mock/dry-run, bounded job packs, PNG/JPEG/WEBP manual import, alpha/trim/grid processing, reject lifecycle, human-only promote guards, and approved-only versioned export are implemented under an independent lockfile.
+  - export schema v2 carries frame/state/variant metadata; sprite-grid dimensions and runtime integration rules are covered by tests.
   - `codex-subscription` remains an explicit unavailable stub; no API key, OpenAI SDK, paid fallback, or external command execution exists.
   - this completion does not claim that any candidate is human-approved or that final art direction is complete.
 

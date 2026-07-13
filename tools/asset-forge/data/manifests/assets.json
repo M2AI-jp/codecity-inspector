@@ -832,6 +832,54 @@
       "pendingGenerationIds": [],
       "rejectedGenerationIds": [],
       "lastUpdated": null
+    },
+    {
+      "assetId": "field.sand",
+      "category": "field",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "field.rock",
+      "category": "field",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "field.tree",
+      "category": "field",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "character.guildmaster",
+      "category": "character",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "object.rubble",
+      "category": "object",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
+    },
+    {
+      "assetId": "building.guild",
+      "category": "building",
+      "status": "missing",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "lastUpdated": null
     }
   ]
 }

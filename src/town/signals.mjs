@@ -32,7 +32,7 @@
 // a self-report is a claim awaiting town-hall + dojo confirmation against real
 // observed signals, never itself evidence of a working town.
 
-import { lstat, readdir, readFile } from 'node:fs/promises';
+import { lstat, readdir, readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
 
 /**
@@ -126,6 +126,45 @@ async function statSafe(targetPath) {
   }
 }
 
+/** Resolve the user-selected repository root once; a symlink used as the root
+ * itself is allowed because it is the object the user explicitly selected.
+ * Symlinks below this real root are rejected by safePath below. */
+async function repositoryRootSafe(targetPath) {
+  try {
+    const actual = await realpath(targetPath);
+    const stat = await lstat(actual);
+    return stat.isDirectory() ? actual : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Resolve one fixed repository-relative path without following any symlink in
+ * its ancestor chain. Only simple relative segments are accepted.
+ * @param {string|null} root
+ * @param {string} relativePath
+ * @param {'file'|'directory'} expectedType
+ * @returns {Promise<string|null>}
+ */
+async function safePath(root, relativePath, expectedType) {
+  if (typeof root !== 'string' || path.isAbsolute(relativePath)) return null;
+  const segments = relativePath.split(/[\\/]+/).filter(Boolean);
+  if (segments.length === 0 || segments.some((segment) => segment === '.' || segment === '..')) return null;
+  let current = root;
+  for (let index = 0; index < segments.length; index += 1) {
+    current = path.join(current, segments[index]);
+    const stat = await statSafe(current);
+    if (!stat || stat.isSymbolicLink()) return null;
+    if (index < segments.length - 1 && !stat.isDirectory()) return null;
+    if (index === segments.length - 1) {
+      if (expectedType === 'file' && !stat.isFile()) return null;
+      if (expectedType === 'directory' && !stat.isDirectory()) return null;
+    }
+  }
+  return current;
+}
+
 /**
  * True only when `relativePath` under `root` is a regular file. Symlinks
  * (even to a real file) are excluded, keeping presence probes inside the repo
@@ -135,8 +174,7 @@ async function statSafe(targetPath) {
  * @returns {Promise<boolean>}
  */
 async function isRegularFile(root, relativePath) {
-  const stat = await statSafe(path.join(root, relativePath));
-  return Boolean(stat && stat.isFile());
+  return (await safePath(root, relativePath, 'file')) !== null;
 }
 
 /**
@@ -151,9 +189,11 @@ async function isRegularFile(root, relativePath) {
  * @returns {Promise<string[]>}
  */
 async function listWorkflowFiles(root, maxFiles) {
+  const workflowRoot = await safePath(root, '.github/workflows', 'directory');
+  if (!workflowRoot) return [];
   let entries;
   try {
-    entries = await readdir(path.join(root, '.github', 'workflows'), { withFileTypes: true });
+    entries = await readdir(workflowRoot, { withFileTypes: true });
   } catch {
     return [];
   }
@@ -173,7 +213,8 @@ async function listWorkflowFiles(root, maxFiles) {
  * @returns {Promise<Record<string, unknown> | null>}
  */
 async function readPackageJson(root, maxBytes) {
-  const packagePath = path.join(root, 'package.json');
+  const packagePath = await safePath(root, 'package.json', 'file');
+  if (!packagePath) return null;
   const stat = await statSafe(packagePath);
   if (!stat || !stat.isFile() || stat.size > maxBytes) return null;
   try {
@@ -321,7 +362,8 @@ function detectContractorSource(author, subject) {
  * @returns {Promise<Array<import('./schema.mjs').ContractorReport>>}
  */
 async function collectContractorReports(root, { maxBytes, maxLines }) {
-  const reflogPath = path.join(root, '.git', 'logs', 'HEAD');
+  const reflogPath = await safePath(root, '.git/logs/HEAD', 'file');
+  if (!reflogPath) return [];
   const stat = await statSafe(reflogPath);
   if (!stat || !stat.isFile() || stat.size > maxBytes) return [];
 
@@ -369,7 +411,8 @@ export async function collectSignals(repoPath, options = {}) {
     maxWorkflowFiles: Math.min(positiveInteger(options.maxWorkflowFiles, DEFAULT_LIMITS.maxWorkflowFiles), DEFAULT_LIMITS.maxWorkflowFiles)
   };
 
-  const root = path.resolve(repoPath);
+  const requestedRoot = path.resolve(repoPath);
+  const root = await repositoryRootSafe(requestedRoot);
 
   // package.json: a single bounded read, normalized defensively.
   const pkg = (await readPackageJson(root, limits.maxPackageJsonBytes)) ?? null;
@@ -419,7 +462,7 @@ export async function collectSignals(repoPath, options = {}) {
   const loggerDeps = matchDeps(depNames, LOGGER);
 
   return {
-    repository: { name: path.basename(root) },
+    repository: { name: path.basename(requestedRoot) },
     packageJson: {
       present: pkg !== null,
       name: asStringOrNull(source.name),
