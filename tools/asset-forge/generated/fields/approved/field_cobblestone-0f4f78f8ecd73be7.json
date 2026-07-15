@@ -1,0 +1,132 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-15T04:37:12.229Z",
+    "approvedPath": "generated/fields/approved/field_cobblestone-0f4f78f8ecd73be7.png",
+    "approvedSha256": "0f4f78f8ecd73be769f16d6b15c07c2671113e8f69bdda0d6897c4e7609969bc",
+    "note": "Required 78 batch approval cb4aa5f67c91a329c140f4a09bdc39b960ccce8a76334957066d7c0e83540042",
+    "reviewer": "human"
+  },
+  "assetId": "field.cobblestone",
+  "category": "field",
+  "createdAt": "2026-07-14T00:00:00.000Z",
+  "dryRun": false,
+  "id": "gen_import_21828ac5789138eb9eea",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 64x64.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_85ebd8a3abf3587af614",
+  "manualImport": true,
+  "metadataPath": "generated/fields/approved/field_cobblestone-0f4f78f8ecd73be7.json",
+  "outputInspection": {
+    "bytes": 3228,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 64,
+    "width": 64
+  },
+  "outputPath": "generated/fields/approved/field_cobblestone-0f4f78f8ecd73be7.png",
+  "outputSha256": "0f4f78f8ecd73be769f16d6b15c07c2671113e8f69bdda0d6897c4e7609969bc",
+  "productionRecipe": {
+    "assetId": "field.cobblestone",
+    "backgroundRemoval": {
+      "autoKey": null,
+      "cleanup": {
+        "alphaCutoff": 0,
+        "componentMinPixels": 1,
+        "resizeKernel": "nearest",
+        "targetMaxHeight": 64,
+        "targetMaxWidth": 64
+      },
+      "despill": false,
+      "keyColor": null,
+      "method": "none",
+      "opaqueThreshold": 255,
+      "softMatte": false,
+      "transparentThreshold": 0
+    },
+    "canvas": {
+      "baselineY": 63,
+      "height": 64,
+      "width": 64
+    },
+    "generator": "asset-forge-direct-extraction",
+    "method": "direct-extraction",
+    "orientationContract": "non-directional walkable small-stone cobblestone",
+    "outputSha256": "0f4f78f8ecd73be769f16d6b15c07c2671113e8f69bdda0d6897c4e7609969bc",
+    "referenceImages": [
+      {
+        "id": "world_visual_master",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_field_cobblestone_roads",
+        "sha256": "f732a849dd88138e3acccc24970bef9e923302fec1aa01ffac195b8195cfff3d"
+      }
+    ],
+    "scaleClass": "medium",
+    "source": {
+      "cropRect": {
+        "height": 145,
+        "width": 145,
+        "x": 538,
+        "y": 539
+      },
+      "height": 1055,
+      "path": "references/approved/field_cobblestone_roads_sheet.png",
+      "sha256": "f732a849dd88138e3acccc24970bef9e923302fec1aa01ffac195b8195cfff3d",
+      "width": 1491
+    },
+    "sourceSnapshot": {
+      "height": 1055,
+      "path": "generated/fields/approved/source-f732a849dd88138e3acccc24970bef9e923302fec1aa01ffac195b8195cfff3d.source-original.png",
+      "sha256": "f732a849dd88138e3acccc24970bef9e923302fec1aa01ffac195b8195cfff3d",
+      "width": 1491
+    },
+    "subjectBbox": {
+      "height": 64,
+      "width": 64,
+      "x": 0,
+      "y": 0
+    },
+    "transformSteps": [
+      "crop",
+      "nearest-downscale",
+      "wrap-edge-reconcile",
+      "palette-quantize"
+    ],
+    "waveId": "wave1b-fields"
+  },
+  "promptHash": "d24cb3ba481285038ffff0edc27ce7410cef258517c133c25c0ba5a1e669e0bd",
+  "provenanceKey": "21828ac5789138eb9eea0a9e320331ab4ed65f5588473ae1ab336ce6681912bc",
+  "provider": "manual-import",
+  "referenceImageHashes": [
+    "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+    "f732a849dd88138e3acccc24970bef9e923302fec1aa01ffac195b8195cfff3d"
+  ],
+  "referenceImageIds": [
+    "world_visual_master",
+    "intake_20260713_field_cobblestone_roads"
+  ],
+  "sourceFormat": "png",
+  "sourcePath": "generated/fields/pending/field_cobblestone-a94c75cc8bbbe435.source.png",
+  "sourceSha256": "a94c75cc8bbbe435d79da7a20d0ee3ccad73356c12266aac998615168524bd0f",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

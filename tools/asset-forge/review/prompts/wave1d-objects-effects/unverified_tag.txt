@@ -1,0 +1,12 @@
+Use case: stylized-concept
+Asset type: production map-scale pixel-art prop source for object.unverified_tag
+Input images: Image 1 is the global CodeCity world style and map-scale reference; Image 2 is the approved primary subject reference for this exact asset. Use both images directly for palette, material, silhouette, and visual vocabulary, while authoring one clean standalone prop.
+
+Primary request: create exactly one one oversized hanging inspection tag made of weathered parchment and cord, bearing a single dark question-mark symbol but no words.
+Style/medium: authentic compact late-medieval pixel art with deliberate hard-edged pixel clusters, controlled shading, readable silhouette, and no antialiasing.
+Composition/framing: one complete prop centered on the canvas, upright and viewed from the same slightly elevated map perspective as the references, with generous empty padding on all four sides.
+Color palette: restrained CodeCity blue-green, warm brown, stone gray, charcoal, and only the requested status accent.
+Scene/backdrop: perfectly flat solid #ff00ff chroma-key background for local removal.
+
+Production contract: the subject will be chroma-removed and nearest-neighbor downscaled without enlargement into a 64x64 transparent sprite. Use crisp fully opaque subject pixels. The background must be one uniform #ff00ff color with no shadow, gradient, texture, reflection, floor plane, or lighting variation. No cast shadow, contact shadow, scenery, ground patch, frame, border, divider, label, readable word, logo, watermark, or signature. Do not use #ff00ff anywhere in the subject.
+Avoid: additional props; alternate variants; cropped subject; oversized detail; soft blur; semi-transparent edge; smooth vector curves; painterly texture; modern materials; people; creatures.

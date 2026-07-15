@@ -15,7 +15,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "character_style_master"
+        "world_visual_master",
+        "character_visual_master"
       ],
       "output": {
         "kind": "spritesheet",
@@ -26,8 +27,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 20,
-          "height": 32
+          "width": 24,
+          "height": 40
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -48,8 +49,8 @@
         "grid": {
           "columns": 4,
           "rows": 3,
-          "frameWidth": 20,
-          "frameHeight": 32
+          "frameWidth": 24,
+          "frameHeight": 40
         }
       },
       "tags": [
@@ -83,6 +84,35 @@
         "drawLayer": "character",
         "runtimeBindings": [],
         "coverage": "future"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
       }
     },
     {
@@ -97,7 +127,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "character_style_master"
+        "world_visual_master",
+        "character_visual_master"
       ],
       "output": {
         "kind": "spritesheet",
@@ -108,8 +139,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 20,
-          "height": 32
+          "width": 24,
+          "height": 40
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -130,8 +161,8 @@
         "grid": {
           "columns": 4,
           "rows": 3,
-          "frameWidth": 20,
-          "frameHeight": 32
+          "frameWidth": 24,
+          "frameHeight": 40
         }
       },
       "tags": [
@@ -170,6 +201,35 @@
           }
         ],
         "coverage": "exact"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
       }
     },
     {
@@ -184,7 +244,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "character_style_master"
+        "world_visual_master",
+        "character_visual_master"
       ],
       "output": {
         "kind": "spritesheet",
@@ -195,8 +256,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 20,
-          "height": 32
+          "width": 24,
+          "height": 40
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -217,8 +278,8 @@
         "grid": {
           "columns": 4,
           "rows": 3,
-          "frameWidth": 20,
-          "frameHeight": 32
+          "frameWidth": 24,
+          "frameHeight": 40
         }
       },
       "tags": [
@@ -257,6 +318,35 @@
           }
         ],
         "coverage": "mapped"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
       }
     },
     {
@@ -271,7 +361,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "character_style_master"
+        "world_visual_master",
+        "character_visual_master"
       ],
       "output": {
         "kind": "spritesheet",
@@ -282,8 +373,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 20,
-          "height": 32
+          "width": 24,
+          "height": 40
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -304,8 +395,8 @@
         "grid": {
           "columns": 4,
           "rows": 3,
-          "frameWidth": 20,
-          "frameHeight": 32
+          "frameWidth": 24,
+          "frameHeight": 40
         }
       },
       "tags": [
@@ -344,6 +435,35 @@
           }
         ],
         "coverage": "mapped"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
       }
     },
     {
@@ -358,7 +478,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "character_style_master"
+        "world_visual_master",
+        "character_visual_master"
       ],
       "output": {
         "kind": "spritesheet",
@@ -369,8 +490,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 20,
-          "height": 32
+          "width": 24,
+          "height": 40
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -391,8 +512,8 @@
         "grid": {
           "columns": 4,
           "rows": 3,
-          "frameWidth": 20,
-          "frameHeight": 32
+          "frameWidth": 24,
+          "frameHeight": 40
         }
       },
       "tags": [
@@ -431,6 +552,35 @@
           }
         ],
         "coverage": "mapped"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
       }
     },
     {
@@ -445,7 +595,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "character_style_master"
+        "world_visual_master",
+        "character_visual_master"
       ],
       "output": {
         "kind": "spritesheet",
@@ -456,8 +607,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 20,
-          "height": 32
+          "width": 24,
+          "height": 40
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -478,8 +629,8 @@
         "grid": {
           "columns": 4,
           "rows": 3,
-          "frameWidth": 20,
-          "frameHeight": 32
+          "frameWidth": 24,
+          "frameHeight": 40
         }
       },
       "tags": [
@@ -518,6 +669,35 @@
           }
         ],
         "coverage": "mapped"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
       }
     },
     {
@@ -532,7 +712,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "character_style_master"
+        "world_visual_master",
+        "character_visual_master"
       ],
       "output": {
         "kind": "spritesheet",
@@ -543,8 +724,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 20,
-          "height": 32
+          "width": 24,
+          "height": 40
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -565,8 +746,8 @@
         "grid": {
           "columns": 4,
           "rows": 3,
-          "frameWidth": 20,
-          "frameHeight": 32
+          "frameWidth": 24,
+          "frameHeight": 40
         }
       },
       "tags": [
@@ -605,6 +786,35 @@
           }
         ],
         "coverage": "mapped"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
       }
     },
     {
@@ -619,7 +829,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "character_style_master"
+        "world_visual_master",
+        "character_visual_master"
       ],
       "output": {
         "kind": "spritesheet",
@@ -630,8 +841,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 20,
-          "height": 32
+          "width": 24,
+          "height": 40
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -652,8 +863,8 @@
         "grid": {
           "columns": 4,
           "rows": 3,
-          "frameWidth": 20,
-          "frameHeight": 32
+          "frameWidth": 24,
+          "frameHeight": 40
         }
       },
       "tags": [
@@ -692,6 +903,35 @@
           }
         ],
         "coverage": "mapped"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
       }
     },
     {
@@ -706,7 +946,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "character_style_master"
+        "world_visual_master",
+        "character_visual_master"
       ],
       "output": {
         "kind": "spritesheet",
@@ -717,8 +958,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 20,
-          "height": 32
+          "width": 24,
+          "height": 40
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -739,8 +980,8 @@
         "grid": {
           "columns": 4,
           "rows": 3,
-          "frameWidth": 20,
-          "frameHeight": 32
+          "frameWidth": 24,
+          "frameHeight": 40
         }
       },
       "tags": [
@@ -779,6 +1020,35 @@
           }
         ],
         "coverage": "exact"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
       }
     },
     {
@@ -792,9 +1062,7 @@
         "prompts/characters/00_common_character_style.md",
         "prompts/common/reward-fraud-rules.md"
       ],
-      "defaultReferenceIds": [
-        "character_style_master"
-      ],
+      "defaultReferenceIds": [],
       "output": {
         "kind": "spritesheet",
         "preferredFormat": "png",
@@ -804,8 +1072,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 20,
-          "height": 32
+          "width": 24,
+          "height": 40
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -826,8 +1094,8 @@
         "grid": {
           "columns": 4,
           "rows": 3,
-          "frameWidth": 20,
-          "frameHeight": 32
+          "frameWidth": 24,
+          "frameHeight": 40
         }
       },
       "tags": [
@@ -874,9 +1142,7 @@
         "prompts/characters/00_common_character_style.md",
         "prompts/common/reward-fraud-rules.md"
       ],
-      "defaultReferenceIds": [
-        "character_style_master"
-      ],
+      "defaultReferenceIds": [],
       "output": {
         "kind": "spritesheet",
         "preferredFormat": "png",
@@ -886,8 +1152,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 20,
-          "height": 32
+          "width": 24,
+          "height": 40
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -908,8 +1174,8 @@
         "grid": {
           "columns": 4,
           "rows": 3,
-          "frameWidth": 20,
-          "frameHeight": 32
+          "frameWidth": 24,
+          "frameHeight": 40
         }
       },
       "tags": [
@@ -956,9 +1222,7 @@
         "prompts/characters/00_common_character_style.md",
         "prompts/common/reward-fraud-rules.md"
       ],
-      "defaultReferenceIds": [
-        "character_style_master"
-      ],
+      "defaultReferenceIds": [],
       "output": {
         "kind": "spritesheet",
         "preferredFormat": "png",
@@ -968,8 +1232,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 20,
-          "height": 32
+          "width": 24,
+          "height": 40
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -990,8 +1254,8 @@
         "grid": {
           "columns": 4,
           "rows": 3,
-          "frameWidth": 20,
-          "frameHeight": 32
+          "frameWidth": 24,
+          "frameHeight": 40
         }
       },
       "tags": [
@@ -1038,9 +1302,7 @@
         "prompts/characters/00_common_character_style.md",
         "prompts/common/reward-fraud-rules.md"
       ],
-      "defaultReferenceIds": [
-        "character_style_master"
-      ],
+      "defaultReferenceIds": [],
       "output": {
         "kind": "spritesheet",
         "preferredFormat": "png",
@@ -1050,8 +1312,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 20,
-          "height": 32
+          "width": 24,
+          "height": 40
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -1072,8 +1334,8 @@
         "grid": {
           "columns": 4,
           "rows": 3,
-          "frameWidth": 20,
-          "frameHeight": 32
+          "frameWidth": 24,
+          "frameHeight": 40
         }
       },
       "tags": [
@@ -1120,9 +1382,7 @@
         "prompts/characters/00_common_character_style.md",
         "prompts/common/reward-fraud-rules.md"
       ],
-      "defaultReferenceIds": [
-        "character_style_master"
-      ],
+      "defaultReferenceIds": [],
       "output": {
         "kind": "spritesheet",
         "preferredFormat": "png",
@@ -1132,8 +1392,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 20,
-          "height": 32
+          "width": 24,
+          "height": 40
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -1154,8 +1414,8 @@
         "grid": {
           "columns": 4,
           "rows": 3,
-          "frameWidth": 20,
-          "frameHeight": 32
+          "frameWidth": 24,
+          "frameHeight": 40
         }
       },
       "tags": [
@@ -1202,9 +1462,7 @@
         "prompts/characters/00_common_character_style.md",
         "prompts/common/reward-fraud-rules.md"
       ],
-      "defaultReferenceIds": [
-        "character_style_master"
-      ],
+      "defaultReferenceIds": [],
       "output": {
         "kind": "spritesheet",
         "preferredFormat": "png",
@@ -1214,8 +1472,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 20,
-          "height": 32
+          "width": 24,
+          "height": 40
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -1236,8 +1494,8 @@
         "grid": {
           "columns": 4,
           "rows": 3,
-          "frameWidth": 20,
-          "frameHeight": 32
+          "frameWidth": 24,
+          "frameHeight": 40
         }
       },
       "tags": [
@@ -1285,7 +1543,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "character_style_master"
+        "world_visual_master",
+        "character_visual_master"
       ],
       "output": {
         "kind": "spritesheet",
@@ -1296,8 +1555,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 20,
-          "height": 32
+          "width": 24,
+          "height": 40
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -1318,8 +1577,8 @@
         "grid": {
           "columns": 4,
           "rows": 3,
-          "frameWidth": 20,
-          "frameHeight": 32
+          "frameWidth": 24,
+          "frameHeight": 40
         }
       },
       "tags": [
@@ -1358,6 +1617,35 @@
           }
         ],
         "coverage": "exact"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
       }
     },
     {
@@ -1372,7 +1660,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "character_style_master"
+        "world_visual_master",
+        "character_visual_master"
       ],
       "output": {
         "kind": "spritesheet",
@@ -1383,8 +1672,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 20,
-          "height": 32
+          "width": 24,
+          "height": 40
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -1405,8 +1694,8 @@
         "grid": {
           "columns": 4,
           "rows": 3,
-          "frameWidth": 20,
-          "frameHeight": 32
+          "frameWidth": 24,
+          "frameHeight": 40
         }
       },
       "tags": [
@@ -1446,6 +1735,35 @@
           }
         ],
         "coverage": "mapped"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
       }
     },
     {
@@ -1460,7 +1778,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "character_style_master"
+        "world_visual_master",
+        "character_visual_master"
       ],
       "output": {
         "kind": "spritesheet",
@@ -1471,8 +1790,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 20,
-          "height": 32
+          "width": 24,
+          "height": 40
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -1493,8 +1812,8 @@
         "grid": {
           "columns": 4,
           "rows": 3,
-          "frameWidth": 20,
-          "frameHeight": 32
+          "frameWidth": 24,
+          "frameHeight": 40
         }
       },
       "tags": [
@@ -1534,6 +1853,35 @@
           }
         ],
         "coverage": "mapped"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
       }
     },
     {
@@ -1548,7 +1896,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "character_style_master"
+        "world_visual_master",
+        "character_visual_master"
       ],
       "output": {
         "kind": "spritesheet",
@@ -1559,8 +1908,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 20,
-          "height": 32
+          "width": 24,
+          "height": 40
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -1581,8 +1930,8 @@
         "grid": {
           "columns": 4,
           "rows": 3,
-          "frameWidth": 20,
-          "frameHeight": 32
+          "frameWidth": 24,
+          "frameHeight": 40
         }
       },
       "tags": [
@@ -1622,6 +1971,35 @@
           }
         ],
         "coverage": "mapped"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "elder",
+          "min": 26,
+          "max": 30
+        },
+        "partialAlphaPixels": 0
       }
     },
     {
@@ -1636,7 +2014,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "character_style_master"
+        "world_visual_master",
+        "character_visual_master"
       ],
       "output": {
         "kind": "spritesheet",
@@ -1647,8 +2026,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 20,
-          "height": 32
+          "width": 24,
+          "height": 40
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -1669,8 +2048,8 @@
         "grid": {
           "columns": 4,
           "rows": 3,
-          "frameWidth": 20,
-          "frameHeight": 32
+          "frameWidth": 24,
+          "frameHeight": 40
         }
       },
       "tags": [
@@ -1710,6 +2089,35 @@
           }
         ],
         "coverage": "exact"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "child",
+          "min": 21,
+          "max": 25
+        },
+        "partialAlphaPixels": 0
       }
     },
     {
@@ -1724,7 +2132,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "character_style_master"
+        "world_visual_master",
+        "character_visual_master"
       ],
       "output": {
         "kind": "spritesheet",
@@ -1735,8 +2144,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 20,
-          "height": 32
+          "width": 24,
+          "height": 40
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -1757,8 +2166,8 @@
         "grid": {
           "columns": 4,
           "rows": 3,
-          "frameWidth": 20,
-          "frameHeight": 32
+          "frameWidth": 24,
+          "frameHeight": 40
         }
       },
       "tags": [
@@ -1798,6 +2207,35 @@
           }
         ],
         "coverage": "exact"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
       }
     },
     {
@@ -1812,7 +2250,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "character_style_master"
+        "world_visual_master",
+        "character_visual_master"
       ],
       "output": {
         "kind": "spritesheet",
@@ -1823,8 +2262,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 20,
-          "height": 32
+          "width": 24,
+          "height": 40
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -1845,8 +2284,8 @@
         "grid": {
           "columns": 4,
           "rows": 3,
-          "frameWidth": 20,
-          "frameHeight": 32
+          "frameWidth": 24,
+          "frameHeight": 40
         }
       },
       "tags": [
@@ -1886,6 +2325,35 @@
           }
         ],
         "coverage": "mapped"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
       }
     },
     {
@@ -1900,7 +2368,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "character_style_master"
+        "world_visual_master",
+        "character_visual_master"
       ],
       "output": {
         "kind": "spritesheet",
@@ -1911,8 +2380,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 20,
-          "height": 32
+          "width": 24,
+          "height": 40
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -1933,8 +2402,8 @@
         "grid": {
           "columns": 4,
           "rows": 3,
-          "frameWidth": 20,
-          "frameHeight": 32
+          "frameWidth": 24,
+          "frameHeight": 40
         }
       },
       "tags": [
@@ -1974,6 +2443,35 @@
           }
         ],
         "coverage": "mapped"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
       }
     },
     {
@@ -1988,7 +2486,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "character_style_master"
+        "world_visual_master",
+        "character_visual_master"
       ],
       "output": {
         "kind": "spritesheet",
@@ -1999,8 +2498,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 20,
-          "height": 32
+          "width": 24,
+          "height": 40
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -2021,8 +2520,8 @@
         "grid": {
           "columns": 4,
           "rows": 3,
-          "frameWidth": 20,
-          "frameHeight": 32
+          "frameWidth": 24,
+          "frameHeight": 40
         }
       },
       "tags": [
@@ -2062,6 +2561,35 @@
           }
         ],
         "coverage": "mapped"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
       }
     },
     {
@@ -2076,7 +2604,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "character_style_master"
+        "world_visual_master",
+        "character_visual_master"
       ],
       "output": {
         "kind": "spritesheet",
@@ -2087,8 +2616,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 20,
-          "height": 32
+          "width": 24,
+          "height": 40
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -2109,8 +2638,8 @@
         "grid": {
           "columns": 4,
           "rows": 3,
-          "frameWidth": 20,
-          "frameHeight": 32
+          "frameWidth": 24,
+          "frameHeight": 40
         }
       },
       "tags": [
@@ -2150,6 +2679,35 @@
           }
         ],
         "coverage": "mapped"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
       }
     },
     {
@@ -2164,7 +2722,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "character_style_master"
+        "world_visual_master",
+        "character_visual_master"
       ],
       "output": {
         "kind": "spritesheet",
@@ -2175,8 +2734,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 20,
-          "height": 32
+          "width": 24,
+          "height": 40
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -2197,8 +2756,8 @@
         "grid": {
           "columns": 4,
           "rows": 3,
-          "frameWidth": 20,
-          "frameHeight": 32
+          "frameWidth": 24,
+          "frameHeight": 40
         }
       },
       "tags": [
@@ -2238,6 +2797,35 @@
           }
         ],
         "coverage": "mapped"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
       }
     },
     {
@@ -2252,7 +2840,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "character_style_master"
+        "world_visual_master",
+        "character_visual_master"
       ],
       "output": {
         "kind": "spritesheet",
@@ -2263,8 +2852,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 20,
-          "height": 32
+          "width": 24,
+          "height": 40
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -2285,8 +2874,8 @@
         "grid": {
           "columns": 4,
           "rows": 3,
-          "frameWidth": 20,
-          "frameHeight": 32
+          "frameWidth": 24,
+          "frameHeight": 40
         }
       },
       "tags": [
@@ -2326,6 +2915,35 @@
           }
         ],
         "coverage": "mapped"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
       }
     },
     {
@@ -2340,7 +2958,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "character_style_master"
+        "world_visual_master",
+        "character_visual_master"
       ],
       "output": {
         "kind": "spritesheet",
@@ -2351,8 +2970,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 20,
-          "height": 32
+          "width": 24,
+          "height": 40
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -2373,8 +2992,8 @@
         "grid": {
           "columns": 4,
           "rows": 3,
-          "frameWidth": 20,
-          "frameHeight": 32
+          "frameWidth": 24,
+          "frameHeight": 40
         }
       },
       "tags": [
@@ -2413,6 +3032,35 @@
           }
         ],
         "coverage": "exact"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
       }
     }
   ]

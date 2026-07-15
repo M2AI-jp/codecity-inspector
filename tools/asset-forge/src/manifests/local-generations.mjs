@@ -19,7 +19,10 @@ export async function readLocalGenerationManifest(root) {
   return manifest;
 }
 
-export async function appendGenerationResult(root, result, { beforeWrite } = {}) {
+// The caller must already hold requiredPromotionLock. This function deliberately
+// acquires only the inner generation-ledger lock so a full mutating operation can
+// hold the outer lock before its first filesystem write.
+export async function appendGenerationResultUnlocked(root, result, { beforeWrite } = {}) {
   const resultValidation = validateWith('generation-result.schema.json', result);
   if (!resultValidation.ok) throw new Error(`Invalid generation result: ${JSON.stringify(resultValidation.errors)}`);
   const paths = pathsFor(root);
@@ -35,6 +38,12 @@ export async function appendGenerationResult(root, result, { beforeWrite } = {})
     await atomicReplaceJson(root, paths.localGenerationManifest, updated);
     return updated;
   });
+}
+
+export async function appendGenerationResult(root, result, hooks = {}) {
+  const paths = pathsFor(root);
+  return withFileLock(root, paths.requiredPromotionLock, () =>
+    appendGenerationResultUnlocked(root, result, hooks));
 }
 
 export async function replaceGenerationResult(root, generationId, transition) {

@@ -3,6 +3,7 @@ import { access, mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { pathsFor } from '../src/config.mjs';
 import { appendGenerationResult, readLocalGenerationManifest } from '../src/manifests/local-generations.mjs';
 import { withFileLock } from '../src/fs-safe.mjs';
 
@@ -56,6 +57,22 @@ test('faulted manifest update releases its lock and leaves no partial success ma
   await assert.rejects(() => access(path.join(root, 'data', 'local', 'generations.json')), /ENOENT/);
   await appendGenerationResult(root, fixtureResult('gen_after'));
   assert.deepEqual((await readLocalGenerationManifest(root)).results.map((entry) => entry.id), ['gen_after']);
+});
+
+test('required batch lock refuses generation append without mutation and append succeeds after release', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'forge-required-append-lock-'));
+  await withFileLock(root, pathsFor(root).requiredPromotionLock, async () => {
+    await assert.rejects(
+      () => appendGenerationResult(root, fixtureResult('gen_during_required_batch')),
+      /Concurrent writer lock is held/
+    );
+    assert.deepEqual((await readLocalGenerationManifest(root)).results, []);
+  });
+  await appendGenerationResult(root, fixtureResult('gen_after_required_batch'));
+  assert.deepEqual(
+    (await readLocalGenerationManifest(root)).results.map((entry) => entry.id),
+    ['gen_after_required_batch']
+  );
 });
 
 test('a lock owned by a dead process is quarantined and recovered', async () => {

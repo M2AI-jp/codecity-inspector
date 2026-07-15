@@ -1,0 +1,141 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-15T04:37:11.499Z",
+    "approvedPath": "generated/fields/approved/field_bridge_wood-0ed0d4495775f2b4.png",
+    "approvedSha256": "0ed0d4495775f2b4cf31b39a4db166b266a8560863aec5c55d80625753795863",
+    "note": "Required 78 batch approval cb4aa5f67c91a329c140f4a09bdc39b960ccce8a76334957066d7c0e83540042",
+    "reviewer": "human"
+  },
+  "assetId": "field.bridge_wood",
+  "category": "field",
+  "createdAt": "2026-07-14T00:00:00.000Z",
+  "dryRun": false,
+  "id": "gen_import_1f54c4575443e5b66259",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 64x64.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_307100b69a750aad2aa4",
+  "manualImport": true,
+  "metadataPath": "generated/fields/approved/field_bridge_wood-0ed0d4495775f2b4.json",
+  "outputInspection": {
+    "bytes": 2841,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 64,
+    "width": 64
+  },
+  "outputPath": "generated/fields/approved/field_bridge_wood-0ed0d4495775f2b4.png",
+  "outputSha256": "0ed0d4495775f2b4cf31b39a4db166b266a8560863aec5c55d80625753795863",
+  "productionRecipe": {
+    "assetId": "field.bridge_wood",
+    "backgroundRemoval": {
+      "autoKey": null,
+      "cleanup": {
+        "alphaCutoff": 0,
+        "componentMinPixels": 1,
+        "resizeKernel": "nearest",
+        "targetMaxHeight": 64,
+        "targetMaxWidth": 64
+      },
+      "despill": false,
+      "keyColor": null,
+      "method": "none",
+      "opaqueThreshold": 255,
+      "softMatte": false,
+      "transparentThreshold": 0
+    },
+    "canvas": {
+      "baselineY": 63,
+      "height": 64,
+      "width": 64
+    },
+    "generationPromptPath": "review/prompts/wave1b-fields/field_bridge_wood.txt",
+    "generationPromptSha256": "a5e02b65fc2e1919c2164e4e2610f04e8dc6700a0437c51cf5c55e07f2124484",
+    "generator": "codex-imagegen-built-in",
+    "inputReferences": [
+      {
+        "id": "world_visual_master",
+        "role": "global-style",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_field_harbor_docks_tiles",
+        "role": "primary-subject",
+        "sha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580"
+      }
+    ],
+    "method": "imagegen",
+    "orientationContract": "walkable wooden bridge crosses left-to-right over water flowing top-to-bottom",
+    "outputSha256": "0ed0d4495775f2b4cf31b39a4db166b266a8560863aec5c55d80625753795863",
+    "referenceImages": [
+      {
+        "id": "world_visual_master",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_field_harbor_docks_tiles",
+        "sha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580"
+      }
+    ],
+    "scaleClass": "medium",
+    "source": {
+      "cropRect": null,
+      "height": 1254,
+      "path": "tmp/imagegen/wave1b-fields/raw/field_bridge_wood.png",
+      "sha256": "92bf8636480e8a41b168d03eb44fdbc6662dd355cc1731989ed2b1db74f35064",
+      "width": 1254
+    },
+    "sourceSnapshot": {
+      "height": 1254,
+      "path": "generated/fields/approved/source-92bf8636480e8a41b168d03eb44fdbc6662dd355cc1731989ed2b1db74f35064.source-original.png",
+      "sha256": "92bf8636480e8a41b168d03eb44fdbc6662dd355cc1731989ed2b1db74f35064",
+      "width": 1254
+    },
+    "subjectBbox": {
+      "height": 64,
+      "width": 64,
+      "x": 0,
+      "y": 0
+    },
+    "toolMode": "built-in",
+    "transformSteps": [
+      "full-frame",
+      "nearest-downscale",
+      "palette-quantize"
+    ],
+    "waveId": "wave1b-fields"
+  },
+  "promptHash": "d24cb3ba481285038ffff0edc27ce7410cef258517c133c25c0ba5a1e669e0bd",
+  "provenanceKey": "1f54c4575443e5b662591e9765505d10432612d6ab968bb29fae34360665b297",
+  "provider": "manual-import",
+  "referenceImageHashes": [
+    "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+    "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580"
+  ],
+  "referenceImageIds": [
+    "world_visual_master",
+    "intake_20260713_field_harbor_docks_tiles"
+  ],
+  "sourceFormat": "png",
+  "sourcePath": "generated/fields/pending/field_bridge_wood-105f0264a795b0bb.source.png",
+  "sourceSha256": "105f0264a795b0bb0ef690ddbc2e1e852f5b962627ed0496c20174cf76f7b3d9",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

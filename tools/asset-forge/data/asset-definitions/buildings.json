@@ -15,7 +15,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "building_style_master"
+        "world_visual_master",
+        "intake_20260713_building_inn"
       ],
       "output": {
         "kind": "single",
@@ -26,7 +27,10 @@
       },
       "pixelArt": {
         "tileSize": 16,
-        "logicalSpriteSize": { "width": 48, "height": 48 },
+        "logicalSpriteSize": {
+          "width": 256,
+          "height": 256
+        },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false
@@ -87,7 +91,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "building_style_master"
+        "world_visual_master",
+        "intake_20260713_building_houses_shops_ruins"
       ],
       "output": {
         "kind": "single",
@@ -98,7 +103,10 @@
       },
       "pixelArt": {
         "tileSize": 16,
-        "logicalSpriteSize": { "width": 48, "height": 48 },
+        "logicalSpriteSize": {
+          "width": 256,
+          "height": 256
+        },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false
@@ -159,7 +167,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "building_style_master"
+        "world_visual_master",
+        "intake_20260713_building_town_hall"
       ],
       "output": {
         "kind": "single",
@@ -170,7 +179,10 @@
       },
       "pixelArt": {
         "tileSize": 16,
-        "logicalSpriteSize": { "width": 64, "height": 64 },
+        "logicalSpriteSize": {
+          "width": 256,
+          "height": 256
+        },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false
@@ -231,7 +243,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "building_style_master"
+        "world_visual_master",
+        "intake_20260713_field_harbor_docks_tiles"
       ],
       "output": {
         "kind": "single",
@@ -242,7 +255,10 @@
       },
       "pixelArt": {
         "tileSize": 16,
-        "logicalSpriteSize": { "width": 48, "height": 48 },
+        "logicalSpriteSize": {
+          "width": 256,
+          "height": 256
+        },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false
@@ -303,7 +319,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "building_style_master"
+        "world_visual_master",
+        "intake_20260713_building_workshop"
       ],
       "output": {
         "kind": "single",
@@ -314,7 +331,10 @@
       },
       "pixelArt": {
         "tileSize": 16,
-        "logicalSpriteSize": { "width": 48, "height": 48 },
+        "logicalSpriteSize": {
+          "width": 256,
+          "height": 256
+        },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false
@@ -375,7 +395,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "building_style_master"
+        "world_visual_master",
+        "intake_20260713_building_guild_variant_01"
       ],
       "output": {
         "kind": "single",
@@ -386,7 +407,10 @@
       },
       "pixelArt": {
         "tileSize": 16,
-        "logicalSpriteSize": { "width": 48, "height": 48 },
+        "logicalSpriteSize": {
+          "width": 256,
+          "height": 256
+        },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false
@@ -447,7 +471,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "building_style_master"
+        "world_visual_master",
+        "intake_20260713_building_watchtower"
       ],
       "output": {
         "kind": "single",
@@ -458,7 +483,10 @@
       },
       "pixelArt": {
         "tileSize": 16,
-        "logicalSpriteSize": { "width": 32, "height": 48 },
+        "logicalSpriteSize": {
+          "width": 256,
+          "height": 256
+        },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false
@@ -519,7 +547,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "building_style_master"
+        "world_visual_master",
+        "intake_20260713_building_warehouse"
       ],
       "output": {
         "kind": "single",
@@ -530,7 +559,10 @@
       },
       "pixelArt": {
         "tileSize": 16,
-        "logicalSpriteSize": { "width": 48, "height": 48 },
+        "logicalSpriteSize": {
+          "width": 256,
+          "height": 256
+        },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false
@@ -591,7 +623,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "building_style_master"
+        "world_visual_master",
+        "intake_20260713_object_street_props"
       ],
       "output": {
         "kind": "single",
@@ -602,7 +635,10 @@
       },
       "pixelArt": {
         "tileSize": 16,
-        "logicalSpriteSize": { "width": 32, "height": 32 },
+        "logicalSpriteSize": {
+          "width": 256,
+          "height": 256
+        },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false
@@ -663,7 +699,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "building_style_master"
+        "world_visual_master",
+        "intake_20260713_object_status_markers"
       ],
       "output": {
         "kind": "single",
@@ -674,7 +711,10 @@
       },
       "pixelArt": {
         "tileSize": 16,
-        "logicalSpriteSize": { "width": 32, "height": 32 },
+        "logicalSpriteSize": {
+          "width": 256,
+          "height": 256
+        },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false
@@ -735,7 +775,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "building_style_master"
+        "world_visual_master",
+        "intake_20260713_building_houses_shops_ruins"
       ],
       "output": {
         "kind": "single",
@@ -746,7 +787,10 @@
       },
       "pixelArt": {
         "tileSize": 16,
-        "logicalSpriteSize": { "width": 32, "height": 32 },
+        "logicalSpriteSize": {
+          "width": 256,
+          "height": 256
+        },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false
@@ -808,7 +852,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "building_style_master"
+        "world_visual_master",
+        "intake_20260713_building_houses_shops_ruins"
       ],
       "output": {
         "kind": "single",
@@ -819,7 +864,10 @@
       },
       "pixelArt": {
         "tileSize": 16,
-        "logicalSpriteSize": { "width": 32, "height": 32 },
+        "logicalSpriteSize": {
+          "width": 256,
+          "height": 256
+        },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false
@@ -881,7 +929,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "building_style_master"
+        "world_visual_master",
+        "intake_20260713_building_houses_shops_ruins"
       ],
       "output": {
         "kind": "single",
@@ -892,7 +941,10 @@
       },
       "pixelArt": {
         "tileSize": 16,
-        "logicalSpriteSize": { "width": 32, "height": 32 },
+        "logicalSpriteSize": {
+          "width": 256,
+          "height": 256
+        },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false
@@ -953,7 +1005,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "building_style_master"
+        "world_visual_master",
+        "intake_20260713_building_houses_shops_ruins"
       ],
       "output": {
         "kind": "single",
@@ -964,7 +1017,10 @@
       },
       "pixelArt": {
         "tileSize": 16,
-        "logicalSpriteSize": { "width": 32, "height": 32 },
+        "logicalSpriteSize": {
+          "width": 256,
+          "height": 256
+        },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false
@@ -1025,7 +1081,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "building_style_master"
+        "world_visual_master",
+        "intake_20260713_building_houses_shops_ruins"
       ],
       "output": {
         "kind": "single",
@@ -1036,7 +1093,10 @@
       },
       "pixelArt": {
         "tileSize": 16,
-        "logicalSpriteSize": { "width": 32, "height": 32 },
+        "logicalSpriteSize": {
+          "width": 256,
+          "height": 256
+        },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false
@@ -1097,7 +1157,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "building_style_master"
+        "world_visual_master",
+        "intake_20260713_building_houses_shops_ruins"
       ],
       "output": {
         "kind": "single",
@@ -1108,7 +1169,10 @@
       },
       "pixelArt": {
         "tileSize": 16,
-        "logicalSpriteSize": { "width": 32, "height": 32 },
+        "logicalSpriteSize": {
+          "width": 256,
+          "height": 256
+        },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false
@@ -1169,7 +1233,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "building_style_master"
+        "world_visual_master",
+        "intake_20260713_building_guild_variant_01"
       ],
       "output": {
         "kind": "single",
@@ -1180,7 +1245,10 @@
       },
       "pixelArt": {
         "tileSize": 16,
-        "logicalSpriteSize": { "width": 48, "height": 48 },
+        "logicalSpriteSize": {
+          "width": 256,
+          "height": 256
+        },
         "scalePreview": 3,
         "nearestNeighbor": true,
         "allowAntiAlias": false

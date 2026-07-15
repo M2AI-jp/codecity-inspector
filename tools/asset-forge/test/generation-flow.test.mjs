@@ -33,7 +33,7 @@ test('mock runs are byte-identical across output roots and agree with metadata a
   assert.deepEqual(firstPng, secondPng);
   assert.equal(first.result.outputSha256, await hashFile(path.join(firstRoot, first.result.outputPath)));
   assert.deepEqual(first.result.outputInspection, {
-    format: 'png', width: 80, height: 96, channels: 4, frames: 1, bytes: firstPng.length
+    format: 'png', width: 96, height: 120, channels: 4, frames: 1, bytes: firstPng.length
   });
   assert.ok(decodeUnfilteredRgbaPng(firstPng).pixels.some((value) => value !== 0));
   const metadata = JSON.parse(await readFile(path.join(firstRoot, first.result.metadataPath), 'utf8'));

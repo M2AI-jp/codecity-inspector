@@ -1,0 +1,141 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-15T04:36:59.755Z",
+    "approvedPath": "generated/buildings/approved/building_house_small-4b95916b0ed94aea.png",
+    "approvedSha256": "4b95916b0ed94aea97d8f46840df4d31b30e294fadaa2697b628961751ea00af",
+    "note": "Required 78 batch approval cb4aa5f67c91a329c140f4a09bdc39b960ccce8a76334957066d7c0e83540042",
+    "reviewer": "human"
+  },
+  "assetId": "building.house.small",
+  "category": "building",
+  "createdAt": "2026-07-14T00:00:00.000Z",
+  "dryRun": false,
+  "id": "gen_import_fe5a6f10968dd99ef880",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 256x256.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_489e37b3aeb074a717e9",
+  "manualImport": true,
+  "metadataPath": "generated/buildings/approved/building_house_small-4b95916b0ed94aea.json",
+  "outputInspection": {
+    "bytes": 58051,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 256,
+    "width": 256
+  },
+  "outputPath": "generated/buildings/approved/building_house_small-4b95916b0ed94aea.png",
+  "outputSha256": "4b95916b0ed94aea97d8f46840df4d31b30e294fadaa2697b628961751ea00af",
+  "productionRecipe": {
+    "assetId": "building.house.small",
+    "backgroundRemoval": {
+      "autoKey": "border",
+      "cleanup": {
+        "alphaCutoff": 16,
+        "componentMinPixels": 128,
+        "resizeKernel": "nearest",
+        "targetMaxHeight": 154,
+        "targetMaxWidth": 150
+      },
+      "despill": true,
+      "keyColor": null,
+      "method": "official-chroma-key-helper",
+      "opaqueThreshold": 220,
+      "softMatte": true,
+      "transparentThreshold": 12
+    },
+    "canvas": {
+      "baselineY": 244,
+      "height": 256,
+      "width": 256
+    },
+    "generationPromptPath": "review/prompts/wave1a-buildings/building_house_small.txt",
+    "generationPromptSha256": "75748f89507ede9ee255185a7d164df31f856e4510d5a7fa2c80e4155dbf92e6",
+    "generator": "codex-imagegen-built-in",
+    "inputReferences": [
+      {
+        "id": "world_visual_master",
+        "role": "global-style",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_building_houses_shops_ruins",
+        "role": "primary-subject",
+        "sha256": "ec8afeadfe709cc6ae489d3e895a2a290eff79cb598db8c1925f548fd9e14225"
+      }
+    ],
+    "method": "imagegen",
+    "outputSha256": "4b95916b0ed94aea97d8f46840df4d31b30e294fadaa2697b628961751ea00af",
+    "referenceImages": [
+      {
+        "id": "world_visual_master",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_building_houses_shops_ruins",
+        "sha256": "ec8afeadfe709cc6ae489d3e895a2a290eff79cb598db8c1925f548fd9e14225"
+      }
+    ],
+    "scaleClass": "small",
+    "source": {
+      "comparisonRect": {
+        "height": 175,
+        "width": 175,
+        "x": 0,
+        "y": 0
+      },
+      "cropRect": null,
+      "height": 1254,
+      "path": "tmp/imagegen/wave1a/raw/building_house_small.png",
+      "sha256": "6847d74c6c26ceeb98c8a49c8cb2586f033012aeae78692c8c3390b8219f866f",
+      "width": 1254
+    },
+    "sourceSnapshot": {
+      "height": 1254,
+      "path": "generated/buildings/approved/source-6847d74c6c26ceeb98c8a49c8cb2586f033012aeae78692c8c3390b8219f866f.source-original.png",
+      "sha256": "6847d74c6c26ceeb98c8a49c8cb2586f033012aeae78692c8c3390b8219f866f",
+      "width": 1254
+    },
+    "subjectBbox": {
+      "height": 154,
+      "width": 134,
+      "x": 61,
+      "y": 91
+    },
+    "toolMode": "built-in",
+    "waveId": "wave1a-buildings"
+  },
+  "promptHash": "982d62b89c3c4cc3d545275bc615cf17f677c1ce407197b368e8f8974cded63b",
+  "provenanceKey": "fe5a6f10968dd99ef8809c8067efcb2d161eb1672677bac7314874cbe4b99a50",
+  "provider": "manual-import",
+  "referenceImageHashes": [
+    "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+    "ec8afeadfe709cc6ae489d3e895a2a290eff79cb598db8c1925f548fd9e14225"
+  ],
+  "referenceImageIds": [
+    "world_visual_master",
+    "intake_20260713_building_houses_shops_ruins"
+  ],
+  "sourceFormat": "png",
+  "sourcePath": "generated/buildings/pending/building_house_small-4b95916b0ed94aea.source.png",
+  "sourceSha256": "4b95916b0ed94aea97d8f46840df4d31b30e294fadaa2697b628961751ea00af",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

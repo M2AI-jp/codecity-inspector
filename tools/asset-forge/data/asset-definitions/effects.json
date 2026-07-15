@@ -14,9 +14,7 @@
         "prompts/effects/00_common_effect_style.md",
         "prompts/common/reward-fraud-rules.md"
       ],
-      "defaultReferenceIds": [
-        "effect_style_master"
-      ],
+      "defaultReferenceIds": [],
       "output": {
         "kind": "spritesheet",
         "preferredFormat": "png",
@@ -26,8 +24,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 32,
+          "height": 32
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -43,8 +41,8 @@
         "grid": {
           "columns": 4,
           "rows": 1,
-          "frameWidth": 16,
-          "frameHeight": 16
+          "frameWidth": 32,
+          "frameHeight": 32
         }
       },
       "tags": [
@@ -86,9 +84,7 @@
         "prompts/effects/00_common_effect_style.md",
         "prompts/common/reward-fraud-rules.md"
       ],
-      "defaultReferenceIds": [
-        "effect_style_master"
-      ],
+      "defaultReferenceIds": [],
       "output": {
         "kind": "spritesheet",
         "preferredFormat": "png",
@@ -98,8 +94,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 32,
+          "height": 32
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -115,8 +111,8 @@
         "grid": {
           "columns": 4,
           "rows": 1,
-          "frameWidth": 16,
-          "frameHeight": 16
+          "frameWidth": 32,
+          "frameHeight": 32
         }
       },
       "tags": [
@@ -158,9 +154,7 @@
         "prompts/effects/00_common_effect_style.md",
         "prompts/common/reward-fraud-rules.md"
       ],
-      "defaultReferenceIds": [
-        "effect_style_master"
-      ],
+      "defaultReferenceIds": [],
       "output": {
         "kind": "spritesheet",
         "preferredFormat": "png",
@@ -170,8 +164,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 32,
+          "height": 32
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -187,8 +181,8 @@
         "grid": {
           "columns": 4,
           "rows": 1,
-          "frameWidth": 16,
-          "frameHeight": 16
+          "frameWidth": 32,
+          "frameHeight": 32
         }
       },
       "tags": [
@@ -231,7 +225,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "effect_style_master"
+        "world_visual_master",
+        "intake_20260713_object_status_markers"
       ],
       "output": {
         "kind": "spritesheet",
@@ -242,8 +237,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 32,
+          "height": 32
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -259,8 +254,8 @@
         "grid": {
           "columns": 4,
           "rows": 1,
-          "frameWidth": 16,
-          "frameHeight": 16
+          "frameWidth": 32,
+          "frameHeight": 32
         }
       },
       "tags": [
@@ -303,7 +298,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "effect_style_master"
+        "world_visual_master",
+        "intake_20260713_field_harbor_docks_tiles"
       ],
       "output": {
         "kind": "spritesheet",
@@ -314,8 +310,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 32,
+          "height": 32
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -331,8 +327,8 @@
         "grid": {
           "columns": 4,
           "rows": 1,
-          "frameWidth": 16,
-          "frameHeight": 16
+          "frameWidth": 32,
+          "frameHeight": 32
         }
       },
       "tags": [
@@ -374,9 +370,7 @@
         "prompts/effects/00_common_effect_style.md",
         "prompts/common/reward-fraud-rules.md"
       ],
-      "defaultReferenceIds": [
-        "effect_style_master"
-      ],
+      "defaultReferenceIds": [],
       "output": {
         "kind": "spritesheet",
         "preferredFormat": "png",
@@ -386,8 +380,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 32,
+          "height": 32
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -403,8 +397,8 @@
         "grid": {
           "columns": 4,
           "rows": 1,
-          "frameWidth": 16,
-          "frameHeight": 16
+          "frameWidth": 32,
+          "frameHeight": 32
         }
       },
       "tags": [
@@ -446,9 +440,7 @@
         "prompts/effects/00_common_effect_style.md",
         "prompts/common/reward-fraud-rules.md"
       ],
-      "defaultReferenceIds": [
-        "effect_style_master"
-      ],
+      "defaultReferenceIds": [],
       "output": {
         "kind": "spritesheet",
         "preferredFormat": "png",
@@ -458,8 +450,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 32,
+          "height": 32
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -475,8 +467,8 @@
         "grid": {
           "columns": 4,
           "rows": 1,
-          "frameWidth": 16,
-          "frameHeight": 16
+          "frameWidth": 32,
+          "frameHeight": 32
         }
       },
       "tags": [

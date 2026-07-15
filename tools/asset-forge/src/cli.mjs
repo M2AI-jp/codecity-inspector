@@ -9,6 +9,11 @@ import { readAssetDefinitions } from './jobs/define-assets.mjs';
 import { importCandidate } from './jobs/manual-import.mjs';
 import { promoteCandidate, promotionPreview, rejectCandidate } from './jobs/lifecycle.mjs';
 import { processCandidate } from './jobs/process-candidate.mjs';
+import {
+  beginRequiredPromotion,
+  executeRequiredPromotion,
+  formatRequiredPromotionPlan
+} from './jobs/required-promotion.mjs';
 import { runJob } from './jobs/run-job.mjs';
 import { writeJobPack } from './jobs/write-job-pack.mjs';
 import { compiledSchemaNames } from './schemas.mjs';
@@ -22,21 +27,22 @@ function optionName(flag) {
 
 export function parseArgs(argv) {
   const [command = 'help', ...rest] = argv;
-  const options = {};
+  const parsedOptions = Object.create(null);
   for (let i = 0; i < rest.length; i += 1) {
     const argument = rest[i];
     if (!argument.startsWith('--')) throw new Error(`Unknown argument: ${argument}`);
     const flag = argument.slice(2);
     if (!flag || flag.includes('=')) throw new Error(`Unsupported flag syntax: ${argument}`);
     const key = optionName(flag);
-    if (Object.hasOwn(options, key)) throw new Error(`Duplicate option: ${argument}`);
+    if (Object.hasOwn(parsedOptions, key)) throw new Error(`Duplicate option: ${argument}`);
     if (BOOLEAN_FLAGS.has(flag)) {
-      options[key] = true;
+      parsedOptions[key] = true;
       continue;
     }
     if (rest[i + 1] == null || rest[i + 1].startsWith('--')) throw new Error(`${argument} requires a value`);
-    options[key] = rest[++i];
+    parsedOptions[key] = rest[++i];
   }
+  const options = Object.fromEntries(Object.entries(parsedOptions));
   return { command, options };
 }
 
@@ -107,6 +113,22 @@ export async function main(argv = process.argv.slice(2)) {
   if (command === 'reject') {
     if (!options.generation) throw new Error('--generation is required');
     return rejectCandidate({ generationId: options.generation, reason: options.reason });
+  }
+  if (command === 'promote-required') {
+    if (Object.keys(options).length !== 0) throw new Error('promote-required does not accept flags or options');
+    if (!(process.stdin.isTTY && process.stdout.isTTY)) {
+      throw new Error('Required promotion requires stdin and stdout to both be interactive TTYs');
+    }
+    const preflight = await beginRequiredPromotion({ input: process.stdin, output: process.stdout });
+    process.stdout.write(formatRequiredPromotionPlan(preflight));
+    const terminal = createInterface({ input: process.stdin, output: process.stdout });
+    let answer;
+    try {
+      answer = await terminal.question('Type the exact confirmation above: ');
+    } finally {
+      terminal.close();
+    }
+    return executeRequiredPromotion(preflight, answer);
   }
   if (command === 'promote') {
     if (!options.generation) throw new Error('--generation is required');

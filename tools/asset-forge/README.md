@@ -15,7 +15,8 @@ metadata、透過処理、sprite抽出、approved素材のexportを管理しま�
 
 The Forge engine is implemented: strict schemas and path boundaries, the complete catalog,
 deterministic mock generation, dry-run, job packs, bounded PNG/JPEG/WEBP import, alpha/trim/grid
-processing, rejection, guarded human-only promotion, and approved-only export. The Canvas
+processing, rejection, guarded interactive promotion under the human-review policy, and
+approved-only export. The Canvas
 runtime consumes the export manifest and visibly falls back when approved art is absent.
 When multiple approved assets target the same runtime binding or semantic, the manifest keeps
 every variant. The runtime uses explicit deterministic rules for road topology, water edges,
@@ -24,9 +25,12 @@ Character and effect sheets are cropped from validated frame metadata; they are 
 as whole sheets into one tile.
 
 The catalog contains 110 definitions: 78 are required by the current game and 32 are optional
-future enhancements. The required 78 have approval-ledger entries and are exported through the
-complete schema v2 game manifest; the optional 32 remain outside the required export. Content
-readiness is not a claim that automated checks decided visual quality, licensing, or art direction.
+future enhancements. The previous low-quality approved/public production set has been removed;
+the required 78 are explicitly approved and exported as the current game set. Each required definition is
+commission-ready with exactly two approved input references: `world_visual_master` plus one
+directly targeted primary sheet. The optional 32 remain outside the required export. Reference
+readiness is not a claim that automated checks decided final candidate quality, licensing, or art
+direction.
 
 ## No paid API path
 
@@ -68,6 +72,9 @@ npm run reject -- --generation GEN_ID --reason "human review note"
 # Promotion refuses non-TTY/automation and requires reviewer, note, write, hash confirmation
 npm run promote -- --generation GEN_ID --reviewer human --note "human decision" --write
 
+# One interactive operator review for the complete required 78; approval only, never export
+npm run promote-required
+
 # Approved-only export is dry-run unless --write is present
 npm run export
 npm run export -- --write
@@ -95,12 +102,20 @@ water ripple, and construction dust are the current exceptions).
 
 ## References
 
-References are provided by a human. Do not fetch them from external sites. Only approved
-references are strong references by default. A pending reference, if supported later, must
-require an explicit flag. Each reference needs a SHA-256 hash and `licenseNote`.
+References are provided by the project owner. Do not fetch them from external sites. The current
+manifest contains 19 approved subject/category sheets plus the approved
+`world_visual_master`. Every present reference has a verified SHA-256 hash, a `licenseNote`, and
+explicit target asset IDs. Required jobs always require their two declared approved references;
+`--allow-pending-reference` cannot bypass that rule. Build, import, processing, promotion,
+validation, and export reject missing files, hash drift, target mismatches, or missing/tampered
+generation reference IDs and hashes.
 
-The initial reference manifest intentionally marks placeholders as `missing`.
-No reference image is included.
+Every required candidate must also carry a verified production recipe and a persistent original
+source snapshot before it can enter promotion. Promotion, repository validation, and export decode
+the actual PNG bytes again: the file hash and all six recorded inspection fields (`format`,
+`width`, `height`, `channels`, `frames`, and `bytes`) must match, and decoded dimensions must match
+the asset definition's production output contract. Updating metadata to agree with a wrong-sized
+file does not make that file promotable or exportable.
 
 ## Git and state boundary
 
@@ -114,16 +129,56 @@ Approved images and approval metadata are the only generated-image records inten
 version control. Root ignore rules exclude jobs, pending, rejected, processed, and local
 ledgers. The package is marked `private` and is a repository-internal development tool, not a
 standalone release artifact. Its `.npmignore` is a defence against accidentally packing local
-work state; it does not make a Forge tarball publishable. In particular, the tracked pending
-reference sheets remain outside the game distribution and require a separate rights-cleared
-snapshot if Asset Forge itself is ever archived or distributed.
+work state; it does not make a Forge tarball publishable. Approved reference sheets remain
+outside the game distribution and require a separate rights-reviewed snapshot if Asset Forge
+itself is ever archived or distributed.
 
-## Human-only boundary
+## Interactive review boundary
 
 The `promote` command requires an interactive TTY, `--reviewer human`, `--write`, a nonempty
-note, and confirmation after displaying source/destination hashes. Codex may implement and
-test refusal/pure transition paths but must not execute a successful project promotion.
-Export reads approved assets only, defaults to dry-run, and requires `--write` for files.
+note, and confirmation after displaying source/destination hashes. These checks reduce
+accidental approval and ordinary unattended automation; they do not prove a person's identity.
+Codex may implement and test refusal/pure transition paths but must not execute a successful
+project promotion. `promote-required` applies the same review policy to the complete required
+set. It first validates
+all 78 definitions, candidates, recipes, references, files, hashes, and ledgers twice; prints
+the canonical asset-ID-sorted plan and its SHA-256 digest; and accepts only the exact phrase
+`APPROVE REQUIRED 78 <digest>` through an interactive stdin/stdout TTY. The production CLI has
+no confirmation flag or environment-variable confirmation path, and an ordinary pipe is
+rejected because it is not a TTY. A partial failure can be resumed only when the
+same plan reconstructs the same digest, including already-approved entries from that batch.
+The preflight records an exact pending/approved generation partition. Execution skips the
+already-approved partition and invokes promotion only for generations that were pending in the
+confirmed preflight; an all-approved retry is therefore a no-op. A crash-recovery generation that
+is still pending remains in the pending partition and is completed through its lifecycle journal.
+The command approves candidates but never writes the public export.
+
+TTY presence is not cryptographic human proof. Code running as the same operating-system user
+can drive a pseudo-terminal and can pre-seed its input; without an external signature or OS
+authentication ceremony, Asset Forge cannot distinguish that from an operator typing. The
+project's operating rule therefore forbids PTY automation and requires the authorized human
+operator to review the displayed 78-item plan and type the phrase. Lead, Codex, and Terra do not
+type it. The exported `executeRequiredPromotion` dependency injection exists for temp-root tests;
+the production CLI does not expose that injection path. This is an error-prevention and ordinary
+automation boundary, not an identity or adversarial same-user security boundary.
+
+The required batch holds one outer lock for its full execution. Generation, manual import,
+processing, and job-pack creation acquire that same lock before their first filesystem write and
+hold it through their inner generation-ledger update. Direct generation-ledger append and
+write-mode export use it too. All of these operations fail immediately and without output,
+metadata, job-pack, or ledger mutation when a required batch is running; the caller can retry the
+same operation after the batch releases the lock without first removing orphan files. Lock
+acquisition order is required batch lock, then lifecycle lock for promotion/export, or required
+batch lock, then generation lock for ledger update. A standalone promote or reject uses the
+lifecycle lock but not the required batch lock, so an operator can still make it interleave; if
+that changes a confirmed batch item, the batch reports a partial failure and must be
+re-preflighted/resumed rather than guessing state.
+
+Export reads approved assets only and defaults to dry-run. A partial dry-run remains useful for
+reporting `missingAssets` and `missingBindings`, but `--write` refuses unless the v2 manifest is
+complete. That refusal happens before the public directory or any public file is created. A
+successful required promotion never triggers export automatically; export is a separate explicit
+operation.
 
 ## Anti-reward-fraud reporting
 
@@ -150,7 +205,7 @@ canonical unrotated direction used by the renderer.
 
 ## Recorded owner decision
 
-1. On 2026-07-14, the project owner confirmed that all 78 required assets were generated with ChatGPT Pro and accepted their visual use in the game.
-2. OpenAI's current Terms and policies govern use of the generated output; the owner remains responsible for third-party input rights, applicable law, and release suitability.
+1. On 2026-07-14, the project owner identified the 19 subject/category sheets and the world visual board as owner-provided ChatGPT Pro-generated references and approved them as production inputs.
+2. Independent legal/license verification was not performed; the owner remains responsible for third-party input rights, applicable law, and release suitability.
 3. Keep the optional 32 future assets outside the required completion gate unless product scope changes.
-4. Regenerate, reapprove, or re-export an approved asset only after an explicit product decision.
+4. The current required 78 received explicit interactive promotion under the human-review policy. Any replacement candidate requires a new, separate approval; reference approval alone is not candidate approval.

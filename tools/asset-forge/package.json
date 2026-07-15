@@ -15,6 +15,7 @@
     "validate": "node src/cli.mjs validate",
     "process": "node src/cli.mjs process",
     "promote": "node src/cli.mjs promote",
+    "promote-required": "node src/cli.mjs promote-required",
     "reject": "node src/cli.mjs reject",
     "export": "node src/cli.mjs export",
     "list": "node src/cli.mjs list",

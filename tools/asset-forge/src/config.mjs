@@ -20,6 +20,7 @@ export function pathsFor(root = FORGE_ROOT) {
     local: path.join(absoluteRoot, 'data', 'local'),
     localGenerationManifest: path.join(absoluteRoot, 'data', 'local', 'generations.json'),
     localGenerationLock: path.join(absoluteRoot, 'data', 'local', '.generations.lock'),
+    requiredPromotionLock: path.join(absoluteRoot, 'data', 'local', '.required-promotion.lock'),
     lifecycleLock: path.join(absoluteRoot, 'data', 'local', '.lifecycle.lock'),
     approvalManifest: path.join(absoluteRoot, 'data', 'manifests', 'approvals.json'),
     assetManifest: path.join(absoluteRoot, 'data', 'manifests', 'assets.json'),

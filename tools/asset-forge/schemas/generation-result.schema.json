@@ -24,7 +24,7 @@
     "metadataPath": { "type": "string", "minLength": 1 },
     "promptHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
     "provenanceKey": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
-    "referenceImageIds": { "type": "array", "items": { "type": "string" } },
+    "referenceImageIds": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
     "referenceImageHashes": {
       "type": "array",
       "items": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
@@ -77,6 +77,7 @@
         "approvedSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
       }
     },
+    "productionRecipe": { "$ref": "#/definitions/productionRecipe" },
     "inspection": { "$ref": "#/definitions/inspection" }
   },
   "allOf": [
@@ -155,9 +156,369 @@
     {
       "if": { "not": { "properties": { "provider": { "const": "manual-import" } } } },
       "then": { "properties": { "manualImport": { "const": false } } }
+    },
+    {
+      "if": {
+        "properties": { "status": { "const": "approved" }, "productionRecipe": {} },
+        "required": ["productionRecipe"]
+      },
+      "then": {
+        "properties": {
+          "productionRecipe": { "type": "object", "properties": { "sourceSnapshot": {} }, "required": ["sourceSnapshot"] }
+        }
+      }
     }
   ],
   "definitions": {
+    "rect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "width", "height"],
+      "properties": {
+        "x": { "type": "integer", "minimum": 0 },
+        "y": { "type": "integer", "minimum": 0 },
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "productionRecipe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "waveId", "assetId", "method", "generator", "scaleClass", "referenceImages",
+        "source", "backgroundRemoval", "canvas", "subjectBbox", "outputSha256"
+      ],
+      "allOf": [
+        {
+          "if": { "properties": { "method": { "const": "imagegen" } }, "required": ["method"] },
+          "then": {
+            "required": ["generationPromptPath", "generationPromptSha256", "toolMode", "inputReferences"],
+            "properties": {
+              "generationPromptPath": {},
+              "generationPromptSha256": {},
+              "toolMode": {},
+              "inputReferences": {}
+            }
+          }
+        },
+        {
+          "if": { "properties": { "method": { "const": "direct-extraction" } }, "required": ["method"] },
+          "then": {
+            "required": ["transformSteps", "orientationContract"],
+            "properties": {
+              "transformSteps": {},
+              "orientationContract": {},
+              "source": {
+                "type": "object",
+                "properties": { "cropRect": { "$ref": "#/definitions/rect" } }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "assetId": { "type": "string", "pattern": "^character\\." },
+              "method": { "const": "imagegen" }
+            },
+            "required": ["assetId", "method"]
+          },
+          "then": {
+            "required": ["transformSteps", "spriteContract"],
+            "properties": {
+              "transformSteps": {},
+              "spriteContract": {}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "assetId": { "type": "string", "pattern": "^effect\\." },
+              "method": { "const": "imagegen" }
+            },
+            "required": ["assetId", "method"]
+          },
+          "then": {
+            "required": ["transformSteps", "effectContract"],
+            "properties": {
+              "transformSteps": {},
+              "effectContract": {}
+            }
+          }
+        }
+      ],
+      "properties": {
+        "waveId": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]+$" },
+        "assetId": { "type": "string", "minLength": 1 },
+        "method": { "enum": ["imagegen", "direct-extraction"] },
+        "generator": { "type": "string", "minLength": 1 },
+        "scaleClass": { "enum": ["tiny", "small", "medium", "large", "landmark"] },
+        "generationPromptPath": {
+          "type": "string",
+          "pattern": "^review/prompts/[a-z0-9][a-z0-9/_-]+\\.txt$"
+        },
+        "generationPromptSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "toolMode": { "const": "built-in" },
+        "orientationContract": { "type": "string", "minLength": 1 },
+        "transformSteps": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "full-frame", "crop", "nearest-downscale", "palette-quantize",
+              "wrap-edge-reconcile", "grass-background-composite", "chroma-key-remove",
+              "cell-extract", "shared-scale-normalize", "hard-alpha", "column-reorder"
+            ]
+          }
+        },
+    "spriteContract": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "frame", "sourceColumnOrderObserved", "normalizedColumnOrder", "normalizedColumnSources",
+            "rowOrder", "commonFootBaseline", "visibleBboxHeight", "resizeKernel",
+            "allowEnlargement", "partialAlphaPixels"
+          ],
+          "properties": {
+            "frame": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["width", "height"],
+              "properties": { "width": { "const": 24 }, "height": { "const": 40 } }
+            },
+            "sourceColumnOrderObserved": {
+              "type": "array", "minItems": 4, "maxItems": 4, "uniqueItems": true,
+              "items": { "enum": ["front", "back", "left", "right"] }
+            },
+            "normalizedColumnOrder": {
+              "type": "array", "minItems": 4, "maxItems": 4,
+              "items": [{ "const": "front" }, { "const": "back" }, { "const": "left" }, { "const": "right" }],
+              "additionalItems": false
+            },
+            "normalizedColumnSources": {
+              "type": "array", "minItems": 4, "maxItems": 4, "uniqueItems": true,
+              "items": { "type": "integer", "minimum": 0, "maximum": 3 }
+            },
+            "rowOrder": {
+              "type": "array", "minItems": 3, "maxItems": 3,
+              "items": [{ "const": "idle" }, { "const": "walk1" }, { "const": "walk2" }],
+              "additionalItems": false
+            },
+            "commonFootBaseline": { "const": true },
+            "visibleBboxHeight": {
+              "type": "object", "additionalProperties": false,
+              "required": ["class", "min", "max", "target"],
+              "properties": {
+                "class": { "enum": ["adult", "elder", "child"] },
+                "min": { "type": "integer", "minimum": 1, "maximum": 40 },
+                "max": { "type": "integer", "minimum": 1, "maximum": 40 },
+                "target": { "type": "integer", "minimum": 1, "maximum": 40 }
+              }
+            },
+            "resizeKernel": { "const": "nearest" },
+            "allowEnlargement": { "const": false },
+            "partialAlphaPixels": { "const": 0 }
+          }
+        },
+        "effectContract": { "$ref": "#/definitions/effectContract" },
+        "inputReferences": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "sha256", "role"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+              "role": { "enum": ["global-style", "primary-subject"] }
+            }
+          }
+        },
+        "referenceImages": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "sha256"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+            }
+          }
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "sha256", "width", "height", "cropRect"],
+          "properties": {
+            "path": { "type": "string", "minLength": 1 },
+            "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+            "width": { "type": "integer", "minimum": 1 },
+            "height": { "type": "integer", "minimum": 1 },
+            "cropRect": { "oneOf": [{ "type": "null" }, { "$ref": "#/definitions/rect" }] },
+            "comparisonRect": { "$ref": "#/definitions/rect" }
+          }
+        },
+        "sourceSnapshot": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "sha256", "width", "height"],
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^generated/(characters|buildings|fields|objects|ui|effects)/approved/[a-z0-9_-]+\\.source-original\\.(png|jpg|webp)$"
+            },
+            "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+            "width": { "type": "integer", "minimum": 1 },
+            "height": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "compositeMask": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path", "sha256", "width", "height", "backgroundAssetId",
+            "backgroundPath", "backgroundSha256"
+          ],
+          "properties": {
+            "path": { "type": "string", "pattern": "^tmp/imagegen/[a-z0-9/_-]+\\.png$" },
+            "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+            "width": { "type": "integer", "minimum": 1 },
+            "height": { "type": "integer", "minimum": 1 },
+            "backgroundAssetId": { "const": "field.grass" },
+            "backgroundPath": { "type": "string", "pattern": "^tmp/imagegen/[a-z0-9/_-]+\\.png$" },
+            "backgroundSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+          }
+        },
+        "backgroundRemoval": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "method", "keyColor", "autoKey", "softMatte", "transparentThreshold",
+            "opaqueThreshold", "despill", "cleanup"
+          ],
+          "properties": {
+            "method": { "enum": ["official-chroma-key-helper", "none"] },
+            "keyColor": { "oneOf": [{ "type": "null" }, { "type": "string", "pattern": "^#[a-fA-F0-9]{6}$" }] },
+            "autoKey": { "oneOf": [{ "type": "null" }, { "const": "border" }] },
+            "softMatte": { "type": "boolean" },
+            "transparentThreshold": { "type": "integer", "minimum": 0, "maximum": 255 },
+            "opaqueThreshold": { "type": "integer", "minimum": 0, "maximum": 255 },
+            "despill": { "type": "boolean" },
+            "cleanup": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["alphaCutoff", "componentMinPixels", "targetMaxWidth", "targetMaxHeight", "resizeKernel"],
+              "properties": {
+                "alphaCutoff": { "type": "integer", "minimum": 0, "maximum": 255 },
+                "componentMinPixels": { "type": "integer", "minimum": 1 },
+                "targetMaxWidth": { "type": "integer", "minimum": 1 },
+                "targetMaxHeight": { "type": "integer", "minimum": 1 },
+                "resizeKernel": { "const": "nearest" }
+              }
+            }
+          }
+        },
+        "canvas": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["width", "height", "baselineY"],
+          "properties": {
+            "width": { "type": "integer", "minimum": 1 },
+            "height": { "type": "integer", "minimum": 1 },
+            "baselineY": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "subjectBbox": { "$ref": "#/definitions/rect" },
+        "outputSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "effectContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "frame",
+        "grid",
+        "frameOrder",
+        "segmentation",
+        "sourceSlices",
+        "sharedScale",
+        "alignment",
+        "resizeKernel",
+        "allowEnlargement",
+        "partialAlphaPixels"
+      ],
+      "properties": {
+        "frame": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["width", "height"],
+          "properties": {
+            "width": { "const": 32 },
+            "height": { "const": 32 }
+          }
+        },
+        "grid": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["columns", "rows"],
+          "properties": {
+            "columns": { "const": 4 },
+            "rows": { "const": 1 }
+          }
+        },
+        "frameOrder": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": [
+            { "const": "frame_1" },
+            { "const": "frame_2" },
+            { "const": "frame_3" },
+            { "const": "frame_4" }
+          ],
+          "additionalItems": false
+        },
+        "segmentation": { "const": "explicit-transparent-gutters" },
+        "sourceSlices": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["frame", "rect", "transparentMargins"],
+            "properties": {
+              "frame": { "type": "integer", "minimum": 1, "maximum": 4 },
+              "rect": { "$ref": "#/definitions/rect" },
+              "transparentMargins": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["left", "right", "top", "bottom"],
+                "properties": {
+                  "left": { "type": "integer", "minimum": 1 },
+                  "right": { "type": "integer", "minimum": 1 },
+                  "top": { "type": "integer", "minimum": 1 },
+                  "bottom": { "type": "integer", "minimum": 1 }
+                }
+              }
+            }
+          }
+        },
+        "sharedScale": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+        "alignment": { "enum": ["bottom", "center"] },
+        "resizeKernel": { "const": "nearest" },
+        "allowEnlargement": { "const": false },
+        "partialAlphaPixels": { "const": 0 }
+      }
+    },
     "inspection": {
       "type": "object",
       "additionalProperties": false,

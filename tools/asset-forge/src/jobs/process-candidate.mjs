@@ -1,12 +1,13 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { FORGE_ROOT, pathsFor } from '../config.mjs';
-import { atomicWriteFile, atomicWriteJson } from '../fs-safe.mjs';
+import { atomicWriteFile, atomicWriteJson, withFileLock } from '../fs-safe.mjs';
 import { canonicalJson, hashApprovedTree, hashFile, sha256 } from '../hashing.mjs';
 import { extractGridFrames, processImageBuffer } from '../images/process-image.mjs';
-import { appendGenerationResult, readLocalGenerationManifest } from '../manifests/local-generations.mjs';
+import { appendGenerationResultUnlocked, readLocalGenerationManifest } from '../manifests/local-generations.mjs';
 import { assertExistingStateFile, assetFileStem, categoryDirectory, toPosixRelative } from '../paths.mjs';
 import { inspectPng } from '../png-core.mjs';
+import { assertGenerationReferenceMetadata } from '../references.mjs';
 import { validateWith } from '../schemas.mjs';
 import { findAsset } from './define-assets.mjs';
 
@@ -15,6 +16,14 @@ export async function processCandidate({ generationId, alphaKey = 'none', tolera
   forgeRoot = FORGE_ROOT,
   now = () => new Date().toISOString()
 } = {}) {
+  return withFileLock(root, pathsFor(root).requiredPromotionLock, () => processCandidateLocked({
+    generationId, alphaKey, tolerance, trim
+  }, { root, forgeRoot, now }));
+}
+
+async function processCandidateLocked({ generationId, alphaKey, tolerance, trim }, {
+  root, forgeRoot, now
+}) {
   const approvedBefore = await hashApprovedTree(root);
   const manifest = await readLocalGenerationManifest(root);
   const result = manifest.results.find((entry) => entry.id === generationId);
@@ -24,6 +33,7 @@ export async function processCandidate({ generationId, alphaKey = 'none', tolera
   const sourceHashBefore = sha256(source);
   if (sourceHashBefore !== result.outputSha256) throw new Error('Pending source hash mismatch');
   const asset = await findAsset(result.assetId, { root: forgeRoot });
+  await assertGenerationReferenceMetadata(asset, result, { root: forgeRoot });
   const processed = await processImageBuffer(source, {
     alphaKey,
     tolerance: Number(tolerance),
@@ -99,7 +109,7 @@ export async function processCandidate({ generationId, alphaKey = 'none', tolera
   const validation = validateWith('generation-result.schema.json', processedResult);
   if (!validation.ok) throw new Error(`Invalid processed result: ${JSON.stringify(validation.errors)}`);
   await atomicWriteJson(root, resultMetadataPath, processedResult);
-  await appendGenerationResult(root, processedResult);
+  await appendGenerationResultUnlocked(root, processedResult);
   const approvedAfter = await hashApprovedTree(root);
   if (approvedAfter !== approvedBefore) throw new Error('Approved tree changed during processing');
   return {

@@ -26,7 +26,7 @@
               { "type": "string", "pattern": "^[a-f0-9]{64}$" }
             ]
           },
-          "providedBy": { "const": "human" },
+          "providedBy": { "enum": ["human", "codex-imagegen-built-in"] },
           "licenseNote": { "type": "string", "minLength": 1 },
           "targetAssetIds": {
             "type": "array",
@@ -34,7 +34,131 @@
             "items": { "type": "string", "pattern": "^[a-z0-9_]+(?:\\.[a-z0-9_]+)*$" }
           },
           "notes": { "type": "string" }
-        }
+          ,
+          "generationProvenance": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "toolMode", "promptSnapshot", "actualPromptExactMatch", "inputReferences",
+              "sourceOriginal", "normalizedReference", "chromaRemoval", "decision", "rawSourcePublished"
+            ],
+            "properties": {
+              "toolMode": { "const": "built-in" },
+              "promptSnapshot": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["path", "sha256"],
+                "properties": {
+                  "path": { "type": "string", "pattern": "^review/prompts/[a-z0-9_-]+(?:/[a-z0-9_.-]+)*\\.txt$" },
+                  "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+                }
+              },
+              "actualPromptExactMatch": { "const": true },
+              "inputReferences": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["id", "sha256", "role"],
+                  "properties": {
+                    "id": { "type": "string", "pattern": "^[a-z0-9_]+(?:\\.[a-z0-9_]+)*$" },
+                    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+                    "role": { "type": "string", "minLength": 1 }
+                  }
+                }
+              },
+              "sourceOriginal": {
+                "$ref": "#/definitions/referenceProvenanceImage"
+              },
+              "normalizedReference": {
+                "$ref": "#/definitions/referenceProvenanceImage"
+              },
+              "chromaRemoval": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "helper", "autoKey", "keyColorObserved", "softMatte",
+                  "transparentThreshold", "opaqueThreshold", "despill"
+                ],
+                "properties": {
+                  "helper": { "const": "$CODEX_HOME/skills/.system/imagegen/scripts/remove_chroma_key.py" },
+                  "autoKey": { "const": "border" },
+                  "keyColorObserved": { "type": "string", "pattern": "^#[a-f0-9]{6}$" },
+                  "softMatte": { "const": true },
+                  "transparentThreshold": { "type": "integer", "minimum": 0, "maximum": 255 },
+                  "opaqueThreshold": { "type": "integer", "minimum": 0, "maximum": 255 },
+                  "despill": { "const": true }
+                }
+              },
+              "decision": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["path", "sha256", "reviewer", "approvedAt"],
+                "properties": {
+                  "path": { "type": "string", "pattern": "^review/decisions/[a-zA-Z0-9_.-]+\\.json$" },
+                  "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+                  "reviewer": { "const": "lead" },
+                  "approvedAt": { "type": "string", "minLength": 1 }
+                }
+              },
+              "rawSourcePublished": { "const": false }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": { "providedBy": { "const": "codex-imagegen-built-in" } },
+              "required": ["providedBy"]
+            },
+            "then": {
+              "required": ["generationProvenance"],
+              "properties": { "generationProvenance": {} }
+            }
+          },
+          {
+            "if": {
+              "properties": { "providedBy": { "const": "human" } },
+              "required": ["providedBy"]
+            },
+            "then": { "not": { "required": ["generationProvenance"] } }
+          },
+          {
+            "if": { "properties": { "status": { "const": "approved" } }, "required": ["status"] },
+            "then": {
+              "required": ["targetAssetIds"],
+              "properties": {
+                "path": { "type": "string", "pattern": "^references/approved/[a-zA-Z0-9_.-]+$" },
+                "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+                "targetAssetIds": { "type": "array", "minItems": 1, "uniqueItems": true }
+              }
+            }
+          },
+          {
+            "if": { "properties": { "status": { "const": "pending" } }, "required": ["status"] },
+            "then": {
+              "properties": {
+                "path": { "type": "string", "pattern": "^references/pending/[a-zA-Z0-9_.-]+$" },
+                "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "referenceProvenanceImage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "width", "height"],
+      "properties": {
+        "path": { "type": "string", "pattern": "^(references/approved/(?:provenance/)?[a-zA-Z0-9_.-]+\\.png)$" },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 }
       }
     }
   }

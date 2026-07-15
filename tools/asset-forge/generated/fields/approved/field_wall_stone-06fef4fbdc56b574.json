@@ -1,0 +1,141 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-15T04:37:17.697Z",
+    "approvedPath": "generated/fields/approved/field_wall_stone-06fef4fbdc56b574.png",
+    "approvedSha256": "06fef4fbdc56b574140a6a9461778b8e44cfea9cc1d66f88676060016653dff0",
+    "note": "Required 78 batch approval cb4aa5f67c91a329c140f4a09bdc39b960ccce8a76334957066d7c0e83540042",
+    "reviewer": "human"
+  },
+  "assetId": "field.wall_stone",
+  "category": "field",
+  "createdAt": "2026-07-14T00:00:00.000Z",
+  "dryRun": false,
+  "id": "gen_import_c21efa60510b3f1b5d26",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 64x64.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_81d4a507794e359f8543",
+  "manualImport": true,
+  "metadataPath": "generated/fields/approved/field_wall_stone-06fef4fbdc56b574.json",
+  "outputInspection": {
+    "bytes": 2929,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 64,
+    "width": 64
+  },
+  "outputPath": "generated/fields/approved/field_wall_stone-06fef4fbdc56b574.png",
+  "outputSha256": "06fef4fbdc56b574140a6a9461778b8e44cfea9cc1d66f88676060016653dff0",
+  "productionRecipe": {
+    "assetId": "field.wall_stone",
+    "backgroundRemoval": {
+      "autoKey": null,
+      "cleanup": {
+        "alphaCutoff": 0,
+        "componentMinPixels": 1,
+        "resizeKernel": "nearest",
+        "targetMaxHeight": 64,
+        "targetMaxWidth": 64
+      },
+      "despill": false,
+      "keyColor": null,
+      "method": "none",
+      "opaqueThreshold": 255,
+      "softMatte": false,
+      "transparentThreshold": 0
+    },
+    "canvas": {
+      "baselineY": 63,
+      "height": 64,
+      "width": 64
+    },
+    "generationPromptPath": "review/prompts/wave1b-fields/field_wall_stone.txt",
+    "generationPromptSha256": "1914cd04c21942364575fb29e5d3be4d93cbd781db7856dab66b12e9e45be5ae",
+    "generator": "codex-imagegen-built-in",
+    "inputReferences": [
+      {
+        "id": "world_visual_master",
+        "role": "global-style",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_field_stairs_bridges_cliffs",
+        "role": "primary-subject",
+        "sha256": "24e899bfb25552aa96e453a74e574337fc65481791fa572accdd8758615387bd"
+      }
+    ],
+    "method": "imagegen",
+    "orientationContract": "horizontal impassable stone wall connecting left and right edges",
+    "outputSha256": "06fef4fbdc56b574140a6a9461778b8e44cfea9cc1d66f88676060016653dff0",
+    "referenceImages": [
+      {
+        "id": "world_visual_master",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_field_stairs_bridges_cliffs",
+        "sha256": "24e899bfb25552aa96e453a74e574337fc65481791fa572accdd8758615387bd"
+      }
+    ],
+    "scaleClass": "medium",
+    "source": {
+      "cropRect": null,
+      "height": 1254,
+      "path": "tmp/imagegen/wave1b-fields/raw/field_wall_stone.png",
+      "sha256": "ef8a88dda2b4b92c184bef3c3620174c22ed2cd47dbe2938d5cb5e8a6eeb10e6",
+      "width": 1254
+    },
+    "sourceSnapshot": {
+      "height": 1254,
+      "path": "generated/fields/approved/source-ef8a88dda2b4b92c184bef3c3620174c22ed2cd47dbe2938d5cb5e8a6eeb10e6.source-original.png",
+      "sha256": "ef8a88dda2b4b92c184bef3c3620174c22ed2cd47dbe2938d5cb5e8a6eeb10e6",
+      "width": 1254
+    },
+    "subjectBbox": {
+      "height": 64,
+      "width": 64,
+      "x": 0,
+      "y": 0
+    },
+    "toolMode": "built-in",
+    "transformSteps": [
+      "full-frame",
+      "nearest-downscale",
+      "palette-quantize"
+    ],
+    "waveId": "wave1b-fields"
+  },
+  "promptHash": "d24cb3ba481285038ffff0edc27ce7410cef258517c133c25c0ba5a1e669e0bd",
+  "provenanceKey": "c21efa60510b3f1b5d26bdab962e94c0ece8597fbd5f8507c8543538fef586b0",
+  "provider": "manual-import",
+  "referenceImageHashes": [
+    "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+    "24e899bfb25552aa96e453a74e574337fc65481791fa572accdd8758615387bd"
+  ],
+  "referenceImageIds": [
+    "world_visual_master",
+    "intake_20260713_field_stairs_bridges_cliffs"
+  ],
+  "sourceFormat": "png",
+  "sourcePath": "generated/fields/pending/field_wall_stone-eac6e3b47b73180a.source.png",
+  "sourceSha256": "eac6e3b47b73180a5ea605142c44850fc0886cbd7a9596ccbf06aa8239de2a19",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

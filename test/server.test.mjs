@@ -32,7 +32,8 @@ async function serverFixture({ withEntrypoint = true } = {}) {
   if (withEntrypoint) await writeFile(path.join(repo, 'package.json'), '{"main":"src/index.js"}\n');
   await writeFile(path.join(publicRoot, 'index.html'), '<h1>CodeCity</h1>');
   await writeFile(path.join(publicRoot, 'app.js'), 'document.body.dataset.ready = "yes";');
-  await writeFile(path.join(publicRoot, 'game-runtime.mjs'), 'export const ready = true;');
+  await writeFile(path.join(publicRoot, 'world-runtime.mjs'), 'export const ready = true;');
+  await writeFile(path.join(publicRoot, 'site-runtime.mjs'), 'export const sitesReady = true;');
   const outside = path.join(workspace, 'outside.txt');
   await writeFile(outside, 'OUTSIDE_SECRET');
   await symlink(outside, path.join(publicRoot, 'leak.txt'));
@@ -69,9 +70,12 @@ test('serves the city report and assets on loopback without source bodies', asyn
   assert.equal(head.status, 200);
   assert.equal(head.body, '');
   assert.match(head.headers['content-type'], /text\/javascript/);
-  const moduleHead = await rawRequest(port, '/game-runtime.mjs', 'HEAD');
+  const moduleHead = await rawRequest(port, '/world-runtime.mjs', 'HEAD');
   assert.equal(moduleHead.status, 200);
   assert.match(moduleHead.headers['content-type'], /text\/javascript/);
+  const siteModuleHead = await rawRequest(port, '/site-runtime.mjs', 'HEAD');
+  assert.equal(siteModuleHead.status, 200);
+  assert.match(siteModuleHead.headers['content-type'], /text\/javascript/);
 });
 
 test('serves the town model, habitability, and validated layout without leaking source', async (t) => {

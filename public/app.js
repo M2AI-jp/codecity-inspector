@@ -1,1331 +1,790 @@
-// public/app.js — CodeCity Inspector image-backed frontend with safe fallbacks.
-//
-// Vanilla browser JS, no build step or framework. Fetches
-// GET /api/town and renders it four ways: a pixel-grid town canvas with
-// published Asset Forge images or a visible procedural fallback,
-// a habitability panel (incl. the "誰も住めません" headline), a
-// building-details panel that splits a facility's evidence into observed /
-// inferred / unknown, and the 5-tab 接続者ギルド roster modal.
-//
-// CSP contract (server sends: script-src 'self'; style-src 'self'; no
-// unsafe-inline): this file is loaded as an external <script src="/app.js">,
-// never writes el.style.* and sets no style attributes — every visual state is
-// a class or the [hidden] attribute, owned by styles.css. The ONLY per-node
-// geometry it sets is the canvas drawing-buffer resolution (canvas.width /
-// canvas.height IDL properties) plus 2D canvas drawing, which CSP does not
-// govern. The JP vocabulary below is mirrored from src/town/schema.mjs because
-// that module lives outside the served public/ root and cannot be imported.
-
 import {
-  buildAssetInspectionInventory, buildingStateVisuals, cardinalTerrainNeighbors, characterDestinationRect,
-  findPlayerSpawn, loadGameAssets, movePlayer, selectBuildingAsset, selectNpcAsset,
-  selectLoadedAnimatedEffect, selectPropAsset, selectTerrainAsset, spriteSourceRect
-} from './game-runtime.mjs';
+  FACILITY_ANCHORS,
+  WORLD_DISTRICTS,
+  WORLD_IMAGE,
+  anchorsForPresentFacilities,
+  computeWorldCamera,
+  createInterpolatedMovement,
+  directionBetweenPoints,
+  districtForPoint,
+  nearestFacilityAnchor,
+  nearestNavigationNode,
+  navigationEdgeBetween,
+  nextNodeForDirection,
+  sampleInterpolatedMovement,
+  screenToWorld,
+  shortestNavigationPath,
+  worldRenderLayers,
+  worldToScreen
+} from './world-runtime.mjs';
+import {
+  SITE_CANVAS,
+  SITE_RENDER_LAYERS,
+  authoredTilePlacement,
+  auditRuntimeAssetUsage,
+  auditSiteRecipes,
+  characterFrameRect,
+  computeSiteCamera,
+  effectFrameRect,
+  groundAssetAt,
+  groundTransformAt,
+  loadForgeAssetImages,
+  nearestSiteNode,
+  nextSiteNodeForDirection,
+  screenToSite,
+  shortestSitePath,
+  snowPixelOverlaysAt,
+  siteNodeById,
+  siteRecipeById,
+  siteRecipesForFacility
+} from './site-runtime.mjs';
 
-// ---------------------------------------------------------------------------
-// Vocabulary mirrored from src/town/schema.mjs (frozen contract).
-// ---------------------------------------------------------------------------
-
-const FACILITY_LABELS = {
-  inn: '宿屋', pub: '酒場', guild: '接続者ギルド', town_hall: '役場',
-  dock: '船着場', warehouse: '倉庫', well: '井戸', workshop: '工房',
-  dojo: '道場', watchtower: '見張り台', house: '住宅', shop: '商店',
-  ruin: '廃屋', gate: '門'
+const elements = {
+  canvas: document.getElementById('world-canvas'),
+  loading: document.getElementById('world-loading'),
+  worldFallback: document.getElementById('world-fallback'),
+  assetError: document.getElementById('asset-error'),
+  assetErrorText: document.getElementById('asset-error-text'),
+  help: document.getElementById('world-help'),
+  status: document.getElementById('world-status'),
+  repoName: document.getElementById('repo-name'),
+  levelBadge: document.getElementById('level-badge'),
+  placeLabel: document.getElementById('place-label'),
+  overviewButton: document.getElementById('overview-btn'),
+  backButton: document.getElementById('back-btn'),
+  journalButton: document.getElementById('journal-btn'),
+  journal: document.getElementById('journal-drawer'),
+  journalClose: document.getElementById('journal-close-btn'),
+  drawerRepo: document.getElementById('drawer-repo'),
+  drawerHabitability: document.getElementById('drawer-habitability'),
+  drawerLocation: document.getElementById('drawer-location'),
+  facilityEmpty: document.getElementById('facility-empty'),
+  facilityDetail: document.getElementById('facility-detail'),
+  facilityDistrict: document.getElementById('facility-district'),
+  facilityName: document.getElementById('facility-name'),
+  facilityKind: document.getElementById('facility-kind'),
+  facilityCount: document.getElementById('facility-count'),
+  evidenceObserved: document.getElementById('evidence-observed'),
+  evidenceInferred: document.getElementById('evidence-inferred'),
+  evidenceUnknown: document.getElementById('evidence-unknown'),
+  siteEnterButton: document.getElementById('site-enter-btn'),
+  siteChoice: document.getElementById('site-choice-panel'),
+  siteChoiceTitle: document.getElementById('site-choice-title'),
+  siteChoiceButtons: document.getElementById('site-choice-buttons'),
+  siteChoiceClose: document.getElementById('site-choice-close-btn')
 };
 
-const GUILD_TABS = ['なかま', 'うけつけ', 'いらい', 'もちもの', 'じょうたい'];
-const EVIDENCE_LABELS = { observed: '観測', inferred: '推測', unknown: '不明' };
+const context = elements.canvas.getContext('2d', { alpha: false });
+const initialNode = nearestNavigationNode(FACILITY_ANCHORS.town_hall.x, FACILITY_ANCHORS.town_hall.y);
+const directionForKey = Object.freeze({
+  ArrowUp: 'up', w: 'up', W: 'up',
+  ArrowDown: 'down', s: 'down', S: 'down',
+  ArrowLeft: 'left', a: 'left', A: 'left',
+  ArrowRight: 'right', d: 'right', D: 'right'
+});
 
-// Kept in sync with src/town/habitability.mjs; the same string is unshifted
-// into reasons[] when !canLive, so we filter it out of the reasons list and
-// show it once, prominently, in its dedicated headline element instead.
-const HEADLINE_CANNOT_LIVE = 'このままだと誰も住めません！';
-
-// One fill per TILE_TYPES id (14); unmapped ids get the loud fallback so a
-// vocabulary drift is visible rather than silent. water/bridge/cliff/stairs also
-// get a procedural pixel pass in drawTerrainDetail() so the elevation + waterway
-// terrain reads at a glance (rippling water, planks over the banks, a rocky rim,
-// stepped treads) without any image assets.
-const TILE_COLORS = {
-  grass: '#4a8f3c', dirt: '#8a6a3f', path: '#c7ac7c', road: '#b89a63',
-  sand: '#e3d2a0', water: '#3a72b0', bridge: '#9c7a4f', stairs: '#cabf99',
-  plaza: '#d8cdb0', floor: '#e9e4d6', wall: '#33302b', rock: '#8a8a86',
-  tree: '#2f6b2a', cliff: '#544b40'
-};
-const UNKNOWN_TILE_COLOR = '#b23a9c';
-
-// One tint per FACILITY_KINDS id (14).
-const FACILITY_COLORS = {
-  inn: '#b5651d', pub: '#a4478a', guild: '#6a4fb3', town_hall: '#c9a227',
-  dock: '#2f6f8f', warehouse: '#7a6a4f', well: '#4a90a4', workshop: '#c97a3d',
-  dojo: '#3f7d4f', watchtower: '#5a5a6a', house: '#8fae5f', shop: '#d98c3d',
-  ruin: '#6b6459', gate: '#9c9c9c'
-};
-const UNKNOWN_FACILITY_COLOR = '#b23a9c';
-
-// One fill per PROP_KINDS id (12).
-const PROP_COLORS = {
-  well: '#4a90a4', barrel: '#8a5a2f', crate: '#a4783f', signboard: '#caa863',
-  lamp: '#e8c96a', plant: '#4f8f4a', todo_grass: '#c9c15a', scaffold: '#b08a52',
-  fence: '#9c8a6a', flag: '#c94f4f', bench: '#7a5a3f', rubble: '#6b645a'
-};
-const DEFAULT_PROP_COLOR = '#8a7a5f';
-
-// The last three NPC_ROLES are ambient mobs — drawn lighter and smaller than
-// the facility-anchored roles (innkeeper, clerk, inspector, ...).
-const NPC_MOB_ROLES = new Set(['townsfolk', 'traveler', 'child']);
-
-const DIRECTION_VECTORS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
-const EFFECT_FRAME_DURATION_MS = 180;
-const PLAYER_IDLE_DELAY_MS = 140;
-const FOCUSABLE_SELECTOR = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
-const ASSET_CATEGORY_LABELS = {
-  field: '地形', building: '建物', character: 'キャラクター', object: '小物', effect: 'エフェクト', ui: 'UI'
+const state = {
+  town: null,
+  worldImage: null,
+  worldReady: false,
+  assets: null,
+  assetError: null,
+  view: 'overview',
+  interactionStarted: false,
+  camera: null,
+  presentAnchors: [],
+  hoveredAnchor: null,
+  selectedAnchor: null,
+  nearbyAnchor: null,
+  worldNodeId: initialNode.id,
+  worldPosition: { x: initialNode.x, y: initialNode.y },
+  worldDirection: 'down',
+  worldMovement: null,
+  worldTransition: null,
+  worldQueue: [],
+  worldReturn: null,
+  siteRecipe: null,
+  siteNodeId: null,
+  sitePosition: null,
+  siteDirection: 'up',
+  siteMovement: null,
+  siteQueue: [],
+  drawerOpener: null,
+  lastTimestamp: 0
 };
 
-// ---------------------------------------------------------------------------
-// State
-// ---------------------------------------------------------------------------
-
-let currentTown = null;
-let selectedKind = null; // facilityKind driving both the details panel and the canvas outline
-let activeGuildTab = GUILD_TABS[0];
-let guildOpenerEl = null;
-let assetInspectionOpenerEl = null;
-let assetInspectionRendered = false;
-let player = null;
-let playerFrameName = 'idle';
-let playerIdleTimer = null;
-let effectElapsedMs = 0;
-let effectAnimationTimer = null;
-const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-let effectAnimationPaused = document.hidden || reducedMotionQuery.matches;
-let gameAssets = { status: 'fallback', reason: 'not loaded', manifest: null, index: null, images: new Map() };
-
-// ---------------------------------------------------------------------------
-// DOM cache
-// ---------------------------------------------------------------------------
-
-const el = {};
-
-function cacheDom() {
-  el.repoName = document.getElementById('repo-name');
-  el.seedBadge = document.getElementById('seed-badge');
-  el.seedShort = document.getElementById('seed-short');
-  el.levelBadge = document.getElementById('level-badge');
-  el.levelNum = document.getElementById('level-num');
-  el.levelName = document.getElementById('level-name');
-  el.reloadBtn = document.getElementById('reload-btn');
-  el.openGuildBtn = document.getElementById('open-guild-btn');
-  el.errorBanner = document.getElementById('error-banner');
-  el.canvas = document.getElementById('town-canvas');
-  el.canvasEmptyState = document.getElementById('canvas-empty-state');
-  el.assetStatus = document.getElementById('asset-status');
-  el.openAssetInspectionBtn = document.getElementById('open-asset-inspection-btn');
-
-  el.cannotLiveHeadline = document.getElementById('cannot-live-headline');
-  el.habLevelText = document.getElementById('hab-level-text');
-  el.habCanLiveText = document.getElementById('hab-can-live-text');
-  el.habBlockersList = document.getElementById('hab-blockers-list');
-  el.habBlockersCount = document.getElementById('hab-blockers-count');
-  el.habWarningsList = document.getElementById('hab-warnings-list');
-  el.habWarningsCount = document.getElementById('hab-warnings-count');
-  el.habPendingList = document.getElementById('hab-pending-list');
-  el.habPendingCount = document.getElementById('hab-pending-count');
-  el.habReasonsList = document.getElementById('hab-reasons-list');
-
-  el.buildingDetailsEmpty = document.getElementById('building-details-empty');
-  el.buildingDetailsContent = document.getElementById('building-details-content');
-  el.bdFacilityLabel = document.getElementById('bd-facility-label');
-  el.bdFacilityKind = document.getElementById('bd-facility-kind');
-  el.bdFacilityPresent = document.getElementById('bd-facility-present');
-  el.bdFacilityCount = document.getElementById('bd-facility-count');
-  el.bdBuildingState = document.getElementById('bd-building-state');
-  el.bdEvidenceObserved = document.getElementById('bd-evidence-observed');
-  el.bdEvidenceInferred = document.getElementById('bd-evidence-inferred');
-  el.bdEvidenceUnknown = document.getElementById('bd-evidence-unknown');
-  el.facilityList = document.getElementById('facility-list');
-
-  el.guildModal = document.getElementById('guild-modal');
-  el.guildBackdrop = document.getElementById('guild-backdrop');
-  el.guildCloseBtn = document.getElementById('guild-close-btn');
-  el.guildUnavailable = document.getElementById('guild-unavailable');
-  el.guildBody = document.getElementById('guild-body');
-  el.guildTabs = Array.from(document.querySelectorAll('.guild-tab'));
-  el.guildTabpanels = Array.from(document.querySelectorAll('.guild-tabpanel'));
-
-  el.assetInspectionModal = document.getElementById('asset-inspection-modal');
-  el.assetInspectionBackdrop = document.getElementById('asset-inspection-backdrop');
-  el.assetInspectionCloseBtn = document.getElementById('asset-inspection-close-btn');
-  el.assetInspectionSummary = document.getElementById('asset-inspection-summary');
-  el.assetInspectionGroups = document.getElementById('asset-inspection-groups');
+function announce(message) {
+  elements.status.textContent = '';
+  window.requestAnimationFrame(() => { elements.status.textContent = message; });
 }
 
-// ---------------------------------------------------------------------------
-// Bootstrap
-// ---------------------------------------------------------------------------
+function facilityForAnchor(anchor) {
+  return state.town?.model?.facilities?.find((facility) => facility.kind === anchor?.kind) ?? null;
+}
 
-function init() {
-  cacheDom();
-  el.reloadBtn.addEventListener('click', loadTown);
-  el.openGuildBtn.addEventListener('click', () => {
-    if (currentTown) openGuildModal(currentTown.model, el.openGuildBtn);
+function facilityIsPresent(facilityKind) {
+  return state.town?.model?.facilities?.some((facility) => facility.kind === facilityKind && facility.present === true) === true;
+}
+
+function districtLabel(point) {
+  return districtForPoint(point?.x, point?.y, WORLD_DISTRICTS)?.label ?? '街道';
+}
+
+function evidenceItems(target, items, emptyLabel) {
+  target.replaceChildren();
+  const values = Array.isArray(items) && items.length > 0 ? items : [emptyLabel];
+  for (const value of values) {
+    const item = document.createElement('li');
+    item.textContent = String(value);
+    target.append(item);
+  }
+}
+
+function selectedFacility() {
+  return facilityForAnchor(state.selectedAnchor);
+}
+
+function updateFacilityDetail() {
+  const anchor = state.selectedAnchor;
+  const facility = selectedFacility();
+  elements.facilityEmpty.hidden = Boolean(anchor && facility);
+  elements.facilityDetail.hidden = !anchor || !facility;
+  if (!anchor || !facility) return;
+  elements.facilityDistrict.textContent = state.view === 'site'
+    ? state.siteRecipe.label
+    : districtLabel(anchor);
+  elements.facilityName.textContent = anchor.label;
+  elements.facilityKind.textContent = facility.kind;
+  elements.facilityCount.textContent = String(facility.count ?? 0);
+  evidenceItems(elements.evidenceObserved, facility.evidence?.observed, '観測された根拠はありません。');
+  evidenceItems(elements.evidenceInferred, facility.evidence?.inferred, '推測された根拠はありません。');
+  evidenceItems(elements.evidenceUnknown, facility.evidence?.unknown, '未確認事項はありません。');
+  const routes = siteRecipesForFacility(facility.kind);
+  elements.siteEnterButton.hidden = facility.present !== true || routes.length === 0;
+  elements.siteEnterButton.textContent = routes.length > 1 ? '4つの検査場所から選ぶ' : 'この施設を歩いて検査する';
+}
+
+function currentPlaceLabel() {
+  if (state.view === 'site') return state.siteRecipe?.label ?? '検査場所';
+  if (state.view === 'overview') return '街の全景';
+  return districtLabel(state.worldPosition);
+}
+
+function updateSummary() {
+  const name = state.town?.repository?.name || '検査情報を取得できませんでした';
+  const habitability = state.town?.habitability;
+  elements.repoName.textContent = name;
+  elements.levelBadge.textContent = Number.isInteger(habitability?.level) ? `Lv.${habitability.level}` : 'Lv.-';
+  elements.placeLabel.textContent = currentPlaceLabel();
+  elements.drawerRepo.textContent = name;
+  elements.drawerHabitability.textContent = habitability
+    ? `${habitability.canLive ? '住めます' : '要整備'} · ${habitability.levelName}`
+    : '未確認';
+  elements.drawerLocation.textContent = currentPlaceLabel();
+  elements.overviewButton.setAttribute('aria-pressed', String(state.view === 'overview'));
+  elements.backButton.hidden = state.view !== 'site';
+}
+
+function openJournal(opener = document.activeElement) {
+  state.drawerOpener = opener instanceof HTMLElement ? opener : elements.journalButton;
+  elements.journal.hidden = false;
+  elements.journalButton.setAttribute('aria-expanded', 'true');
+  updateFacilityDetail();
+  elements.journalClose.focus();
+}
+
+function closeJournal({ restoreFocus = true } = {}) {
+  if (elements.journal.hidden) return;
+  elements.journal.hidden = true;
+  elements.journalButton.setAttribute('aria-expanded', 'false');
+  if (restoreFocus && state.drawerOpener?.isConnected) state.drawerOpener.focus();
+}
+
+function closeSiteChoice({ restoreFocus = true } = {}) {
+  if (elements.siteChoice.hidden) return;
+  elements.siteChoice.hidden = true;
+  elements.siteChoiceButtons.replaceChildren();
+  if (restoreFocus) elements.canvas.focus();
+}
+
+function showSiteChoice(recipes) {
+  if (!state.assets || recipes.length === 0) return;
+  elements.siteChoiceButtons.replaceChildren();
+  elements.siteChoiceTitle.textContent = recipes.length > 1 ? '住宅の4つの検査場所' : '検査場所';
+  for (const recipe of recipes) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'site-choice-button';
+    button.textContent = recipe.label;
+    button.addEventListener('click', () => enterSite(recipe.id));
+    elements.siteChoiceButtons.append(button);
+  }
+  elements.siteChoice.hidden = false;
+  elements.siteChoiceButtons.querySelector('button')?.focus();
+}
+
+function resizeCanvas() {
+  const bounds = elements.canvas.getBoundingClientRect();
+  const width = Math.max(1, Math.round(bounds.width));
+  const height = Math.max(1, Math.round(bounds.height));
+  if (elements.canvas.width !== width) elements.canvas.width = width;
+  if (elements.canvas.height !== height) elements.canvas.height = height;
+  draw(state.lastTimestamp);
+}
+
+function worldCamera() {
+  return computeWorldCamera({
+    mode: state.view === 'world' ? 'follow' : 'overview',
+    viewportWidth: elements.canvas.width,
+    viewportHeight: elements.canvas.height,
+    focusX: state.worldPosition.x,
+    focusY: state.worldPosition.y
   });
-  el.canvas.addEventListener('click', onCanvasClick);
-  el.guildBackdrop.addEventListener('click', closeGuildModal);
-  el.guildCloseBtn.addEventListener('click', closeGuildModal);
-  el.openAssetInspectionBtn.addEventListener('click', () => openAssetInspection(el.openAssetInspectionBtn));
-  el.assetInspectionBackdrop.addEventListener('click', closeAssetInspection);
-  el.assetInspectionCloseBtn.addEventListener('click', closeAssetInspection);
-  document.addEventListener('keydown', (e) => {
-    const openModal = activeModal();
-    if (e.key === 'Escape' && openModal) {
-      e.preventDefault();
-      if (openModal === el.assetInspectionModal) closeAssetInspection();
-      else closeGuildModal();
-      return;
-    }
-    if (e.key === 'Tab' && openModal) {
-      trapModalFocus(openModal, e);
-      return;
-    }
-    const direction = { ArrowUp: 'up', w: 'up', W: 'up', ArrowDown: 'down', s: 'down', S: 'down', ArrowLeft: 'left', a: 'left', A: 'left', ArrowRight: 'right', d: 'right', D: 'right' }[e.key];
-    if (direction && document.activeElement === el.canvas && !openModal && currentTown && player) {
-      e.preventDefault();
-      const previous = player;
-      player = movePlayer(currentTown.layout, player, direction);
-      const moved = player.x !== previous.x || player.y !== previous.y;
-      playerFrameName = moved ? (playerFrameName === 'walk_1' ? 'walk_2' : 'walk_1') : 'idle';
-      drawTown(currentTown.layout);
-      schedulePlayerIdle(moved);
-    }
-  });
-  for (const tabBtn of el.guildTabs) {
-    tabBtn.addEventListener('click', () => selectGuildTab(tabBtn.dataset.tab));
-  }
-  wireGuildTabKeyboardNav();
-  document.addEventListener('visibilitychange', onVisibilityChange);
-  reducedMotionQuery.addEventListener?.('change', restartEffectAnimation);
-  loadGameAssets().then((runtime) => {
-    gameAssets = runtime;
-    renderAssetStatus();
-  }).catch((error) => {
-    gameAssets = { status: 'fallback', reason: error.message, manifest: null, index: null, images: new Map() };
-    renderAssetStatus();
-  }).finally(loadTown);
 }
 
-function renderAssetStatus() {
-  if (!el.assetStatus) return;
-  const publishedCount = gameAssets.manifest?.assets?.length ?? 0;
-  const hasInspectableManifest = gameAssets.manifest?.schemaVersion === 2 && publishedCount > 0;
-  el.openAssetInspectionBtn.disabled = !hasInspectableManifest;
-  el.openAssetInspectionBtn.textContent = hasInspectableManifest
-    ? `アセット検査 (${publishedCount})`
-    : 'アセット検査';
-  if (gameAssets.status === 'loaded') {
-    el.assetStatus.dataset.status = 'loaded';
-    el.assetStatus.textContent = `公開素材 ${gameAssets.images.size}/${publishedCount} 読込済み`;
-  } else if (gameAssets.status === 'partial') {
-    el.assetStatus.dataset.status = 'fallback';
-    el.assetStatus.textContent = `公開素材 ${gameAssets.images.size}/${publishedCount} 読込済み — 手続き生成を併用 (${gameAssets.reason})`;
-  } else {
-    el.assetStatus.dataset.status = 'fallback';
-    el.assetStatus.textContent = `公開素材を利用できません — 手続き生成表示を使用 (${gameAssets.reason || 'unknown'})`;
+function drawWorldAnchor(anchor, active) {
+  const screen = worldToScreen(state.camera, anchor);
+  if (!screen) return;
+  const radius = active ? 16 : 11;
+  const glow = context.createRadialGradient(screen.x, screen.y, 1, screen.x, screen.y, radius);
+  glow.addColorStop(0, active ? 'rgba(255, 235, 154, .82)' : 'rgba(255, 219, 112, .45)');
+  glow.addColorStop(0.48, active ? 'rgba(226, 178, 63, .42)' : 'rgba(226, 178, 63, .20)');
+  glow.addColorStop(1, 'rgba(226, 178, 63, 0)');
+  context.fillStyle = glow;
+  context.beginPath();
+  context.arc(screen.x, screen.y, radius, 0, Math.PI * 2);
+  context.fill();
+  if (active) {
+    context.strokeStyle = 'rgba(255, 239, 180, .96)';
+    context.lineWidth = 1;
+    context.beginPath();
+    context.arc(screen.x, screen.y, 6, 0, Math.PI * 2);
+    context.stroke();
   }
 }
 
-async function loadTown() {
-  showError(null);
-  el.reloadBtn.disabled = true;
-  try {
-    let response;
-    try {
-      response = await fetch('/api/town', { headers: { Accept: 'application/json' }, cache: 'no-store' });
-    } catch {
-      throw new Error('サーバーに接続できませんでした（/api/town）。');
-    }
-    if (!response.ok) throw new Error(`サーバーがエラーを返しました（HTTP ${response.status}）。`);
-    const town = await response.json();
-    if (!isValidTown(town)) throw new Error('/api/town の応答形式がこの画面の想定と一致しません。');
-    currentTown = town;
-    renderAll(town);
-  } catch (err) {
-    currentTown = null;
-    resetPlayerIdleFrame();
-    restartEffectAnimation();
-    showError(`町の読み込みに失敗しました: ${err && err.message ? err.message : err}`);
-  } finally {
-    el.reloadBtn.disabled = false;
-  }
+function movementFrame(movement, timestamp) {
+  if (!movement) return 'idle';
+  return Math.floor(timestamp / 130) % 2 === 0 ? 'walk1' : 'walk2';
 }
 
-function isValidTown(town) {
-  return Boolean(
-    town && town.schemaVersion === 1 &&
-    town.habitability && town.model && Array.isArray(town.model.facilities) &&
-    town.layout && town.layout.map && Array.isArray(town.layout.map.terrain) &&
-    Array.isArray(town.layout.buildings)
+function drawCharacter(image, direction, frame, feetX, feetY) {
+  const source = characterFrameRect(direction, frame);
+  context.drawImage(image, source.x, source.y, source.width, source.height, feetX - 12, feetY - 40, 24, 40);
+}
+
+function drawWorld(timestamp) {
+  state.camera = worldCamera();
+  context.setTransform(1, 0, 0, 1, 0, 0);
+  context.imageSmoothingEnabled = state.camera.scale < 1;
+  context.fillStyle = '#050705';
+  context.fillRect(0, 0, elements.canvas.width, elements.canvas.height);
+  context.drawImage(
+    state.worldImage,
+    state.camera.sourceX, state.camera.sourceY, state.camera.sourceWidth, state.camera.sourceHeight,
+    state.camera.destX, state.camera.destY, state.camera.destWidth, state.camera.destHeight
   );
-}
 
-function showError(message) {
-  if (!message) {
-    el.errorBanner.hidden = true;
-    el.errorBanner.textContent = '';
-    return;
-  }
-  el.errorBanner.hidden = false;
-  el.errorBanner.textContent = message;
-}
-
-function renderAll(town) {
-  renderHeader(town);
-  if (playerIdleTimer !== null) window.clearTimeout(playerIdleTimer);
-  playerIdleTimer = null;
-  player = findPlayerSpawn(town.layout);
-  playerFrameName = 'idle';
-  effectElapsedMs = 0;
-  drawTown(town.layout);
-  restartEffectAnimation();
-  renderHabitabilityPanel(town.habitability);
-  renderFacilityList(town.model);
-  selectKind(null);
-
-  const pubPresent = Boolean(findFacility(town.model, 'pub') && findFacility(town.model, 'pub').present);
-  el.openGuildBtn.disabled = !pubPresent;
-
-  el.canvasEmptyState.hidden = (town.layout.buildings || []).length > 0;
-}
-
-function renderHeader(town) {
-  el.repoName.textContent = (town.repository && town.repository.name) || '(不明なリポジトリ)';
-  const seed = String(town.seed == null ? '' : town.seed);
-  el.seedShort.textContent = seed.length > 10 ? `${seed.slice(0, 10)}…` : (seed || '----');
-  el.seedBadge.title = seed ? `full seed: ${seed}` : '';
-
-  const level = (town.habitability && town.habitability.level) || 0;
-  el.levelBadge.dataset.level = String(level);
-  el.levelNum.textContent = String(level);
-  el.levelName.textContent = (town.habitability && town.habitability.levelName) || '-';
-}
-
-function findFacility(model, kind) {
-  return (model && model.facilities ? model.facilities : []).find((f) => f.kind === kind) || null;
-}
-
-function findBuildingByKind(layout, kind) {
-  if (kind == null) return null;
-  return (layout && layout.buildings ? layout.buildings : []).find((b) => b.facilityKind === kind) || null;
-}
-
-// ===========================================================================
-// Habitability panel (reads town.habitability)
-// ===========================================================================
-
-function renderHabitabilityPanel(hab) {
-  if (!hab) return;
-
-  el.cannotLiveHeadline.hidden = hab.canLive !== false;
-
-  el.habLevelText.textContent = `Lv.${hab.level} ${hab.levelName || ''}`.trim();
-  el.habCanLiveText.textContent = hab.canLive ? '住める' : '住めない';
-  el.habCanLiveText.className = hab.canLive ? 'hab-can-live-yes' : 'hab-can-live-no';
-
-  // The cannot-live headline owns HEADLINE_CANNOT_LIVE, so drop it from reasons.
-  const reasons = (Array.isArray(hab.reasons) ? hab.reasons : []).filter((r) => r !== HEADLINE_CANNOT_LIVE);
-
-  renderHabList(el.habBlockersList, hab.blockers, '(ブロッカーなし)');
-  renderHabList(el.habWarningsList, hab.warnings, '(警告なし)');
-  renderHabList(el.habPendingList, hab.pendingInspections, '(検査待ちなし)');
-  renderHabList(el.habReasonsList, reasons, '(理由なし)');
-
-  el.habBlockersCount.textContent = String((hab.blockers || []).length);
-  el.habWarningsCount.textContent = String((hab.warnings || []).length);
-  el.habPendingCount.textContent = String((hab.pendingInspections || []).length);
-}
-
-function renderHabList(ulEl, items, emptyText) {
-  ulEl.textContent = '';
-  const list = Array.isArray(items) ? items : [];
-  if (list.length === 0) {
-    const li = document.createElement('li');
-    li.className = 'hab-list-empty';
-    li.textContent = emptyText;
-    ulEl.appendChild(li);
-    return;
-  }
-  for (const item of list) {
-    const li = document.createElement('li');
-    li.textContent = typeof item === 'string' ? item : String(item);
-    ulEl.appendChild(li);
-  }
-}
-
-// ===========================================================================
-// Facility list + building details (reads town.model.facilities, town.layout)
-// ===========================================================================
-
-function renderFacilityList(model) {
-  el.facilityList.textContent = '';
-  for (const facility of (model && model.facilities ? model.facilities : [])) {
-    const li = document.createElement('li');
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.dataset.kind = facility.kind;
-    btn.dataset.present = String(Boolean(facility.present));
-    btn.addEventListener('click', () => {
-      selectKind(facility.kind);
-      if (facility.kind === 'pub' && facility.present) openGuildModal(model, btn);
-    });
-
-    const label = document.createElement('span');
-    label.textContent = `${FACILITY_LABELS[facility.kind] || facility.kind} (${facility.kind})`;
-    const count = document.createElement('span');
-    count.className = 'fl-count';
-    count.textContent = facility.present ? `x${facility.count || 0}` : 'なし';
-
-    btn.appendChild(label);
-    btn.appendChild(count);
-    li.appendChild(btn);
-    el.facilityList.appendChild(li);
-  }
-}
-
-// Single selection path shared by canvas clicks and facility-list clicks.
-function selectKind(kind) {
-  selectedKind = kind;
-  renderBuildingDetails(kind);
-  syncFacilityListSelection();
-  if (currentTown) drawTown(currentTown.layout);
-}
-
-function syncFacilityListSelection() {
-  for (const btn of el.facilityList.querySelectorAll('button')) {
-    if (btn.dataset.kind === selectedKind) btn.setAttribute('aria-current', 'true');
-    else btn.removeAttribute('aria-current');
-  }
-}
-
-function renderBuildingDetails(kind) {
-  const facility = kind == null ? null : findFacility(currentTown && currentTown.model, kind);
-  if (!facility) {
-    el.buildingDetailsEmpty.hidden = false;
-    el.buildingDetailsContent.hidden = true;
-    return;
-  }
-  el.buildingDetailsEmpty.hidden = true;
-  el.buildingDetailsContent.hidden = false;
-
-  el.bdFacilityLabel.textContent = FACILITY_LABELS[facility.kind] || facility.kind;
-  el.bdFacilityKind.textContent = facility.kind;
-  el.bdFacilityPresent.textContent = facility.present ? 'あり' : 'なし';
-  el.bdFacilityCount.textContent = String(facility.count || 0);
-
-  const building = findBuildingByKind(currentTown && currentTown.layout, kind);
-  el.bdBuildingState.textContent = building ? (building.state || '-') : '（この街に建物なし）';
-
-  const evidence = facility.evidence || { observed: [], inferred: [], unknown: [] };
-  renderEvidenceList(el.bdEvidenceObserved, evidence.observed);
-  renderEvidenceList(el.bdEvidenceInferred, evidence.inferred);
-  renderEvidenceList(el.bdEvidenceUnknown, evidence.unknown);
-}
-
-function renderEvidenceList(ulEl, items) {
-  ulEl.textContent = '';
-  const list = Array.isArray(items) ? items : [];
-  if (list.length === 0) {
-    const li = document.createElement('li');
-    li.textContent = '(なし)';
-    ulEl.appendChild(li);
-    return;
-  }
-  for (const item of list) {
-    const li = document.createElement('li');
-    li.textContent = typeof item === 'string' ? item : JSON.stringify(item);
-    ulEl.appendChild(li);
-  }
-}
-
-// ===========================================================================
-// 接続者ギルド roster modal (reads town.model.guild[tab])
-// ===========================================================================
-
-function activeModal() {
-  if (!el.assetInspectionModal.hidden) return el.assetInspectionModal;
-  if (!el.guildModal.hidden) return el.guildModal;
-  return null;
-}
-
-function trapModalFocus(modal, event) {
-  const dialog = modal.querySelector('[role="dialog"]');
-  const focusable = Array.from(dialog?.querySelectorAll(FOCUSABLE_SELECTOR) ?? [])
-    .filter((element) => !element.closest('[hidden]'));
-  if (focusable.length === 0) {
-    event.preventDefault();
-    return;
-  }
-  const first = focusable[0];
-  const last = focusable[focusable.length - 1];
-  if (!dialog.contains(document.activeElement)) {
-    event.preventDefault();
-    first.focus();
-  } else if (event.shiftKey && document.activeElement === first) {
-    event.preventDefault();
-    last.focus();
-  } else if (!event.shiftKey && document.activeElement === last) {
-    event.preventDefault();
-    first.focus();
-  }
-}
-
-function openGuildModal(model, openerEl) {
-  const pubFacility = findFacility(model, 'pub');
-  const pubPresent = Boolean(pubFacility && pubFacility.present);
-
-  resetPlayerIdleFrame();
-  guildOpenerEl = openerEl || document.activeElement;
-  el.guildModal.hidden = false;
-
-  if (!pubPresent || !model || !model.guild) {
-    el.guildUnavailable.hidden = false;
-    el.guildBody.hidden = true;
-    el.guildCloseBtn.focus();
-    return;
-  }
-
-  el.guildUnavailable.hidden = true;
-  el.guildBody.hidden = false;
-
-  for (const tab of GUILD_TABS) renderGuildTab(tab, model.guild[tab]);
-  selectGuildTab(activeGuildTab || GUILD_TABS[0]);
-  el.guildCloseBtn.focus();
-}
-
-function closeGuildModal() {
-  if (el.guildModal.hidden) return;
-  el.guildModal.hidden = true;
-  if (guildOpenerEl && typeof guildOpenerEl.focus === 'function') guildOpenerEl.focus();
-  guildOpenerEl = null;
-}
-
-function selectGuildTab(tabName) {
-  activeGuildTab = tabName;
-  for (const btn of el.guildTabs) {
-    const isActive = btn.dataset.tab === tabName;
-    btn.setAttribute('aria-selected', String(isActive));
-    btn.tabIndex = isActive ? 0 : -1;
-  }
-  for (const panel of el.guildTabpanels) {
-    panel.hidden = panel.dataset.tabpanel !== tabName;
-  }
-}
-
-function wireGuildTabKeyboardNav() {
-  const tabs = el.guildTabs;
-  tabs.forEach((btn, index) => {
-    btn.addEventListener('keydown', (e) => {
-      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
-      e.preventDefault();
-      const nextIndex = e.key === 'ArrowRight'
-        ? (index + 1) % tabs.length
-        : (index - 1 + tabs.length) % tabs.length;
-      tabs[nextIndex].focus();
-      selectGuildTab(tabs[nextIndex].dataset.tab);
-    });
+  const layers = worldRenderLayers({
+    view: state.view,
+    interactionStarted: state.interactionStarted,
+    hasPlayerAsset: Boolean(state.assets),
+    hoveredAnchor: state.hoveredAnchor,
+    selectedAnchor: state.selectedAnchor,
+    nearbyAnchor: state.nearbyAnchor
   });
-}
-
-function renderGuildTab(tabName, items) {
-  const panel = el.guildTabpanels.find((p) => p.dataset.tabpanel === tabName);
-  if (!panel) return;
-  const listEl = panel.querySelector('.guild-item-list');
-  listEl.textContent = '';
-
-  const list = Array.isArray(items) ? items : [];
-  if (list.length === 0) {
-    const li = document.createElement('li');
-    li.className = 'guild-empty';
-    li.textContent = '(この街ではまだ登録がありません)';
-    listEl.appendChild(li);
-    return;
+  for (const anchor of layers.anchors) {
+    drawWorldAnchor(anchor, anchor.kind === state.selectedAnchor?.kind || anchor.kind === state.nearbyAnchor?.kind);
   }
-  for (const item of list) {
-    listEl.appendChild(tabName === 'もちもの' ? renderGuildBelongingItem(item) : renderGuildItem(item));
+  if (layers.drawPlayer && !state.worldTransition) {
+    const screen = worldToScreen(state.camera, state.worldPosition);
+    drawCharacter(
+      state.assets.images.get('character.player'),
+      state.worldDirection,
+      movementFrame(state.worldMovement, timestamp),
+      screen.x,
+      screen.y
+    );
+  }
+  if (state.worldTransition) {
+    const elapsed = Math.max(0, timestamp - state.worldTransition.startedAt);
+    const progress = Math.min(1, elapsed / state.worldTransition.duration);
+    context.fillStyle = `rgba(3, 5, 3, ${1 - progress})`;
+    context.fillRect(0, 0, elements.canvas.width, elements.canvas.height);
   }
 }
 
-function evidenceBadge(evidenceClass) {
-  const cls = ['observed', 'inferred', 'unknown'].includes(evidenceClass) ? evidenceClass : 'unknown';
-  const span = document.createElement('span');
-  span.className = `evidence-badge evidence-badge-${cls}`;
-  span.textContent = EVIDENCE_LABELS[cls];
-  return span;
-}
+function drawSite(timestamp) {
+  const recipe = state.siteRecipe;
+  const images = state.assets.images;
+  const camera = computeSiteCamera(elements.canvas.width, elements.canvas.height);
+  state.camera = camera;
+  context.setTransform(1, 0, 0, 1, 0, 0);
+  context.fillStyle = '#050705';
+  context.fillRect(0, 0, elements.canvas.width, elements.canvas.height);
+  context.imageSmoothingEnabled = false;
+  context.setTransform(camera.scale, 0, 0, camera.scale, camera.destX, camera.destY);
+  context.save();
+  context.beginPath();
+  context.rect(0, 0, SITE_CANVAS.width, SITE_CANVAS.height);
+  context.clip();
 
-// Generic renderer for なかま {name,type} / うけつけ {path,name,kind} /
-// いらい {label,direction,note} / じょうたい {label,value,note}. Probes common
-// field names so it stays correct across all four real shapes (see
-// src/town/detect.mjs) without hard-coding one of them.
-function renderGuildItem(item) {
-  const li = document.createElement('li');
-  li.className = 'guild-item';
-  if (!item || typeof item !== 'object') {
-    li.textContent = String(item);
-    return li;
-  }
-
-  const primary = document.createElement('div');
-  primary.className = 'guild-item-primary';
-
-  const nameSpan = document.createElement('span');
-  nameSpan.className = 'guild-item-name';
-  nameSpan.textContent = String(item.name || item.label || item.path || '(不明な項目)');
-  primary.appendChild(nameSpan);
-
-  if (item.value !== undefined && item.value !== null && item.value !== '') {
-    const valueSpan = document.createElement('span');
-    valueSpan.className = 'guild-item-value';
-    valueSpan.textContent = `：${item.value}`;
-    primary.appendChild(valueSpan);
-  }
-
-  primary.appendChild(evidenceBadge(item.evidenceClass));
-  li.appendChild(primary);
-
-  const secondaryParts = [];
-  if (item.type) secondaryParts.push(item.type);
-  if (item.kind) secondaryParts.push(item.kind);
-  if (item.direction) secondaryParts.push(item.direction);
-  if (item.path && item.name) secondaryParts.push(item.path);
-  if (secondaryParts.length > 0) {
-    const secondary = document.createElement('div');
-    secondary.className = 'guild-item-secondary';
-    secondary.textContent = secondaryParts.join(' / ');
-    li.appendChild(secondary);
-  }
-
-  if (item.note) {
-    const note = document.createElement('div');
-    note.className = 'guild-item-note';
-    note.textContent = item.note;
-    li.appendChild(note);
-  }
-  return li;
-}
-
-// もちもの items are { category, items: string[], evidenceClass, note } — the
-// nested string items render as chips under the category header.
-function renderGuildBelongingItem(item) {
-  const li = document.createElement('li');
-  li.className = 'guild-item';
-  if (!item || typeof item !== 'object') {
-    li.textContent = String(item);
-    return li;
-  }
-
-  const primary = document.createElement('div');
-  primary.className = 'guild-item-primary';
-  const nameSpan = document.createElement('span');
-  nameSpan.className = 'guild-item-name';
-  nameSpan.textContent = String(item.category || '(不明なカテゴリ)');
-  primary.appendChild(nameSpan);
-  primary.appendChild(evidenceBadge(item.evidenceClass));
-  li.appendChild(primary);
-
-  if (item.note) {
-    const note = document.createElement('div');
-    note.className = 'guild-item-note';
-    note.textContent = item.note;
-    li.appendChild(note);
-  }
-
-  const chipItems = Array.isArray(item.items) ? item.items : [];
-  if (chipItems.length > 0) {
-    const chips = document.createElement('div');
-    chips.className = 'guild-item-chips';
-    for (const chipText of chipItems) {
-      const chip = document.createElement('span');
-      chip.className = 'guild-item-chip';
-      chip.textContent = String(chipText);
-      chips.appendChild(chip);
-    }
-    li.appendChild(chips);
-  }
-  return li;
-}
-
-// ===========================================================================
-// Published Asset Forge inspection (lazy, v2 manifest only)
-// ===========================================================================
-
-function openAssetInspection(openerEl) {
-  if (gameAssets.manifest?.schemaVersion !== 2) return;
-  if (!assetInspectionRendered) renderAssetInspection();
-  resetPlayerIdleFrame();
-  assetInspectionOpenerEl = openerEl || document.activeElement;
-  el.assetInspectionModal.hidden = false;
-  el.assetInspectionCloseBtn.focus();
-  restartEffectAnimation();
-}
-
-function closeAssetInspection() {
-  if (el.assetInspectionModal.hidden) return;
-  el.assetInspectionModal.hidden = true;
-  if (assetInspectionOpenerEl && typeof assetInspectionOpenerEl.focus === 'function') {
-    assetInspectionOpenerEl.focus();
-  }
-  assetInspectionOpenerEl = null;
-  restartEffectAnimation();
-}
-
-function renderAssetInspection() {
-  const inventory = buildAssetInspectionInventory(gameAssets.manifest, gameAssets.images);
-  el.assetInspectionSummary.textContent = inventory.failedCount === 0
-    ? `公開素材 ${inventory.loadedCount}/${inventory.totalCount} 読込済み`
-    : `公開素材 ${inventory.loadedCount}/${inventory.totalCount} 読込済み・${inventory.failedCount}件読込失敗`;
-  el.assetInspectionGroups.textContent = '';
-  const fragment = document.createDocumentFragment();
-  for (const group of inventory.groups) {
-    const section = document.createElement('section');
-    section.className = 'asset-inspection-group';
-    section.dataset.category = group.category;
-
-    const heading = document.createElement('h3');
-    heading.textContent = `${ASSET_CATEGORY_LABELS[group.category] || group.category} (${group.assets.length})`;
-    section.appendChild(heading);
-
-    const grid = document.createElement('div');
-    grid.className = 'asset-inspection-grid';
-    for (const asset of group.assets) grid.appendChild(renderAssetInspectionCard(asset));
-    section.appendChild(grid);
-    fragment.appendChild(section);
-  }
-  el.assetInspectionGroups.appendChild(fragment);
-  assetInspectionRendered = true;
-}
-
-function renderAssetInspectionCard(asset) {
-  const figure = document.createElement('figure');
-  figure.className = 'asset-inspection-card';
-  figure.dataset.status = asset.loaded ? 'loaded' : 'failed';
-  figure.dataset.renderKind = asset.renderKind;
-
-  const preview = document.createElement('div');
-  preview.className = 'asset-inspection-preview';
-  if (asset.loaded) {
-    const image = document.createElement('img');
-    image.src = asset.publicPath;
-    image.alt = `${asset.assetId} の公開PNG全体`;
-    image.loading = 'lazy';
-    image.decoding = 'async';
-    preview.appendChild(image);
-  } else {
-    const failure = document.createElement('span');
-    failure.className = 'asset-inspection-failure';
-    failure.textContent = '画像を読み込めませんでした';
-    preview.appendChild(failure);
-  }
-  figure.appendChild(preview);
-
-  const caption = document.createElement('figcaption');
-  const id = document.createElement('code');
-  id.textContent = asset.assetId;
-  caption.appendChild(id);
-  const status = document.createElement('span');
-  status.className = 'asset-inspection-card-status';
-  status.textContent = asset.loaded ? '読込済み' : '読込失敗';
-  caption.appendChild(status);
-  if (asset.spriteGrid) {
-    const grid = document.createElement('span');
-    grid.className = 'asset-inspection-grid-note';
-    grid.textContent = `${asset.spriteGrid.columns}列×${asset.spriteGrid.rows}行・全${asset.spriteGrid.columns * asset.spriteGrid.rows}セル`;
-    caption.appendChild(grid);
-  }
-  figure.appendChild(caption);
-  return figure;
-}
-
-// ===========================================================================
-// Canvas town rendering — approved Asset Forge images with procedural fallback
-// ===========================================================================
-
-// FNV-1a-ish hash for stable per-tile dithering only (never layout logic).
-function hash(text) {
-  let value = 2166136261;
-  for (let i = 0; i < text.length; i += 1) {
-    value ^= text.charCodeAt(i);
-    value = Math.imul(value, 16777619);
-  }
-  return value >>> 0;
-}
-
-function clamp8(n) { return Math.max(0, Math.min(255, n)); }
-
-// Lighten (amount>0) / darken (amount<0) a #rrggbb color by amount in -1..1.
-function shade(hex, amount) {
-  const n = parseInt(hex.slice(1), 16);
-  const r = clamp8(((n >> 16) & 255) + Math.round(255 * amount));
-  const g = clamp8(((n >> 8) & 255) + Math.round(255 * amount));
-  const b = clamp8((n & 255) + Math.round(255 * amount));
-  return `rgb(${r}, ${g}, ${b})`;
-}
-
-function schedulePlayerIdle(moved) {
-  if (playerIdleTimer !== null) window.clearTimeout(playerIdleTimer);
-  playerIdleTimer = null;
-  if (!moved) return;
-  playerIdleTimer = window.setTimeout(() => {
-    playerIdleTimer = null;
-    playerFrameName = 'idle';
-    if (currentTown) drawTown(currentTown.layout);
-  }, PLAYER_IDLE_DELAY_MS);
-}
-
-function resetPlayerIdleFrame() {
-  if (playerIdleTimer !== null) window.clearTimeout(playerIdleTimer);
-  playerIdleTimer = null;
-  if (playerFrameName === 'idle') return;
-  playerFrameName = 'idle';
-  if (currentTown) drawTown(currentTown.layout);
-}
-
-function loadedEffectAsset(semanticKind) {
-  const asset = gameAssets.index?.bySemantic?.get(semanticKind);
-  return asset && gameAssets.images.has(asset.assetId) ? asset : null;
-}
-
-function hasLoadedAnimatedEffect() {
-  return Boolean(loadedEffectAsset('water_ripple') || loadedEffectAsset('construction_dust'));
-}
-
-function townHasDrawableEffect() {
-  const layout = currentTown?.layout;
-  const terrain = layout?.map?.terrain;
-  const hasWater = loadedEffectAsset('water_ripple')
-    && Array.isArray(terrain)
-    && terrain.some((row) => Array.isArray(row) && row.includes('water'));
-  const hasConstruction = loadedEffectAsset('construction_dust')
-    && (layout?.buildings ?? []).some((building) => building.state === 'under_construction');
-  return Boolean(hasWater || hasConstruction);
-}
-
-function effectAnimationEligible() {
-  return hasLoadedAnimatedEffect()
-    && (townHasDrawableEffect() || el.assetInspectionModal?.hidden === false);
-}
-
-function onVisibilityChange() {
-  if (document.hidden) resetPlayerIdleFrame();
-  restartEffectAnimation();
-}
-
-function restartEffectAnimation() {
-  if (effectAnimationTimer !== null) window.clearTimeout(effectAnimationTimer);
-  effectAnimationTimer = null;
-  const paused = document.hidden || reducedMotionQuery.matches;
-  const pauseChanged = paused !== effectAnimationPaused;
-  effectAnimationPaused = paused;
-  if (paused) {
-    effectElapsedMs = 0;
-    if (pauseChanged && currentTown) drawTown(currentTown.layout);
-    return;
-  }
-  if (pauseChanged && currentTown) drawTown(currentTown.layout);
-  if (!currentTown || !effectAnimationEligible()) return;
-  effectAnimationTimer = window.setTimeout(() => {
-    effectAnimationTimer = null;
-    if (!currentTown || document.hidden || reducedMotionQuery.matches || !effectAnimationEligible()) {
-      restartEffectAnimation();
-      return;
-    }
-    effectElapsedMs += EFFECT_FRAME_DURATION_MS;
-    drawTown(currentTown.layout);
-    restartEffectAnimation();
-  }, EFFECT_FRAME_DURATION_MS);
-}
-
-function drawTown(layout) {
-  const ctx = el.canvas.getContext('2d');
-  const map = layout && layout.map;
-  if (!map || !Array.isArray(map.terrain)) {
-    el.canvas.width = 1;
-    el.canvas.height = 1;
-    return;
-  }
-  const tileSize = map.tileSize || 16;
-  const width = map.widthTiles * tileSize;
-  const height = map.heightTiles * tileSize;
-  if (el.canvas.width !== width) el.canvas.width = width;
-  if (el.canvas.height !== height) el.canvas.height = height;
-  ctx.imageSmoothingEnabled = false;
-  ctx.clearRect(0, 0, width, height);
-
-  drawTerrain(ctx, map, tileSize);
-  drawRoadsOverlay(ctx, layout.roads || [], tileSize);
-  for (const building of layout.buildings || []) {
-    drawBuilding(ctx, building, tileSize, building.facilityKind === selectedKind);
-  }
-  drawProps(ctx, layout.props || [], tileSize);
-  drawNpcs(ctx, layout.npcs || [], tileSize);
-  drawPlayer(ctx, tileSize);
-
-  el.canvas.setAttribute('aria-label', ariaSummary(currentTown));
-}
-
-// Tiles that get an extra procedural pass on top of their flat base fill so the
-// waterway + elevation terrain reads without image assets. Everything else is a
-// plain dithered square.
-const DETAILED_TILES = new Set(['water', 'bridge', 'cliff', 'stairs']);
-
-function terrainTypeAt(terrain, x, y) {
-  const row = terrain[y];
-  return row ? row[x] : undefined;
-}
-
-function drawTerrain(ctx, map, tileSize) {
-  const terrain = map.terrain;
-  for (let y = 0; y < terrain.length; y += 1) {
-    const row = terrain[y] || [];
-    for (let x = 0; x < row.length; x += 1) {
-      const type = row[x];
-      const selection = selectTerrainAsset(gameAssets.index, {
-        tileType: type,
-        neighbors: cardinalTerrainNeighbors(terrain, x, y),
-        x,
-        y,
-        availableAssetIds: gameAssets.images
-      });
-      const approved = selection?.asset ? gameAssets.images.get(selection.asset.assetId) : null;
-      if (approved) {
-        drawRotatedTile(ctx, approved, x * tileSize, y * tileSize, tileSize, selection.quarterTurns);
-      } else {
-        const base = TILE_COLORS[type] || UNKNOWN_TILE_COLOR;
-        const px = x * tileSize;
-        const py = y * tileSize;
-        const dither = (hash(`${x},${y},${type}`) & 3) === 0;
-        ctx.fillStyle = dither ? shade(base, -0.05) : base;
-        ctx.fillRect(px, py, tileSize, tileSize);
-        if (DETAILED_TILES.has(type)) {
-          drawTerrainDetail(ctx, terrain, x, y, type, px, py, tileSize, base);
+  const terrainUnderlay = new Set([
+    'field.bridge_stone', 'field.bridge_wood', 'field.cliff', 'field.cobblestone',
+    'field.dirt_path', 'field.dock_floor', 'field.fence_wood', 'field.plaza',
+    'field.river_edge', 'field.road_corner', 'field.road_edge', 'field.road_intersection',
+    'field.stairs_stone', 'field.wall_stone', 'field.water'
+  ]);
+  const featureOverlays = new Set(['field.tree', 'field.rock']);
+  const drawGroundPass = (underlayPass) => {
+    for (let y = 0; y < SITE_CANVAS.rows; y += 1) {
+      for (let x = 0; x < SITE_CANVAS.columns; x += 1) {
+        const assetId = groundAssetAt(recipe, x, y);
+        if (terrainUnderlay.has(assetId) !== underlayPass) continue;
+        if (featureOverlays.has(assetId)) {
+          context.drawImage(images.get('field.grass'), x * 64, y * 64, 64, 64);
         }
+        const transform = groundTransformAt(recipe, x, y);
+        context.save();
+        context.translate(x * 64 + 32, y * 64 + 32);
+        context.rotate(transform.quarterTurns * Math.PI / 2);
+        if (transform.flipX) context.scale(-1, 1);
+        context.drawImage(images.get(assetId), -32, -32, 64, 64);
+        context.restore();
       }
-      if (type === 'water') drawAnimatedEffect(
-        ctx, 'water_ripple', `water:${x},${y}`, x * tileSize, y * tileSize, tileSize, tileSize
+    }
+  };
+  const drawTile = (entry) => {
+    const placement = authoredTilePlacement(entry);
+    context.save();
+    context.translate(placement.x + 32, placement.y + 32);
+    if (placement.flipX) context.scale(-1, 1);
+    context.drawImage(images.get(entry.assetId), -32, -32, 64, 64);
+    context.restore();
+  };
+
+  // SITE_RENDER_LAYERS is the declared painter's order. Tree/rock cells first
+  // receive grass and then their transparent terrain-feature overlay.
+  if (SITE_RENDER_LAYERS[0] === 'ground') drawGroundPass(false);
+  if (SITE_RENDER_LAYERS[1] === 'terrain-underlay') drawGroundPass(true);
+  for (let y = 0; y < SITE_CANVAS.rows; y += 1) for (let x = 0; x < SITE_CANVAS.columns; x += 1) {
+    for (const drift of snowPixelOverlaysAt(recipe, x, y)) {
+      context.fillStyle = drift.color;
+      for (const rectangle of drift.rectangles) {
+        context.fillRect(x * 64 + rectangle.x, y * 64 + rectangle.y, rectangle.width, rectangle.height);
+      }
+    }
+  }
+  for (const entry of recipe.rearDecor) drawTile(entry);
+
+  const depthItems = [
+    ...recipe.structures.map((entry, index) => ({ type: 'structure', entry, depth: entry.baselineY, index })),
+    ...recipe.props.map((entry, index) => ({
+      type: 'prop', entry, depth: authoredTilePlacement(entry).depth, index
+    })),
+    ...recipe.npcs.map((entry, index) => ({ type: 'npc', entry, depth: entry.y * 64 + 52, index })),
+    { type: 'player', entry: null, depth: state.sitePosition.y * 64 + 52, index: 0 }
+  ].sort((left, right) => left.depth - right.depth
+    || ({ structure: 0, prop: 1, npc: 2, player: 3 }[left.type] - { structure: 0, prop: 1, npc: 2, player: 3 }[right.type])
+    || left.index - right.index);
+  for (const item of depthItems) {
+    if (item.type === 'structure') {
+      context.drawImage(images.get(item.entry.assetId), item.entry.x, item.entry.y, item.entry.width, item.entry.height);
+    } else if (item.type === 'prop') drawTile(item.entry);
+    else if (item.type === 'npc') {
+      drawCharacter(images.get(item.entry.assetId), item.entry.direction, 'idle', item.entry.x * 64 + 32, item.entry.y * 64 + 52);
+    } else {
+      drawCharacter(
+        images.get('character.player'),
+        state.siteDirection,
+        movementFrame(state.siteMovement, timestamp),
+        state.sitePosition.x * 64 + 32,
+        state.sitePosition.y * 64 + 52
       );
     }
   }
-}
-
-function drawRotatedTile(ctx, image, px, py, tileSize, quarterTurns = 0) {
-  const turns = ((quarterTurns % 4) + 4) % 4;
-  if (turns === 0) {
-    ctx.drawImage(image, px, py, tileSize, tileSize);
-    return;
-  }
-  ctx.save();
-  ctx.translate(px + tileSize / 2, py + tileSize / 2);
-  ctx.rotate(turns * Math.PI / 2);
-  ctx.drawImage(image, -tileSize / 2, -tileSize / 2, tileSize, tileSize);
-  ctx.restore();
-}
-
-function drawAnimatedEffect(ctx, semanticKind, phaseKey, dx, dy, dw, dh) {
-  const selected = selectLoadedAnimatedEffect(gameAssets.index, semanticKind, gameAssets.images, {
-    elapsedMs: effectElapsedMs,
-    frameDurationMs: EFFECT_FRAME_DURATION_MS,
-    phaseKey,
-    paused: document.hidden || reducedMotionQuery.matches
-  });
-  const image = selected ? gameAssets.images.get(selected.asset.assetId) : null;
-  if (!image) return false;
-  const { sx, sy, sw, sh } = selected.source;
-  ctx.drawImage(image, sx, sy, sw, sh, dx, dy, dw, dh);
-  return true;
-}
-
-// Placeholder pixel detailing for terrain tiles that carry meaning beyond a flat
-// colour. Every mark is an axis-aligned fillRect (no images, no blur) so the art
-// stays crisp when CSS upscales the canvas. CSP is unaffected: this is 2D canvas
-// drawing, not element styling.
-function drawTerrainDetail(ctx, terrain, x, y, type, px, py, ts, base) {
-  if (type === 'water') { drawWaterTile(ctx, x, y, px, py, ts, base); return; }
-  if (type === 'bridge') { drawBridgeTile(ctx, terrain, x, y, px, py, ts, base); return; }
-  if (type === 'cliff') { drawCliffTile(ctx, x, y, px, py, ts, base); return; }
-  if (type === 'stairs') { drawStairsTile(ctx, terrain, x, y, px, py, ts, base); }
-}
-
-// Water: two faint lighter ripple dashes so the blue reads as moving water.
-function drawWaterTile(ctx, x, y, px, py, ts, base) {
-  const crest = shade(base, 0.16);
-  const thick = Math.max(1, Math.round(ts * 0.09));
-  const half = Math.max(2, Math.round(ts * 0.5));
-  const shift = (hash(`${x},${y},wave`) & 1) ? half : 0;
-  ctx.fillStyle = crest;
-  ctx.fillRect(px + shift, py + Math.round(ts * 0.3), half, thick);
-  ctx.fillRect(px + (shift ? 0 : half), py + Math.round(ts * 0.64), half, thick);
-}
-
-// Bridge: tan deck planks with the blue water it spans peeking out along the two
-// banks. Orientation follows whichever axis the adjacent water runs on, so a
-// deck always shows water on exactly the sides it bridges (the generator lays a
-// full column/row of water, so a bridge tile's neighbours on that line ARE
-// water).
-function drawBridgeTile(ctx, terrain, x, y, px, py, ts, base) {
-  const seam = shade(base, -0.32);
-  const sheen = shade(base, 0.16);
-  const bank = Math.max(1, Math.round(ts * 0.16));
-  const step = Math.max(2, Math.round(ts / 4));
-  // Water gap runs top<->bottom unless it is strictly on the east/west axis.
-  const spanVertical =
-    terrainTypeAt(terrain, x, y - 1) === 'water' ||
-    terrainTypeAt(terrain, x, y + 1) === 'water' ||
-    !(terrainTypeAt(terrain, x - 1, y) === 'water' ||
-      terrainTypeAt(terrain, x + 1, y) === 'water');
-
-  ctx.fillStyle = TILE_COLORS.water;
-  if (spanVertical) {
-    ctx.fillRect(px, py, ts, bank);              // water at the top bank
-    ctx.fillRect(px, py + ts - bank, ts, bank);  // ... and the bottom bank
-    for (let sx = px + step; sx < px + ts; sx += step) {
-      ctx.fillStyle = seam;
-      ctx.fillRect(sx, py + bank, 1, ts - bank * 2);      // plank seam
-      ctx.fillStyle = sheen;
-      ctx.fillRect(sx + 1, py + bank, 1, ts - bank * 2);  // plank sheen
-    }
-  } else {
-    ctx.fillRect(px, py, bank, ts);              // water on the left bank
-    ctx.fillRect(px + ts - bank, py, bank, ts);  // ... and the right bank
-    for (let sy = py + step; sy < py + ts; sy += step) {
-      ctx.fillStyle = seam;
-      ctx.fillRect(px + bank, sy, ts - bank * 2, 1);
-      ctx.fillStyle = sheen;
-      ctx.fillRect(px + bank, sy + 1, ts - bank * 2, 1);
-    }
-  }
-}
-
-// Cliff: a dark rock block with a sunlit top lip and a shadowed foot so it reads
-// as a raised, non-walkable edge, plus one deterministic crack in the face.
-function drawCliffTile(ctx, x, y, px, py, ts, base) {
-  const lip = Math.max(1, Math.round(ts * 0.22));
-  ctx.fillStyle = shade(base, 0.2);
-  ctx.fillRect(px, py, ts, lip);                 // sunlit top rim
-  ctx.fillStyle = shade(base, -0.3);
-  ctx.fillRect(px, py + ts - lip, ts, lip);      // shadow at the foot
-  const cx = px + 2 + (hash(`${x},${y},crack`) % Math.max(1, ts - 4));
-  ctx.fillStyle = shade(base, -0.45);
-  ctx.fillRect(cx, py + lip, 1, ts - lip * 2);   // crack in the rock face
-}
-
-// Stairs: light treads split by dark risers. The step lines run parallel to the
-// adjacent cliff edge (the generator seats a stairs tile on a plateau rim), so
-// the flight visibly climbs toward the cliff; horizontal by default.
-function drawStairsTile(ctx, terrain, x, y, px, py, ts, base) {
-  const riser = shade(base, -0.32);
-  const tread = shade(base, 0.18);
-  const steps = 4;
-  // Cliff along the E/W neighbours means an east-west rim -> horizontal steps.
-  const horizontal =
-    terrainTypeAt(terrain, x - 1, y) === 'cliff' ||
-    terrainTypeAt(terrain, x + 1, y) === 'cliff' ||
-    !(terrainTypeAt(terrain, x, y - 1) === 'cliff' ||
-      terrainTypeAt(terrain, x, y + 1) === 'cliff');
-  for (let i = 1; i < steps; i += 1) {
-    if (horizontal) {
-      const yy = py + Math.round((ts * i) / steps);
-      ctx.fillStyle = tread;
-      ctx.fillRect(px, yy - 1, ts, 1);
-      ctx.fillStyle = riser;
-      ctx.fillRect(px, yy, ts, 1);
-    } else {
-      const xx = px + Math.round((ts * i) / steps);
-      ctx.fillStyle = tread;
-      ctx.fillRect(xx - 1, py, 1, ts);
-      ctx.fillStyle = riser;
-      ctx.fillRect(xx, py, 1, ts);
-    }
-  }
-}
-
-// A worn wheel-rut along each road polyline, on top of the plain road terrain.
-function drawRoadsOverlay(ctx, roads, tileSize) {
-  ctx.save();
-  ctx.strokeStyle = 'rgba(74, 62, 42, 0.35)';
-  ctx.lineWidth = Math.max(1, Math.round(tileSize * 0.12));
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  for (const road of roads) {
-    const tiles = road && road.tiles;
-    if (!tiles || tiles.length === 0) continue;
-    ctx.beginPath();
-    tiles.forEach(([x, y], i) => {
-      const cx = x * tileSize + tileSize / 2;
-      const cy = y * tileSize + tileSize / 2;
-      if (i === 0) ctx.moveTo(cx, cy); else ctx.lineTo(cx, cy);
-    });
-    ctx.stroke();
-  }
-  ctx.restore();
-}
-
-function drawHatching(ctx, px, py, pw, ph) {
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(px, py, pw, ph);
-  ctx.clip();
-  ctx.strokeStyle = 'rgba(0, 0, 0, 0.32)';
-  ctx.lineWidth = 1;
-  for (let d = -ph; d < pw + ph; d += 5) {
-    ctx.beginPath();
-    ctx.moveTo(px + d, py);
-    ctx.lineTo(px + d + ph, py + ph);
-    ctx.stroke();
-  }
-  ctx.restore();
-}
-
-function drawBuildingDamageCue(ctx, stateVisuals, px, py, pw, ph) {
-  if (stateVisuals.hatch) drawHatching(ctx, px, py, pw, ph);
-}
-
-function drawBuildingBusyCue(ctx, stateVisuals, px, py, pw, tileSize) {
-  if (!stateVisuals.busy) return;
-  ctx.fillStyle = '#fff2b0';
-  ctx.font = `${Math.max(8, Math.round(tileSize * 0.5))}px sans-serif`;
-  ctx.textAlign = 'right';
-  ctx.textBaseline = 'top';
-  ctx.fillText('*', px + pw - 2, py + 1);
-}
-
-function drawBuildingConstructionEffect(ctx, building, px, py, pw, ph, tileSize) {
-  if (building.state !== 'under_construction') return;
-  drawAnimatedEffect(
-    ctx,
-    'construction_dust',
-    `construction:${building.id ?? `${building.facilityKind}:${building.x},${building.y}`}`,
-    px + (pw - tileSize) / 2,
-    py + ph - tileSize,
-    tileSize,
-    tileSize
-  );
-}
-
-function drawBuilding(ctx, building, tileSize, isSelected) {
-  const footprint = building.footprint || { widthTiles: 1, heightTiles: 1 };
-  const px = building.x * tileSize;
-  const py = building.y * tileSize;
-  const pw = footprint.widthTiles * tileSize;
-  const ph = footprint.heightTiles * tileSize;
-  const fill = FACILITY_COLORS[building.facilityKind] || UNKNOWN_FACILITY_COLOR;
-  const stateVisuals = buildingStateVisuals(building.state);
-
-  const approvedAsset = selectBuildingAsset(gameAssets.index, {
-    building,
-    availableAssetIds: gameAssets.images
-  });
-  const approved = approvedAsset ? gameAssets.images.get(approvedAsset.assetId) : null;
-  if (approved) {
-    ctx.save();
-    ctx.globalAlpha = stateVisuals.opacity; // dim means unverified, never broken
-    ctx.drawImage(approved, px, py, pw, ph);
-    ctx.restore();
-    drawBuildingDamageCue(ctx, stateVisuals, px, py, pw, ph);
-    ctx.strokeStyle = isSelected ? '#ffe066' : 'rgba(0, 0, 0, 0.45)';
-    ctx.lineWidth = isSelected ? 3 : 1;
-    ctx.strokeRect(px + ctx.lineWidth / 2, py + ctx.lineWidth / 2, pw - ctx.lineWidth, ph - ctx.lineWidth);
-    drawBuildingBusyCue(ctx, stateVisuals, px, py, pw, tileSize);
-    drawBuildingConstructionEffect(ctx, building, px, py, pw, ph, tileSize);
-    if (building.entrance) drawEntranceMarker(ctx, building.entrance, tileSize);
-    return;
-  }
-
-  ctx.save();
-  ctx.globalAlpha = stateVisuals.opacity; // "not lit yet", never "broken"
-  ctx.fillStyle = fill;
-  ctx.fillRect(px, py, pw, ph);
-  ctx.restore();
-
-  drawBuildingDamageCue(ctx, stateVisuals, px, py, pw, ph);
-
-  ctx.strokeStyle = isSelected ? '#ffe066' : shade(fill, -0.35);
-  ctx.lineWidth = isSelected ? 3 : 1;
-  ctx.strokeRect(px + ctx.lineWidth / 2, py + ctx.lineWidth / 2, pw - ctx.lineWidth, ph - ctx.lineWidth);
-
-  drawBuildingBusyCue(ctx, stateVisuals, px, py, pw, tileSize);
-
-  const label = FACILITY_LABELS[building.facilityKind] || building.facilityKind;
-  const fontSize = Math.max(7, Math.min(14, Math.floor(Math.min(pw, ph) * 0.42)));
-  ctx.font = `${fontSize}px sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.lineWidth = Math.max(1, Math.round(fontSize * 0.18));
-  ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
-  ctx.strokeText(label, px + pw / 2, py + ph / 2);
-  ctx.fillStyle = '#fbf6e8';
-  ctx.fillText(label, px + pw / 2, py + ph / 2);
-
-  drawBuildingConstructionEffect(ctx, building, px, py, pw, ph, tileSize);
-  if (building.entrance) drawEntranceMarker(ctx, building.entrance, tileSize);
-}
-
-function drawEntranceMarker(ctx, entrance, tileSize) {
-  const ex = entrance.x * tileSize;
-  const ey = entrance.y * tileSize;
-  ctx.fillStyle = '#f4d27a';
-  ctx.fillRect(ex + 1, ey + 1, tileSize - 2, tileSize - 2);
-  ctx.strokeStyle = '#8a6a2f';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(ex + 0.5, ey + 0.5, tileSize - 1, tileSize - 1);
-
-  // Chevron pointing the way the door faces (toward the walkable side).
-  const [dx, dy] = DIRECTION_VECTORS[entrance.direction] || [0, 1];
-  const cx = ex + tileSize / 2;
-  const cy = ey + tileSize / 2;
-  const size = tileSize * 0.24;
-  ctx.fillStyle = '#5a3f1f';
-  ctx.beginPath();
-  ctx.moveTo(cx + dx * size, cy + dy * size);
-  ctx.lineTo(cx - dy * size * 0.7 - dx * size * 0.2, cy + dx * size * 0.7 - dy * size * 0.2);
-  ctx.lineTo(cx + dy * size * 0.7 - dx * size * 0.2, cy - dx * size * 0.7 - dy * size * 0.2);
-  ctx.closePath();
-  ctx.fill();
-}
-
-function drawProps(ctx, props, tileSize) {
-  const size = Math.max(3, Math.round(tileSize * 0.4));
-  for (const prop of props) {
-    const cx = prop.x * tileSize + tileSize / 2;
-    const cy = prop.y * tileSize + tileSize / 2;
-    const approvedAsset = selectPropAsset(gameAssets.index, { prop, availableAssetIds: gameAssets.images });
-    const approved = approvedAsset ? gameAssets.images.get(approvedAsset.assetId) : null;
-    if (approved) {
-      ctx.drawImage(approved, prop.x * tileSize, prop.y * tileSize, tileSize, tileSize);
-      continue;
-    }
-    ctx.fillStyle = PROP_COLORS[prop.kind] || DEFAULT_PROP_COLOR;
-    ctx.fillRect(cx - size / 2, cy - size / 2, size, size);
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(cx - size / 2 + 0.5, cy - size / 2 + 0.5, size - 1, size - 1);
-  }
-}
-
-function drawNpcs(ctx, npcs, tileSize) {
-  for (const npc of npcs) {
-    const isMob = NPC_MOB_ROLES.has(npc.role);
-    const cx = npc.x * tileSize + tileSize / 2;
-    const cy = npc.y * tileSize + tileSize / 2;
-    const approvedAsset = selectNpcAsset(gameAssets.index, { npc, availableAssetIds: gameAssets.images });
-    const approvedImage = approvedAsset ? gameAssets.images.get(approvedAsset.assetId) : null;
-    const approved = approvedAsset && approvedImage ? { asset: approvedAsset, image: approvedImage } : null;
-    if (approved && drawLoadedCharacter(
-      ctx, approved, npc.facing, 'idle', npc.x, npc.y, tileSize
-    )) {
-      continue;
-    }
-    const radius = tileSize * (isMob ? 0.2 : 0.3);
-    ctx.beginPath();
-    ctx.fillStyle = isMob ? '#fff3d6' : '#f2c14e';
-    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
-    const [dx, dy] = DIRECTION_VECTORS[npc.facing] || [0, 1];
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.lineTo(cx + dx * radius * 1.4, cy + dy * radius * 1.4);
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
-    ctx.stroke();
-  }
-}
-
-function drawLoadedCharacter(ctx, loaded, facing, frameName, tileX, tileY, tileSize) {
-  const source = spriteSourceRect(loaded.asset.renderSpec, { facing, frameName });
-  const destination = characterDestinationRect(loaded.asset.renderSpec, { tileX, tileY, tileSize });
-  if (source && destination) {
-    ctx.drawImage(
-      loaded.image,
-      source.sx, source.sy, source.sw, source.sh,
-      destination.dx, destination.dy, destination.dw, destination.dh
+  for (const entry of recipe.frontOccluders) drawTile(entry);
+  const effectFrame = effectFrameRect(Math.floor(timestamp / 160));
+  for (const entry of recipe.effects) {
+    context.drawImage(
+      images.get(entry.assetId),
+      effectFrame.x, effectFrame.y, effectFrame.width, effectFrame.height,
+      entry.x * 64 + 16, entry.y * 64 + 16, 32, 32
     );
-    return true;
   }
-  // Without verified frame metadata an image may be a sheet; use procedural art.
+  context.restore();
+  context.setTransform(1, 0, 0, 1, 0, 0);
+}
+
+function draw(timestamp = 0) {
+  if (!state.worldReady || !state.worldImage || !context) return;
+  if (state.view === 'site' && state.assets && state.siteRecipe) drawSite(timestamp);
+  else drawWorld(timestamp);
+}
+
+function updateNearbyAnchor() {
+  state.nearbyAnchor = nearestFacilityAnchor(
+    state.worldPosition.x,
+    state.worldPosition.y,
+    state.presentAnchors,
+    58
+  );
+  if (state.nearbyAnchor && !state.selectedAnchor) state.selectedAnchor = state.nearbyAnchor;
+  updateFacilityDetail();
+}
+
+function startNextWorldSegment(timestamp) {
+  if (state.worldMovement || state.worldTransition || state.worldQueue.length === 0) return;
+  const target = state.worldQueue.shift();
+  const fromId = state.worldNodeId;
+  const edge = navigationEdgeBetween(fromId, target.id);
+  if (!edge) {
+    state.worldQueue = [];
+    return;
+  }
+  const distance = Math.hypot(target.x - state.worldPosition.x, target.y - state.worldPosition.y);
+  state.worldDirection = directionBetweenPoints(state.worldPosition, target, state.worldDirection);
+  state.worldNodeId = target.id;
+  if (edge.type === 'transition') {
+    state.worldPosition = { x: target.x, y: target.y };
+    state.worldTransition = { startedAt: timestamp, duration: 180, fromId, toId: target.id };
+    updateNearbyAnchor();
+    return;
+  }
+  state.worldMovement = createInterpolatedMovement(state.worldPosition, target, timestamp, Math.max(160, Math.min(520, distance * 3)));
+}
+
+function queueWorldPath(path, timestamp = performance.now()) {
+  state.worldQueue = path.slice(1);
+  startNextWorldSegment(timestamp);
+}
+
+function startNextSiteSegment(timestamp) {
+  if (state.siteMovement || state.siteQueue.length === 0) return;
+  const target = state.siteQueue.shift();
+  state.siteDirection = directionBetweenPoints(state.sitePosition, target, state.siteDirection);
+  state.siteNodeId = target.id;
+  state.siteMovement = createInterpolatedMovement(state.sitePosition, target, timestamp, 180);
+}
+
+function queueSitePath(path, timestamp = performance.now()) {
+  state.siteQueue = path.slice(1);
+  startNextSiteSegment(timestamp);
+}
+
+function updateMovements(timestamp) {
+  if (state.worldTransition && timestamp >= state.worldTransition.startedAt + state.worldTransition.duration) {
+    state.worldTransition = null;
+    updateSummary();
+    startNextWorldSegment(timestamp);
+  }
+  if (state.worldMovement) {
+    const sample = sampleInterpolatedMovement(state.worldMovement, timestamp);
+    state.worldPosition = { x: sample.x, y: sample.y };
+    state.worldDirection = sample.direction;
+    if (sample.done) {
+      state.worldPosition = { ...state.worldMovement.to };
+      state.worldMovement = null;
+      updateNearbyAnchor();
+      updateSummary();
+      startNextWorldSegment(timestamp);
+    }
+  }
+  if (state.siteMovement) {
+    const sample = sampleInterpolatedMovement(state.siteMovement, timestamp);
+    state.sitePosition = { x: sample.x, y: sample.y };
+    state.siteDirection = sample.direction;
+    if (sample.done) {
+      state.sitePosition = { ...state.siteMovement.to };
+      state.siteMovement = null;
+      startNextSiteSegment(timestamp);
+    }
+  }
+}
+
+function animationTick(timestamp) {
+  state.lastTimestamp = timestamp;
+  updateMovements(timestamp);
+  draw(timestamp);
+  window.requestAnimationFrame(animationTick);
+}
+
+function canPlay() {
+  if (state.assets) return true;
+  announce(state.assetError
+    ? '承認済み必須素材を利用できないため、代替素材では開始しません。'
+    : '承認済み必須素材を準備しています。');
   return false;
 }
 
-function drawPlayer(ctx, tileSize) {
-  if (!player) return;
-  const approvedAsset = gameAssets.index?.bySemantic?.get('player');
-  const approved = approvedAsset ? gameAssets.images.get(approvedAsset.assetId) : null;
-  const px = player.x * tileSize;
-  const py = player.y * tileSize;
-  if (approved && drawLoadedCharacter(
-      ctx,
-      { asset: approvedAsset, image: approved },
-      player.facing,
-      playerFrameName,
-      player.x, player.y, tileSize
-  )) {
+function beginWorldExploration() {
+  if (!canPlay()) return false;
+  state.interactionStarted = true;
+  state.view = 'world';
+  elements.canvas.dataset.mode = 'world';
+  elements.help.hidden = false;
+  updateNearbyAnchor();
+  updateSummary();
+  return true;
+}
+
+function showOverview() {
+  if (state.view === 'site') returnToWorld();
+  state.view = 'overview';
+  state.worldMovement = null;
+  state.worldTransition = null;
+  state.worldQueue = [];
+  elements.canvas.dataset.mode = 'overview';
+  updateSummary();
+  draw(state.lastTimestamp);
+  announce('街の全景を表示しました。');
+}
+
+function moveWorldDirection(direction) {
+  if (state.worldMovement || state.worldTransition || !beginWorldExploration()) return;
+  const next = nextNodeForDirection(state.worldNodeId, direction);
+  state.worldDirection = direction;
+  if (next.id !== state.worldNodeId) queueWorldPath([nearestNavigationNode(state.worldPosition.x, state.worldPosition.y), next]);
+  else draw(state.lastTimestamp);
+}
+
+function moveSiteDirection(direction) {
+  if (state.siteMovement) return;
+  const next = nextSiteNodeForDirection(state.siteRecipe, state.siteNodeId, direction);
+  state.siteDirection = direction;
+  if (next?.id !== state.siteNodeId) queueSitePath([siteNodeById(state.siteRecipe, state.siteNodeId), next]);
+}
+
+function currentSiteNearEvidence() {
+  const evidence = siteNodeById(state.siteRecipe, state.siteRecipe?.evidenceNodeId);
+  return evidence && Math.hypot(evidence.x - state.sitePosition.x, evidence.y - state.sitePosition.y) <= 1.05;
+}
+
+function tryEnterSelectedFacility() {
+  const anchor = state.nearbyAnchor;
+  const facility = facilityForAnchor(anchor);
+  if (!anchor || facility?.present !== true) {
+    announce('入れる施設の近くまで移動してください。');
     return;
   }
-  const cx = px + tileSize / 2;
-  const cy = py + tileSize / 2;
-  ctx.fillStyle = '#f5f1df';
-  ctx.fillRect(px + tileSize * 0.25, py + tileSize * 0.18, tileSize * 0.5, tileSize * 0.64);
-  ctx.strokeStyle = '#1f2933';
-  ctx.lineWidth = Math.max(1, tileSize * 0.1);
-  ctx.strokeRect(px + tileSize * 0.25, py + tileSize * 0.18, tileSize * 0.5, tileSize * 0.64);
-  const [dx, dy] = DIRECTION_VECTORS[player.facing] || [0, 1];
-  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + dx * tileSize * 0.35, cy + dy * tileSize * 0.35); ctx.stroke();
+  state.selectedAnchor = anchor;
+  const recipes = siteRecipesForFacility(facility.kind);
+  if (recipes.length === 1) enterSite(recipes[0].id);
+  else showSiteChoice(recipes);
 }
 
-// Pointer -> tile coordinates, correct regardless of how CSS scales the canvas.
-function tileFromEvent(canvas, tileSize, event) {
-  const rect = canvas.getBoundingClientRect();
-  if (rect.width === 0 || rect.height === 0) return null;
-  const px = (event.clientX - rect.left) * (canvas.width / rect.width);
-  const py = (event.clientY - rect.top) * (canvas.height / rect.height);
-  const x = Math.floor(px / tileSize);
-  const y = Math.floor(py / tileSize);
-  if (x < 0 || y < 0) return null;
-  return { x, y };
-}
-
-function buildingAtTile(layout, x, y) {
-  for (const b of layout.buildings || []) {
-    const fp = b.footprint || { widthTiles: 1, heightTiles: 1 };
-    if (x >= b.x && x < b.x + fp.widthTiles && y >= b.y && y < b.y + fp.heightTiles) return b;
+function enterSite(siteId) {
+  const recipe = siteRecipeById(siteId);
+  if (!recipe || !canPlay() || !facilityIsPresent(recipe.facilityKind)) {
+    announce('この検査場所は、観測された施設が存在するときだけ開きます。');
+    return;
   }
-  return null;
+  const anchor = FACILITY_ANCHORS[recipe.facilityKind];
+  if (!anchor) return;
+  state.worldReturn = {
+    nodeId: state.worldNodeId,
+    position: { ...state.worldPosition },
+    direction: state.worldDirection,
+    selectedKind: state.selectedAnchor?.kind ?? recipe.facilityKind
+  };
+  state.siteRecipe = recipe;
+  state.siteNodeId = recipe.playerStartNodeId;
+  const start = siteNodeById(recipe, recipe.playerStartNodeId);
+  state.sitePosition = { x: start.x, y: start.y };
+  state.siteDirection = 'up';
+  state.siteMovement = null;
+  state.siteQueue = [];
+  state.selectedAnchor = anchor;
+  state.view = 'site';
+  elements.canvas.dataset.mode = 'site';
+  closeJournal({ restoreFocus: false });
+  closeSiteChoice({ restoreFocus: false });
+  updateFacilityDetail();
+  updateSummary();
+  elements.canvas.focus();
+  announce(`${recipe.label}に入りました。矢印キーまたはWASDで歩き、奥でEnterまたはSpaceを押すと根拠を確認できます。`);
 }
 
-function onCanvasClick(evt) {
-  const layout = currentTown && currentTown.layout;
-  if (!layout || !layout.map) return;
-  const tile = tileFromEvent(el.canvas, layout.map.tileSize || 16, evt);
-  if (!tile) return;
-  const building = buildingAtTile(layout, tile.x, tile.y);
-  selectKind(building ? building.facilityKind : null);
-  if (building && building.facilityKind === 'pub') {
-    openGuildModal(currentTown.model, el.canvas);
+function returnToWorld() {
+  if (state.view !== 'site') return;
+  const saved = state.worldReturn;
+  state.siteRecipe = null;
+  state.sitePosition = null;
+  state.siteMovement = null;
+  state.siteQueue = [];
+  state.view = 'world';
+  if (saved) {
+    state.worldNodeId = saved.nodeId;
+    state.worldPosition = { ...saved.position };
+    state.worldDirection = saved.direction;
+    state.selectedAnchor = state.presentAnchors.find((anchor) => anchor.kind === saved.selectedKind) ?? state.selectedAnchor;
+  }
+  elements.canvas.dataset.mode = 'world';
+  updateNearbyAnchor();
+  updateSummary();
+  elements.canvas.focus();
+  announce('同じ街道の位置へ戻りました。');
+}
+
+function canvasPoint(event) {
+  const bounds = elements.canvas.getBoundingClientRect();
+  return {
+    x: (event.clientX - bounds.left) * (elements.canvas.width / Math.max(1, bounds.width)),
+    y: (event.clientY - bounds.top) * (elements.canvas.height / Math.max(1, bounds.height))
+  };
+}
+
+function handleCanvasClick(event) {
+  if (!state.worldReady || !state.camera || !canPlay()) return;
+  const screen = canvasPoint(event);
+  if (state.view === 'site') {
+    if (state.siteMovement) return;
+    const point = screenToSite(state.camera, screen);
+    if (!point) return;
+    const target = nearestSiteNode(state.siteRecipe, point.x / 64, point.y / 64);
+    const path = shortestSitePath(state.siteRecipe, state.siteNodeId, target.id);
+    queueSitePath(path);
+    elements.canvas.focus();
+    return;
+  }
+  const world = screenToWorld(state.camera, screen);
+  if (!world || state.worldMovement || state.worldTransition || !beginWorldExploration()) return;
+  const target = nearestNavigationNode(world.x, world.y);
+  const path = shortestNavigationPath(state.worldNodeId, target.id);
+  const anchor = nearestFacilityAnchor(world.x, world.y, state.presentAnchors, 32);
+  if (anchor) state.selectedAnchor = anchor;
+  queueWorldPath(path);
+  updateFacilityDetail();
+  elements.canvas.focus();
+  announce(anchor ? `${anchor.label}へ向かっています。近くでEnterまたはSpaceを押してください。` : `${districtLabel(target)}へ移動しています。`);
+}
+
+function handleCanvasMove(event) {
+  if (!state.worldReady || state.view === 'site' || !state.camera) return;
+  const world = screenToWorld(state.camera, canvasPoint(event));
+  const next = world ? nearestFacilityAnchor(world.x, world.y, state.presentAnchors, 24 / state.camera.scale) : null;
+  if (next?.kind === state.hoveredAnchor?.kind) return;
+  state.hoveredAnchor = next;
+  state.interactionStarted = true;
+  elements.canvas.title = next?.label ?? '';
+  draw(state.lastTimestamp);
+}
+
+function handleCanvasKey(event) {
+  const direction = directionForKey[event.key];
+  if (direction) {
+    event.preventDefault();
+    if (state.view === 'site') moveSiteDirection(direction);
+    else moveWorldDirection(direction);
+    return;
+  }
+  if (!['Enter', ' '].includes(event.key)) return;
+  event.preventDefault();
+  if (state.view === 'site') {
+    if (currentSiteNearEvidence()) openJournal(elements.canvas);
+    else announce('施設の奥まで歩くと、根拠を確認できます。');
+  } else if (beginWorldExploration()) tryEnterSelectedFacility();
+}
+
+async function loadTown() {
+  try {
+    const response = await fetch('/api/town', {
+      headers: { Accept: 'application/json' },
+      cache: 'no-store'
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    state.town = await response.json();
+    state.presentAnchors = anchorsForPresentFacilities(state.town?.model?.facilities);
+    updateNearbyAnchor();
+  } catch {
+    state.town = null;
+    state.presentAnchors = [];
+    state.selectedAnchor = null;
+    state.nearbyAnchor = null;
+    announce('街の検査情報を取得できませんでした。風景のみ表示します。');
+  }
+  updateSummary();
+  updateFacilityDetail();
+}
+
+function loadWorldImage() {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.decoding = 'async';
+    image.addEventListener('load', () => {
+      if (image.naturalWidth !== WORLD_IMAGE.width || image.naturalHeight !== WORLD_IMAGE.height) {
+        reject(new Error('World image dimensions do not match the completion design'));
+        return;
+      }
+      state.worldImage = image;
+      state.worldReady = true;
+      elements.loading.hidden = true;
+      resizeCanvas();
+      resolve();
+    }, { once: true });
+    image.addEventListener('error', () => reject(new Error('World image failed to load')), { once: true });
+    image.src = WORLD_IMAGE.src;
+  });
+}
+
+async function loadAssets() {
+  try {
+    const siteAudit = auditSiteRecipes();
+    const usageAudit = auditRuntimeAssetUsage();
+    if (!siteAudit.ok || !usageAudit.ok) throw new Error('Runtime usage audit failed');
+    state.assets = await loadForgeAssetImages();
+  } catch (error) {
+    state.assets = null;
+    state.assetError = error;
+    elements.assetErrorText.textContent = error?.message || '承認済み必須素材を読み込めません。代替素材は使用しません。';
+    elements.assetError.hidden = false;
+    announce('承認済み必須素材を読み込めません。代替素材は使用しません。');
   }
 }
 
-function ariaSummary(town) {
-  if (!town) return '町の地図。';
-  const { repository, habitability, layout } = town;
-  const map = layout.map;
-  const buildings = layout.buildings || [];
-  const npcs = layout.npcs || [];
-  const buildingNote = buildings.length === 0 ? '建物なし' : `建物${buildings.length}棟`;
-  return `${(repository && repository.name) || ''} の街並み。` +
-    `${map.widthTiles}×${map.heightTiles}タイル、${buildingNote}、NPC${npcs.length}体。` +
-    `到達レベル Lv.${habitability.level}「${habitability.levelName}」（${habitability.canLive ? '居住可' : '居住不可'}）。` +
-    (player ? `プレイヤー位置 ${player.x},${player.y}。` : 'プレイヤー配置なし。');
-}
+elements.canvas.addEventListener('click', handleCanvasClick);
+elements.canvas.addEventListener('mousemove', handleCanvasMove);
+elements.canvas.addEventListener('mouseleave', () => {
+  state.hoveredAnchor = null;
+  elements.canvas.title = '';
+  draw(state.lastTimestamp);
+});
+elements.canvas.addEventListener('keydown', handleCanvasKey);
+elements.overviewButton.addEventListener('click', showOverview);
+elements.backButton.addEventListener('click', returnToWorld);
+elements.journalButton.addEventListener('click', () => openJournal(elements.journalButton));
+elements.journalClose.addEventListener('click', () => closeJournal());
+elements.siteEnterButton.addEventListener('click', () => {
+  const facility = selectedFacility();
+  if (!facility || facility.present !== true) return;
+  const recipes = siteRecipesForFacility(facility.kind);
+  if (recipes.length === 1) enterSite(recipes[0].id);
+  else showSiteChoice(recipes);
+});
+elements.siteChoiceClose.addEventListener('click', () => closeSiteChoice());
+window.addEventListener('resize', resizeCanvas);
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return;
+  if (!elements.siteChoice.hidden) closeSiteChoice();
+  else if (!elements.journal.hidden) closeJournal();
+  else if (state.view === 'site') returnToWorld();
+  else if (state.view === 'world') showOverview();
+});
 
-document.addEventListener('DOMContentLoaded', init);
+elements.canvas.dataset.mode = 'overview';
+updateSummary();
+updateFacilityDetail();
+window.requestAnimationFrame(animationTick);
+
+Promise.allSettled([loadTown(), loadWorldImage(), loadAssets()]).then((results) => {
+  if (results[1].status === 'rejected') {
+    state.worldReady = false;
+    elements.loading.hidden = true;
+    elements.canvas.hidden = true;
+    elements.worldFallback.hidden = false;
+    announce('街の風景を表示できませんでした。');
+    return;
+  }
+  elements.canvas.focus();
+  if (!state.assetError) announce('街の全景を表示しました。矢印キー、WASD、またはクリックで探索を始められます。');
+});

@@ -4,9 +4,11 @@ import { FORGE_ROOT, pathsFor } from '../config.mjs';
 import { atomicReplaceJson, atomicWriteFile, readJson, withFileLock } from '../fs-safe.mjs';
 import { canonicalJson, sha256 as hashBytes } from '../hashing.mjs';
 import { readAssetDefinitions } from '../jobs/define-assets.mjs';
-import { assertExistingStateFile, assetFileStem } from '../paths.mjs';
+import { assertExistingFileWithin, assertExistingStateFile, assetFileStem } from '../paths.mjs';
 import { inspectPng } from '../png-core.mjs';
+import { assertGenerationReferenceMetadata } from '../references.mjs';
 import { validateWith } from '../schemas.mjs';
+import { productionRecipeProblem } from '../validate.mjs';
 
 function bindingGaps(definitions, coverage) {
   const bound = new Set();
@@ -61,13 +63,16 @@ function renderSpecFor(definition) {
 
 function inspectApprovedPng(assetId, bytes, renderSpec) {
   const inspection = inspectPng(bytes);
-  if (renderSpec.kind !== 'spritesheet') return inspection;
-  const { columns, rows, frameWidth, frameHeight } = renderSpec.sprites.grid;
-  const expectedWidth = columns * frameWidth;
-  const expectedHeight = rows * frameHeight;
+  let expectedWidth = renderSpec.logicalSize?.width ?? renderSpec.tileSize;
+  let expectedHeight = renderSpec.logicalSize?.height ?? renderSpec.tileSize;
+  if (renderSpec.kind === 'spritesheet') {
+    const { columns, rows, frameWidth, frameHeight } = renderSpec.sprites.grid;
+    expectedWidth = columns * frameWidth;
+    expectedHeight = rows * frameHeight;
+  }
   if (inspection.width !== expectedWidth || inspection.height !== expectedHeight) {
     throw new Error(
-      `Approved spritesheet dimensions do not match its grid: ${assetId} ` +
+      `Approved image dimensions do not match production contract: ${assetId} ` +
       `(got ${inspection.width}x${inspection.height}, expected ${expectedWidth}x${expectedHeight})`
     );
   }
@@ -120,6 +125,20 @@ async function exportApprovedUnlocked({ write = false, publicRoot, now = () => n
     const bytes = await readFile(source);
     const sha256 = hashBytes(bytes);
     if (sha256 !== approval.approvedSha256) throw new Error(`Approved hash mismatch: ${entry.assetId}`);
+    const metadataPath = await assertExistingFileWithin(path.dirname(source), `${path.basename(source, '.png')}.json`);
+    const generation = await readJson(metadataPath);
+    const generationValidation = validateWith('generation-result.schema.json', generation);
+    if (!generationValidation.ok) throw new Error(`Invalid approved generation metadata: ${entry.assetId}`);
+    if (generation.id !== approval.generationId || generation.assetId !== entry.assetId
+      || generation.status !== 'approved' || generation.outputPath !== entry.approvedPath
+      || generation.outputSha256 !== approval.approvedSha256) {
+      throw new Error(`Approved generation metadata mismatch: ${entry.assetId}`);
+    }
+    await assertGenerationReferenceMetadata(definition, generation, { root: forgeRoot });
+    const recipeProblem = await productionRecipeProblem(root, generation, {
+      forgeRoot, definition, outputBytes: bytes
+    });
+    if (recipeProblem) throw new Error(`Approved production recipe integrity failed: ${entry.assetId}: ${recipeProblem}`);
     const renderSpec = renderSpecFor(definition);
     inspectApprovedPng(entry.assetId, bytes, renderSpec);
     const relative = path.join('assets', 'forge', 'v1', sha256.slice(0, 16), `${assetFileStem(entry.assetId)}.png`);
@@ -158,6 +177,7 @@ async function exportApprovedUnlocked({ write = false, publicRoot, now = () => n
     files: [...copies.map(({ relative }) => relative), versionedManifestRelative, manifestRelative], wrote: [], reused: []
   };
   if (!write) return plan;
+  if (manifest.complete !== true) throw new Error('Export write requires a complete required asset manifest');
   if (!publicRoot) throw new Error('Export write requires a public root');
   const actualPublicRoot = path.resolve(publicRoot);
   await mkdir(actualPublicRoot, { recursive: true, mode: 0o700 });
@@ -195,5 +215,7 @@ async function exportApprovedUnlocked({ write = false, publicRoot, now = () => n
 export async function exportApproved(options = {}, dependencies = {}) {
   const root = dependencies.root ?? FORGE_ROOT;
   if (!options.write) return exportApprovedUnlocked(options, dependencies);
-  return withFileLock(root, pathsFor(root).lifecycleLock, () => exportApprovedUnlocked(options, dependencies));
+  const paths = pathsFor(root);
+  return withFileLock(root, paths.requiredPromotionLock, () =>
+    withFileLock(root, paths.lifecycleLock, () => exportApprovedUnlocked(options, dependencies)));
 }

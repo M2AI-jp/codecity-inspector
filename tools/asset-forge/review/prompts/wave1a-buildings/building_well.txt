@@ -1,0 +1,9 @@
+Use case: stylized-concept
+Asset type: production game structure sprite source for CodeCity Inspector
+Input images: Image 1 is the global world/palette/pixel-density reference; Image 2 is the direct street-prop, stonework, moss and well reference.
+Primary request: create one distinct late-medieval TOWN WELL structure, suitable for later downsampling and placement on a 256x256 transparent building canvas as the smallest scale class.
+Scene/backdrop: perfectly flat solid #ff00ff chroma-key background for local background removal.
+Subject: one complete stone well with a compact dark blue-green tiled wooden canopy, winding beam, rope and bucket, a small front-facing opening/access point, warm lantern, mossy masonry. No people and no separate scenery.
+Style/medium: dense crisp top-down three-quarter pixel art, matching the references' fine pixel clusters, palette, scale, stone texture, moss and warm lighting.
+Composition/framing: one structure centered, coherent three-quarter/top-down perspective, generous padding, entire canopy and circular footprint visible, stable baseline.
+Constraints: one uniform #ff00ff background with no shadows, gradients, texture, reflections, floor plane, or lighting variation. Crisp silhouette. Do not use #ff00ff in the subject. No cast/contact shadow, rectangular ground pad, scene background, neighboring examples, specimen sheet, labels, text, watermark, characters, water surface, or cropped edges.

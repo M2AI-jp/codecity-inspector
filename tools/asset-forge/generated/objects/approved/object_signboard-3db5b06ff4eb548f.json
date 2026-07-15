@@ -1,0 +1,142 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-15T04:37:22.456Z",
+    "approvedPath": "generated/objects/approved/object_signboard-3db5b06ff4eb548f.png",
+    "approvedSha256": "3db5b06ff4eb548ffbb3dc3bcc4f7b8da61bdaae86cd3654d4cc11d3b0cd63ac",
+    "note": "Required 78 batch approval cb4aa5f67c91a329c140f4a09bdc39b960ccce8a76334957066d7c0e83540042",
+    "reviewer": "human"
+  },
+  "assetId": "object.signboard",
+  "category": "object",
+  "createdAt": "2026-07-14T10:00:00.000Z",
+  "dryRun": false,
+  "id": "gen_import_f56fcf36bce31e15b6d7",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 64x64.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_9e1491cb90d5219e1643",
+  "manualImport": true,
+  "metadataPath": "generated/objects/approved/object_signboard-3db5b06ff4eb548f.json",
+  "outputInspection": {
+    "bytes": 1254,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 64,
+    "width": 64
+  },
+  "outputPath": "generated/objects/approved/object_signboard-3db5b06ff4eb548f.png",
+  "outputSha256": "3db5b06ff4eb548ffbb3dc3bcc4f7b8da61bdaae86cd3654d4cc11d3b0cd63ac",
+  "productionRecipe": {
+    "assetId": "object.signboard",
+    "backgroundRemoval": {
+      "autoKey": "border",
+      "cleanup": {
+        "alphaCutoff": 128,
+        "componentMinPixels": 1,
+        "resizeKernel": "nearest",
+        "targetMaxHeight": 60,
+        "targetMaxWidth": 60
+      },
+      "despill": true,
+      "keyColor": null,
+      "method": "official-chroma-key-helper",
+      "opaqueThreshold": 110,
+      "softMatte": true,
+      "transparentThreshold": 35
+    },
+    "canvas": {
+      "baselineY": 63,
+      "height": 64,
+      "width": 64
+    },
+    "generationPromptPath": "review/prompts/wave1d-objects-effects/signboard.txt",
+    "generationPromptSha256": "6f271f9f354901a45a68f9b2402bdfd258b4ad7e0f80238508138e1cb1c8c7c7",
+    "generator": "codex-imagegen-built-in",
+    "inputReferences": [
+      {
+        "id": "world_visual_master",
+        "role": "global-style",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_object_street_props",
+        "role": "primary-subject",
+        "sha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85"
+      }
+    ],
+    "method": "imagegen",
+    "outputSha256": "3db5b06ff4eb548ffbb3dc3bcc4f7b8da61bdaae86cd3654d4cc11d3b0cd63ac",
+    "referenceImages": [
+      {
+        "id": "world_visual_master",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_object_street_props",
+        "sha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85"
+      }
+    ],
+    "scaleClass": "tiny",
+    "source": {
+      "cropRect": null,
+      "height": 1254,
+      "path": "tmp/imagegen/wave1d-objects-effects/raw/signboard.png",
+      "sha256": "3cd30783be61f0635cf8589fe81f5767d348591a2416522164021f5554740521",
+      "width": 1254
+    },
+    "sourceSnapshot": {
+      "height": 1254,
+      "path": "generated/objects/approved/source-3cd30783be61f0635cf8589fe81f5767d348591a2416522164021f5554740521.source-original.png",
+      "sha256": "3cd30783be61f0635cf8589fe81f5767d348591a2416522164021f5554740521",
+      "width": 1254
+    },
+    "subjectBbox": {
+      "height": 59,
+      "width": 36,
+      "x": 14,
+      "y": 5
+    },
+    "toolMode": "built-in",
+    "transformSteps": [
+      "full-frame",
+      "chroma-key-remove",
+      "nearest-downscale",
+      "hard-alpha",
+      "palette-quantize"
+    ],
+    "waveId": "wave1d-objects-effects"
+  },
+  "promptHash": "422bce337d2a5cb66102734f96e2bbcccf619563899e5015ad3ba6f6496f4e41",
+  "provenanceKey": "f56fcf36bce31e15b6d72ff9a6ef698d7c6726e564b6c46afc74de27ec51f932",
+  "provider": "manual-import",
+  "referenceImageHashes": [
+    "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+    "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85"
+  ],
+  "referenceImageIds": [
+    "world_visual_master",
+    "intake_20260713_object_street_props"
+  ],
+  "sourceFormat": "png",
+  "sourcePath": "generated/objects/pending/object_signboard-bc386c96d54efe16.source.png",
+  "sourceSha256": "bc386c96d54efe16f71114fede5d1330ee81a88bef7f40004b849da71d6fb6a7",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

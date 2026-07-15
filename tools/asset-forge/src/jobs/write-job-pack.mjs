@@ -1,8 +1,8 @@
 import path from 'node:path';
 import { FORGE_ROOT, pathsFor } from '../config.mjs';
-import { atomicWriteFile, atomicWriteJson } from '../fs-safe.mjs';
+import { atomicWriteFile, atomicWriteJson, withFileLock } from '../fs-safe.mjs';
 import { canonicalJson, hashApprovedTree } from '../hashing.mjs';
-import { appendGenerationResult } from '../manifests/local-generations.mjs';
+import { appendGenerationResultUnlocked } from '../manifests/local-generations.mjs';
 import { assetFileStem, toPosixRelative } from '../paths.mjs';
 import { validateWith } from '../schemas.mjs';
 import { buildJob } from './build-job.mjs';
@@ -12,6 +12,14 @@ export async function writeJobPack({ assetId, seed = '', allowPendingReferences 
   forgeRoot = FORGE_ROOT,
   now = () => new Date().toISOString()
 } = {}) {
+  return withFileLock(root, pathsFor(root).requiredPromotionLock, () => writeJobPackLocked({
+    assetId, seed, allowPendingReferences
+  }, { root, forgeRoot, now }));
+}
+
+async function writeJobPackLocked({ assetId, seed, allowPendingReferences }, {
+  root, forgeRoot, now
+}) {
   const approvedBefore = await hashApprovedTree(root);
   const { asset, job, references } = await buildJob({
     assetId, provider: 'job-pack', seed, allowPendingReferences, requireReferences: !allowPendingReferences
@@ -78,7 +86,7 @@ export async function writeJobPack({ assetId, seed = '', allowPendingReferences 
   const validation = validateWith('generation-result.schema.json', result);
   if (!validation.ok) throw new Error(`Invalid job-pack result: ${JSON.stringify(validation.errors)}`);
   await atomicWriteJson(root, metadataPath, result);
-  await appendGenerationResult(root, result);
+  await appendGenerationResultUnlocked(root, result);
   const approvedAfter = await hashApprovedTree(root);
   if (approvedAfter !== approvedBefore) throw new Error('Approved tree changed during job-pack creation');
   return { status: 'job-pack', job, pack, result, approvedTreeSha256Before: approvedBefore, approvedTreeSha256After: approvedAfter };

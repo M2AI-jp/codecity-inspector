@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { FORGE_ROOT, pathsFor } from '../config.mjs';
 import { canonicalJson, sha256 } from '../hashing.mjs';
 import { assertExistingFileWithin, categoryDirectory } from '../paths.mjs';
-import { resolveReferences } from '../references.mjs';
+import { resolveAssetReferences } from '../references.mjs';
 import { validateWith } from '../schemas.mjs';
 import { findAsset } from './define-assets.mjs';
 
@@ -44,10 +44,10 @@ export async function buildJob({
   }
   const promptText = promptParts.join('\n\n');
   const promptHash = sha256(promptText);
-  const { references, warnings } = await resolveReferences(asset.defaultReferenceIds, {
+  const { references, warnings } = await resolveAssetReferences(asset, {
     root: forgeRoot,
-    allowPending: allowPendingReferences,
-    allowMissing: !requireReferences
+    allowPendingReferences,
+    requireReferences
   });
   const referenceImageIds = references.map((reference) => reference.id);
   const referenceImageHashes = references.map((reference) => reference.sha256);

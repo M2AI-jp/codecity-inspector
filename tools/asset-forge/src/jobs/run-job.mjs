@@ -1,8 +1,8 @@
 import path from 'node:path';
 import { FORGE_ROOT, pathsFor } from '../config.mjs';
-import { atomicWriteFile, atomicWriteJson } from '../fs-safe.mjs';
+import { atomicWriteFile, atomicWriteJson, withFileLock } from '../fs-safe.mjs';
 import { hashApprovedTree, hashFile, sha256 } from '../hashing.mjs';
-import { appendGenerationResult } from '../manifests/local-generations.mjs';
+import { appendGenerationResultUnlocked } from '../manifests/local-generations.mjs';
 import { assetFileStem, resolveWithin, toPosixRelative } from '../paths.mjs';
 import { inspectPng } from '../png-core.mjs';
 import { providerFor } from '../providers/index.mjs';
@@ -62,7 +62,12 @@ export async function runJob(options, {
 } = {}) {
   const { asset, job } = await buildJob(options, { forgeRoot });
   if (job.dryRun) return { status: 'dry-run', job, wrote: [] };
+  return withFileLock(root, pathsFor(root).requiredPromotionLock, () => runJobLocked(options, {
+    root, now, providerOverrides, manifestHooks
+  }, { asset, job }));
+}
 
+async function runJobLocked(options, { root, now, providerOverrides, manifestHooks }, { asset, job }) {
   const approvedBefore = await hashApprovedTree(root);
   const outputDir = resolveWithin(root, job.outputDir);
   const base = `${assetFileStem(asset.id)}-${job.id}`;
@@ -91,7 +96,7 @@ export async function runJob(options, {
     failed.inspection.unknown.push('provider side effects outside Asset Forge');
     assertValidResult(failed);
     await atomicWriteJson(root, failedMetadataPath, failed);
-    await appendGenerationResult(root, failed, manifestHooks);
+    await appendGenerationResultUnlocked(root, failed, manifestHooks);
     const approvedAfterFailure = await hashApprovedTree(root);
     if (approvedAfterFailure !== approvedBefore) throw new Error('Approved tree changed during failed generation');
     throw new GenerationRunError(`Generation failed: ${failed.error}`, failed, { cause: error });
@@ -124,7 +129,7 @@ export async function runJob(options, {
   assertValidResult(result);
   try {
     await atomicWriteJson(root, metadataPath, result);
-    await appendGenerationResult(root, result, manifestHooks);
+    await appendGenerationResultUnlocked(root, result, manifestHooks);
   } catch (error) {
     throw new Error('Generation metadata persistence failed; no successful result was returned and candidate state is incomplete.', { cause: error });
   }

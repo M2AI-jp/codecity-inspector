@@ -87,6 +87,65 @@
       "uniqueItems": true,
       "items": { "type": "string", "minLength": 1 }
     },
+    "characterSpriteContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "frame", "columns", "rows", "footBaseline", "resampling",
+        "visibleBboxHeight", "partialAlphaPixels"
+      ],
+      "properties": {
+        "frame": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["width", "height"],
+          "properties": {
+            "width": { "const": 24 },
+            "height": { "const": 40 }
+          }
+        },
+        "columns": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": [
+            { "const": "front" }, { "const": "back" }, { "const": "left" }, { "const": "right" }
+          ],
+          "additionalItems": false
+        },
+        "rows": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": [
+            { "const": "idle" }, { "const": "walk1" }, { "const": "walk2" }
+          ],
+          "additionalItems": false
+        },
+        "footBaseline": { "const": "common" },
+        "resampling": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kernel", "downscaleOnly", "allowEnlargement"],
+          "properties": {
+            "kernel": { "const": "nearest" },
+            "downscaleOnly": { "const": true },
+            "allowEnlargement": { "const": false }
+          }
+        },
+        "visibleBboxHeight": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["class", "min", "max"],
+          "properties": {
+            "class": { "enum": ["adult", "elder", "child"] },
+            "min": { "type": "integer", "minimum": 1, "maximum": 40 },
+            "max": { "type": "integer", "minimum": 1, "maximum": 40 }
+          }
+        },
+        "partialAlphaPixels": { "const": 0 }
+      }
+    },
     "tags": {
       "type": "array",
       "uniqueItems": true,
@@ -114,6 +173,53 @@
     },
     "gameBinding": { "$ref": "#/definitions/gameBinding" }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "required": { "const": true },
+          "category": { "not": { "const": "character" } }
+        },
+        "required": ["required", "category"]
+      },
+      "then": {
+        "properties": {
+          "defaultReferenceIds": {
+            "type": "array",
+            "minItems": 2,
+            "uniqueItems": true,
+            "contains": { "const": "world_visual_master" }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "required": { "const": true },
+          "category": { "const": "character" }
+        },
+        "required": ["required", "category"]
+      },
+      "then": {
+        "required": ["characterSpriteContract"],
+        "properties": {
+          "characterSpriteContract": { "$ref": "#/properties/characterSpriteContract" },
+          "defaultReferenceIds": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "uniqueItems": true,
+            "items": [
+              { "const": "world_visual_master" },
+              { "const": "character_visual_master" }
+            ],
+            "additionalItems": false
+          }
+        }
+      }
+    }
+  ],
   "definitions": {
     "positiveSize": {
       "type": "object",

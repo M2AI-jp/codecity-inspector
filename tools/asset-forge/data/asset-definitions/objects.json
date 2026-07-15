@@ -15,7 +15,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "object_style_master"
+        "world_visual_master",
+        "intake_20260713_object_street_props"
       ],
       "output": {
         "kind": "single",
@@ -26,8 +27,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 64,
+          "height": 64
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -78,7 +79,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "object_style_master"
+        "world_visual_master",
+        "intake_20260713_object_street_props"
       ],
       "output": {
         "kind": "single",
@@ -89,8 +91,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 64,
+          "height": 64
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -141,7 +143,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "object_style_master"
+        "world_visual_master",
+        "intake_20260713_object_street_props"
       ],
       "output": {
         "kind": "single",
@@ -152,8 +155,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 64,
+          "height": 64
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -203,9 +206,7 @@
         "prompts/objects/00_common_object_style.md",
         "prompts/common/reward-fraud-rules.md"
       ],
-      "defaultReferenceIds": [
-        "object_style_master"
-      ],
+      "defaultReferenceIds": [],
       "output": {
         "kind": "single",
         "preferredFormat": "png",
@@ -215,8 +216,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 64,
+          "height": 64
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -262,7 +263,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "object_style_master"
+        "world_visual_master",
+        "intake_20260713_object_street_props"
       ],
       "output": {
         "kind": "single",
@@ -273,8 +275,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 64,
+          "height": 64
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -325,7 +327,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "object_style_master"
+        "world_visual_master",
+        "intake_20260713_object_street_props"
       ],
       "output": {
         "kind": "single",
@@ -336,8 +339,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 64,
+          "height": 64
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -388,7 +391,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "object_style_master"
+        "world_visual_master",
+        "intake_20260713_object_street_props"
       ],
       "output": {
         "kind": "single",
@@ -399,8 +403,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 64,
+          "height": 64
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -451,7 +455,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "object_style_master"
+        "world_visual_master",
+        "intake_20260713_object_street_props"
       ],
       "output": {
         "kind": "single",
@@ -462,8 +467,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 64,
+          "height": 64
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -513,9 +518,7 @@
         "prompts/objects/00_common_object_style.md",
         "prompts/common/reward-fraud-rules.md"
       ],
-      "defaultReferenceIds": [
-        "object_style_master"
-      ],
+      "defaultReferenceIds": [],
       "output": {
         "kind": "single",
         "preferredFormat": "png",
@@ -525,8 +528,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 64,
+          "height": 64
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -576,9 +579,7 @@
         "prompts/objects/00_common_object_style.md",
         "prompts/common/reward-fraud-rules.md"
       ],
-      "defaultReferenceIds": [
-        "object_style_master"
-      ],
+      "defaultReferenceIds": [],
       "output": {
         "kind": "single",
         "preferredFormat": "png",
@@ -588,8 +589,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 64,
+          "height": 64
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -640,7 +641,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "object_style_master"
+        "world_visual_master",
+        "intake_20260713_object_street_props"
       ],
       "output": {
         "kind": "single",
@@ -651,8 +653,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 64,
+          "height": 64
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -703,7 +705,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "object_style_master"
+        "world_visual_master",
+        "intake_20260713_object_street_props"
       ],
       "output": {
         "kind": "single",
@@ -714,8 +717,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 64,
+          "height": 64
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -766,7 +769,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "object_style_master"
+        "world_visual_master",
+        "intake_20260713_object_street_props"
       ],
       "output": {
         "kind": "single",
@@ -777,8 +781,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 64,
+          "height": 64
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -829,7 +833,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "object_style_master"
+        "world_visual_master",
+        "intake_20260713_object_street_props"
       ],
       "output": {
         "kind": "single",
@@ -840,8 +845,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 64,
+          "height": 64
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -891,9 +896,7 @@
         "prompts/objects/00_common_object_style.md",
         "prompts/common/reward-fraud-rules.md"
       ],
-      "defaultReferenceIds": [
-        "object_style_master"
-      ],
+      "defaultReferenceIds": [],
       "output": {
         "kind": "single",
         "preferredFormat": "png",
@@ -903,8 +906,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 64,
+          "height": 64
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -949,9 +952,7 @@
         "prompts/objects/00_common_object_style.md",
         "prompts/common/reward-fraud-rules.md"
       ],
-      "defaultReferenceIds": [
-        "object_style_master"
-      ],
+      "defaultReferenceIds": [],
       "output": {
         "kind": "single",
         "preferredFormat": "png",
@@ -961,8 +962,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 64,
+          "height": 64
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -1007,9 +1008,7 @@
         "prompts/objects/00_common_object_style.md",
         "prompts/common/reward-fraud-rules.md"
       ],
-      "defaultReferenceIds": [
-        "object_style_master"
-      ],
+      "defaultReferenceIds": [],
       "output": {
         "kind": "single",
         "preferredFormat": "png",
@@ -1019,8 +1018,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 64,
+          "height": 64
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -1066,7 +1065,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "object_style_master"
+        "world_visual_master",
+        "intake_20260713_object_status_markers"
       ],
       "output": {
         "kind": "single",
@@ -1077,8 +1077,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 64,
+          "height": 64
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -1129,7 +1129,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "object_style_master"
+        "world_visual_master",
+        "intake_20260713_object_status_markers"
       ],
       "output": {
         "kind": "single",
@@ -1140,8 +1141,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 64,
+          "height": 64
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -1192,7 +1193,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "object_style_master"
+        "world_visual_master",
+        "intake_20260713_object_status_markers"
       ],
       "output": {
         "kind": "single",
@@ -1203,8 +1205,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 64,
+          "height": 64
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -1255,7 +1257,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "object_style_master"
+        "world_visual_master",
+        "intake_20260713_object_status_markers"
       ],
       "output": {
         "kind": "single",
@@ -1266,8 +1269,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 64,
+          "height": 64
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -1318,7 +1321,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "object_style_master"
+        "world_visual_master",
+        "intake_20260713_object_status_markers"
       ],
       "output": {
         "kind": "single",
@@ -1329,8 +1333,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 64,
+          "height": 64
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -1381,7 +1385,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "object_style_master"
+        "world_visual_master",
+        "intake_20260713_object_status_markers"
       ],
       "output": {
         "kind": "single",
@@ -1392,8 +1397,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 64,
+          "height": 64
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -1443,9 +1448,7 @@
         "prompts/objects/00_common_object_style.md",
         "prompts/common/reward-fraud-rules.md"
       ],
-      "defaultReferenceIds": [
-        "object_style_master"
-      ],
+      "defaultReferenceIds": [],
       "output": {
         "kind": "single",
         "preferredFormat": "png",
@@ -1455,8 +1458,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 64,
+          "height": 64
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -1506,9 +1509,7 @@
         "prompts/objects/00_common_object_style.md",
         "prompts/common/reward-fraud-rules.md"
       ],
-      "defaultReferenceIds": [
-        "object_style_master"
-      ],
+      "defaultReferenceIds": [],
       "output": {
         "kind": "single",
         "preferredFormat": "png",
@@ -1518,8 +1519,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 64,
+          "height": 64
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -1564,9 +1565,7 @@
         "prompts/objects/00_common_object_style.md",
         "prompts/common/reward-fraud-rules.md"
       ],
-      "defaultReferenceIds": [
-        "object_style_master"
-      ],
+      "defaultReferenceIds": [],
       "output": {
         "kind": "single",
         "preferredFormat": "png",
@@ -1576,8 +1575,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 64,
+          "height": 64
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -1622,9 +1621,7 @@
         "prompts/objects/00_common_object_style.md",
         "prompts/common/reward-fraud-rules.md"
       ],
-      "defaultReferenceIds": [
-        "object_style_master"
-      ],
+      "defaultReferenceIds": [],
       "output": {
         "kind": "single",
         "preferredFormat": "png",
@@ -1634,8 +1631,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 64,
+          "height": 64
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -1680,9 +1677,7 @@
         "prompts/objects/00_common_object_style.md",
         "prompts/common/reward-fraud-rules.md"
       ],
-      "defaultReferenceIds": [
-        "object_style_master"
-      ],
+      "defaultReferenceIds": [],
       "output": {
         "kind": "single",
         "preferredFormat": "png",
@@ -1692,8 +1687,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 64,
+          "height": 64
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -1738,9 +1733,7 @@
         "prompts/objects/00_common_object_style.md",
         "prompts/common/reward-fraud-rules.md"
       ],
-      "defaultReferenceIds": [
-        "object_style_master"
-      ],
+      "defaultReferenceIds": [],
       "output": {
         "kind": "single",
         "preferredFormat": "png",
@@ -1750,8 +1743,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 64,
+          "height": 64
         },
         "scalePreview": 4,
         "nearestNeighbor": true,
@@ -1797,7 +1790,8 @@
         "prompts/common/reward-fraud-rules.md"
       ],
       "defaultReferenceIds": [
-        "object_style_master"
+        "world_visual_master",
+        "intake_20260713_object_street_props"
       ],
       "output": {
         "kind": "single",
@@ -1808,8 +1802,8 @@
       },
       "pixelArt": {
         "logicalSpriteSize": {
-          "width": 16,
-          "height": 16
+          "width": 64,
+          "height": 64
         },
         "scalePreview": 4,
         "nearestNeighbor": true,

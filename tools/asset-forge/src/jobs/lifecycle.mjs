@@ -1,11 +1,21 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
 import { FORGE_ROOT, pathsFor } from '../config.mjs';
 import { atomicReplaceJson, atomicWriteFile, atomicWriteJson, readJson, withFileLock } from '../fs-safe.mjs';
 import { canonicalJson, hashFile, sha256 } from '../hashing.mjs';
+import { readExternalImage } from '../images/inspect-image.mjs';
 import { readLocalGenerationManifest, replaceGenerationResult } from '../manifests/local-generations.mjs';
-import { assertExistingPendingCandidate, assetFileStem, categoryDirectory, toPosixRelative } from '../paths.mjs';
+import {
+  assertExistingFileWithin,
+  assertExistingPendingCandidate,
+  assetFileStem,
+  categoryDirectory,
+  toPosixRelative
+} from '../paths.mjs';
+import { assertGenerationReferenceMetadata } from '../references.mjs';
 import { validateWith } from '../schemas.mjs';
+import { productionRecipeProblem } from '../validate.mjs';
 import { findAsset } from './define-assets.mjs';
 
 function validateGenerationId(generationId) {
@@ -56,6 +66,92 @@ async function checkedPending(root, result) {
   const sourceSha256 = sha256(sourceBytes);
   if (sourceSha256 !== result.outputSha256) throw new Error('Candidate hash mismatch');
   return { result, sourcePath, sourceBytes, sourceSha256 };
+}
+
+async function assertRecipeReadyForPromotion(root, result, forgeRoot, definition, outputBytes) {
+  const problem = await productionRecipeProblem(root, result, { forgeRoot, definition, outputBytes });
+  if (problem) throw new Error(`Production recipe integrity failed: ${problem}`);
+  if (result.productionRecipe && !result.productionRecipe.sourceSnapshot) {
+    throw new Error('Promotion requires a verified persistent original source snapshot');
+  }
+}
+
+export async function materializeProductionSourceSnapshot({ generationId }, {
+  root = FORGE_ROOT,
+  forgeRoot = FORGE_ROOT
+} = {}) {
+  validateGenerationId(generationId);
+  const paths = pathsFor(root);
+  return withFileLock(root, paths.lifecycleLock, async () => {
+    const current = await generationResult(root, generationId);
+    const pending = await checkedPending(root, current);
+    const definition = await findAsset(current.assetId, { root: forgeRoot });
+    await assertGenerationReferenceMetadata(definition, current, { root: forgeRoot });
+    const recipeProblem = await productionRecipeProblem(root, current, {
+      forgeRoot, definition, outputBytes: pending.sourceBytes, requirePersistentSourceSnapshot: false
+    });
+    if (recipeProblem) throw new Error(`Production recipe integrity failed: ${recipeProblem}`);
+    if (!current.productionRecipe) throw new Error('A verified production recipe is required to persist its original source');
+    if (current.productionRecipe.sourceSnapshot) {
+      await assertRecipeReadyForPromotion(root, current, forgeRoot, definition, pending.sourceBytes);
+      return { status: 'source-snapshot-ready', result: current, resumed: true };
+    }
+
+    const sourcePath = await assertExistingFileWithin(forgeRoot, current.productionRecipe.source.path);
+    const original = await readExternalImage(sourcePath);
+    const source = current.productionRecipe.source;
+    if (sha256(original.buffer) !== source.sha256
+      || original.metadata.width !== source.width
+      || original.metadata.height !== source.height) {
+      throw new Error('Production recipe original source changed before persistence');
+    }
+    const extension = original.sourceFormat === 'jpeg' ? 'jpg' : original.sourceFormat;
+    const snapshotPath = path.join(
+      paths.generated,
+      categoryDirectory(current.category),
+      'approved',
+      `source-${source.sha256}.source-original.${extension}`
+    );
+    const sourceSnapshot = {
+      path: toPosixRelative(root, snapshotPath),
+      sha256: source.sha256,
+      width: source.width,
+      height: source.height
+    };
+    await writeFileOrVerify(root, snapshotPath, original.buffer);
+    if (await hashFile(snapshotPath) !== source.sha256) throw new Error('Persistent original source snapshot hash mismatch');
+
+    const corrected = {
+      ...current,
+      productionRecipe: { ...current.productionRecipe, sourceSnapshot }
+    };
+    const validation = validateWith('generation-result.schema.json', corrected);
+    if (!validation.ok) throw new Error(`Invalid source-snapshot result: ${JSON.stringify(validation.errors)}`);
+    const metadataPath = path.join(root, ...current.metadataPath.split('/'));
+    const metadata = JSON.parse(await readFile(metadataPath, 'utf8'));
+    if (!isDeepStrictEqual(metadata, current) && !isDeepStrictEqual(metadata, corrected)) {
+      throw new Error('Generation metadata and ledger differ before source-snapshot persistence');
+    }
+    const outputHashBefore = await hashFile(pending.sourcePath);
+    if (!isDeepStrictEqual(metadata, corrected)) await atomicReplaceJson(root, metadataPath, corrected);
+    const result = await replaceGenerationResult(root, generationId, (latest) => {
+      if (isDeepStrictEqual(latest, corrected)) return latest;
+      if (!isDeepStrictEqual(latest, current)) throw new Error('Generation changed during source-snapshot persistence');
+      return corrected;
+    });
+    if (await hashFile(pending.sourcePath) !== outputHashBefore || outputHashBefore !== current.outputSha256) {
+      throw new Error('Candidate output changed during source-snapshot persistence');
+    }
+    await assertRecipeReadyForPromotion(root, result, forgeRoot, definition, pending.sourceBytes);
+    return {
+      status: 'source-snapshot-ready',
+      result,
+      resumed: false,
+      sourceSnapshot,
+      outputSha256: current.outputSha256,
+      outputBytesUnchanged: true
+    };
+  });
 }
 
 async function writeFileOrVerify(root, destination, bytes) {
@@ -156,8 +252,14 @@ export async function rejectCandidate({ generationId, reason }, {
   });
 }
 
-export async function promotionPreview({ generationId }, { root = FORGE_ROOT } = {}) {
+export async function promotionPreview({ generationId }, {
+  root = FORGE_ROOT,
+  forgeRoot = FORGE_ROOT
+} = {}) {
   const pending = await checkedPending(root, await generationResult(root, validateGenerationId(generationId)));
+  const definition = await findAsset(pending.result.assetId, { root: forgeRoot });
+  await assertGenerationReferenceMetadata(definition, pending.result, { root: forgeRoot });
+  await assertRecipeReadyForPromotion(root, pending.result, forgeRoot, definition, pending.sourceBytes);
   const approvedPath = path.join(pathsFor(root).generated, categoryDirectory(pending.result.category), 'approved', `${assetFileStem(pending.result.assetId)}-${pending.sourceSha256.slice(0, 16)}.png`);
   return {
     generationId,
@@ -178,6 +280,10 @@ export async function promoteCandidate({
   now = () => new Date().toISOString()
 } = {}) {
   validateGenerationId(generationId);
+  const preflightGeneration = await generationResult(root, generationId);
+  const preflightDefinition = await findAsset(preflightGeneration.assetId, { root: forgeRoot });
+  await assertGenerationReferenceMetadata(preflightDefinition, preflightGeneration, { root: forgeRoot });
+  await assertRecipeReadyForPromotion(root, preflightGeneration, forgeRoot, preflightDefinition);
   if (!process.stdin.isTTY || !process.stdout.isTTY || reviewer !== 'human' || !write || !confirmed) {
     throw new Error('Promotion requires an interactive human reviewer, --write, and explicit confirmation');
   }
@@ -189,7 +295,10 @@ export async function promoteCandidate({
   const paths = pathsFor(root);
   return withFileLock(root, paths.lifecycleLock, async () => {
     let current = await generationResult(root, generationId);
+    const definition = await findAsset(current.assetId, { root: forgeRoot });
+    await assertGenerationReferenceMetadata(definition, current, { root: forgeRoot });
     const pending = current.status === 'pending' ? await checkedPending(root, current) : null;
+    await assertRecipeReadyForPromotion(root, current, forgeRoot, definition, pending?.sourceBytes);
     const computedApprovedPath = pending
       ? `generated/${categoryDirectory(current.category)}/approved/${assetFileStem(current.assetId)}-${pending.sourceSha256.slice(0, 16)}.png`
       : current.approval?.approvedPath;
@@ -223,7 +332,6 @@ export async function promoteCandidate({
       || current.outputPath !== journal.sourcePath || pending.sourceSha256 !== journal.sourceSha256) {
       throw new Error('Pending candidate changed after lifecycle journal creation');
     }
-    const definition = await findAsset(current.assetId, { root: forgeRoot });
     if (definition.category !== current.category) throw new Error('Generation asset/category does not match its definition');
     const approvedPath = path.join(root, ...journal.destinationPath.split('/'));
     const metadataPath = approvedPath.replace(/\.png$/, '.json');

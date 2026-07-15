@@ -1,0 +1,8 @@
+Use case: stylized-concept
+Asset type: production 64x64 directional terrain master source for CodeCity Inspector
+Input images: Image 1 is the global world style, palette, camera, and pixel-density reference; Image 2 is the direct approved cliffs, walls, stone faces, vegetation, and elevation reference.
+Primary request: create one cliff terrain tile with an UPPER GRASSY PLATEAU across the TOP and a clearly visible VERTICAL ROCK FACE descending toward the BOTTOM.
+Subject: irregular dark gray stone strata, readable ledges and crevices, restrained moss and roots along the lip; the cliff lip crosses left to right at a consistent height so adjacent cliff tiles connect, while top and bottom remain visibly different elevations.
+Style/medium: dense crisp late-medieval fantasy top-down three-quarter pixel art matching CodeCity's rock clusters, vegetation, palette, and upper-left lighting.
+Composition/framing: one full-bleed square terrain tile; elevation and impassable cliff meaning remain unmistakable at 64x64 after nearest-neighbor downsampling.
+Constraints: no stairs, bridge, waterfall, building, person, prop, cave entrance, text, arrows, labels, border, margin, tile sheet, multiple variants, watermark, blur, or enlarged old pixels.

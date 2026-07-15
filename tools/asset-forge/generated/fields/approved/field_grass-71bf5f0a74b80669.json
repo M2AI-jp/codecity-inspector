@@ -1,0 +1,147 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-15T04:37:13.991Z",
+    "approvedPath": "generated/fields/approved/field_grass-71bf5f0a74b80669.png",
+    "approvedSha256": "71bf5f0a74b8066984e9dea5a43ea5dd794f1e9663a2488fae2785f2e6348afd",
+    "note": "Required 78 batch approval cb4aa5f67c91a329c140f4a09bdc39b960ccce8a76334957066d7c0e83540042",
+    "reviewer": "human"
+  },
+  "assetId": "field.grass",
+  "category": "field",
+  "createdAt": "2026-07-14T17:39:53.097Z",
+  "dryRun": false,
+  "id": "gen_import_bf0d306acab37ccdc5c7",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 64x64.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_b870019e7e4629c63adb",
+  "manualImport": true,
+  "metadataPath": "generated/fields/approved/field_grass-71bf5f0a74b80669.json",
+  "outputInspection": {
+    "bytes": 3072,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 64,
+    "width": 64
+  },
+  "outputPath": "generated/fields/approved/field_grass-71bf5f0a74b80669.png",
+  "outputSha256": "71bf5f0a74b8066984e9dea5a43ea5dd794f1e9663a2488fae2785f2e6348afd",
+  "productionRecipe": {
+    "assetId": "field.grass",
+    "backgroundRemoval": {
+      "autoKey": null,
+      "cleanup": {
+        "alphaCutoff": 0,
+        "componentMinPixels": 1,
+        "resizeKernel": "nearest",
+        "targetMaxHeight": 64,
+        "targetMaxWidth": 64
+      },
+      "despill": false,
+      "keyColor": null,
+      "method": "none",
+      "opaqueThreshold": 255,
+      "softMatte": false,
+      "transparentThreshold": 0
+    },
+    "canvas": {
+      "baselineY": 63,
+      "height": 64,
+      "width": 64
+    },
+    "generationPromptPath": "review/prompts/wave4-ground-surfaces/field_grass.txt",
+    "generationPromptSha256": "d0d8d2cf17f817b1dc60bb9a0ca1ce59b3b8ddf2fce6e225295f6e95f95f34f5",
+    "generator": "codex-imagegen-built-in",
+    "inputReferences": [
+      {
+        "id": "world_visual_master",
+        "role": "global-style",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_field_stairs_bridges_cliffs",
+        "role": "primary-subject",
+        "sha256": "24e899bfb25552aa96e453a74e574337fc65481791fa572accdd8758615387bd"
+      }
+    ],
+    "method": "imagegen",
+    "orientationContract": "non-directional walkable dark moss and leaf-litter woodland floor; all four edges seamless",
+    "outputSha256": "71bf5f0a74b8066984e9dea5a43ea5dd794f1e9663a2488fae2785f2e6348afd",
+    "referenceImages": [
+      {
+        "id": "world_visual_master",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_field_stairs_bridges_cliffs",
+        "sha256": "24e899bfb25552aa96e453a74e574337fc65481791fa572accdd8758615387bd"
+      }
+    ],
+    "scaleClass": "medium",
+    "source": {
+      "cropRect": {
+        "height": 256,
+        "width": 256,
+        "x": 499,
+        "y": 499
+      },
+      "height": 1254,
+      "path": "tmp/imagegen/wave4-ground-surfaces/raw/field_grass.png",
+      "sha256": "1c60d223d3d004ca341f8e3768af9c5404fd6380c635344c698570d1d1afaf20",
+      "width": 1254
+    },
+    "sourceSnapshot": {
+      "height": 1254,
+      "path": "generated/fields/approved/source-1c60d223d3d004ca341f8e3768af9c5404fd6380c635344c698570d1d1afaf20.source-original.png",
+      "sha256": "1c60d223d3d004ca341f8e3768af9c5404fd6380c635344c698570d1d1afaf20",
+      "width": 1254
+    },
+    "subjectBbox": {
+      "height": 64,
+      "width": 64,
+      "x": 0,
+      "y": 0
+    },
+    "toolMode": "built-in",
+    "transformSteps": [
+      "crop",
+      "nearest-downscale",
+      "wrap-edge-reconcile",
+      "palette-quantize"
+    ],
+    "waveId": "wave4-ground-surfaces"
+  },
+  "promptHash": "d24cb3ba481285038ffff0edc27ce7410cef258517c133c25c0ba5a1e669e0bd",
+  "provenanceKey": "bf0d306acab37ccdc5c7dad6a0327f523c10322874031dc60934c6147259b8f8",
+  "provider": "manual-import",
+  "referenceImageHashes": [
+    "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+    "24e899bfb25552aa96e453a74e574337fc65481791fa572accdd8758615387bd"
+  ],
+  "referenceImageIds": [
+    "world_visual_master",
+    "intake_20260713_field_stairs_bridges_cliffs"
+  ],
+  "sourceFormat": "png",
+  "sourcePath": "generated/fields/pending/field_grass-8181c28a71f22165.source.png",
+  "sourceSha256": "8181c28a71f221650ca0240b8183143a3a558ddca062b3679264788b836fd2f8",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

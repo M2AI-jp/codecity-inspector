@@ -14,6 +14,20 @@ test('the complete tracked catalog and manifests validate', async () => {
   assert.deepEqual(await validateRepository(), { ok: true, assetCount: 110, requiredAssetCount: 78, issues: [] });
 });
 
+test('the production field scope swaps optional sand for required snow without changing the 78 gate', async () => {
+  const file = new URL('../data/asset-definitions/fields.json', import.meta.url);
+  const catalog = JSON.parse(await readFile(file, 'utf8'));
+  const snow = catalog.assets.find((asset) => asset.id === 'field.snow');
+  const sand = catalog.assets.find((asset) => asset.id === 'field.sand');
+  assert.equal(snow.required, true);
+  assert.equal(snow.gameBinding.coverage, 'exact');
+  assert.deepEqual(snow.defaultReferenceIds, [
+    'world_visual_master', 'intake_20260713_field_stairs_bridges_cliffs'
+  ]);
+  assert.equal(sand.required, false);
+  assert.equal(sand.gameBinding.coverage, 'future');
+});
+
 test('all eight UI assets remain catalogued as optional future enhancements', async () => {
   const file = new URL('../data/asset-definitions/ui.json', import.meta.url);
   const catalog = JSON.parse(await readFile(file, 'utf8'));
@@ -50,7 +64,7 @@ test('the exact future catalog is split into three connected requirements and 24
     'effect.ship_departure',
     'effect.warning_flash',
     'effect.window_light',
-    'field.snow',
+    'field.sand',
     'object.cart',
     'object.firewood',
     'object.guild_roster_stand',

@@ -18,3 +18,25 @@ test('doctor reports provider availability without authentication or API use', a
   assert.equal(result.apiUsage, false);
   assert.equal(result.authenticationAttempted, false);
 });
+
+test('promote-required exposes no flag that can inject confirmation or bypass its ceremony', async () => {
+  assert.deepEqual(parseArgs(['promote-required']), { command: 'promote-required', options: {} });
+  for (const args of [
+    ['promote-required', '--write'],
+    ['promote-required', '--answer', 'APPROVE'],
+    ['promote-required', '--confirmed', 'true'],
+    ['promote-required', '--reviewer', 'human'],
+    ['promote-required', '--digest', '0'.repeat(64)]
+  ]) await assert.rejects(() => main(args), /does not accept flags or options/);
+});
+
+test('promote-required treats __proto__ as a real forbidden option instead of prototype syntax', async () => {
+  const parsed = parseArgs(['promote-required', '--__proto__', 'injected']);
+  assert.equal(Object.hasOwn(parsed.options, '__proto__'), true);
+  assert.equal(parsed.options.__proto__, 'injected');
+  assert.deepEqual(Object.keys(parsed.options), ['__proto__']);
+  await assert.rejects(
+    () => main(['promote-required', '--__proto__', 'injected']),
+    /does not accept flags or options/
+  );
+});

@@ -1,0 +1,141 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-15T04:37:03.323Z",
+    "approvedPath": "generated/buildings/approved/building_well-7c8854e1d89db1ae.png",
+    "approvedSha256": "7c8854e1d89db1ae370552e924bea2b7f917280369e5083957d8389ef9ab2d54",
+    "note": "Required 78 batch approval cb4aa5f67c91a329c140f4a09bdc39b960ccce8a76334957066d7c0e83540042",
+    "reviewer": "human"
+  },
+  "assetId": "building.well",
+  "category": "building",
+  "createdAt": "2026-07-14T00:00:00.000Z",
+  "dryRun": false,
+  "id": "gen_import_63aaf3673d3d27f257c4",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 256x256.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_11293f4132fab2c0ecdc",
+  "manualImport": true,
+  "metadataPath": "generated/buildings/approved/building_well-7c8854e1d89db1ae.json",
+  "outputInspection": {
+    "bytes": 20410,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 256,
+    "width": 256
+  },
+  "outputPath": "generated/buildings/approved/building_well-7c8854e1d89db1ae.png",
+  "outputSha256": "7c8854e1d89db1ae370552e924bea2b7f917280369e5083957d8389ef9ab2d54",
+  "productionRecipe": {
+    "assetId": "building.well",
+    "backgroundRemoval": {
+      "autoKey": "border",
+      "cleanup": {
+        "alphaCutoff": 16,
+        "componentMinPixels": 128,
+        "resizeKernel": "nearest",
+        "targetMaxHeight": 112,
+        "targetMaxWidth": 110
+      },
+      "despill": true,
+      "keyColor": null,
+      "method": "official-chroma-key-helper",
+      "opaqueThreshold": 220,
+      "softMatte": true,
+      "transparentThreshold": 12
+    },
+    "canvas": {
+      "baselineY": 244,
+      "height": 256,
+      "width": 256
+    },
+    "generationPromptPath": "review/prompts/wave1a-buildings/building_well.txt",
+    "generationPromptSha256": "c70eae98b3378661a0445c229187ed78a4cd860d06057b299fe90f9e1f6e004c",
+    "generator": "codex-imagegen-built-in",
+    "inputReferences": [
+      {
+        "id": "world_visual_master",
+        "role": "global-style",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_object_street_props",
+        "role": "primary-subject",
+        "sha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85"
+      }
+    ],
+    "method": "imagegen",
+    "outputSha256": "7c8854e1d89db1ae370552e924bea2b7f917280369e5083957d8389ef9ab2d54",
+    "referenceImages": [
+      {
+        "id": "world_visual_master",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_object_street_props",
+        "sha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85"
+      }
+    ],
+    "scaleClass": "tiny",
+    "source": {
+      "comparisonRect": {
+        "height": 190,
+        "width": 205,
+        "x": 770,
+        "y": 145
+      },
+      "cropRect": null,
+      "height": 1254,
+      "path": "tmp/imagegen/wave1a/raw/building_well.png",
+      "sha256": "1f319b0963ff89e9f04fd2d60bd2c2a2bb9b059a44a2b9d4e91a6cc9c716c785",
+      "width": 1254
+    },
+    "sourceSnapshot": {
+      "height": 1254,
+      "path": "generated/buildings/approved/source-1f319b0963ff89e9f04fd2d60bd2c2a2bb9b059a44a2b9d4e91a6cc9c716c785.source-original.png",
+      "sha256": "1f319b0963ff89e9f04fd2d60bd2c2a2bb9b059a44a2b9d4e91a6cc9c716c785",
+      "width": 1254
+    },
+    "subjectBbox": {
+      "height": 112,
+      "width": 79,
+      "x": 88,
+      "y": 133
+    },
+    "toolMode": "built-in",
+    "waveId": "wave1a-buildings"
+  },
+  "promptHash": "982d62b89c3c4cc3d545275bc615cf17f677c1ce407197b368e8f8974cded63b",
+  "provenanceKey": "63aaf3673d3d27f257c484a015210d02ab114ce50e1a5219351b1c134efe3e92",
+  "provider": "manual-import",
+  "referenceImageHashes": [
+    "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+    "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85"
+  ],
+  "referenceImageIds": [
+    "world_visual_master",
+    "intake_20260713_object_street_props"
+  ],
+  "sourceFormat": "png",
+  "sourcePath": "generated/buildings/pending/building_well-7c8854e1d89db1ae.source.png",
+  "sourceSha256": "7c8854e1d89db1ae370552e924bea2b7f917280369e5083957d8389ef9ab2d54",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}
