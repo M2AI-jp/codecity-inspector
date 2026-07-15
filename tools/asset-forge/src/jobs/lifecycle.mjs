@@ -15,7 +15,11 @@ import {
 } from '../paths.mjs';
 import { assertGenerationReferenceMetadata } from '../references.mjs';
 import { validateWith } from '../schemas.mjs';
-import { productionRecipeProblem } from '../validate.mjs';
+import {
+  inspectApprovalTopology,
+  inspectHistoricalApprovedArtifact,
+  productionRecipeProblem
+} from '../validate.mjs';
 import { findAsset } from './define-assets.mjs';
 
 function validateGenerationId(generationId) {
@@ -31,8 +35,13 @@ function hasExactKeys(value, keys) {
 function validateJournal(journal, generationId, kind) {
   const keys = kind === 'reject'
     ? ['schemaVersion', 'kind', 'generationId', 'assetId', 'category', 'sourcePath', 'sourceSha256', 'destinationPath', 'reason', 'transitionAt', 'status']
-    : ['schemaVersion', 'kind', 'generationId', 'assetId', 'category', 'sourcePath', 'sourceSha256', 'destinationPath', 'note', 'transitionAt', 'status'];
+    : [
+      'schemaVersion', 'kind', 'generationId', 'assetId', 'category', 'sourcePath',
+      'sourceSha256', 'destinationPath', 'note', 'transitionAt', 'status',
+      ...(kind === 'supersede' ? ['supersedesGenerationId'] : [])
+    ];
   if (!hasExactKeys(journal, keys) || journal.schemaVersion !== 1 || journal.kind !== kind
+    || !['reject', 'promote', 'supersede'].includes(kind)
     || journal.generationId !== generationId || !['preparing', 'complete'].includes(journal.status)
     || typeof journal.assetId !== 'string' || typeof journal.category !== 'string'
     || typeof journal.sourcePath !== 'string' || !/^[a-f0-9]{64}$/.test(journal.sourceSha256)
@@ -49,6 +58,11 @@ function validateJournal(journal, generationId, kind) {
   if (journal.destinationPath !== expectedDestination) throw new Error('Invalid lifecycle journal destination');
   const decision = kind === 'reject' ? journal.reason : journal.note;
   if (typeof decision !== 'string' || !decision.trim()) throw new Error('Invalid lifecycle journal decision');
+  if (kind === 'supersede' && (typeof journal.supersedesGenerationId !== 'string'
+    || !/^[a-z0-9_]+$/.test(journal.supersedesGenerationId)
+    || journal.supersedesGenerationId === generationId)) {
+    throw new Error('Invalid lifecycle journal supersession');
+  }
   return journal;
 }
 
@@ -82,7 +96,8 @@ export async function materializeProductionSourceSnapshot({ generationId }, {
 } = {}) {
   validateGenerationId(generationId);
   const paths = pathsFor(root);
-  return withFileLock(root, paths.lifecycleLock, async () => {
+  return withFileLock(root, paths.requiredPromotionLock, () =>
+    withFileLock(root, paths.lifecycleLock, async () => {
     const current = await generationResult(root, generationId);
     const pending = await checkedPending(root, current);
     const definition = await findAsset(current.assetId, { root: forgeRoot });
@@ -109,7 +124,8 @@ export async function materializeProductionSourceSnapshot({ generationId }, {
     const snapshotPath = path.join(
       paths.generated,
       categoryDirectory(current.category),
-      'approved',
+      'pending',
+      'sources',
       `source-${source.sha256}.source-original.${extension}`
     );
     const sourceSnapshot = {
@@ -151,7 +167,7 @@ export async function materializeProductionSourceSnapshot({ generationId }, {
       outputSha256: current.outputSha256,
       outputBytesUnchanged: true
     };
-  });
+    }));
 }
 
 async function writeFileOrVerify(root, destination, bytes) {
@@ -160,7 +176,10 @@ async function writeFileOrVerify(root, destination, bytes) {
     return 'written';
   } catch (error) {
     let existing;
-    try { existing = await readFile(destination); } catch { throw error; }
+    try {
+      const relative = toPosixRelative(root, destination);
+      existing = await readFile(await assertExistingFileWithin(root, relative));
+    } catch { throw error; }
     if (!existing.equals(Buffer.from(bytes))) throw error;
     return 'existing-identical';
   }
@@ -252,44 +271,415 @@ export async function rejectCandidate({ generationId, reason }, {
   });
 }
 
-export async function promotionPreview({ generationId }, {
+function supersededGenerationIds(approvals) {
+  return new Set((approvals.supersessions ?? []).map((entry) => entry.supersededGenerationId));
+}
+
+async function assertApprovedArtifact({ root, forgeRoot, assetEntry, approval }) {
+  if (!approval || approval.assetId !== assetEntry.assetId
+    || !assetEntry.category || assetEntry.approvedPath !== approval.approvedPath) {
+    throw new Error('Current approved asset/approval record is inconsistent');
+  }
+  const historical = await inspectHistoricalApprovedArtifact(root, approval, {
+    forgeRoot,
+    category: assetEntry.category
+  });
+  if (historical.problem) throw new Error(`Current approved artifact integrity failed: ${historical.problem}`);
+  return historical;
+}
+
+async function replacementContext({
+  root, assetId, category, replacementGenerationId, replacementApprovedPath,
+  replacementApprovedSha256, supersedesGenerationId, requireState = false,
+  allowApprovedResume = false, forgeRoot = FORGE_ROOT
+}) {
+  const paths = pathsFor(root);
+  const [assets, approvals] = await Promise.all([
+    readJson(paths.assetManifest, { allowMissing: true, fallback: null }),
+    readJson(paths.approvalManifest, { allowMissing: true, fallback: null })
+  ]);
+  if (!assets || !approvals) {
+    if (requireState || supersedesGenerationId) {
+      throw new Error('Supersession requires complete asset and approval manifests');
+    }
+    return { assets: null, approvals: null, assetIndex: -1, assetEntry: null, supersession: null, resumed: false };
+  }
+  for (const [schema, value] of [
+    ['asset-manifest.schema.json', assets],
+    ['approval-manifest.schema.json', approvals]
+  ]) {
+    const validation = validateWith(schema, value);
+    if (!validation.ok) throw new Error(`Invalid supersession input ${schema}: ${JSON.stringify(validation.errors)}`);
+  }
+  const topology = inspectApprovalTopology(approvals, assets);
+  if (topology.problem) throw new Error(`Invalid approval topology: ${topology.problem}`);
+  const assetIndex = assets.assets.findIndex((entry) => entry.assetId === assetId);
+  if (assetIndex < 0) throw new Error('Asset manifest entry is missing');
+  const assetEntry = assets.assets[assetIndex];
+  if (assetEntry.category !== category) throw new Error('Asset manifest category does not match generation');
+  const recorded = (approvals.supersessions ?? []).find((entry) => entry.replacementGenerationId === replacementGenerationId);
+  if (recorded) {
+    const previousApproval = approvals.approvals.find((entry) => entry.generationId === recorded.supersededGenerationId);
+    const replacementApproval = approvals.approvals.find((entry) => entry.generationId === recorded.replacementGenerationId);
+    if (recorded.assetId !== assetId || recorded.supersededGenerationId !== supersedesGenerationId
+      || recorded.replacementApprovedPath !== replacementApprovedPath
+      || recorded.replacementApprovedSha256 !== replacementApprovedSha256
+      || !previousApproval || previousApproval.assetId !== assetId
+      || previousApproval.approvedPath !== recorded.supersededApprovedPath
+      || previousApproval.approvedSha256 !== recorded.supersededApprovedSha256
+      || !replacementApproval || replacementApproval.assetId !== assetId
+      || replacementApproval.approvedPath !== recorded.replacementApprovedPath
+      || replacementApproval.approvedSha256 !== recorded.replacementApprovedSha256
+      || replacementApproval.reviewer !== recorded.reviewer
+      || replacementApproval.note !== recorded.note
+      || replacementApproval.approvedAt !== recorded.supersededAt
+      || !['approved', 'exported'].includes(assetEntry.status)
+      || ![recorded.supersededApprovedPath, recorded.replacementApprovedPath].includes(assetEntry.approvedPath)) {
+      throw new Error('Recorded supersession conflicts with replacement candidate');
+    }
+    await assertApprovedArtifact({
+      root,
+      forgeRoot,
+      assetEntry: { ...assetEntry, approvedPath: recorded.supersededApprovedPath },
+      approval: previousApproval
+    });
+    return { assets, approvals, assetIndex, assetEntry, supersession: recorded, resumed: true };
+  }
+  if (allowApprovedResume && ['approved', 'exported'].includes(assetEntry.status)
+    && assetEntry.approvedPath === replacementApprovedPath && !supersedesGenerationId) {
+    const currentApproval = approvals.approvals.find((entry) => entry.approvedPath === replacementApprovedPath);
+    if (!currentApproval || currentApproval.generationId !== replacementGenerationId
+      || currentApproval.approvedSha256 !== replacementApprovedSha256) {
+      throw new Error('Approved resume does not match the current approval record');
+    }
+    await assertApprovedArtifact({ root, forgeRoot, assetEntry, approval: currentApproval });
+    return { assets, approvals, assetIndex, assetEntry, supersession: null, resumed: true };
+  }
+  if (!['approved', 'exported'].includes(assetEntry.status)) {
+    if (supersedesGenerationId) throw new Error('--supersedes requires a currently approved version of the same asset');
+    return { assets, approvals, assetIndex, assetEntry, supersession: null, resumed: false };
+  }
+  if (!supersedesGenerationId) {
+    throw new Error(`Asset already has an approved version; pass --supersedes with its generation id: ${assetId}`);
+  }
+  if (assetEntry.approvedPath === replacementApprovedPath) {
+    throw new Error('Replacement candidate is byte-identical to the current approved version');
+  }
+  const currentApproval = approvals.approvals.find((entry) => entry.approvedPath === assetEntry.approvedPath);
+  if (!currentApproval || currentApproval.assetId !== assetId
+    || currentApproval.generationId !== supersedesGenerationId) {
+    throw new Error('--supersedes does not identify the current approved version');
+  }
+  if (supersededGenerationIds(approvals).has(supersedesGenerationId)) {
+    throw new Error('The selected approved generation is already superseded');
+  }
+  if ((approvals.supersessions ?? []).some((entry) => entry.replacementGenerationId === replacementGenerationId)) {
+    throw new Error('Replacement generation already participates in a supersession');
+  }
+  await assertApprovedArtifact({
+    root, forgeRoot, assetEntry, approval: currentApproval
+  });
+  return {
+    assets,
+    approvals,
+    assetIndex,
+    assetEntry,
+    resumed: false,
+    supersession: {
+      assetId,
+      supersededGenerationId: currentApproval.generationId,
+      supersededApprovedPath: currentApproval.approvedPath,
+      supersededApprovedSha256: currentApproval.approvedSha256,
+      replacementGenerationId,
+      replacementApprovedPath,
+      replacementApprovedSha256
+    }
+  };
+}
+
+async function preparingReplacementContext({
+  root,
+  forgeRoot,
+  current,
+  journal,
+  supersedesGenerationId
+}) {
+  const paths = pathsFor(root);
+  const [assets, approvals] = await Promise.all([
+    readJson(paths.assetManifest),
+    readJson(paths.approvalManifest)
+  ]);
+  for (const [schema, value] of [
+    ['asset-manifest.schema.json', assets],
+    ['approval-manifest.schema.json', approvals]
+  ]) {
+    const validation = validateWith(schema, value);
+    if (!validation.ok) throw new Error(`Invalid preparing promotion input ${schema}: ${JSON.stringify(validation.errors)}`);
+  }
+  const assetIndex = assets.assets.findIndex((entry) => entry.assetId === current.assetId);
+  if (assetIndex < 0) throw new Error('Asset manifest entry is missing');
+  const assetEntry = assets.assets[assetIndex];
+  if (assetEntry.category !== current.category) throw new Error('Asset manifest category does not match generation');
+  if (journal.kind === 'promote') {
+    if (supersedesGenerationId) throw new Error('Promotion retry must preserve the original supersession selection');
+    if (['approved', 'exported'].includes(assetEntry.status)
+      && assetEntry.approvedPath !== journal.destinationPath) {
+      throw new Error('Preparing promotion would replace an existing approval without supersession');
+    }
+  } else if (journal.supersedesGenerationId !== supersedesGenerationId) {
+    throw new Error('Promotion retry must preserve the original supersession selection');
+  }
+  const approvalRecord = {
+    generationId: current.id,
+    assetId: current.assetId,
+    reviewer: 'human',
+    note: journal.note,
+    approvedAt: journal.transitionAt,
+    sourcePath: journal.sourcePath,
+    sourceSha256: journal.sourceSha256,
+    approvedPath: journal.destinationPath,
+    approvedSha256: journal.sourceSha256
+  };
+  let supersession = null;
+  if (journal.kind === 'supersede') {
+    if (!['approved', 'exported'].includes(assetEntry.status)
+      || ![journal.destinationPath, approvals.approvals.find((entry) =>
+        entry.generationId === journal.supersedesGenerationId)?.approvedPath].includes(assetEntry.approvedPath)) {
+      throw new Error('Preparing supersession asset pointer is neither the former nor replacement approval');
+    }
+    const previous = approvals.approvals.find((entry) => entry.generationId === journal.supersedesGenerationId);
+    if (!previous || previous.assetId !== current.assetId) {
+      throw new Error('Preparing supersession former approval is missing');
+    }
+    supersession = {
+      assetId: current.assetId,
+      supersededGenerationId: previous.generationId,
+      supersededApprovedPath: previous.approvedPath,
+      supersededApprovedSha256: previous.approvedSha256,
+      replacementGenerationId: current.id,
+      replacementApprovedPath: journal.destinationPath,
+      replacementApprovedSha256: journal.sourceSha256,
+      reviewer: 'human',
+      note: journal.note,
+      supersededAt: journal.transitionAt
+    };
+    await assertApprovedArtifact({
+      root,
+      forgeRoot,
+      assetEntry: { ...assetEntry, approvedPath: previous.approvedPath },
+      approval: previous
+    });
+  }
+  const updatedApprovals = appendApprovalTransition(approvals, approvalRecord, supersession);
+  const updatedAssets = structuredClone(assets);
+  updatedAssets.assets[assetIndex] = {
+    ...assetEntry,
+    status: 'approved',
+    approvedPath: journal.destinationPath,
+    lastUpdated: journal.transitionAt
+  };
+  const topology = inspectApprovalTopology(updatedApprovals, updatedAssets);
+  if (topology.problem) throw new Error(`Invalid preparing promotion topology: ${topology.problem}`);
+  return {
+    assets,
+    approvals,
+    updatedAssets,
+    updatedApprovals,
+    assetIndex,
+    assetEntry,
+    approvalRecord,
+    supersession: supersession && {
+      assetId: supersession.assetId,
+      supersededGenerationId: supersession.supersededGenerationId,
+      supersededApprovedPath: supersession.supersededApprovedPath,
+      supersededApprovedSha256: supersession.supersededApprovedSha256,
+      replacementGenerationId: supersession.replacementGenerationId,
+      replacementApprovedPath: supersession.replacementApprovedPath,
+      replacementApprovedSha256: supersession.replacementApprovedSha256
+    },
+    supersessionRecord: supersession,
+    resumed: true
+  };
+}
+
+export function appendApprovalTransition(approvals, approvalRecord, supersession = null) {
+  const existingApproval = approvals.approvals.find((entry) => entry.generationId === approvalRecord.generationId
+    || entry.approvedPath === approvalRecord.approvedPath);
+  if (existingApproval && canonicalJson(existingApproval) !== canonicalJson(approvalRecord)) {
+    throw new Error('Approval record collision');
+  }
+  const next = existingApproval ? structuredClone(approvals) : {
+    ...structuredClone(approvals),
+    approvals: [...approvals.approvals, approvalRecord]
+  };
+  if (!supersession) return next;
+  const oldApproval = next.approvals.find((entry) => entry.generationId === supersession.supersededGenerationId);
+  if (!oldApproval || oldApproval.assetId !== supersession.assetId
+    || oldApproval.approvedPath !== supersession.supersededApprovedPath
+    || oldApproval.approvedSha256 !== supersession.supersededApprovedSha256) {
+    throw new Error('Superseded approval history is missing or changed');
+  }
+  const replacementApproval = next.approvals.find((entry) => entry.generationId === supersession.replacementGenerationId);
+  if (!replacementApproval || replacementApproval.assetId !== supersession.assetId
+    || replacementApproval.approvedPath !== supersession.replacementApprovedPath
+    || replacementApproval.approvedSha256 !== supersession.replacementApprovedSha256
+    || replacementApproval.reviewer !== supersession.reviewer
+    || replacementApproval.note !== supersession.note
+    || replacementApproval.approvedAt !== supersession.supersededAt) {
+    throw new Error('Replacement approval does not match its supersession decision');
+  }
+  const existing = (next.supersessions ?? []).find((entry) => entry.supersededGenerationId === supersession.supersededGenerationId
+    || entry.replacementGenerationId === supersession.replacementGenerationId);
+  if (existing && canonicalJson(existing) !== canonicalJson(supersession)) {
+    throw new Error('Supersession record collision');
+  }
+  if (!existing) next.supersessions = [...(next.supersessions ?? []), supersession];
+  return next;
+}
+
+export async function promotionPreview({ generationId, supersedesGenerationId }, {
   root = FORGE_ROOT,
   forgeRoot = FORGE_ROOT
 } = {}) {
-  const pending = await checkedPending(root, await generationResult(root, validateGenerationId(generationId)));
-  const definition = await findAsset(pending.result.assetId, { root: forgeRoot });
-  await assertGenerationReferenceMetadata(definition, pending.result, { root: forgeRoot });
-  await assertRecipeReadyForPromotion(root, pending.result, forgeRoot, definition, pending.sourceBytes);
-  const approvedPath = path.join(pathsFor(root).generated, categoryDirectory(pending.result.category), 'approved', `${assetFileStem(pending.result.assetId)}-${pending.sourceSha256.slice(0, 16)}.png`);
+  const id = validateGenerationId(generationId);
+  const current = await generationResult(root, id);
+  const definition = await findAsset(current.assetId, { root: forgeRoot });
+  if (current.status === 'pending') {
+    const pending = await checkedPending(root, current);
+    await assertGenerationReferenceMetadata(definition, pending.result, { root: forgeRoot });
+    await assertRecipeReadyForPromotion(root, pending.result, forgeRoot, definition, pending.sourceBytes);
+    const approvedPath = path.join(pathsFor(root).generated, categoryDirectory(pending.result.category), 'approved', `${assetFileStem(pending.result.assetId)}-${pending.sourceSha256.slice(0, 16)}.png`);
+    const approvedRelative = toPosixRelative(root, approvedPath);
+    const journalPath = path.join(pathsFor(root).local, 'lifecycle', `${id}.json`);
+    const rawJournal = await readJson(journalPath, { allowMissing: true, fallback: null });
+    let replacement;
+    if (rawJournal) {
+      if (rawJournal.status !== 'preparing' || !['promote', 'supersede'].includes(rawJournal.kind)) {
+        throw new Error('Pending generation has a non-resumable promotion journal');
+      }
+      const journal = validateJournal(rawJournal, id, rawJournal.kind);
+      if (journal.assetId !== current.assetId || journal.category !== current.category
+        || journal.sourcePath !== current.outputPath || journal.sourceSha256 !== pending.sourceSha256
+        || journal.destinationPath !== approvedRelative
+        || (journal.kind === 'supersede' && journal.supersedesGenerationId !== supersedesGenerationId)
+        || (journal.kind === 'promote' && supersedesGenerationId)) {
+        throw new Error('Pending generation conflicts with its preparing promotion journal');
+      }
+      replacement = await preparingReplacementContext({
+        root, forgeRoot, current, journal, supersedesGenerationId
+      });
+    } else {
+      replacement = await replacementContext({
+        root,
+        assetId: pending.result.assetId,
+        category: pending.result.category,
+        replacementGenerationId: generationId,
+        replacementApprovedPath: approvedRelative,
+        replacementApprovedSha256: pending.sourceSha256,
+        supersedesGenerationId,
+        forgeRoot,
+        definition
+      });
+    }
+    return {
+      generationId,
+      assetId: pending.result.assetId,
+      sourcePath: pending.result.outputPath,
+      sourceSha256: pending.sourceSha256,
+      approvedPath: approvedRelative,
+      approvedSha256: pending.sourceSha256,
+      ...(rawJournal ? { resumed: true } : {}),
+      ...(replacement.supersession ? {
+        supersedes: {
+          generationId: replacement.supersession.supersededGenerationId,
+          approvedPath: replacement.supersession.supersededApprovedPath,
+          approvedSha256: replacement.supersession.supersededApprovedSha256
+        }
+      } : {})
+    };
+  }
+  if (current.status !== 'approved') throw new Error('Only a pending candidate can transition');
+  const journalPath = path.join(pathsFor(root).local, 'lifecycle', `${id}.json`);
+  const rawJournal = await readJson(journalPath, { allowMissing: true, fallback: null });
+  if (!rawJournal || rawJournal.status !== 'preparing' || !['promote', 'supersede'].includes(rawJournal.kind)) {
+    throw new Error('Approved generation is not a resumable preparing promotion');
+  }
+  const journal = validateJournal(rawJournal, id, rawJournal.kind);
+  if ((journal.kind === 'supersede' && journal.supersedesGenerationId !== supersedesGenerationId)
+    || (journal.kind === 'promote' && supersedesGenerationId)) {
+    throw new Error('Promotion retry must preserve the original supersession selection');
+  }
+  if (current.assetId !== journal.assetId || current.category !== journal.category
+    || current.outputPath !== journal.destinationPath || current.outputSha256 !== journal.sourceSha256
+    || current.approval?.note !== journal.note || current.approval?.approvedAt !== journal.transitionAt
+    || current.approval?.approvedPath !== journal.destinationPath
+    || current.approval?.approvedSha256 !== journal.sourceSha256) {
+    throw new Error('Approved generation conflicts with its preparing promotion journal');
+  }
+  const pendingSource = await assertExistingPendingCandidate(root, current.category, journal.sourcePath);
+  if (await hashFile(pendingSource) !== journal.sourceSha256) {
+    throw new Error('Preparing promotion source hash changed');
+  }
+  await assertGenerationReferenceMetadata(definition, current, { root: forgeRoot });
+  await assertRecipeReadyForPromotion(root, current, forgeRoot, definition);
+  const replacement = await replacementContext({
+    root,
+    assetId: current.assetId,
+    category: current.category,
+    replacementGenerationId: id,
+    replacementApprovedPath: journal.destinationPath,
+    replacementApprovedSha256: journal.sourceSha256,
+    supersedesGenerationId,
+    requireState: true,
+    allowApprovedResume: true,
+    forgeRoot,
+    definition
+  });
+  if (replacement.assetEntry.approvedPath !== journal.destinationPath) {
+    throw new Error('Preparing promotion current pointer did not reach the approved generation');
+  }
+  const currentApproval = replacement.approvals.approvals.find((entry) => entry.generationId === id);
+  await assertApprovedArtifact({
+    root, forgeRoot, assetEntry: replacement.assetEntry, approval: currentApproval
+  });
   return {
-    generationId,
-    assetId: pending.result.assetId,
-    sourcePath: pending.result.outputPath,
-    sourceSha256: pending.sourceSha256,
-    approvedPath: toPosixRelative(root, approvedPath),
-    approvedSha256: pending.sourceSha256
+    generationId: id,
+    assetId: current.assetId,
+    sourcePath: journal.sourcePath,
+    sourceSha256: journal.sourceSha256,
+    approvedPath: journal.destinationPath,
+    approvedSha256: journal.sourceSha256,
+    resumed: true,
+    ...(journal.kind === 'supersede' ? {
+      supersedes: {
+        generationId: replacement.supersession.supersededGenerationId,
+        approvedPath: replacement.supersession.supersededApprovedPath,
+        approvedSha256: replacement.supersession.supersededApprovedSha256
+      }
+    } : {})
   };
 }
 
 export async function promoteCandidate({
   generationId, reviewer, note, write, confirmed,
-  expectedSourceSha256, expectedApprovedPath
+  expectedSourceSha256, expectedApprovedPath, supersedesGenerationId
 }, {
   root = FORGE_ROOT,
   forgeRoot = FORGE_ROOT,
-  now = () => new Date().toISOString()
+  now = () => new Date().toISOString(),
+  hooks = {}
 } = {}) {
   validateGenerationId(generationId);
-  const preflightGeneration = await generationResult(root, generationId);
-  const preflightDefinition = await findAsset(preflightGeneration.assetId, { root: forgeRoot });
-  await assertGenerationReferenceMetadata(preflightDefinition, preflightGeneration, { root: forgeRoot });
-  await assertRecipeReadyForPromotion(root, preflightGeneration, forgeRoot, preflightDefinition);
+  const preview = await promotionPreview({ generationId, supersedesGenerationId }, { root, forgeRoot });
   if (!process.stdin.isTTY || !process.stdout.isTTY || reviewer !== 'human' || !write || !confirmed) {
     throw new Error('Promotion requires an interactive human reviewer, --write, and explicit confirmation');
   }
   const approvalNote = String(note ?? '').trim();
   if (!approvalNote) throw new Error('--note is required');
   if (!/^[a-f0-9]{64}$/.test(expectedSourceSha256 ?? '') || typeof expectedApprovedPath !== 'string') {
+    throw new Error('Promotion requires the exact previewed hash and destination');
+  }
+  if (preview.sourceSha256 !== expectedSourceSha256 || preview.approvedPath !== expectedApprovedPath) {
     throw new Error('Promotion requires the exact previewed hash and destination');
   }
   const paths = pathsFor(root);
@@ -305,21 +695,51 @@ export async function promoteCandidate({
     if (pending && (expectedSourceSha256 !== pending.sourceSha256 || expectedApprovedPath !== computedApprovedPath)) {
       throw new Error('Candidate no longer matches the preview confirmed by the human reviewer');
     }
+    const existingJournalPath = path.join(pathsFor(root).local, 'lifecycle', `${generationId}.json`);
+    const existingJournal = await readJson(existingJournalPath, { allowMissing: true, fallback: null });
+    if (current.status === 'pending' && existingJournal && existingJournal.status !== 'preparing') {
+      throw new Error('Pending generation has a non-resumable promotion journal');
+    }
+    const replacement = current.status === 'pending' && existingJournal
+      ? await preparingReplacementContext({
+          root,
+          forgeRoot,
+          current,
+          journal: validateJournal(existingJournal, generationId, existingJournal.kind),
+          supersedesGenerationId
+        })
+      : await replacementContext({
+          root,
+          assetId: current.assetId,
+          category: current.category,
+          replacementGenerationId: generationId,
+          replacementApprovedPath: computedApprovedPath,
+          replacementApprovedSha256: pending?.sourceSha256 ?? current.approval?.approvedSha256,
+          supersedesGenerationId,
+          requireState: true,
+          allowApprovedResume: current.status === 'approved',
+          forgeRoot,
+          definition
+        });
     const initial = {
       schemaVersion: 1,
-      kind: 'promote',
+      kind: replacement.supersession ? 'supersede' : 'promote',
       generationId,
       assetId: current.assetId,
       category: current.category,
-      sourcePath: pending?.result.outputPath,
-      sourceSha256: pending?.sourceSha256 ?? current.approval?.approvedSha256,
+      sourcePath: pending?.result.outputPath ?? preview.sourcePath,
+      sourceSha256: pending?.sourceSha256 ?? preview.sourceSha256,
       destinationPath: computedApprovedPath,
       note: approvalNote,
       transitionAt: now(),
-      status: 'preparing'
+      status: 'preparing',
+      ...(replacement.supersession ? { supersedesGenerationId: replacement.supersession.supersededGenerationId } : {})
     };
     const { journalPath, journal } = await lifecycleJournal(root, generationId, initial);
     if (journal.note !== approvalNote) throw new Error('Promotion retry must use the original note');
+    if (journal.kind === 'supersede' && journal.supersedesGenerationId !== supersedesGenerationId) {
+      throw new Error('Promotion retry must supersede the originally selected generation');
+    }
     if (expectedSourceSha256 !== journal.sourceSha256 || expectedApprovedPath !== journal.destinationPath) {
       throw new Error('Candidate no longer matches the preview confirmed by the human reviewer');
     }
@@ -339,6 +759,30 @@ export async function promoteCandidate({
       reviewer: 'human', note: journal.note, approvedAt: journal.transitionAt,
       approvedPath: journal.destinationPath, approvedSha256: journal.sourceSha256
     };
+    let approvedProductionRecipe = current.productionRecipe;
+    let approvedSourceSnapshot = null;
+    if (pending && current.productionRecipe?.sourceSnapshot) {
+      const snapshot = current.productionRecipe.sourceSnapshot;
+      const pendingSnapshotPath = await assertExistingFileWithin(root, snapshot.path);
+      const original = await readExternalImage(pendingSnapshotPath);
+      if (sha256(original.buffer) !== snapshot.sha256
+        || original.metadata.width !== snapshot.width
+        || original.metadata.height !== snapshot.height) {
+        throw new Error('Pending production source snapshot changed before promotion');
+      }
+      const extension = original.sourceFormat === 'jpeg' ? 'jpg' : original.sourceFormat;
+      const destination = path.join(
+        paths.generated,
+        categoryDirectory(current.category),
+        'approved',
+        `source-${snapshot.sha256}.source-original.${extension}`
+      );
+      approvedSourceSnapshot = { destination, bytes: original.buffer };
+      approvedProductionRecipe = {
+        ...current.productionRecipe,
+        sourceSnapshot: { ...snapshot, path: toPosixRelative(root, destination) }
+      };
+    }
     const approved = {
       ...current,
       status: 'approved',
@@ -346,6 +790,7 @@ export async function promoteCandidate({
       outputSha256: journal.sourceSha256,
       metadataPath: toPosixRelative(root, metadataPath),
       approval,
+      ...(approvedProductionRecipe ? { productionRecipe: approvedProductionRecipe } : {}),
       inspection: {
         ...current.inspection,
         observed: [...current.inspection.observed, 'A human-only promotion ceremony recorded an immutable approved copy.'],
@@ -353,7 +798,7 @@ export async function promoteCandidate({
       }
     };
 
-    const approvals = await readJson(paths.approvalManifest);
+    const approvals = replacement.approvals;
     const approvalValidation = validateWith('approval-manifest.schema.json', approvals);
     if (!approvalValidation.ok) throw new Error(`Invalid current approval manifest: ${JSON.stringify(approvalValidation.errors)}`);
     const approvalRecord = {
@@ -361,20 +806,25 @@ export async function promoteCandidate({
       sourcePath: journal.sourcePath, sourceSha256: journal.sourceSha256,
       approvedPath: journal.destinationPath, approvedSha256: journal.sourceSha256
     };
-    const existingApproval = approvals.approvals.find((entry) => entry.generationId === generationId || entry.approvedPath === journal.destinationPath);
-    if (existingApproval && canonicalJson(existingApproval) !== canonicalJson(approvalRecord)) throw new Error('Approval record collision');
-    const updatedApprovals = existingApproval ? approvals : { ...approvals, approvals: [...approvals.approvals, approvalRecord] };
+    const supersessionRecord = replacement.supersession ? {
+      ...replacement.supersession,
+      reviewer: 'human',
+      note: journal.note,
+      supersededAt: journal.transitionAt
+    } : null;
+    const updatedApprovals = appendApprovalTransition(approvals, approvalRecord, supersessionRecord);
     const updatedApprovalValidation = validateWith('approval-manifest.schema.json', updatedApprovals);
     if (!updatedApprovalValidation.ok) throw new Error(`Invalid updated approval manifest: ${JSON.stringify(updatedApprovalValidation.errors)}`);
 
-    const assets = await readJson(paths.assetManifest);
+    const assets = replacement.assets;
     const assetValidation = validateWith('asset-manifest.schema.json', assets);
     if (!assetValidation.ok) throw new Error(`Invalid current asset manifest: ${JSON.stringify(assetValidation.errors)}`);
     const assetIndex = assets.assets.findIndex((entry) => entry.assetId === current.assetId);
     if (assetIndex < 0) throw new Error('Asset manifest entry is missing');
     const assetEntry = assets.assets[assetIndex];
     if (assetEntry.category !== current.category) throw new Error('Asset manifest category does not match generation');
-    if (['approved', 'exported'].includes(assetEntry.status) && assetEntry.approvedPath !== journal.destinationPath) {
+    if (['approved', 'exported'].includes(assetEntry.status) && assetEntry.approvedPath !== journal.destinationPath
+      && !replacement.supersession) {
       throw new Error('Asset already has a different approved version');
     }
     const updatedAssets = structuredClone(assets);
@@ -388,9 +838,26 @@ export async function promoteCandidate({
 
     await writeFileOrVerify(root, approvedPath, pending.sourceBytes);
     if (await hashFile(approvedPath) !== journal.sourceSha256) throw new Error('Approved copy hash mismatch');
+    if (approvedSourceSnapshot) {
+      await writeFileOrVerify(root, approvedSourceSnapshot.destination, approvedSourceSnapshot.bytes);
+      if (await hashFile(approvedSourceSnapshot.destination) !== approved.productionRecipe.sourceSnapshot.sha256) {
+        throw new Error('Approved production source snapshot hash mismatch');
+      }
+    }
     await writeJsonOrVerify(root, metadataPath, approved);
-    await atomicReplaceJson(root, paths.assetManifest, updatedAssets);
-    await atomicReplaceJson(root, paths.approvalManifest, updatedApprovals);
+    await hooks.afterApprovedFiles?.();
+    if (replacement.supersession) {
+      await atomicReplaceJson(root, paths.approvalManifest, updatedApprovals);
+      await hooks.afterApprovalManifest?.();
+      await atomicReplaceJson(root, paths.assetManifest, updatedAssets);
+      await hooks.afterAssetManifest?.();
+    } else {
+      await atomicReplaceJson(root, paths.assetManifest, updatedAssets);
+      await hooks.afterAssetManifest?.();
+      await atomicReplaceJson(root, paths.approvalManifest, updatedApprovals);
+      await hooks.afterApprovalManifest?.();
+    }
+    await hooks.afterManifests?.();
     current = await replaceGenerationResult(root, generationId, (latest) => {
       if (latest.status === 'approved' && latest.outputPath === approved.outputPath) return latest;
       if (latest.status !== 'pending' || latest.outputPath !== journal.sourcePath || latest.outputSha256 !== journal.sourceSha256) {
@@ -398,7 +865,14 @@ export async function promoteCandidate({
       }
       return approved;
     });
+    await hooks.afterLedger?.();
     await completeJournal(root, journalPath, journal);
-    return { status: 'approved', result: current, approvalRecord };
+    return {
+      status: 'approved',
+      result: current,
+      ...(existingJournal ? { resumed: true } : {}),
+      approvalRecord,
+      ...(supersessionRecord ? { supersessionRecord } : {})
+    };
   });
 }

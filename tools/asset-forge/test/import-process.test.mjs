@@ -5,7 +5,7 @@ import path from 'node:path';
 import sharp from 'sharp';
 import test from 'node:test';
 import { FORGE_ROOT } from '../src/config.mjs';
-import { sha256 } from '../src/hashing.mjs';
+import { hashApprovedTree, sha256 } from '../src/hashing.mjs';
 import { processImageBuffer, extractGridFrames } from '../src/images/process-image.mjs';
 import { buildJob } from '../src/jobs/build-job.mjs';
 import { importCandidate } from '../src/jobs/manual-import.mjs';
@@ -169,6 +169,7 @@ test('manual import persists a verified production recipe and rejects provenance
   assert.equal(imported.result.productionRecipe.outputSha256, imported.result.outputSha256);
   assert.deepEqual(imported.result.productionRecipe.subjectBbox, recipe.subjectBbox);
   const outputBeforeSnapshot = await readFile(path.join(root, imported.result.outputPath));
+  const approvedBeforeSnapshot = await hashApprovedTree(root);
   const persisted = await materializeProductionSourceSnapshot({ generationId: imported.result.id }, {
     root,
     forgeRoot: FORGE_ROOT
@@ -176,6 +177,8 @@ test('manual import persists a verified production recipe and rejects provenance
   assert.equal(persisted.status, 'source-snapshot-ready');
   assert.equal(persisted.outputBytesUnchanged, true);
   assert.equal(persisted.result.productionRecipe.sourceSnapshot.sha256, recipe.source.sha256);
+  assert.match(persisted.result.productionRecipe.sourceSnapshot.path, /^generated\/buildings\/pending\/sources\//);
+  assert.equal(await hashApprovedTree(root), approvedBeforeSnapshot);
   assert.deepEqual(
     await readFile(path.join(root, persisted.result.productionRecipe.sourceSnapshot.path)),
     original

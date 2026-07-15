@@ -93,6 +93,41 @@
       "notes": "Primary world-level visual baseline. Required assets must also retain at least one relevant approved category or subject sheet."
     },
     {
+      "id": "cutaway_interior_visual_reference",
+      "path": "references/pending/cutaway_interior_visual_reference.png",
+      "status": "pending",
+      "category": "building",
+      "sha256": "e88b18da60d9c314ecc83c30573d6423129525fb684ce57496c240c1dbf19535",
+      "providedBy": "codex-imagegen-built-in",
+      "licenseNote": "ChatGPT built-in generated reference candidate requested by the project owner. Independent legal and license verification was not performed; pending status is not production authorization.",
+      "targetAssetIds": [
+        "building.pub"
+      ],
+      "notes": "Fable5 reference image 2 candidate for the seamless tavern cutaway composition. The source bytes and exact prompt are recorded, but no human reference-approval decision has been made; required production jobs must reject it while status=pending.",
+      "candidateProvenance": {
+        "toolMode": "built-in",
+        "promptSnapshot": {
+          "path": "review/prompts/fable5-cutaway/cutaway_interior_visual_reference.txt",
+          "sha256": "e816de55d26b45f2f08193ab613c2c9cc4f63913cacbfa1f769a3afdb19f1c4f"
+        },
+        "actualPromptExactMatch": true,
+        "inputReferences": [
+          {
+            "id": "world_visual_master",
+            "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+            "role": "global-style-scale-lighting-and-projection"
+          }
+        ],
+        "sourceOriginal": {
+          "path": "references/pending/cutaway_interior_visual_reference.png",
+          "sha256": "e88b18da60d9c314ecc83c30573d6423129525fb684ce57496c240c1dbf19535",
+          "width": 1536,
+          "height": 1024
+        },
+        "transformation": "none"
+      }
+    },
+    {
       "id": "character_visual_master",
       "path": "references/approved/character_visual_master.png",
       "status": "approved",

@@ -1,4 +1,4 @@
-import { mkdir, readFile } from 'node:fs/promises';
+import { lstat, mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { FORGE_ROOT, pathsFor } from '../config.mjs';
 import { atomicReplaceJson, atomicWriteFile, readJson, withFileLock } from '../fs-safe.mjs';
@@ -8,7 +8,11 @@ import { assertExistingFileWithin, assertExistingStateFile, assetFileStem } from
 import { inspectPng } from '../png-core.mjs';
 import { assertGenerationReferenceMetadata } from '../references.mjs';
 import { validateWith } from '../schemas.mjs';
-import { productionRecipeProblem } from '../validate.mjs';
+import {
+  inspectApprovalTopology,
+  inspectHistoricalApprovedArtifact,
+  productionRecipeProblem
+} from '../validate.mjs';
 
 function bindingGaps(definitions, coverage) {
   const bound = new Set();
@@ -86,10 +90,18 @@ async function writeContentAddressed(root, destination, bytes, expectedHash) {
     return true;
   } catch (error) {
     let existing;
-    try { existing = await readFile(destination); } catch { throw error; }
+    try {
+      existing = await readFile(await assertExistingFileWithin(root, path.relative(root, destination)));
+    } catch { throw error; }
     if (hashBytes(existing) !== expectedHash || !existing.equals(bytes)) throw error;
     return false;
   }
+}
+
+function activeApprovalMap(approvalManifest, assetManifest) {
+  const topology = inspectApprovalTopology(approvalManifest, assetManifest);
+  if (topology.problem) throw new Error(`Invalid approval topology: ${topology.problem}`);
+  return topology.activeByAsset;
 }
 
 async function exportApprovedUnlocked({ write = false, publicRoot, now = () => new Date().toISOString() } = {}, {
@@ -111,7 +123,18 @@ async function exportApprovedUnlocked({ write = false, publicRoot, now = () => n
     if (!validation.ok) throw new Error(`Invalid export input ${schema}: ${JSON.stringify(validation.errors)}`);
   }
   const definitionById = new Map(definitions.map((definition) => [definition.id, definition]));
-  const approvalByPath = new Map(approvalManifest.approvals.map((approval) => [approval.approvedPath, approval]));
+  const approvalByAsset = activeApprovalMap(approvalManifest, assetManifest);
+  const manifestByAsset = new Map(assetManifest.assets.map((entry) => [entry.assetId, entry]));
+  const supersededIds = new Set((approvalManifest.supersessions ?? [])
+    .map((entry) => entry.supersededGenerationId));
+  for (const approval of approvalManifest.approvals) {
+    const category = manifestByAsset.get(approval.assetId)?.category;
+    const historical = await inspectHistoricalApprovedArtifact(root, approval, { forgeRoot, category });
+    if (historical.problem) {
+      const label = supersededIds.has(approval.generationId) ? 'superseded approval history' : 'active approval';
+      throw new Error(`Invalid ${label}: ${approval.assetId}: ${historical.problem}`);
+    }
+  }
   const assets = [];
   const copies = [];
   const exportedDefinitions = [];
@@ -119,7 +142,7 @@ async function exportApprovedUnlocked({ write = false, publicRoot, now = () => n
     const definition = definitionById.get(entry.assetId);
     if (!definition || !entry.approvedPath) throw new Error(`Approved asset is missing definition/path: ${entry.assetId}`);
     if (definition.category !== entry.category) throw new Error(`Approved asset category does not match definition: ${entry.assetId}`);
-    const approval = approvalByPath.get(entry.approvedPath);
+    const approval = approvalByAsset.get(entry.assetId);
     if (!approval || approval.assetId !== entry.assetId) throw new Error(`Approval ledger mismatch: ${entry.assetId}`);
     const source = await assertExistingStateFile(root, entry.category, 'approved', entry.approvedPath);
     const bytes = await readFile(source);
@@ -131,7 +154,12 @@ async function exportApprovedUnlocked({ write = false, publicRoot, now = () => n
     if (!generationValidation.ok) throw new Error(`Invalid approved generation metadata: ${entry.assetId}`);
     if (generation.id !== approval.generationId || generation.assetId !== entry.assetId
       || generation.status !== 'approved' || generation.outputPath !== entry.approvedPath
-      || generation.outputSha256 !== approval.approvedSha256) {
+      || generation.outputSha256 !== approval.approvedSha256
+      || generation.approval?.reviewer !== approval.reviewer
+      || generation.approval?.note !== approval.note
+      || generation.approval?.approvedAt !== approval.approvedAt
+      || generation.approval?.approvedPath !== approval.approvedPath
+      || generation.approval?.approvedSha256 !== approval.approvedSha256) {
       throw new Error(`Approved generation metadata mismatch: ${entry.assetId}`);
     }
     await assertGenerationReferenceMetadata(definition, generation, { root: forgeRoot });
@@ -181,6 +209,10 @@ async function exportApprovedUnlocked({ write = false, publicRoot, now = () => n
   if (!publicRoot) throw new Error('Export write requires a public root');
   const actualPublicRoot = path.resolve(publicRoot);
   await mkdir(actualPublicRoot, { recursive: true, mode: 0o700 });
+  const publicRootStat = await lstat(actualPublicRoot);
+  if (publicRootStat.isSymbolicLink() || !publicRootStat.isDirectory()) {
+    throw new Error('Export public root must be a real non-symlink directory');
+  }
   for (const copy of copies) {
     const destination = path.join(actualPublicRoot, copy.relative);
     if (await writeContentAddressed(actualPublicRoot, destination, copy.bytes, copy.sha256)) plan.wrote.push(destination);

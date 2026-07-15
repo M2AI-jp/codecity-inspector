@@ -105,6 +105,46 @@
               },
               "rawSourcePublished": { "const": false }
             }
+          },
+          "candidateProvenance": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "toolMode", "promptSnapshot", "actualPromptExactMatch",
+              "inputReferences", "sourceOriginal", "transformation"
+            ],
+            "properties": {
+              "toolMode": { "const": "built-in" },
+              "promptSnapshot": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["path", "sha256"],
+                "properties": {
+                  "path": { "type": "string", "pattern": "^review/prompts/[a-z0-9_-]+(?:/[a-z0-9_.-]+)*\\.txt$" },
+                  "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+                }
+              },
+              "actualPromptExactMatch": { "const": true },
+              "inputReferences": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["id", "sha256", "role"],
+                  "properties": {
+                    "id": { "type": "string", "pattern": "^[a-z0-9_]+(?:\\.[a-z0-9_]+)*$" },
+                    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+                    "role": { "type": "string", "minLength": 1 }
+                  }
+                }
+              },
+              "sourceOriginal": {
+                "$ref": "#/definitions/pendingReferenceProvenanceImage"
+              },
+              "transformation": { "const": "none" }
+            }
           }
         },
         "allOf": [
@@ -114,8 +154,27 @@
               "required": ["providedBy"]
             },
             "then": {
-              "required": ["generationProvenance"],
-              "properties": { "generationProvenance": {} }
+              "oneOf": [
+                {
+                  "required": ["generationProvenance"],
+                  "properties": { "generationProvenance": {} },
+                  "not": {
+                    "required": ["candidateProvenance"],
+                    "properties": { "candidateProvenance": {} }
+                  }
+                },
+                {
+                  "required": ["status", "candidateProvenance"],
+                  "properties": {
+                    "status": { "const": "pending" },
+                    "candidateProvenance": {}
+                  },
+                  "not": {
+                    "required": ["generationProvenance"],
+                    "properties": { "generationProvenance": {} }
+                  }
+                }
+              ]
             }
           },
           {
@@ -123,7 +182,22 @@
               "properties": { "providedBy": { "const": "human" } },
               "required": ["providedBy"]
             },
-            "then": { "not": { "required": ["generationProvenance"] } }
+            "then": {
+              "allOf": [
+                {
+                  "not": {
+                    "required": ["generationProvenance"],
+                    "properties": { "generationProvenance": {} }
+                  }
+                },
+                {
+                  "not": {
+                    "required": ["candidateProvenance"],
+                    "properties": { "candidateProvenance": {} }
+                  }
+                }
+              ]
+            }
           },
           {
             "if": { "properties": { "status": { "const": "approved" } }, "required": ["status"] },
@@ -150,6 +224,17 @@
     }
   },
   "definitions": {
+    "pendingReferenceProvenanceImage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "width", "height"],
+      "properties": {
+        "path": { "type": "string", "pattern": "^references/pending/[a-zA-Z0-9_.-]+\\.png$" },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 }
+      }
+    },
     "referenceProvenanceImage": {
       "type": "object",
       "additionalProperties": false,

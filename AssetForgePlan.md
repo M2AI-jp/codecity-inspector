@@ -1,6 +1,6 @@
 # CodeCity Inspector — Asset Forge development plan
 
-Status: implemented; required 78 assets approved/exported and integrated, owner provenance/visual sign-off recorded
+Status: **historical v1 implementation record; Fable5 redesign approved and Phase 0 implementation started (2026-07-15)**
 Date: 2026-07-12
 Lead: Codex `/root`
 Middle manager: Terra `/root/terra`
@@ -12,6 +12,13 @@ Worker: Luna `/root/terra/luna`
 > composition is complete. Use [Fable5DesignHandoff.md](Fable5DesignHandoff.md)
 > for current capability, limitations, replacement constraints, and design
 > handoff.
+>
+> The former 78-asset set is not an adequate art set for the approved redesign: quantity and
+> variety are insufficient, and the old runtime used it poorly. The old game failed design and
+> visual review. The current implementation authority is
+> [Fable5GameDesign.md](Fable5GameDesign.md) plus
+> [Fable5AssetPlan.md](Fable5AssetPlan.md); approved v1 bytes and ledgers remain immutable history
+> while Phase 0 adds an explicit replacement lifecycle and recipe-aware incremental import.
 
 This plan turns the attached Asset Forge requirements into an executable development program. The attached requirements are authoritative. Where they leave a technical choice open, this plan records the Lead decision and its verification gate.
 

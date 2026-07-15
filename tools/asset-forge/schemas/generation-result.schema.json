@@ -164,7 +164,36 @@
       },
       "then": {
         "properties": {
-          "productionRecipe": { "type": "object", "properties": { "sourceSnapshot": {} }, "required": ["sourceSnapshot"] }
+          "productionRecipe": {
+            "type": "object",
+            "properties": {
+              "sourceSnapshot": {
+                "type": "object",
+                "properties": {
+                  "path": { "type": "string", "pattern": "^generated/(characters|buildings|fields|objects|ui|effects)/approved/[a-z0-9_-]+\\.source-original\\.(png|jpg|webp)$" }
+                }
+              }
+            },
+            "required": ["sourceSnapshot"]
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "status": { "const": "pending" } }, "required": ["status"] },
+      "then": {
+        "properties": {
+          "productionRecipe": {
+            "type": "object",
+            "properties": {
+              "sourceSnapshot": {
+                "type": "object",
+                "properties": {
+                  "path": { "type": "string", "pattern": "^generated/(characters|buildings|fields|objects|ui|effects)/pending/sources/[a-z0-9_-]+\\.source-original\\.(png|jpg|webp)$" }
+                }
+              }
+            }
+          }
         }
       }
     }
@@ -373,7 +402,7 @@
           "properties": {
             "path": {
               "type": "string",
-              "pattern": "^generated/(characters|buildings|fields|objects|ui|effects)/approved/[a-z0-9_-]+\\.source-original\\.(png|jpg|webp)$"
+              "pattern": "^generated/(characters|buildings|fields|objects|ui|effects)/(approved|pending/sources)/[a-z0-9_-]+\\.source-original\\.(png|jpg|webp)$"
             },
             "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
             "width": { "type": "integer", "minimum": 1 },

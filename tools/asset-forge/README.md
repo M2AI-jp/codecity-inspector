@@ -26,20 +26,32 @@ repository-specific geography from those variants.
 Character and effect sheets are cropped from validated frame metadata; they are never shrunk
 as whole sheets into one tile.
 
-The catalog contains 110 definitions: 78 are required by the current game and 32 are optional
-future enhancements. The previous low-quality approved/public production set has been removed;
-the required 78 are explicitly approved and exported as the current game set. Each required definition is
+The catalog contains 110 v1 definitions: 78 formed the legacy v1 runtime gate and 32 were optional
+future enhancements. The previous low-quality approved/public production set was removed;
+the replacement 78 were explicitly approved and exported for that legacy runtime. This is immutable
+approval history, not a claim that the Fable5 redesign has enough art or is complete. The project owner
+has explicitly judged that 78-set insufficient in quantity and variety and that the old runtime used the
+available material badly. Each legacy required definition is
 paired with exactly two approved input references: `world_visual_master` plus one directly
 targeted primary sheet. The optional 32 remain outside the required export. Reference readiness
 is not a claim that automated checks decided final candidate quality, licensing, or art direction.
 The current `field.cobblestone`, `field.rock`, and `field.tree` definitions contain semantic
 conflicts with their approved recipes/runtime use and must be corrected before recommissioning.
-Existing approved IDs also have no general supersede workflow; historical wave scripts are not
-incremental remake tools. The normal `manual-import` CLI/job-pack command cannot attach the
-production recipe and persistent source snapshot required for a promotable required replacement;
-a recipe-aware incremental orchestration path or CLI extension is needed first. The public
+Existing approved IDs now have an explicit supersede workflow: a new pending candidate goes
+through the same interactive human promotion ceremony before the current pointer can change.
+Previous approved bytes and approval records remain immutable, connected by an append-only
+supersession record. Historical wave scripts are still not incremental remake tools. The
+`manual-import` CLI can attach a production recipe, verify a job pack, and materialize the
+persistent original source snapshot into pending provenance. Only the same interactive human
+promotion ceremony may copy that exact snapshot into `approved/` and switch the approved metadata
+to the immutable approved path. The public
 `process` command exposes alpha key/tolerance, trim, and grid extraction, not general nearest
 resize or universal hard-alpha/seam rejection.
+
+The current production-recipe and character-contract schemas still describe the legacy 24×40,
+four-direction/three-row v1 sprite sheets. The approved Fable5 contract (48×96 and ten actions)
+belongs to the later Phase 0-B schema/catalog migration and is not delivered by this Phase 0-A
+replacement-lifecycle slice.
 
 ## No paid API path
 
@@ -69,8 +81,13 @@ npm run dry-run
 # Requires approved human-provided references
 npm run make-job -- --asset character.player
 
-# Accepts image bytes by signature; result remains pending
-npm run import -- --asset character.player --file /absolute/path/candidate.png
+# Recipe-aware incremental import; result remains pending
+npm run import -- --asset character.player --file /absolute/path/candidate.png \
+  --job-pack generated/jobs/JOB_DIRECTORY/job-pack.json \
+  --recipe review/recipes/character_player.json --materialize-source
+
+# Retry source snapshot materialization without re-importing candidate bytes
+node src/cli.mjs persist-source --generation GEN_ID
 
 # Local processing of a pending candidate
 npm run process -- --generation GEN_ID --alpha-key black --tolerance 0 --trim
@@ -80,6 +97,10 @@ npm run reject -- --generation GEN_ID --reason "human review note"
 
 # Promotion refuses non-TTY/automation and requires reviewer, note, write, hash confirmation
 npm run promote -- --generation GEN_ID --reviewer human --note "human decision" --write
+
+# A replacement names the current generation inside the same human ceremony
+npm run promote -- --generation NEW_GEN_ID --supersedes CURRENT_GEN_ID \
+  --reviewer human --note "approved replacement" --write
 
 # One interactive operator review for the complete required 78; approval only, never export
 npm run promote-required
@@ -126,6 +147,17 @@ the actual PNG bytes again: the file hash and all six recorded inspection fields
 the asset definition's production output contract. Updating metadata to agree with a wrong-sized
 file does not make that file promotable or exportable.
 
+Snapshot materialization itself writes only under
+`generated/<category>/pending/sources/`; it must leave the approved tree byte-for-byte unchanged.
+Promotion verifies that pending snapshot and copies it content-addressed under
+`generated/<category>/approved/` inside the human-only write boundary. Retry paths accept only
+byte-identical files and exact journal/ledger state.
+
+Recipe and job-pack paths accepted by the operator CLI are Forge-relative, bounded, non-symlink
+files. The packed prompt, output contract, reference IDs/hashes, and generation job are rechecked
+against the current definition before candidate bytes are written. Candidate images retain the
+existing signature-based bounded decode and symlink refusal.
+
 ## Git and state boundary
 
 Definitions, prompts, schemas, reference declarations, and approved-asset catalog data are
@@ -148,7 +180,9 @@ The `promote` command requires an interactive TTY, `--reviewer human`, `--write`
 note, and confirmation after displaying source/destination hashes. These checks reduce
 accidental approval and ordinary unattended automation; they do not prove a person's identity.
 Codex may implement and test refusal/pure transition paths but must not execute a successful
-project promotion. `promote-required` applies the same review policy to the complete required
+project promotion. Crash-recovery tests may exercise a complete transition only in isolated
+temporary roots with synthetic candidates; they do not call the production CLI or alter project
+approval state. `promote-required` applies the same review policy to the complete required
 set. It first validates
 all 78 definitions, candidates, recipes, references, files, hashes, and ledgers twice; prints
 the canonical asset-ID-sorted plan and its SHA-256 digest; and accepts only the exact phrase
@@ -171,10 +205,17 @@ type it. The exported `executeRequiredPromotion` dependency injection exists for
 the production CLI does not expose that injection path. This is an error-prevention and ordinary
 automation boundary, not an identity or adversarial same-user security boundary.
 
+`--supersedes` does not weaken that boundary. It is accepted only by the same interactive
+promotion ceremony and must identify the generation currently selected by the asset manifest.
+Promotion verifies the former approved hash, appends the replacement approval and supersession
+records, and then changes the current pointer. It never overwrites or removes the former PNG,
+metadata, or approval entry. Export remains current-pointer-only; superseded versions are
+immutable provenance history, not runtime variants.
+
 The required batch holds one outer lock for its full execution. Generation, manual import,
-processing, and job-pack creation acquire that same lock before their first filesystem write and
-hold it through their inner generation-ledger update. Direct generation-ledger append and
-write-mode export use it too. All of these operations fail immediately and without output,
+source-snapshot materialization, processing, and job-pack creation acquire that same lock before
+their first filesystem write and hold it through their inner generation-ledger update. Direct
+generation-ledger append and write-mode export use it too. All of these operations fail immediately and without output,
 metadata, job-pack, or ledger mutation when a required batch is running; the caller can retry the
 same operation after the batch releases the lock without first removing orphan files. Lock
 acquisition order is required batch lock, then lifecycle lock for promotion/export, or required
@@ -219,3 +260,4 @@ canonical unrotated direction used by the renderer.
 2. Independent legal/license verification was not performed; the owner remains responsible for third-party input rights, applicable law, and release suitability.
 3. Keep the optional 32 future assets outside the required completion gate unless product scope changes.
 4. The current required 78 received explicit interactive promotion under the human-review policy. Any replacement candidate requires a new, separate approval; reference approval alone is not candidate approval.
+5. On 2026-07-15, the project owner judged the legacy 78 materially insufficient and poorly used in the old game. Those approvals remain provenance history only; they are not the Fable5 required set or evidence of game completion.

@@ -77,6 +77,19 @@ test('cross-file validation rejects tampered approved reference-generation prove
     && /prompt snapshot hash/i.test(issue.message)));
 });
 
+test('cross-file validation rejects tampered pending reference-candidate provenance', async () => {
+  const root = await fixtureRoot();
+  const references = JSON.parse(await readFile(path.join(root, 'data', 'manifests', 'references.json'), 'utf8'));
+  const candidate = references.references.find((entry) => entry.id === 'cutaway_interior_visual_reference');
+  assert.equal(candidate.status, 'pending');
+  const prompt = path.join(root, candidate.candidateProvenance.promptSnapshot.path);
+  await writeFile(prompt, `${await readFile(prompt, 'utf8')}\ntampered`);
+  const result = await validateRepository({ root });
+  assert.ok(result.issues.some((issue) => issue.code === 'INVALID_REFERENCE_FILE'
+    && issue.id === candidate.id
+    && /candidate prompt snapshot hash/i.test(issue.message)));
+});
+
 test('cross-file validation reports a required pending candidate without a production recipe', async () => {
   const root = await fixtureRoot();
   const generated = await runJob({ assetId: 'field.grass', provider: 'mock' }, {

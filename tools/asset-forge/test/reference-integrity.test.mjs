@@ -77,15 +77,20 @@ async function forgeFixture(prefix) {
   for (const directory of ['data', 'prompts', 'references']) {
     await cp(path.join(FORGE_ROOT, directory), path.join(root, directory), { recursive: true });
   }
+  for (const directory of ['prompts', 'decisions']) {
+    await cp(path.join(FORGE_ROOT, 'review', directory), path.join(root, 'review', directory), { recursive: true });
+  }
   return root;
 }
 
-test('approved references and the released 78 candidates retain verified outputs and source snapshots', async () => {
+test('approved references, the pending cutaway reference, and the released 78 candidates retain verified provenance', async () => {
   const manifest = JSON.parse(await readFile(path.join(FORGE_ROOT, 'data', 'manifests', 'references.json')));
-  assert.equal(manifest.references.length, 20);
-  assert.equal(manifest.references.every((reference) => reference.status === 'approved'), true);
-  assert.deepEqual(new Set(manifest.references.map((reference) => reference.id)), new Set(EXPECTED_REFERENCE_HASHES.keys()));
-  for (const reference of manifest.references) {
+  const approvedReferences = manifest.references.filter((reference) => reference.status === 'approved');
+  const pendingReferences = manifest.references.filter((reference) => reference.status === 'pending');
+  assert.equal(approvedReferences.length, 20);
+  assert.equal(pendingReferences.length, 1);
+  assert.deepEqual(new Set(approvedReferences.map((reference) => reference.id)), new Set(EXPECTED_REFERENCE_HASHES.keys()));
+  for (const reference of approvedReferences) {
     const bytes = await readFile(path.join(FORGE_ROOT, reference.path));
     assert.equal(reference.sha256, EXPECTED_REFERENCE_HASHES.get(reference.id));
     assert.equal(sha256(bytes), reference.sha256);
@@ -99,7 +104,17 @@ test('approved references and the released 78 candidates retain verified outputs
       assert.equal(reference.generationProvenance?.decision.reviewer, 'lead');
     }
   }
-  assert.deepEqual((await readdir(path.join(FORGE_ROOT, 'references', 'pending'))).sort(), []);
+  const cutaway = pendingReferences[0];
+  assert.equal(cutaway.id, 'cutaway_interior_visual_reference');
+  assert.equal(cutaway.providedBy, 'codex-imagegen-built-in');
+  assert.equal(cutaway.sha256, 'e88b18da60d9c314ecc83c30573d6423129525fb684ce57496c240c1dbf19535');
+  assert.equal(sha256(await readFile(path.join(FORGE_ROOT, cutaway.path))), cutaway.sha256);
+  assert.equal(cutaway.candidateProvenance?.sourceOriginal.sha256, cutaway.sha256);
+  assert.equal(cutaway.candidateProvenance?.transformation, 'none');
+  assert.equal(cutaway.generationProvenance, undefined);
+  assert.deepEqual((await readdir(path.join(FORGE_ROOT, 'references', 'pending'))).sort(), [
+    'cutaway_interior_visual_reference.png'
+  ]);
   const worldHash = EXPECTED_REFERENCE_HASHES.get('world_visual_master');
   assert.equal(sha256(await readFile(path.join(REPO_ROOT, '9e28e43d-56a5-44aa-aa1d-b59461e625dd.png'))), worldHash);
 

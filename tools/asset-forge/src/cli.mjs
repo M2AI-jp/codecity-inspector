@@ -6,8 +6,10 @@ import { FORGE_ROOT } from './config.mjs';
 import { exportApproved } from './export/export-approved.mjs';
 import { batchRun } from './jobs/batch-run.mjs';
 import { readAssetDefinitions } from './jobs/define-assets.mjs';
-import { importCandidate } from './jobs/manual-import.mjs';
-import { promoteCandidate, promotionPreview, rejectCandidate } from './jobs/lifecycle.mjs';
+import { importCandidate, readProductionRecipeDraft } from './jobs/manual-import.mjs';
+import {
+  materializeProductionSourceSnapshot, promoteCandidate, promotionPreview, rejectCandidate
+} from './jobs/lifecycle.mjs';
 import { processCandidate } from './jobs/process-candidate.mjs';
 import {
   beginRequiredPromotion,
@@ -19,7 +21,9 @@ import { writeJobPack } from './jobs/write-job-pack.mjs';
 import { compiledSchemaNames } from './schemas.mjs';
 import { validateRepository } from './validate.mjs';
 
-const BOOLEAN_FLAGS = new Set(['dry-run', 'yes-subscription', 'allow-pending-reference', 'write', 'trim']);
+const BOOLEAN_FLAGS = new Set([
+  'dry-run', 'yes-subscription', 'allow-pending-reference', 'write', 'trim', 'materialize-source'
+]);
 
 function optionName(flag) {
   return flag.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
@@ -57,6 +61,30 @@ function generationOptions(options) {
   };
 }
 
+async function operatorImport(options) {
+  const generation = generationOptions({ ...options, provider: 'manual-import' });
+  const productionRecipe = options.recipe
+    ? await readProductionRecipeDraft(options.recipe)
+    : null;
+  if (options.materializeSource && !productionRecipe) {
+    throw new Error('--materialize-source requires --recipe');
+  }
+  const imported = await importCandidate({
+    ...generation,
+    file: options.file,
+    productionRecipe,
+    jobPackPath: options.jobPack ?? null
+  });
+  if (!options.materializeSource) return imported;
+  const persisted = await materializeProductionSourceSnapshot({ generationId: imported.result.id });
+  return {
+    ...imported,
+    result: persisted.result,
+    sourceSnapshot: persisted.sourceSnapshot,
+    sourceSnapshotStatus: persisted.status
+  };
+}
+
 export async function main(argv = process.argv.slice(2)) {
   const { command, options } = parseArgs(argv);
   if (command === 'validate') return validateRepository();
@@ -83,7 +111,7 @@ export async function main(argv = process.argv.slice(2)) {
   if (command === 'generate') {
     const generation = generationOptions(options);
     if (generation.provider === 'job-pack') return writeJobPack(generation);
-    if (generation.provider === 'manual-import') return importCandidate({ ...generation, file: options.file });
+    if (generation.provider === 'manual-import') return operatorImport(options);
     if (generation.provider === 'codex-subscription' && !options.yesSubscription) {
       throw new Error('codex-subscription requires --yes-subscription and an independently enabled local adapter');
     }
@@ -100,7 +128,11 @@ export async function main(argv = process.argv.slice(2)) {
     });
   }
   if (command === 'make-job') return writeJobPack(generationOptions({ ...options, provider: 'job-pack' }));
-  if (command === 'import') return importCandidate({ ...generationOptions({ ...options, provider: 'manual-import' }), file: options.file });
+  if (command === 'import') return operatorImport(options);
+  if (command === 'persist-source') {
+    if (!options.generation) throw new Error('--generation is required');
+    return materializeProductionSourceSnapshot({ generationId: options.generation });
+  }
   if (command === 'process') {
     if (!options.generation) throw new Error('--generation is required');
     return processCandidate({
@@ -132,7 +164,10 @@ export async function main(argv = process.argv.slice(2)) {
   }
   if (command === 'promote') {
     if (!options.generation) throw new Error('--generation is required');
-    const preview = await promotionPreview({ generationId: options.generation });
+    const preview = await promotionPreview({
+      generationId: options.generation,
+      supersedesGenerationId: options.supersedes
+    });
     if (!process.stdin.isTTY || !process.stdout.isTTY) throw new Error('Promotion requires an interactive TTY');
     process.stdout.write(`${JSON.stringify(preview, null, 2)}\n`);
     const terminal = createInterface({ input: process.stdin, output: process.stdout });
@@ -145,7 +180,8 @@ export async function main(argv = process.argv.slice(2)) {
       write: Boolean(options.write),
       confirmed: answer === 'APPROVE',
       expectedSourceSha256: preview.sourceSha256,
-      expectedApprovedPath: preview.approvedPath
+      expectedApprovedPath: preview.approvedPath,
+      supersedesGenerationId: options.supersedes
     });
   }
   if (command === 'export') {

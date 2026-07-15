@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { access, cp, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { access, cp, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -31,9 +31,12 @@ async function approvedFixture({ root, forgeRoot = FORGE_ROOT, assetId, generati
   const hash = sha256(bytes);
   const directory = `${asset.category}${asset.category === 'character' ? 's' : asset.category === 'building' ? 's' : asset.category === 'field' ? 's' : asset.category === 'object' ? 's' : 's'}`;
   const approvedRelative = `generated/${directory}/approved/${assetId.replaceAll('.', '_')}-${generationId}.png`;
+  const pendingRelative = `generated/${directory}/pending/source-${generationId}.png`;
   const approvedPath = path.join(root, approvedRelative);
   await mkdir(path.dirname(approvedPath), { recursive: true });
   await writeFile(approvedPath, bytes);
+  await mkdir(path.dirname(path.join(root, pendingRelative)), { recursive: true });
+  await writeFile(path.join(root, pendingRelative), bytes);
   const createdAt = '2026-07-13T00:00:00.000Z';
   const approval = {
     reviewer: 'human', note: 'test fixture', approvedAt: createdAt,
@@ -131,7 +134,7 @@ async function approvedFixture({ root, forgeRoot = FORGE_ROOT, assetId, generati
     generation, hash, approvedRelative,
     approvalRecord: {
       generationId, assetId, reviewer: 'human', note: 'test fixture', approvedAt: createdAt,
-      sourcePath: `generated/${directory}/pending/source.png`, sourceSha256: hash,
+      sourcePath: pendingRelative, sourceSha256: hash,
       approvedPath: approvedRelative, approvedSha256: hash
     }
   };
@@ -303,7 +306,7 @@ test('approved-only export verifies ledger hashes and never includes pending ass
   await writeFile(approvedMetadataPath, JSON.stringify(tamperedMetadata));
   await assert.rejects(
     () => exportApproved({ publicRoot }, { root, forgeRoot: FORGE_ROOT }),
-    /Generation reference provenance mismatch/
+    /recorded reference evidence is missing or changed/
   );
   await writeFile(approvedMetadataPath, JSON.stringify(fixture.generation));
   await assert.rejects(
@@ -316,7 +319,7 @@ test('approved-only export verifies ledger hashes and never includes pending ass
   await writeFile(assetsPath, JSON.stringify(changedAssets));
   await assert.rejects(
     () => exportApproved({ publicRoot }, { root, forgeRoot: FORGE_ROOT }),
-    /category does not match definition/
+    /Candidate path does not match its category|category does not match definition/
   );
 });
 
@@ -366,9 +369,15 @@ test('export completes only when every scoped required asset and runtime binding
   await cp(path.join(FORGE_ROOT, 'data'), path.join(root, 'data'), { recursive: true });
   await cp(path.join(FORGE_ROOT, 'prompts'), path.join(root, 'prompts'), { recursive: true });
   await cp(path.join(FORGE_ROOT, 'references'), path.join(root, 'references'), { recursive: true });
+  await cp(path.join(FORGE_ROOT, 'review', 'prompts'), path.join(root, 'review', 'prompts'), { recursive: true });
+  await cp(path.join(FORGE_ROOT, 'review', 'decisions'), path.join(root, 'review', 'decisions'), { recursive: true });
   const assetManifestPath = path.join(root, 'data', 'manifests', 'assets.json');
   const assetManifest = resetAssetManifestToMissing(JSON.parse(await readFile(assetManifestPath, 'utf8')));
   await writeFile(assetManifestPath, JSON.stringify(assetManifest));
+  await writeFile(path.join(root, 'data', 'manifests', 'approvals.json'), JSON.stringify({
+    schemaVersion: 1,
+    approvals: []
+  }));
   const empty = await exportApproved({}, { root, forgeRoot: FORGE_ROOT });
   assert.equal(empty.manifest.complete, false);
   for (const assetId of ['character.player', 'effect.construction_dust', 'effect.water_ripple']) {
@@ -440,6 +449,31 @@ test('export completes only when every scoped required asset and runtime binding
   }, { root, forgeRoot: root });
   assert.equal(repeated.reused.some((file) => file.endsWith('character_player.png')), true);
   assert.equal(repeated.reused.some((file) => file.includes('/manifests/')), true);
+
+  const linkedPublicRoot = path.join(
+    await mkdtemp(path.join(os.tmpdir(), 'forge-export-root-link-')),
+    'public-link'
+  );
+  await symlink(publicRoot, linkedPublicRoot);
+  await assert.rejects(
+    () => exportApproved({
+      write: true, publicRoot: linkedPublicRoot, now: () => '2026-07-13T00:00:00.000Z'
+    }, { root, forgeRoot: root }),
+    /public root must be a real non-symlink directory/
+  );
+
+  const publishedAsset = path.join(publicRoot, manifest.assets[0].publicPath.slice(1));
+  const outsideRoot = await mkdtemp(path.join(os.tmpdir(), 'forge-export-link-target-'));
+  const outsideAsset = path.join(outsideRoot, 'same.png');
+  await writeFile(outsideAsset, await readFile(publishedAsset));
+  await rm(publishedAsset);
+  await symlink(outsideAsset, publishedAsset);
+  await assert.rejects(
+    () => exportApproved({
+      write: true, publicRoot, now: () => '2026-07-13T00:00:00.000Z'
+    }, { root, forgeRoot: root }),
+    /Refusing to overwrite|Symbolic links/
+  );
 });
 
 test('export rejects an approved spritesheet whose PNG dimensions do not match its declared grid', async () => {
@@ -451,7 +485,7 @@ test('export rejects an approved spritesheet whose PNG dimensions do not match i
   const { approvedRelative } = fixture;
 
   const assetsPath = path.join(root, 'data', 'manifests', 'assets.json');
-  const assets = JSON.parse(await readFile(assetsPath, 'utf8'));
+  const assets = resetAssetManifestToMissing(JSON.parse(await readFile(assetsPath, 'utf8')));
   const player = assets.assets.find((entry) => entry.assetId === 'character.player');
   player.status = 'approved';
   player.approvedPath = approvedRelative;

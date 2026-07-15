@@ -238,7 +238,12 @@ async function collectRequiredPlan(root, forgeRoot, dependencies) {
   ]);
   assertManifest('approval-manifest.schema.json', approvals, 'approval manifest');
   assertManifest('asset-manifest.schema.json', assets, 'asset manifest');
-  const selected = selectRequiredGenerations(definitions, generationManifest.results);
+  const supersededIds = new Set((approvals.supersessions ?? []).map((entry) => entry.supersededGenerationId));
+  const activeApprovals = approvals.approvals.filter((entry) => !supersededIds.has(entry.generationId));
+  const selected = selectRequiredGenerations(
+    definitions,
+    generationManifest.results.filter((entry) => !supersededIds.has(entry.id))
+  );
   const plan = [];
   const batchNotes = [];
   const recoverableAssetIds = [];
@@ -257,7 +262,7 @@ async function collectRequiredPlan(root, forgeRoot, dependencies) {
         throw new Error(`Promotion preview identifies a different candidate: ${definition.id}`);
       }
       const transition = await pendingManifestConsistency(
-        root, paths, definition, assetEntries[0], generation, approvals.approvals, preview
+        root, paths, definition, assetEntries[0], generation, activeApprovals, preview
       );
       plan.push({ ...assertPlanItem(preview) });
       if (transition.batchNote) batchNotes.push({ assetId: definition.id, note: transition.batchNote });
@@ -265,7 +270,7 @@ async function collectRequiredPlan(root, forgeRoot, dependencies) {
       pendingGenerationIds.push(generation.id);
       pendingCount += 1;
     } else {
-      const approved = await approvedPlanItem(root, definition, generation, assetEntries[0], approvals.approvals);
+      const approved = await approvedPlanItem(root, definition, generation, assetEntries[0], activeApprovals);
       plan.push(approved.item);
       batchNotes.push({ assetId: definition.id, note: approved.approvalNote });
       approvedGenerationIds.push(generation.id);

@@ -45,6 +45,85 @@ function sameValues(left, right) {
     && left.every((value, index) => value === right[index]);
 }
 
+export function inspectApprovalTopology(approvalManifest, assetManifest) {
+  try {
+    const byGeneration = new Map();
+    const byPath = new Map();
+    for (const approval of approvalManifest.approvals) {
+      if (byGeneration.has(approval.generationId)) {
+        throw new Error(`duplicate approval generation id: ${approval.generationId}`);
+      }
+      if (byPath.has(approval.approvedPath)) {
+        throw new Error(`duplicate approval path: ${approval.approvedPath}`);
+      }
+      byGeneration.set(approval.generationId, approval);
+      byPath.set(approval.approvedPath, approval);
+    }
+    const superseded = new Set();
+    const replacements = new Set();
+    const next = new Map();
+    for (const relation of approvalManifest.supersessions ?? []) {
+      if (superseded.has(relation.supersededGenerationId)
+        || replacements.has(relation.replacementGenerationId)) {
+        throw new Error('duplicate approval supersession key');
+      }
+      const previous = byGeneration.get(relation.supersededGenerationId);
+      const replacement = byGeneration.get(relation.replacementGenerationId);
+      if (!previous || !replacement || relation.supersededGenerationId === relation.replacementGenerationId
+        || previous.assetId !== relation.assetId || replacement.assetId !== relation.assetId
+        || previous.approvedPath !== relation.supersededApprovedPath
+        || previous.approvedSha256 !== relation.supersededApprovedSha256
+        || replacement.approvedPath !== relation.replacementApprovedPath
+        || replacement.approvedSha256 !== relation.replacementApprovedSha256
+        || replacement.reviewer !== relation.reviewer || replacement.note !== relation.note
+        || replacement.approvedAt !== relation.supersededAt) {
+        throw new Error(`invalid approval supersession: ${relation.assetId}`);
+      }
+      superseded.add(relation.supersededGenerationId);
+      replacements.add(relation.replacementGenerationId);
+      next.set(relation.supersededGenerationId, relation.replacementGenerationId);
+    }
+    for (const start of next.keys()) {
+      const seen = new Set();
+      let cursor = start;
+      while (next.has(cursor)) {
+        if (seen.has(cursor)) throw new Error('cyclic approval supersession');
+        seen.add(cursor);
+        cursor = next.get(cursor);
+      }
+    }
+    const activeByAsset = new Map();
+    for (const approval of approvalManifest.approvals) {
+      if (superseded.has(approval.generationId)) continue;
+      if (activeByAsset.has(approval.assetId)) {
+        throw new Error(`multiple active approvals: ${approval.assetId}`);
+      }
+      activeByAsset.set(approval.assetId, approval);
+    }
+    const manifestByAsset = new Map();
+    for (const entry of assetManifest.assets) {
+      if (manifestByAsset.has(entry.assetId)) throw new Error(`duplicate asset manifest id: ${entry.assetId}`);
+      manifestByAsset.set(entry.assetId, entry);
+    }
+    for (const [assetId, approval] of activeByAsset) {
+      const entry = manifestByAsset.get(assetId);
+      if (!entry || !['approved', 'exported'].includes(entry.status)
+        || entry.approvedPath !== approval.approvedPath) {
+        throw new Error(`active approval is not the current asset pointer: ${assetId}`);
+      }
+    }
+    for (const entry of assetManifest.assets.filter((asset) => ['approved', 'exported'].includes(asset.status))) {
+      const approval = activeByAsset.get(entry.assetId);
+      if (!approval || approval.approvedPath !== entry.approvedPath) {
+        throw new Error(`current asset pointer is not the terminal active approval: ${entry.assetId}`);
+      }
+    }
+    return { problem: null, activeByAsset, supersededGenerationIds: superseded };
+  } catch (error) {
+    return { problem: error.message, activeByAsset: new Map(), supersededGenerationIds: new Set() };
+  }
+}
+
 function generationReferenceProblem(asset, generation, referenceById, validReferenceIds) {
   const expectedIds = asset.defaultReferenceIds ?? [];
   const expectedHashes = expectedIds.map((id) => referenceById.get(id)?.sha256);
@@ -54,6 +133,87 @@ function generationReferenceProblem(asset, generation, referenceById, validRefer
   return null;
 }
 
+export async function historicalGenerationReferenceProblem(forgeRoot, generation) {
+  try {
+    if (!Array.isArray(generation?.referenceImageIds)
+      || !Array.isArray(generation?.referenceImageHashes)
+      || generation.referenceImageIds.length !== generation.referenceImageHashes.length
+      || new Set(generation.referenceImageIds).size !== generation.referenceImageIds.length) {
+      return 'recorded reference ids/hashes are incomplete or duplicated';
+    }
+    const manifestPath = path.join(pathsFor(forgeRoot).manifests, 'references.json');
+    const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+    const validation = validateWith('reference-image.schema.json', manifest);
+    if (!validation.ok) return 'historical reference manifest is invalid';
+    if (new Set(manifest.references.map((entry) => entry.id)).size !== manifest.references.length) {
+      return 'historical reference manifest contains duplicate ids';
+    }
+    const byId = new Map(manifest.references.map((entry) => [entry.id, entry]));
+    for (const [index, id] of generation.referenceImageIds.entries()) {
+      const expectedHash = generation.referenceImageHashes[index];
+      const reference = byId.get(id);
+      if (!reference || reference.sha256 !== expectedHash || reference.status !== 'approved') {
+        return `recorded reference evidence is missing or changed: ${id}`;
+      }
+      const actual = await assertExistingFileWithin(forgeRoot, reference.path);
+      if (await hashFile(actual) !== expectedHash) return `recorded reference bytes changed: ${id}`;
+      const provenanceProblem = await referenceGenerationProvenanceProblem(forgeRoot, reference, byId);
+      if (provenanceProblem) return `recorded reference provenance changed: ${id}: ${provenanceProblem}`;
+    }
+  } catch (error) {
+    return `recorded reference evidence could not be verified: ${error.message}`;
+  }
+  return null;
+}
+
+export async function inspectHistoricalApprovedArtifact(root, approval, {
+  forgeRoot = root,
+  category
+} = {}) {
+  try {
+    if (!approval || typeof category !== 'string') throw new Error('approval/category is missing');
+    if (approval.sourceSha256 !== approval.approvedSha256) {
+      throw new Error('approval source hash does not match its immutable approved copy');
+    }
+    const source = await assertExistingPendingCandidate(root, category, approval.sourcePath);
+    if (await hashFile(source) !== approval.sourceSha256) {
+      throw new Error('approval source candidate is missing or changed');
+    }
+    const actual = await assertExistingStateFile(root, category, 'approved', approval.approvedPath);
+    const bytes = await readFile(actual);
+    if (sha256(bytes) !== approval.approvedSha256) throw new Error('approved history hash changed');
+    const metadataPath = await assertExistingFileWithin(
+      path.dirname(actual),
+      `${path.basename(actual, '.png')}.json`
+    );
+    const generation = JSON.parse(await readFile(metadataPath, 'utf8'));
+    const generationValidation = validateWith('generation-result.schema.json', generation);
+    if (!generationValidation.ok || generation.id !== approval.generationId
+      || generation.assetId !== approval.assetId || generation.category !== category
+      || generation.status !== 'approved'
+      || generation.outputPath !== approval.approvedPath
+      || generation.outputSha256 !== approval.approvedSha256
+      || generation.approval?.reviewer !== approval.reviewer
+      || generation.approval?.note !== approval.note
+      || generation.approval?.approvedAt !== approval.approvedAt
+      || generation.approval?.approvedPath !== approval.approvedPath
+      || generation.approval?.approvedSha256 !== approval.approvedSha256) {
+      throw new Error('approved history metadata does not match its immutable approval record');
+    }
+    const referenceProblem = await historicalGenerationReferenceProblem(forgeRoot, generation);
+    if (referenceProblem) throw new Error(referenceProblem);
+    const recipeProblem = await productionRecipeProblem(root, generation, {
+      forgeRoot,
+      outputBytes: bytes,
+      requirePersistentSourceSnapshot: Boolean(generation.productionRecipe)
+    });
+    if (recipeProblem) throw new Error(recipeProblem);
+    return { problem: null, generation, bytes };
+  } catch (error) {
+    return { problem: error.message };
+  }
+}
+
 function sameRect(left, right) {
   return left?.x === right?.x && left?.y === right?.y
     && left?.width === right?.width && left?.height === right?.height;
@@ -61,8 +221,37 @@ function sameRect(left, right) {
 
 async function referenceGenerationProvenanceProblem(root, reference, referenceById) {
   const provenance = reference.generationProvenance;
-  if (!provenance) return null;
+  const candidate = reference.candidateProvenance;
+  if (!provenance && !candidate) return null;
   try {
+    if (candidate) {
+      const promptPath = await assertExistingFileWithin(root, candidate.promptSnapshot.path);
+      if (await hashFile(promptPath) !== candidate.promptSnapshot.sha256) {
+        return 'reference candidate prompt snapshot hash does not match';
+      }
+      if (candidate.transformation !== 'none' || candidate.sourceOriginal.path !== reference.path
+        || candidate.sourceOriginal.sha256 !== reference.sha256) {
+        return 'reference candidate source path/hash does not match the pending reference';
+      }
+      const sourcePath = await assertExistingFileWithin(root, candidate.sourceOriginal.path);
+      const source = await readExternalImage(sourcePath);
+      if (sha256(source.buffer) !== candidate.sourceOriginal.sha256
+        || source.metadata.width !== candidate.sourceOriginal.width
+        || source.metadata.height !== candidate.sourceOriginal.height) {
+        return 'reference candidate original source hash/dimensions do not match';
+      }
+      for (const input of candidate.inputReferences) {
+        const declared = referenceById.get(input.id);
+        if (!declared || declared.status !== 'approved' || declared.sha256 !== input.sha256) {
+          return `reference candidate input does not match approved manifest entry: ${input.id}`;
+        }
+        const inputPath = await assertExistingFileWithin(root, declared.path);
+        if (await hashFile(inputPath) !== input.sha256) {
+          return `reference candidate input bytes do not match approved manifest entry: ${input.id}`;
+        }
+      }
+      return null;
+    }
     const promptPath = await assertExistingFileWithin(root, provenance.promptSnapshot.path);
     if (await hashFile(promptPath) !== provenance.promptSnapshot.sha256) return 'reference prompt snapshot hash does not match';
     const sourcePath = await assertExistingFileWithin(root, provenance.sourceOriginal.path);
@@ -85,6 +274,10 @@ async function referenceGenerationProvenanceProblem(root, reference, referenceBy
       const declared = referenceById.get(input.id);
       if (!declared || declared.status !== 'approved' || declared.sha256 !== input.sha256) {
         return `reference provenance input does not match approved manifest entry: ${input.id}`;
+      }
+      const inputPath = await assertExistingFileWithin(root, declared.path);
+      if (await hashFile(inputPath) !== input.sha256) {
+        return `reference provenance input bytes do not match approved manifest entry: ${input.id}`;
       }
     }
     const decisionPath = await assertExistingFileWithin(root, provenance.decision.path);
@@ -355,7 +548,60 @@ export async function validateRepository({ root = FORGE_ROOT } = {}) {
 
   const assetManifest = manifests.get('assets.json');
   const approvalManifest = manifests.get('approvals.json');
+  for (const generationId of duplicateValues((approvalManifest?.approvals ?? []).map((entry) => entry.generationId))) {
+    issues.push({ code: 'DUPLICATE_APPROVAL_GENERATION_ID', generationId });
+  }
+  for (const approvedPath of duplicateValues((approvalManifest?.approvals ?? []).map((entry) => entry.approvedPath))) {
+    issues.push({ code: 'DUPLICATE_APPROVAL_PATH', approvedPath });
+  }
+  for (const generationId of duplicateValues((approvalManifest?.supersessions ?? []).map((entry) => entry.supersededGenerationId))) {
+    issues.push({ code: 'DUPLICATE_SUPERSEDED_GENERATION_ID', generationId });
+  }
+  for (const generationId of duplicateValues((approvalManifest?.supersessions ?? []).map((entry) => entry.replacementGenerationId))) {
+    issues.push({ code: 'DUPLICATE_REPLACEMENT_GENERATION_ID', generationId });
+  }
   const approvalByPath = new Map((approvalManifest?.approvals ?? []).map((approval) => [approval.approvedPath, approval]));
+  const approvalByGeneration = new Map((approvalManifest?.approvals ?? []).map((approval) => [approval.generationId, approval]));
+  const supersededGenerationIds = new Set();
+  const replacementGenerationIds = new Set();
+  for (const supersession of approvalManifest?.supersessions ?? []) {
+    const previous = approvalByGeneration.get(supersession.supersededGenerationId);
+    const replacement = approvalByGeneration.get(supersession.replacementGenerationId);
+    if (supersededGenerationIds.has(supersession.supersededGenerationId)
+      || replacementGenerationIds.has(supersession.replacementGenerationId)
+      || supersession.supersededGenerationId === supersession.replacementGenerationId
+      || !previous || !replacement
+      || previous.assetId !== supersession.assetId || replacement.assetId !== supersession.assetId
+      || previous.approvedPath !== supersession.supersededApprovedPath
+      || previous.approvedSha256 !== supersession.supersededApprovedSha256
+      || replacement.approvedPath !== supersession.replacementApprovedPath
+      || replacement.approvedSha256 !== supersession.replacementApprovedSha256
+      || replacement.reviewer !== supersession.reviewer
+      || replacement.note !== supersession.note
+      || replacement.approvedAt !== supersession.supersededAt) {
+      issues.push({
+        code: 'INVALID_APPROVAL_SUPERSESSION',
+        assetId: supersession.assetId,
+        generationId: supersession.replacementGenerationId
+      });
+    }
+    supersededGenerationIds.add(supersession.supersededGenerationId);
+    replacementGenerationIds.add(supersession.replacementGenerationId);
+  }
+  const replacementBySuperseded = new Map((approvalManifest?.supersessions ?? [])
+    .map((entry) => [entry.supersededGenerationId, entry.replacementGenerationId]));
+  for (const start of replacementBySuperseded.keys()) {
+    const seen = new Set();
+    let current = start;
+    while (replacementBySuperseded.has(current)) {
+      if (seen.has(current)) {
+        issues.push({ code: 'CYCLIC_APPROVAL_SUPERSESSION', generationId: start });
+        break;
+      }
+      seen.add(current);
+      current = replacementBySuperseded.get(current);
+    }
+  }
   const manifestAssets = assetManifest?.assets ?? [];
   for (const id of duplicateValues(manifestAssets.map((entry) => entry.assetId))) {
     issues.push({ code: 'DUPLICATE_ASSET_MANIFEST_ID', id });
@@ -375,6 +621,11 @@ export async function validateRepository({ root = FORGE_ROOT } = {}) {
         const actual = await assertExistingStateFile(root, entry.category, 'approved', entry.approvedPath);
         const approval = approvalByPath.get(entry.approvedPath);
         if (!approval || approval.assetId !== entry.assetId) throw new Error('approval ledger record is missing');
+        const selfContained = await inspectHistoricalApprovedArtifact(root, approval, {
+          forgeRoot: root,
+          category: entry.category
+        });
+        if (selfContained.problem) throw new Error(selfContained.problem);
         if (await hashFile(actual) !== approval.approvedSha256) throw new Error('approved hash does not match ledger');
         const definition = definitionById.get(entry.assetId);
         if (!definition) throw new Error('asset definition is missing');
@@ -384,7 +635,12 @@ export async function validateRepository({ root = FORGE_ROOT } = {}) {
         if (!generationValidation.ok) throw new Error('approved generation metadata schema is invalid');
         if (generation.id !== approval.generationId || generation.assetId !== entry.assetId
           || generation.status !== 'approved' || generation.outputPath !== entry.approvedPath
-          || generation.outputSha256 !== approval.approvedSha256) {
+          || generation.outputSha256 !== approval.approvedSha256
+          || generation.approval?.reviewer !== approval.reviewer
+          || generation.approval?.note !== approval.note
+          || generation.approval?.approvedAt !== approval.approvedAt
+          || generation.approval?.approvedPath !== approval.approvedPath
+          || generation.approval?.approvedSha256 !== approval.approvedSha256) {
           throw new Error('approved generation metadata does not match asset/approval ledgers');
         }
         const referenceProblem = generationReferenceProblem(definition, generation, referenceById, validReferenceIds);
@@ -397,6 +653,25 @@ export async function validateRepository({ root = FORGE_ROOT } = {}) {
     }
   }
   for (const approval of approvalManifest?.approvals ?? []) {
+    if (supersededGenerationIds.has(approval.generationId)) {
+      try {
+        const assetEntry = manifestById.get(approval.assetId);
+        if (!assetEntry) throw new Error('asset manifest history is missing');
+        const historical = await inspectHistoricalApprovedArtifact(root, approval, {
+          forgeRoot: root,
+          category: assetEntry.category
+        });
+        if (historical.problem) throw new Error(historical.problem);
+      } catch (error) {
+        issues.push({
+          code: 'INVALID_SUPERSEDED_APPROVAL_HISTORY',
+          generationId: approval.generationId,
+          assetId: approval.assetId,
+          message: error.message
+        });
+      }
+      continue;
+    }
     const assetEntry = manifestById.get(approval.assetId);
     if (!assetEntry || assetEntry.approvedPath !== approval.approvedPath || !['approved', 'exported'].includes(assetEntry.status)) {
       issues.push({ code: 'ORPHAN_APPROVAL_RECORD', generationId: approval.generationId, assetId: approval.assetId });
@@ -422,11 +697,19 @@ export async function validateRepository({ root = FORGE_ROOT } = {}) {
       issues.push({ code: 'UNKNOWN_GENERATION_ASSET', generationId: generation.id, assetId: generation.assetId });
       continue;
     }
-    const problem = generationReferenceProblem(definition, generation, referenceById, validReferenceIds);
+    const historical = supersededGenerationIds.has(generation.id);
+    const problem = historical
+      ? await historicalGenerationReferenceProblem(root, generation)
+      : generationReferenceProblem(definition, generation, referenceById, validReferenceIds);
     if (problem) {
       issues.push({ code: 'INVALID_GENERATION_REFERENCES', generationId: generation.id, assetId: generation.assetId, message: problem });
     }
-    const recipeProblem = await productionRecipeProblem(root, generation, { definition });
+    const recipeProblem = await productionRecipeProblem(root, generation, historical
+      ? {
+          forgeRoot: root,
+          requirePersistentSourceSnapshot: Boolean(generation.productionRecipe)
+        }
+      : { definition });
     if (recipeProblem) {
       issues.push({ code: 'INVALID_PRODUCTION_RECIPE', generationId: generation.id, assetId: generation.assetId, message: recipeProblem });
     }

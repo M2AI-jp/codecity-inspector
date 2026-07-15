@@ -6,6 +6,19 @@ test('CLI parser distinguishes boolean and valued options and rejects ambiguity'
   assert.deepEqual(parseArgs(['generate', '--asset', 'field.grass', '--dry-run']), {
     command: 'generate', options: { asset: 'field.grass', dryRun: true }
   });
+  assert.deepEqual(parseArgs([
+    'import', '--asset', 'field.grass', '--file', '/tmp/a.png',
+    '--recipe', 'review/recipes/field_grass.json', '--materialize-source'
+  ]), {
+    command: 'import',
+    options: {
+      asset: 'field.grass', file: '/tmp/a.png',
+      recipe: 'review/recipes/field_grass.json', materializeSource: true
+    }
+  });
+  assert.deepEqual(parseArgs(['promote', '--generation', 'gen_new', '--supersedes', 'gen_old']), {
+    command: 'promote', options: { generation: 'gen_new', supersedes: 'gen_old' }
+  });
   assert.throws(() => parseArgs(['generate', '--asset']), /requires a value/);
   assert.throws(() => parseArgs(['generate', '--asset', 'a', '--asset', 'b']), /Duplicate option/);
   assert.throws(() => parseArgs(['generate', 'field.grass']), /Unknown argument/);

@@ -3,7 +3,7 @@
 - 作成日: 2026-07-15（同日、敵対的設計レビューの素材関連所見を反映済み）
 - 作成者: Fable5（design-only）
 - 上位文書: [Fable5GameDesign.md](Fable5GameDesign.md)（使用scene・意味の根拠）/ [Fable5DesignHandoff.md](Fable5DesignHandoff.md) §8・§12
-- 状態: **設計提案／所有者承認待ち**。所有者がscope変更を承認するまで、現行「approved 78のみ・全78使用」gateを実装側が変更してはならない（handoff §13 二段階gate）
+- 状態: **所有者承認済み／二段階移行開始**（2026-07-15、D1〜D15 default採用）。legacy runtimeはv3 wave Aの完全exportとrenderer v2受入まで現行78 gateを維持し、新旧素材を混在描画しない
 - 素材制作: Codex側の画像生成（無制限）＋Asset Forge取り込み。**承認は権限ある人間のみ**・approved-only export・fail-closed は不変
 - **数量の正本は §4 の台帳表**。他節の数字は全て§4から引用する
 
@@ -186,8 +186,8 @@
 
 ## 5. 新required setと二段階gate移行（handoff §13）
 
-1. **現行gate維持期間**: 所有者が本計画を承認するまで、実装側は「approved 78のみ・全78使用」を変更しない。
-2. **承認後**: §4台帳が正本。gateは「**変更後のapproved required setのみ使用し、その必須集合を意味ある到達可能なsceneで使う**」へ差し替え。
+1. **承認記録**: 2026-07-15、所有者が本計画とD1〜D15のdefault案から実装開始を指示した。§4台帳をv3 required setの設計正本とする。
+2. **切替条件**: legacy runtimeはv3 wave Aの完全exportとrenderer v2受入まで「approved 78のみ・全78使用」を維持する。条件を満たした切替時に、gateを「**変更後のapproved required setのみ使用し、その必須集合を意味ある到達可能なsceneで使う**」へ差し替える。
 3. **移行の実務**（fail-closed期間を作らない）:
    - 現行manifest（schemaVersion 2・78件）は**凍結のまま不変**。v2素材は**新manifest（schemaVersion 3）へ二系統export**（§6-7）。
    - renderer v2は最初からv3 manifestのみを読む。旧runtime＋旧manifestはrenderer v2受入まで並存し、切替は一括（新旧素材の混在描画を禁止）。

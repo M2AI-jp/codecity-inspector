@@ -4,7 +4,7 @@
 - 作成者: Fable5（design-only。コード変更・画像生成・素材承認・exportは行わない）
 - 上位文書: [Fable5DesignHandoff.md](Fable5DesignHandoff.md)（brief）、`AGENTS.md` / `SECURITY.md`（不変条件）
 - 姉妹文書: [Fable5AssetPlan.md](Fable5AssetPlan.md)（素材処遇・新required set・Asset Forge引き渡し仕様）
-- 状態: **設計提案／所有者承認待ち**。承認前に実装・素材制作・テスト変更を開始しないこと
+- 状態: **所有者承認済み／実装開始**（2026-07-15）。D1〜D15はdefault案を採用。設計仮説と視覚品質はscene blueprint・初見playtest・所有者実機審査まで未確認
 - 実装担当: Codex（Lead配下）。本書の各項目は変更ラベル付きで、実装可否の判断単位になっている
 
 ## ラベル凡例（handoff 0章に従う）
@@ -35,9 +35,10 @@
 | O-7 | 実装はCodex。画像素材はCodex側で無制限生成可能 | 素材必要量を制約にせず体験から逆算（handoff 8.2.1と一致）。**人間承認・approved-only export・fail-closed は不変**（AGENTS.md） |
 | O-8 | 現行品質への全面不合格 | 旧構図・旧journey・17サイトを一切引き継がない（handoff 17-8と一致） |
 
-**品質参照の正本**: 所有者提示の参照画像1（斜め見下ろしの街並み）はリポジトリ収蔵のイメージボード `9e28e43d-56a5-44aa-aa1d-b59461e625dd.png` と同系であり、本書はこのファイルを品質参照の正本とする（runtime背景使用は不変条件により禁止）。参照画像2（酒場のカットアウェイ: 建物正面壁が取り払われ、屋内のカウンター・主人・客・手前の街路が同一画面に共存する構図）は未収蔵のため、**所有者がreference登録することを推奨**（それまでは§6の文字仕様を正本とする）。
+**品質参照の正本**: 所有者提示の参照画像1（斜め見下ろしの街並み）はリポジトリ収蔵のイメージボード `9e28e43d-56a5-44aa-aa1d-b59461e625dd.png` と同系であり、本書はこのファイルを品質参照の正本とする（runtime背景使用は不変条件により禁止）。参照画像2（酒場のカットアウェイ: 建物正面壁が取り払われ、屋内のカウンター・主人・客・手前の街路が同一画面に共存する構図）は、所有者の生成指示に基づき `cutaway_interior_visual_reference` として制作し、`references.json`へ**pending候補**として画像bytes・hash・正確なprompt・入力reference hashを登録した。人間によるreference承認と独立rights確認は未実施であり、`approved`へ移るまではproduction素材の入力に使えない。§6の文字仕様も引き続き実装上の正本とする。
 
-O-1〜O-8 は本書内で「所有者決定」と表記する。§14 の残余は defaults 付きで列挙し、`SCOPE-DECISION` として提示する。
+O-1〜O-8 は本書内で「所有者決定」と表記する。§14のD1〜D15も2026-07-15に
+default案が一括承認された。将来defaultから変更する場合だけ、改めて`SCOPE-DECISION`とする。
 
 ---
 
@@ -716,7 +717,10 @@ O-1〜O-8 は本書内で「所有者決定」と表記する。§14 の残余�
 
 ---
 
-## 14. SCOPE-DECISION 一覧（所有者へ・defaults付き）
+## 14. 所有者承認済みscope（D1〜D15 default採用）
+
+2026-07-15、所有者は本設計から実装開始を指示したため、以下はdefault案で承認済みと扱う。
+代替案へ変更するときだけ再承認を要する。
 
 | # | 判断事項 | default案 | 代替案 |
 | --- | --- | --- | --- |
@@ -760,4 +764,4 @@ O-1〜O-8 は本書内で「所有者決定」と表記する。§14 の残余�
 
 - **観測**（コード・文書で確認済み）: 現行runtime/生成系/テスト/Forgeの能力と制約は handoff §4-8 および実コード読解・並列監査に基づく。tiny-townの構成（12 scanned files・house 11・cycle 1・unresolved 1）はテストのピン止めと一致。
 - **推測**（設計仮説）: 「灯り=対の型」「橋=import」の空間文法が初見に伝わること、8-12分でtour完了できること、5系統verbが反復感を防ぐことは**playtestで検証されるまで仮説**。§12が反証手段。
-- **未確認**: §14 の全 SCOPE-DECISION、素材の視覚合格（scene blueprint審査まで未確認）、rights/license（D14）、参照画像2のreference登録（§0）。
+- **未確認**: 素材の視覚合格（scene blueprint審査まで未確認）、rights/license（D14）、参照画像2の人間によるreference承認（生成bytes/hash/prompt provenanceはpending登録済み。§0）。D1〜D15は2026-07-15に所有者がdefault案を承認し、実装開始を指示した。
