@@ -4,6 +4,16 @@ Date: 2026-07-15
 Product and integration lead: `/root`
 World implementation worker: Terra (`/root/terra`)
 
+> **Status correction (2026-07-15):** the completion-candidate judgment in
+> this historical record is withdrawn after the user's hands-on game-design
+> review. Automated and browser checks remain useful technical evidence, but
+> they did not establish repository-specific world design, meaningful asset
+> use, asset sufficiency, first-time comprehension, or a satisfying game loop.
+> The owner has since judged both the amount of art and its current use
+> insufficient. See
+> [Fable5DesignHandoff.md](Fable5DesignHandoff.md) for the authoritative current
+> state and redesign requirements.
+
 ## Decision boundary
 
 This record distinguishes three states:

@@ -1,6 +1,15 @@
 # CodeCity Inspector — playable city design
 
-Status: completion-candidate implementation (2026-07-15)
+Status: rejected prototype design record (2026-07-15)
+
+> This is a historical description of the implemented prototype, not an
+> approved product design or completion claim. The user's hands-on design
+> review found that the build amounted to walking through a largely fixed
+> scene. It does not spatially render the repository's file/import graph; the
+> 78-asset inventory is materially insufficient and its current repetitive,
+> checklist-driven use is rejected.
+> [Fable5DesignHandoff.md](Fable5DesignHandoff.md) is the current design brief
+> and source of truth for the redesign.
 
 ## Product decision
 

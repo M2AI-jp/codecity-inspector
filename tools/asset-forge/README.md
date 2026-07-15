@@ -17,20 +17,29 @@ The Forge engine is implemented: strict schemas and path boundaries, the complet
 deterministic mock generation, dry-run, job packs, bounded PNG/JPEG/WEBP import, alpha/trim/grid
 processing, rejection, guarded interactive promotion under the human-review policy, and
 approved-only export. The Canvas
-runtime consumes the export manifest and visibly falls back when approved art is absent.
+runtime consumes the export manifest and fails closed with a visible error when approved art
+is absent; it does not substitute mock, legacy, or procedural art.
 When multiple approved assets target the same runtime binding or semantic, the manifest keeps
-every variant. The runtime uses explicit deterministic rules for road topology, water edges,
-bridge style/orientation, house state/size, resident/townsfolk identity, plants, and flags.
+every variant. The current game runtime uses fixed authored world structures, props, residents,
+and sites, plus deterministic ground transforms and navigation. It does not currently generate
+repository-specific geography from those variants.
 Character and effect sheets are cropped from validated frame metadata; they are never shrunk
 as whole sheets into one tile.
 
 The catalog contains 110 definitions: 78 are required by the current game and 32 are optional
 future enhancements. The previous low-quality approved/public production set has been removed;
 the required 78 are explicitly approved and exported as the current game set. Each required definition is
-commission-ready with exactly two approved input references: `world_visual_master` plus one
-directly targeted primary sheet. The optional 32 remain outside the required export. Reference
-readiness is not a claim that automated checks decided final candidate quality, licensing, or art
-direction.
+paired with exactly two approved input references: `world_visual_master` plus one directly
+targeted primary sheet. The optional 32 remain outside the required export. Reference readiness
+is not a claim that automated checks decided final candidate quality, licensing, or art direction.
+The current `field.cobblestone`, `field.rock`, and `field.tree` definitions contain semantic
+conflicts with their approved recipes/runtime use and must be corrected before recommissioning.
+Existing approved IDs also have no general supersede workflow; historical wave scripts are not
+incremental remake tools. The normal `manual-import` CLI/job-pack command cannot attach the
+production recipe and persistent source snapshot required for a promotable required replacement;
+a recipe-aware incremental orchestration path or CLI extension is needed first. The public
+`process` command exposes alpha key/tolerance, trim, and grid extraction, not general nearest
+resize or universal hard-alpha/seam rejection.
 
 ## No paid API path
 
@@ -193,7 +202,8 @@ required to be deterministic. Untested does not mean broken.
 Every current runtime vocabulary item has at least one formal candidate. The former gaps for
 `sand`, `rock`, `tree`, `guildmaster`, `rubble`, and the dedicated `guild` building now have
 exact definitions. Lossy mappings remain explicit where several authored variants implement
-one runtime meaning; the runtime selector resolves those mappings from stable game context.
+one runtime meaning. They are recorded in metadata, but the current fixed world/site runtime
+does not select those variants from repository context.
 
 Export schema v2 carries render kind, logical size, tile size, sprite axes/frames, states, and
 variant tags. Approved spritesheets are rejected when the PNG dimensions do not equal their

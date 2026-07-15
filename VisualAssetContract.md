@@ -4,6 +4,12 @@ Date: 2026-07-14
 Owner: Lead (`/root`)
 Implementation worker: Terra (`/root/terra`)
 
+> **Status note (2026-07-15):** this remains the historical per-image
+> production contract and provenance record. It is not a successful runtime
+> composition or game-design acceptance. Its runtime acceptance section is
+> superseded by [Fable5DesignHandoff.md](Fable5DesignHandoff.md); the current
+> game does not meet the user's visual bar.
+
 ## Source of truth
 
 The 1491 x 1055 image board and the approved category sheets are the visual
@@ -96,13 +102,16 @@ regenerated or re-extracted before export.
 
 ## Runtime acceptance
 
-- The initial overview remains byte-identical to the image board.
+- The image board is a quality reference only and must never be copied or
+  composited into the runtime background.
 - The game loads only the newly approved manifest; rejected assets and the old
   renderer are absent.
 - New character, facility, terrain, object, and effect assets must each be used
   by an observable game path, not merely listed in an inspector.
-- Rendering never enlarges an asset beyond its production master and never
-  falls back to the rejected visual set.
+- Rendering should preserve intentional pixel scale and never fall back to the
+  rejected visual set. The current prototype violates the old no-enlargement
+  assumption by using world zoom above 1x, so Fable5 must define a coherent
+  display-scale rule before this gate can be reapplied.
 - Final acceptance requires root tests, Asset Forge tests, manifest validation,
   loopback browser play, zero console errors, and Lead screenshots at overview
-  and native follow-camera scale.
+  and the Fable5-approved display scale and 100% viewing condition.

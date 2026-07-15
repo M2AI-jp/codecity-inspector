@@ -6,6 +6,13 @@ Lead: Codex `/root`
 Middle manager: Terra `/root/terra`
 Worker: Luna `/root/terra/luna`
 
+> **Historical plan:** baseline observations and production waves below record
+> the repository state in which Asset Forge was originally built. They are not
+> current restart instructions and do not establish that the game or its scene
+> composition is complete. Use [Fable5DesignHandoff.md](Fable5DesignHandoff.md)
+> for current capability, limitations, replacement constraints, and design
+> handoff.
+
 This plan turns the attached Asset Forge requirements into an executable development program. The attached requirements are authoritative. Where they leave a technical choice open, this plan records the Lead decision and its verification gate.
 
 ## 1. Outcome and honest completion levels
