@@ -107,6 +107,18 @@ test('strict manifest accepts exactly the 78 completion assets and rejects parti
   assert.equal(validateForgeManifest(extra).ok, false);
 });
 
+test('the shipped public tree contains exactly the 78 manifest PNGs and no old world image', async () => {
+  const manifest = JSON.parse(await readFile(`${root}/public/assets/forge/manifest.json`, 'utf8'));
+  const publicPngs = (await readdir(`${root}/public`, { recursive: true }))
+    .filter((entry) => entry.endsWith('.png'))
+    .map((entry) => `/${entry.replaceAll('\\', '/')}`)
+    .sort();
+  const manifestPngs = manifest.assets.map((entry) => entry.publicPath).sort();
+  assert.equal(publicPngs.length, 78);
+  assert.deepEqual(publicPngs, manifestPngs);
+  assert.equal(publicPngs.some((entry) => entry.includes('/assets/world/')), false);
+});
+
 test('runtime required IDs exactly match the current Asset Forge required catalog', async () => {
   const definitions = await requiredCatalogDefinitions();
   const catalogIds = definitions.map((definition) => definition.id);
@@ -594,13 +606,16 @@ test('site renderer follows the declared depth order and y-sorts player with act
     'ground', 'terrain-underlay', 'rear-decor', 'building', 'y-sorted', 'front-occluders-effects'
   ]);
   const app = await readFile(`${root}/public/app.js`, 'utf8');
-  const ground = app.indexOf("SITE_RENDER_LAYERS[0] === 'ground'");
-  const terrain = app.indexOf("SITE_RENDER_LAYERS[1] === 'terrain-underlay'");
-  const rear = app.indexOf('recipe.rearDecor');
-  const sorted = app.indexOf('const depthItems');
-  const structures = app.indexOf('recipe.structures.map');
-  const front = app.indexOf('recipe.frontOccluders');
-  const effects = app.indexOf('recipe.effects');
+  const drawSiteStart = app.indexOf('function drawSite(timestamp)');
+  const drawSiteEnd = app.indexOf('\nfunction draw(timestamp = 0)', drawSiteStart);
+  const drawSite = app.slice(drawSiteStart, drawSiteEnd);
+  const ground = drawSite.indexOf("SITE_RENDER_LAYERS[0] === 'ground'");
+  const terrain = drawSite.indexOf("SITE_RENDER_LAYERS[1] === 'terrain-underlay'");
+  const rear = drawSite.indexOf('recipe.rearDecor');
+  const sorted = drawSite.indexOf('const depthItems');
+  const structures = drawSite.indexOf('recipe.structures.map');
+  const front = drawSite.indexOf('recipe.frontOccluders');
+  const effects = drawSite.indexOf('recipe.effects');
   assert.ok(ground < terrain && terrain < rear && rear < sorted && sorted < structures && structures < front && front < effects);
   assert.match(app, /depth: state\.sitePosition\.y \* 64 \+ 52/);
   assert.match(app, /left\.depth - right\.depth/);
@@ -649,5 +664,8 @@ test('browser integration wires every control and keeps evidence sourced from /a
   assert.match(app, /event\.key !== 'Escape'/);
   assert.match(app, /ArrowUp/);
   assert.match(app, /handleCanvasClick/);
+  assert.match(app, /else announceWorldArrival\(\);/);
+  assert.match(app, /facility\?\.evidence\?\.inferred/);
+  assert.doesNotMatch(app, /facility\?\.present === true\) \{\s*return Object\.freeze\(\{ id: 'inferred'/);
   assert.doesNotMatch(`${app}\n${html}`, /asset[-_ ]gallery|旧素材|legacy/i);
 });

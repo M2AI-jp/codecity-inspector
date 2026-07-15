@@ -217,6 +217,10 @@ const BRIDGE_FIELD_IDS = new Set(['field.bridge_stone', 'field.bridge_wood']);
 const BOUNDARY_FIELD_IDS = new Set(['field.cliff', 'field.wall_stone']);
 const FEATURE_FIELD_IDS = new Set(['field.tree', 'field.rock']);
 const VARIED_GROUND_IDS = new Set(['field.grass', 'field.dirt_path', 'field.snow']);
+const MIRROR_SAFE_GROUND_IDS = new Set([
+  'field.cliff', 'field.cobblestone', 'field.dock_floor', 'field.grass',
+  'field.plaza', 'field.rock', 'field.snow', 'field.tree', 'field.wall_stone'
+]);
 const DIRECTIONAL_FIELD_IDS = new Set([
   'field.bridge_stone', 'field.bridge_wood', 'field.river_edge', 'field.road_corner',
   'field.road_edge', 'field.stairs_stone'
@@ -354,7 +358,7 @@ export function groundTransformAt(recipe, x, y) {
   }
   return Object.freeze({
     quarterTurns: 0,
-    flipX: FEATURE_FIELD_IDS.has(assetId) && (x + y) % 2 === 1
+    flipX: MIRROR_SAFE_GROUND_IDS.has(assetId) && (x + y) % 2 === 1
   });
 }
 

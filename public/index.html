@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>CodeCity Inspector — 街を歩く</title>
+    <title>CodeCity Inspector — コードの街を歩いて調べる</title>
     <link rel="icon" href="data:,">
     <link rel="stylesheet" href="/styles.css">
   </head>
@@ -13,29 +13,51 @@
         <div class="hud-identity">
           <h1 id="repo-name">読み込み中…</h1>
           <span id="level-badge" class="level-badge">Lv.-</span>
-          <span id="place-label" class="place-label">街の全景</span>
+          <span id="place-label" class="place-label">旧市街</span>
         </div>
         <div class="hud-actions">
           <button id="back-btn" type="button" class="hud-button" hidden>街へ戻る</button>
-          <button id="overview-btn" type="button" class="hud-button" aria-pressed="true">全景</button>
-          <button id="journal-btn" type="button" class="hud-button" aria-controls="journal-drawer" aria-expanded="false">検査記録</button>
+          <button id="overview-btn" type="button" class="hud-button" aria-pressed="false">街を見渡す</button>
+          <button id="journal-btn" type="button" class="hud-button" aria-controls="journal-drawer" aria-expanded="false">根拠を見る</button>
         </div>
       </header>
 
       <main class="world-stage" aria-labelledby="world-heading">
         <h2 id="world-heading" class="visually-hidden">CodeCityの世界</h2>
         <canvas id="world-canvas" tabindex="0"
-          aria-label="CodeCityの街。矢印キーまたはWASD、地図のクリックで探索し、EnterまたはSpaceで施設へ入ります。"></canvas>
-        <div id="world-loading" class="world-message" role="status">街の風景を準備しています…</div>
-        <div id="world-fallback" class="world-message world-fallback" role="alert" hidden>
-          <strong>街の風景を表示できませんでした。</strong>
-          <span>完成設計の世界画像を読み込めないため、別の風景には切り替えません。</span>
+          aria-label="CodeCityの街。矢印キーまたはWASD、道のクリックで歩き、EnterまたはSpaceで施設を調べます。"></canvas>
+        <div id="world-loading" class="world-message" role="status">
+          <span class="loading-mark" aria-hidden="true">⌂</span>
+          <strong>コードの街を開いています</strong>
+          <span>道と施設を読み込んでいます…</span>
         </div>
         <div id="asset-error" class="world-message world-fallback" role="alert" hidden>
-          <strong>承認済みの必須素材を読み込めません。</strong>
-          <span id="asset-error-text">代替素材は使用しません。公開素材を確認して再読み込みしてください。</span>
+          <strong>街を開けませんでした。</strong>
+          <span id="asset-error-text">承認済み素材を確認して再読み込みしてください。</span>
         </div>
-        <div id="world-help" class="world-help" hidden aria-hidden="true">矢印 / WASDで移動 · クリックで道を選択 · Enter / Spaceで入る · Escで戻る</div>
+
+        <section id="journey-card" class="journey-card" aria-labelledby="journey-title">
+          <p id="journey-kicker" class="journey-kicker">最初の調査</p>
+          <h2 id="journey-title">橋と階段の先、道場へ</h2>
+          <p id="journey-copy">金色の足あとを追って、テストの状態を調べましょう。</p>
+          <ol class="journey-progress" aria-label="街の調査の進み具合">
+            <li id="journey-step-walk"><span>1</span>歩く</li>
+            <li id="journey-step-route"><span>2</span>橋・階段</li>
+            <li id="journey-step-evidence"><span>3</span>根拠</li>
+            <li id="journey-step-return"><span>4</span>次の施設</li>
+          </ol>
+        </section>
+
+        <div id="district-banner" class="district-banner" hidden aria-live="polite"></div>
+        <div id="interaction-prompt" class="interaction-prompt" hidden>
+          <span class="prompt-key">Enter</span>
+          <span id="interaction-prompt-text">施設を調べる</span>
+        </div>
+        <div id="world-help" class="world-help" aria-label="操作方法">
+          <span><kbd>WASD</kbd><kbd>矢印</kbd> 歩く</span>
+          <span><kbd>クリック</kbd> 道を選ぶ</span>
+          <span><kbd>Enter</kbd> 調べる</span>
+        </div>
         <div id="world-status" class="visually-hidden" role="status" aria-live="polite"></div>
       </main>
     </div>
@@ -43,7 +65,7 @@
     <section id="site-choice-panel" class="site-choice" hidden role="dialog" aria-modal="true" aria-labelledby="site-choice-title">
       <header>
         <div>
-          <p class="drawer-kicker">NEIGHBORING STOPS</p>
+          <p class="drawer-kicker">近くの調査区画</p>
           <h2 id="site-choice-title">検査場所を選ぶ</h2>
         </div>
         <button id="site-choice-close-btn" type="button" class="drawer-close" aria-label="検査場所の選択を閉じる">×</button>
@@ -54,8 +76,8 @@
     <aside id="journal-drawer" class="journal-drawer" hidden aria-labelledby="journal-title">
       <header class="drawer-header">
         <div>
-          <p class="drawer-kicker">INSPECTION JOURNAL</p>
-          <h2 id="journal-title">検査記録</h2>
+          <p class="drawer-kicker">リポジトリから得た根拠</p>
+          <h2 id="journal-title">観測・推測・未確認</h2>
         </div>
         <button id="journal-close-btn" type="button" class="drawer-close" aria-label="検査記録を閉じる">×</button>
       </header>
@@ -63,34 +85,35 @@
       <section class="drawer-summary" aria-label="街の概要">
         <dl>
           <div><dt>街</dt><dd id="drawer-repo">-</dd></div>
-          <div><dt>状態</dt><dd id="drawer-habitability">-</dd></div>
-          <div><dt>現在地</dt><dd id="drawer-location">街の全景</dd></div>
+          <div><dt>街の状態</dt><dd id="drawer-habitability">-</dd></div>
+          <div><dt>現在地</dt><dd id="drawer-location">旧市街</dd></div>
         </dl>
       </section>
 
       <section id="facility-empty" class="drawer-card">
-        <h3>施設へ近づいてください</h3>
-        <p>道を歩いて施設へ近づくと、その施設だけの観測・推測・未確認を確認できます。</p>
+        <h3>施設の入口へ向かいましょう</h3>
+        <p>入口は街の中で名前と状態が表示されています。近づいてEnterを押すと、その施設がある／ない根拠を確認できます。</p>
       </section>
 
       <section id="facility-detail" class="drawer-card" hidden>
         <p id="facility-district" class="drawer-kicker"></p>
         <h3 id="facility-name">-</h3>
         <dl class="facility-stats">
-          <div><dt>種別</dt><dd id="facility-kind">-</dd></div>
-          <div><dt>観測件数</dt><dd id="facility-count">-</dd></div>
+          <div><dt>街での役割</dt><dd id="facility-kind">-</dd></div>
+          <div><dt>状態</dt><dd id="facility-presence">-</dd></div>
+          <div><dt>根拠件数</dt><dd id="facility-count">-</dd></div>
         </dl>
-        <button id="site-enter-btn" type="button" class="site-enter-button">この施設を歩いて検査する</button>
+        <button id="site-enter-btn" type="button" class="site-enter-button">この施設を歩いて調べる</button>
         <div class="evidence-group evidence-observed">
-          <h4>観測</h4>
+          <h4><span aria-hidden="true">●</span> 観測 — ファイルから確認</h4>
           <ul id="evidence-observed"></ul>
         </div>
         <div class="evidence-group evidence-inferred">
-          <h4>推測</h4>
+          <h4><span aria-hidden="true">▲</span> 推測 — 観測から導出</h4>
           <ul id="evidence-inferred"></ul>
         </div>
         <div class="evidence-group evidence-unknown">
-          <h4>未確認</h4>
+          <h4><span aria-hidden="true">?</span> 未確認 — 実行せず保留</h4>
           <ul id="evidence-unknown"></ul>
         </div>
       </section>

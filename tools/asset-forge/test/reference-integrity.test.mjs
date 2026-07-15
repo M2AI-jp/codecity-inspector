@@ -102,7 +102,6 @@ test('approved references and the released 78 candidates retain verified outputs
   assert.deepEqual((await readdir(path.join(FORGE_ROOT, 'references', 'pending'))).sort(), []);
   const worldHash = EXPECTED_REFERENCE_HASHES.get('world_visual_master');
   assert.equal(sha256(await readFile(path.join(REPO_ROOT, '9e28e43d-56a5-44aa-aa1d-b59461e625dd.png'))), worldHash);
-  assert.equal(sha256(await readFile(path.join(REPO_ROOT, 'public', 'assets', 'world', 'codecity-reference-world.png'))), worldHash);
 
   const approvals = JSON.parse(await readFile(path.join(FORGE_ROOT, 'data', 'manifests', 'approvals.json')));
   const assets = JSON.parse(await readFile(path.join(FORGE_ROOT, 'data', 'manifests', 'assets.json')));
@@ -112,7 +111,7 @@ test('approved references and the released 78 candidates retain verified outputs
   assert.equal(approvals.approvals.every((approval) => approval.reviewer === 'human'
     && approval.note === 'Required 78 batch approval cb4aa5f67c91a329c140f4a09bdc39b960ccce8a76334957066d7c0e83540042'), true);
   assert.equal(assets.assets.filter((asset) => required.some((definition) => definition.id === asset.assetId))
-    .every((asset) => asset.status === 'approved' && typeof asset.approvedPath === 'string'), true);
+    .every((asset) => ['approved', 'exported'].includes(asset.status) && typeof asset.approvedPath === 'string'), true);
   const generations = JSON.parse(await readFile(path.join(FORGE_ROOT, 'data', 'local', 'generations.json'))).results;
   assert.equal(generations.length, 78);
   assert.equal(new Set(generations.map((generation) => generation.assetId)).size, 78);

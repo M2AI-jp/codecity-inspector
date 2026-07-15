@@ -1,20 +1,27 @@
 import {
   FACILITY_ANCHORS,
+  PLAYER_START_NODE_ID,
+  WORLD_EFFECTS,
+  WORLD_MAP,
+  WORLD_NPCS,
+  WORLD_PROPS,
+  WORLD_STRUCTURES,
   WORLD_DISTRICTS,
-  WORLD_IMAGE,
-  anchorsForPresentFacilities,
+  auditWorldMap,
   computeWorldCamera,
   createInterpolatedMovement,
   directionBetweenPoints,
   districtForPoint,
+  groundAssetAt as worldGroundAssetAt,
+  groundTransformAt as worldGroundTransformAt,
   nearestFacilityAnchor,
   nearestNavigationNode,
   navigationEdgeBetween,
+  navigationNodeById,
   nextNodeForDirection,
   sampleInterpolatedMovement,
   screenToWorld,
   shortestNavigationPath,
-  worldRenderLayers,
   worldToScreen
 } from './world-runtime.mjs';
 import {
@@ -24,7 +31,6 @@ import {
   auditRuntimeAssetUsage,
   auditSiteRecipes,
   characterFrameRect,
-  computeSiteCamera,
   effectFrameRect,
   groundAssetAt,
   groundTransformAt,
@@ -42,11 +48,22 @@ import {
 const elements = {
   canvas: document.getElementById('world-canvas'),
   loading: document.getElementById('world-loading'),
-  worldFallback: document.getElementById('world-fallback'),
   assetError: document.getElementById('asset-error'),
   assetErrorText: document.getElementById('asset-error-text'),
   help: document.getElementById('world-help'),
   status: document.getElementById('world-status'),
+  districtBanner: document.getElementById('district-banner'),
+  interactionPrompt: document.getElementById('interaction-prompt'),
+  interactionPromptText: document.getElementById('interaction-prompt-text'),
+  journeyKicker: document.getElementById('journey-kicker'),
+  journeyTitle: document.getElementById('journey-title'),
+  journeyCopy: document.getElementById('journey-copy'),
+  journeySteps: {
+    walk: document.getElementById('journey-step-walk'),
+    route: document.getElementById('journey-step-route'),
+    evidence: document.getElementById('journey-step-evidence'),
+    return: document.getElementById('journey-step-return')
+  },
   repoName: document.getElementById('repo-name'),
   levelBadge: document.getElementById('level-badge'),
   placeLabel: document.getElementById('place-label'),
@@ -63,6 +80,7 @@ const elements = {
   facilityDistrict: document.getElementById('facility-district'),
   facilityName: document.getElementById('facility-name'),
   facilityKind: document.getElementById('facility-kind'),
+  facilityPresence: document.getElementById('facility-presence'),
   facilityCount: document.getElementById('facility-count'),
   evidenceObserved: document.getElementById('evidence-observed'),
   evidenceInferred: document.getElementById('evidence-inferred'),
@@ -75,7 +93,8 @@ const elements = {
 };
 
 const context = elements.canvas.getContext('2d', { alpha: false });
-const initialNode = nearestNavigationNode(FACILITY_ANCHORS.town_hall.x, FACILITY_ANCHORS.town_hall.y);
+const initialNode = navigationNodeById(PLAYER_START_NODE_ID)
+  ?? nearestNavigationNode(FACILITY_ANCHORS.town_hall.x, FACILITY_ANCHORS.town_hall.y);
 const directionForKey = Object.freeze({
   ArrowUp: 'up', w: 'up', W: 'up',
   ArrowDown: 'down', s: 'down', S: 'down',
@@ -85,23 +104,23 @@ const directionForKey = Object.freeze({
 
 const state = {
   town: null,
-  worldImage: null,
   worldReady: false,
   assets: null,
   assetError: null,
-  view: 'overview',
-  interactionStarted: false,
+  view: 'world',
   camera: null,
-  presentAnchors: [],
+  anchors: Object.values(FACILITY_ANCHORS),
   hoveredAnchor: null,
-  selectedAnchor: null,
+  selectedAnchor: FACILITY_ANCHORS.dojo,
   nearbyAnchor: null,
   worldNodeId: initialNode.id,
   worldPosition: { x: initialNode.x, y: initialNode.y },
   worldDirection: 'down',
   worldMovement: null,
-  worldTransition: null,
+  worldMovementEdge: null,
   worldQueue: [],
+  worldHeldDirection: null,
+  worldPendingDirection: null,
   worldReturn: null,
   siteRecipe: null,
   siteNodeId: null,
@@ -110,20 +129,82 @@ const state = {
   siteMovement: null,
   siteQueue: [],
   drawerOpener: null,
-  lastTimestamp: 0
+  lastTimestamp: 0,
+  lastFrameAt: -Infinity,
+  lastDistrictId: null,
+  journey: {
+    stage: 'reach_dojo',
+    walked: false,
+    bridgeCrossed: false,
+    stairsUsed: false,
+    evidenceViewed: false,
+    returnedToWorld: false,
+    secondFacilityVisited: false
+  }
 };
+
+const FACILITY_ROLES = Object.freeze({
+  town_hall: 'リポジトリ全体', gate: '起動入口', guild: 'ローカル接続',
+  pub: '公開インターフェース', shop: 'パッケージ', inn: 'アプリケーション入口',
+  dock: '配布・デプロイ', dojo: 'テスト', well: '環境変数・秘密情報',
+  workshop: 'ビルド工程', warehouse: 'データ保存', watchtower: 'ログ・監視',
+  house: '通常モジュール', ruin: '古い実装・未使用候補'
+});
 
 function announce(message) {
   elements.status.textContent = '';
   window.requestAnimationFrame(() => { elements.status.textContent = message; });
 }
 
-function facilityForAnchor(anchor) {
-  return state.town?.model?.facilities?.find((facility) => facility.kind === anchor?.kind) ?? null;
+function facilityState(facility) {
+  if ((facility?.evidence?.observed?.length ?? 0) > 0) {
+    return Object.freeze({ id: 'observed', label: '観測済み', color: '#9dcc88', symbol: '●' });
+  }
+  if ((facility?.evidence?.inferred?.length ?? 0) > 0) {
+    return Object.freeze({ id: 'inferred', label: '推測あり', color: '#f0c968', symbol: '▲' });
+  }
+  return Object.freeze({ id: 'unknown', label: '未確認', color: '#a9b8ca', symbol: '?' });
 }
 
-function facilityIsPresent(facilityKind) {
-  return state.town?.model?.facilities?.some((facility) => facility.kind === facilityKind && facility.present === true) === true;
+function announceWorldArrival() {
+  const anchor = state.nearbyAnchor;
+  if (anchor) {
+    const status = facilityState(facilityForAnchor(anchor));
+    announce(`${anchor.label}の入口に到着しました（${status.label}）。EnterまたはSpaceで調べられます。`);
+    return;
+  }
+  announce(`${districtLabel(state.worldPosition)}に到着しました。次の金色の足あとを選べます。`);
+}
+
+function evidenceCount(facility) {
+  return ['observed', 'inferred', 'unknown']
+    .reduce((total, key) => total + (facility?.evidence?.[key]?.length ?? 0), 0);
+}
+
+function humanizeEvidence(value) {
+  const text = String(value);
+  const patterns = [
+    [/^(\d+) test file\(s\) observed: (.+)\.$/, (match) => `${match[1]}件のテストファイルを観測しました: ${match[2]}`],
+    [/^package\.json declares a "test" script\.$/, () => 'package.json に test スクリプトが宣言されています。'],
+    [/^(\d+) source\/test association\(s\) inferred from direct imports or unique filename matching\.$/, (match) => `直接importまたは一意なファイル名から、${match[1]}件のソース／テスト対応を推測しました。`],
+    [/^whether these tests currently pass was not executed; target-repo tests are never run by this tool\. Untested is not broken\.$/, () => 'テストが現在成功するかは未確認です。対象コードは実行しておらず、未テストを故障とは判定しません。'],
+    [/^repository "([^"]+)" was scanned\.$/, (match) => `リポジトリ「${match[1]}」を読み取り専用で観測しました。`],
+    [/^(\d+) of (\d+) discovered file\(s\) were scanned\.$/, (match) => `発見した${match[2]}ファイルのうち${match[1]}ファイルを静的に読み取りました。`],
+    [/^git commit history, issues, and releases were not read; only static file contents were scanned\.$/, () => 'commit履歴・Issue・Releaseは読んでいません。静的なファイル内容だけを観測しました。'],
+    [/^no external code-gen contractor reports were supplied\.$/, () => '外部コード生成ワーカーの報告は入力されていません。'],
+    [/^no observed or inferred signal for "([^"]+)" was found in this scan\.$/, () => 'この検査では、この施設を示す観測・推測が見つかりませんでした。'],
+    [/^entrypoint "([^"]+)" resolved via ([^.]+)\.$/, (match) => `入口「${match[1]}」を ${match[2]} から観測しました。`],
+    [/^whether the entrance actually starts successfully when run is unknown; this tool never executes target code\.$/, () => '入口が実行時に正常起動するかは未確認です。対象コードは実行していません。']
+  ];
+  for (const [pattern, format] of patterns) {
+    const match = text.match(pattern);
+    if (match) return format(match);
+  }
+  return text;
+}
+
+function facilityForAnchor(anchor) {
+  return state.town?.model?.facilities?.find((facility) => facility.kind === anchor?.kind) ?? null;
 }
 
 function districtLabel(point) {
@@ -135,13 +216,65 @@ function evidenceItems(target, items, emptyLabel) {
   const values = Array.isArray(items) && items.length > 0 ? items : [emptyLabel];
   for (const value of values) {
     const item = document.createElement('li');
-    item.textContent = String(value);
+    item.textContent = humanizeEvidence(value);
     target.append(item);
   }
 }
 
 function selectedFacility() {
   return facilityForAnchor(state.selectedAnchor);
+}
+
+function journeyTargetAnchor() {
+  if (['reach_dojo', 'inspect_dojo', 'return_world'].includes(state.journey.stage)) return FACILITY_ANCHORS.dojo;
+  if (state.journey.stage === 'reach_house') return FACILITY_ANCHORS.house;
+  return null;
+}
+
+function markJourneySteps() {
+  const routeDone = state.journey.bridgeCrossed && state.journey.stairsUsed;
+  const values = {
+    walk: { done: state.journey.walked, current: !state.journey.walked },
+    route: { done: routeDone, current: state.journey.walked && !routeDone },
+    evidence: { done: state.journey.evidenceViewed, current: routeDone && !state.journey.evidenceViewed },
+    return: { done: state.journey.secondFacilityVisited, current: state.journey.evidenceViewed && !state.journey.secondFacilityVisited }
+  };
+  for (const [key, value] of Object.entries(values)) {
+    elements.journeySteps[key].classList.toggle('is-done', value.done);
+    elements.journeySteps[key].classList.toggle('is-current', value.current);
+  }
+}
+
+function updateJourney() {
+  const messages = {
+    reach_dojo: ['最初の調査', '橋と階段の先、道場へ', '金色の足あとを追って、テストの状態を調べましょう。'],
+    inspect_dojo: ['道場に到着', '入口の奥で根拠を開く', '光る入口まで歩き、Enterで観測・推測・未確認を開きます。'],
+    return_world: ['根拠を確認', '街へ戻る', '閉じる／Escで街へ戻り、次の施設へ向かいましょう。'],
+    reach_house: ['次の調査', '森の住宅へ向かう', '街へ戻れました。金色の足あとを追って別の施設へ。'],
+    complete: ['調査の一周を完了', '街は自由に歩けます', 'ほかの施設も、入口から同じ方法で根拠を調べられます。']
+  };
+  const [kicker, title, copy] = messages[state.journey.stage] ?? messages.reach_dojo;
+  elements.journeyKicker.textContent = kicker;
+  elements.journeyTitle.textContent = title;
+  elements.journeyCopy.textContent = copy;
+  markJourneySteps();
+  draw(state.lastTimestamp);
+}
+
+function updateInteractionPrompt() {
+  if (state.view === 'site') {
+    const nearEvidence = currentSiteNearEvidence();
+    elements.interactionPrompt.hidden = !nearEvidence;
+    elements.interactionPromptText.textContent = nearEvidence ? '観測・推測・未確認の根拠を開く' : '';
+    return;
+  }
+  const anchor = state.nearbyAnchor;
+  elements.interactionPrompt.hidden = !anchor;
+  if (anchor) {
+    const facility = facilityForAnchor(anchor);
+    const status = facilityState(facility).label;
+    elements.interactionPromptText.textContent = `${anchor.label}を調べる · ${status}`;
+  }
 }
 
 function updateFacilityDetail() {
@@ -154,14 +287,17 @@ function updateFacilityDetail() {
     ? state.siteRecipe.label
     : districtLabel(anchor);
   elements.facilityName.textContent = anchor.label;
-  elements.facilityKind.textContent = facility.kind;
-  elements.facilityCount.textContent = String(facility.count ?? 0);
+  elements.facilityKind.textContent = FACILITY_ROLES[facility.kind] ?? facility.kind;
+  elements.facilityPresence.textContent = `${facilityState(facility).symbol} ${facilityState(facility).label}`;
+  elements.facilityCount.textContent = String(evidenceCount(facility));
   evidenceItems(elements.evidenceObserved, facility.evidence?.observed, '観測された根拠はありません。');
   evidenceItems(elements.evidenceInferred, facility.evidence?.inferred, '推測された根拠はありません。');
   evidenceItems(elements.evidenceUnknown, facility.evidence?.unknown, '未確認事項はありません。');
   const routes = siteRecipesForFacility(facility.kind);
-  elements.siteEnterButton.hidden = facility.present !== true || routes.length === 0;
-  elements.siteEnterButton.textContent = routes.length > 1 ? '4つの検査場所から選ぶ' : 'この施設を歩いて検査する';
+  elements.siteEnterButton.hidden = state.view === 'site' || routes.length === 0;
+  elements.siteEnterButton.textContent = routes.length > 1
+    ? '4つの調査区画から選ぶ'
+    : facility.present === true ? 'この施設を歩いて調べる' : '未確認区画を歩いて根拠を見る';
 }
 
 function currentPlaceLabel() {
@@ -182,6 +318,7 @@ function updateSummary() {
     : '未確認';
   elements.drawerLocation.textContent = currentPlaceLabel();
   elements.overviewButton.setAttribute('aria-pressed', String(state.view === 'overview'));
+  elements.overviewButton.textContent = state.view === 'overview' ? '街へ戻る' : '街を見渡す';
   elements.backButton.hidden = state.view !== 'site';
 }
 
@@ -210,7 +347,7 @@ function closeSiteChoice({ restoreFocus = true } = {}) {
 function showSiteChoice(recipes) {
   if (!state.assets || recipes.length === 0) return;
   elements.siteChoiceButtons.replaceChildren();
-  elements.siteChoiceTitle.textContent = recipes.length > 1 ? '住宅の4つの検査場所' : '検査場所';
+  elements.siteChoiceTitle.textContent = recipes.length > 1 ? '森につながる4つの住宅区画' : '調査区画';
   for (const recipe of recipes) {
     const button = document.createElement('button');
     button.type = 'button';
@@ -223,6 +360,15 @@ function showSiteChoice(recipes) {
   elements.siteChoiceButtons.querySelector('button')?.focus();
 }
 
+function openCurrentEvidence() {
+  if (state.view === 'site' && state.siteRecipe?.facilityKind === 'dojo') {
+    state.journey.evidenceViewed = true;
+    state.journey.stage = 'return_world';
+    updateJourney();
+  }
+  openJournal(elements.canvas);
+}
+
 function resizeCanvas() {
   const bounds = elements.canvas.getBoundingClientRect();
   const width = Math.max(1, Math.round(bounds.width));
@@ -233,33 +379,91 @@ function resizeCanvas() {
 }
 
 function worldCamera() {
-  return computeWorldCamera({
+  const camera = computeWorldCamera({
     mode: state.view === 'world' ? 'follow' : 'overview',
     viewportWidth: elements.canvas.width,
     viewportHeight: elements.canvas.height,
     focusX: state.worldPosition.x,
-    focusY: state.worldPosition.y
+    focusY: state.worldPosition.y,
+    worldWidth: WORLD_MAP.width,
+    worldHeight: WORLD_MAP.height
+  });
+  if (state.view !== 'world') return camera;
+  const scale = 1.4;
+  const sourceWidth = Math.min(WORLD_MAP.width, elements.canvas.width / scale);
+  const sourceHeight = Math.min(WORLD_MAP.height, elements.canvas.height / scale);
+  const sourceX = Math.max(0, Math.min(WORLD_MAP.width - sourceWidth, state.worldPosition.x - sourceWidth / 2));
+  const sourceY = Math.max(0, Math.min(WORLD_MAP.height - sourceHeight, state.worldPosition.y - sourceHeight / 2));
+  return Object.freeze({
+    ...camera,
+    scale,
+    sourceX,
+    sourceY,
+    sourceWidth,
+    sourceHeight,
+    destX: (elements.canvas.width - sourceWidth * scale) / 2,
+    destY: (elements.canvas.height - sourceHeight * scale) / 2,
+    destWidth: sourceWidth * scale,
+    destHeight: sourceHeight * scale
   });
 }
 
-function drawWorldAnchor(anchor, active) {
+function roundedRectangle(x, y, width, height, radius) {
+  const r = Math.min(radius, width / 2, height / 2);
+  context.beginPath();
+  context.moveTo(x + r, y);
+  context.arcTo(x + width, y, x + width, y + height, r);
+  context.arcTo(x + width, y + height, x, y + height, r);
+  context.arcTo(x, y + height, x, y, r);
+  context.arcTo(x, y, x + width, y, r);
+  context.closePath();
+}
+
+function drawWorldAnchor(anchor, active, target, timestamp) {
   const screen = worldToScreen(state.camera, anchor);
   if (!screen) return;
-  const radius = active ? 16 : 11;
-  const glow = context.createRadialGradient(screen.x, screen.y, 1, screen.x, screen.y, radius);
-  glow.addColorStop(0, active ? 'rgba(255, 235, 154, .82)' : 'rgba(255, 219, 112, .45)');
-  glow.addColorStop(0.48, active ? 'rgba(226, 178, 63, .42)' : 'rgba(226, 178, 63, .20)');
-  glow.addColorStop(1, 'rgba(226, 178, 63, 0)');
+  if (screen.x < -130 || screen.y < -80 || screen.x > elements.canvas.width + 130 || screen.y > elements.canvas.height + 80) return;
+  const facility = facilityForAnchor(anchor);
+  const status = facilityState(facility);
+  const pulse = target ? 4 + Math.sin(timestamp / 180) * 3 : 0;
+  const radius = (active ? 17 : 12) + pulse;
+  const glow = context.createRadialGradient(screen.x, screen.y, 1, screen.x, screen.y, radius + 12);
+  glow.addColorStop(0, target ? 'rgba(255, 239, 168, .94)' : `${status.color}cc`);
+  glow.addColorStop(0.42, target ? 'rgba(240, 201, 104, .52)' : `${status.color}55`);
+  glow.addColorStop(1, 'rgba(240, 201, 104, 0)');
   context.fillStyle = glow;
   context.beginPath();
-  context.arc(screen.x, screen.y, radius, 0, Math.PI * 2);
+  context.arc(screen.x, screen.y, radius + 12, 0, Math.PI * 2);
   context.fill();
-  if (active) {
-    context.strokeStyle = 'rgba(255, 239, 180, .96)';
-    context.lineWidth = 1;
+
+  context.strokeStyle = target ? '#fff0ad' : status.color;
+  context.lineWidth = target ? 2 : 1;
+  context.beginPath();
+  context.arc(screen.x, screen.y, active ? 8 : 5, 0, Math.PI * 2);
+  context.stroke();
+
+  const label = `${status.symbol} ${anchor.label}`;
+  context.font = '700 11px system-ui, sans-serif';
+  const labelWidth = Math.ceil(context.measureText(label).width) + 16;
+  const labelX = screen.x - labelWidth / 2;
+  const labelY = screen.y - (target ? 48 : 37);
+  roundedRectangle(labelX, labelY, labelWidth, 23, 7);
+  context.fillStyle = target ? 'rgba(44, 34, 12, .96)' : 'rgba(8, 13, 8, .88)';
+  context.fill();
+  context.strokeStyle = target ? '#f5d77e' : `${status.color}aa`;
+  context.stroke();
+  context.fillStyle = target ? '#fff1bd' : '#eee7d4';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.fillText(label, screen.x, labelY + 12);
+  if (target) {
+    context.fillStyle = '#f5d77e';
     context.beginPath();
-    context.arc(screen.x, screen.y, 6, 0, Math.PI * 2);
-    context.stroke();
+    context.moveTo(screen.x, labelY + 31);
+    context.lineTo(screen.x - 6, labelY + 25);
+    context.lineTo(screen.x + 6, labelY + 25);
+    context.closePath();
+    context.fill();
   }
 }
 
@@ -273,54 +477,220 @@ function drawCharacter(image, direction, frame, feetX, feetY) {
   context.drawImage(image, source.x, source.y, source.width, source.height, feetX - 12, feetY - 40, 24, 40);
 }
 
+function drawWorldGroundTile(images, cellX, cellY) {
+  const assetId = worldGroundAssetAt(cellX, cellY);
+  if (!assetId) return;
+  const pixelX = cellX * WORLD_MAP.cellSize;
+  const pixelY = cellY * WORLD_MAP.cellSize;
+  if (['field.tree', 'field.rock'].includes(assetId)) {
+    context.drawImage(images.get('field.grass'), pixelX, pixelY, 64, 64);
+  }
+  const transform = worldGroundTransformAt(cellX, cellY);
+  context.save();
+  context.translate(pixelX + 32, pixelY + 32);
+  context.rotate((transform?.quarterTurns ?? 0) * Math.PI / 2);
+  if (transform?.flipX) context.scale(-1, 1);
+  context.drawImage(images.get(assetId), -32, -32, 64, 64);
+  context.restore();
+}
+
+function worldPlacement(entry) {
+  return {
+    x: entry.x * WORLD_MAP.cellSize + (entry.offsetX ?? 0),
+    y: entry.y * WORLD_MAP.cellSize + (entry.offsetY ?? 0),
+    depth: entry.y * WORLD_MAP.cellSize + WORLD_MAP.cellSize + (entry.offsetY ?? 0)
+  };
+}
+
+function drawWorldProp(images, entry) {
+  const placement = worldPlacement(entry);
+  context.save();
+  context.translate(placement.x + 32, placement.y + 32);
+  if (entry.flipX) context.scale(-1, 1);
+  context.drawImage(images.get(entry.assetId), -32, -32, 64, 64);
+  context.restore();
+}
+
+function drawWorldRouteGuidance(timestamp) {
+  const target = journeyTargetAnchor();
+  if (!target || state.view !== 'world') return;
+  const path = shortestNavigationPath(state.worldNodeId, target.nodeId);
+  for (let index = 1; index < path.length; index += 1) {
+    const node = path[index];
+    const previous = path[index - 1];
+    const edge = navigationEdgeBetween(previous.id, node.id);
+    const pulse = 0.74 + Math.sin(timestamp / 180 + index * 0.65) * 0.2;
+    context.globalAlpha = pulse;
+    context.fillStyle = edge?.type === 'bridge' ? '#9ed8e6' : edge?.type === 'stairs' ? '#fff0ae' : '#efca69';
+    context.beginPath();
+    context.ellipse(node.x, node.y - 3, edge?.type === 'walk' ? 4 : 7, edge?.type === 'walk' ? 3 : 5, 0, 0, Math.PI * 2);
+    context.fill();
+  }
+  context.globalAlpha = 1;
+}
+
+function drawWorldPlayer(images, timestamp) {
+  context.save();
+  const aura = context.createRadialGradient(
+    state.worldPosition.x, state.worldPosition.y - 7, 3,
+    state.worldPosition.x, state.worldPosition.y - 7, 29
+  );
+  aura.addColorStop(0, 'rgba(151, 231, 235, .42)');
+  aura.addColorStop(1, 'rgba(151, 231, 235, 0)');
+  context.fillStyle = aura;
+  context.beginPath();
+  context.arc(state.worldPosition.x, state.worldPosition.y - 7, 29, 0, Math.PI * 2);
+  context.fill();
+  context.fillStyle = 'rgba(5, 9, 5, .65)';
+  context.beginPath();
+  context.ellipse(state.worldPosition.x, state.worldPosition.y - 2, 12, 6, 0, 0, Math.PI * 2);
+  context.fill();
+  context.strokeStyle = '#9ee8ed';
+  context.lineWidth = 3;
+  context.beginPath();
+  context.ellipse(state.worldPosition.x, state.worldPosition.y - 2, 15, 8, 0, 0, Math.PI * 2);
+  context.stroke();
+  drawCharacter(
+    images.get('character.player'),
+    state.worldDirection,
+    movementFrame(state.worldMovement, timestamp),
+    state.worldPosition.x,
+    state.worldPosition.y
+  );
+  context.fillStyle = '#b5f2f1';
+  context.beginPath();
+  context.moveTo(state.worldPosition.x, state.worldPosition.y - 49);
+  context.lineTo(state.worldPosition.x - 5, state.worldPosition.y - 57);
+  context.lineTo(state.worldPosition.x + 5, state.worldPosition.y - 57);
+  context.closePath();
+  context.fill();
+  context.font = '800 10px system-ui, sans-serif';
+  roundedRectangle(state.worldPosition.x - 24, state.worldPosition.y - 77, 48, 19, 6);
+  context.fillStyle = 'rgba(7, 16, 15, .94)';
+  context.fill();
+  context.strokeStyle = '#9ee8ed';
+  context.lineWidth = 1;
+  context.stroke();
+  context.fillStyle = '#d9ffff';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.fillText('あなた', state.worldPosition.x, state.worldPosition.y - 67);
+  context.restore();
+}
+
 function drawWorld(timestamp) {
   state.camera = worldCamera();
+  const images = state.assets.images;
   context.setTransform(1, 0, 0, 1, 0, 0);
-  context.imageSmoothingEnabled = state.camera.scale < 1;
-  context.fillStyle = '#050705';
+  context.imageSmoothingEnabled = false;
+  const backdrop = context.createLinearGradient(0, 0, elements.canvas.width, elements.canvas.height);
+  backdrop.addColorStop(0, '#34452a');
+  backdrop.addColorStop(1, '#111a11');
+  context.fillStyle = backdrop;
   context.fillRect(0, 0, elements.canvas.width, elements.canvas.height);
-  context.drawImage(
-    state.worldImage,
-    state.camera.sourceX, state.camera.sourceY, state.camera.sourceWidth, state.camera.sourceHeight,
-    state.camera.destX, state.camera.destY, state.camera.destWidth, state.camera.destHeight
-  );
+  context.save();
+  context.beginPath();
+  context.rect(state.camera.destX, state.camera.destY, state.camera.destWidth, state.camera.destHeight);
+  context.clip();
+  context.translate(state.camera.destX - state.camera.sourceX * state.camera.scale, state.camera.destY - state.camera.sourceY * state.camera.scale);
+  context.scale(state.camera.scale, state.camera.scale);
 
-  const layers = worldRenderLayers({
-    view: state.view,
-    interactionStarted: state.interactionStarted,
-    hasPlayerAsset: Boolean(state.assets),
-    hoveredAnchor: state.hoveredAnchor,
-    selectedAnchor: state.selectedAnchor,
-    nearbyAnchor: state.nearbyAnchor
-  });
-  for (const anchor of layers.anchors) {
-    drawWorldAnchor(anchor, anchor.kind === state.selectedAnchor?.kind || anchor.kind === state.nearbyAnchor?.kind);
+  const firstColumn = Math.max(0, Math.floor(state.camera.sourceX / WORLD_MAP.cellSize));
+  const lastColumn = Math.min(WORLD_MAP.columns - 1, Math.ceil((state.camera.sourceX + state.camera.sourceWidth) / WORLD_MAP.cellSize));
+  const firstRow = Math.max(0, Math.floor(state.camera.sourceY / WORLD_MAP.cellSize));
+  const lastRow = Math.min(WORLD_MAP.rows - 1, Math.ceil((state.camera.sourceY + state.camera.sourceHeight) / WORLD_MAP.cellSize));
+  for (let y = firstRow; y <= lastRow; y += 1) {
+    for (let x = firstColumn; x <= lastColumn; x += 1) drawWorldGroundTile(images, x, y);
   }
-  if (layers.drawPlayer && !state.worldTransition) {
-    const screen = worldToScreen(state.camera, state.worldPosition);
-    drawCharacter(
-      state.assets.images.get('character.player'),
-      state.worldDirection,
-      movementFrame(state.worldMovement, timestamp),
-      screen.x,
-      screen.y
+
+  drawWorldRouteGuidance(timestamp);
+  for (const entry of WORLD_PROPS.filter((item) => item.layer === 'rear')) drawWorldProp(images, entry);
+
+  const depthItems = [
+    ...WORLD_STRUCTURES.map((entry, index) => ({ type: 'structure', entry, depth: entry.baselineY, index })),
+    ...WORLD_PROPS.filter((item) => !['rear', 'front'].includes(item.layer)).map((entry, index) => ({
+      type: 'prop', entry, depth: worldPlacement(entry).depth, index
+    })),
+    ...WORLD_NPCS.map((entry, index) => ({ type: 'npc', entry, depth: entry.y * 64 + 52, index })),
+    { type: 'player', entry: null, depth: state.worldPosition.y, index: 0 }
+  ].sort((left, right) => left.depth - right.depth
+    || ({ structure: 0, prop: 1, npc: 2, player: 3 }[left.type] - { structure: 0, prop: 1, npc: 2, player: 3 }[right.type])
+    || left.index - right.index);
+
+  for (const item of depthItems) {
+    if (item.type === 'structure') {
+      const facility = item.entry.facilityKind ? facilityForAnchor(FACILITY_ANCHORS[item.entry.facilityKind]) : null;
+      context.save();
+      context.fillStyle = 'rgba(3, 7, 3, .38)';
+      context.beginPath();
+      context.ellipse(item.entry.x + 128, item.entry.baselineY - 6, 105, 18, 0, 0, Math.PI * 2);
+      context.fill();
+      context.globalAlpha = item.entry.facilityKind && facility?.present !== true ? 0.78 : 1;
+      context.drawImage(images.get(item.entry.assetId), item.entry.x, item.entry.y, 256, 256);
+      context.restore();
+    } else if (item.type === 'prop') drawWorldProp(images, item.entry);
+    else if (item.type === 'npc') {
+      const facility = item.entry.facilityKind ? facilityForAnchor(FACILITY_ANCHORS[item.entry.facilityKind]) : null;
+      const feetX = item.entry.x * 64 + 32 + (item.entry.offsetX ?? 0) * 1.75;
+      const feetY = item.entry.y * 64 + 52;
+      context.save();
+      if (item.entry.facilityKind && facility?.present !== true) context.globalAlpha = 0.58;
+      drawCharacter(images.get(item.entry.assetId), item.entry.direction ?? 'down', 'idle', feetX, feetY);
+      context.restore();
+      if (item.entry.facilityKind && facility?.present !== true) {
+        context.fillStyle = '#a9b8ca';
+        context.beginPath();
+        context.arc(feetX, feetY - 47, 7, 0, Math.PI * 2);
+        context.fill();
+        context.fillStyle = '#111820';
+        context.font = '800 9px system-ui, sans-serif';
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText('?', feetX, feetY - 47);
+      }
+    } else drawWorldPlayer(images, timestamp);
+  }
+
+  for (const entry of WORLD_PROPS.filter((item) => item.layer === 'front')) drawWorldProp(images, entry);
+  const effectFrame = effectFrameRect(Math.floor(timestamp / 160));
+  for (const entry of WORLD_EFFECTS) {
+    context.drawImage(
+      images.get(entry.assetId),
+      effectFrame.x, effectFrame.y, effectFrame.width, effectFrame.height,
+      entry.x * 64 + 16, entry.y * 64 + 16, 32, 32
     );
   }
-  if (state.worldTransition) {
-    const elapsed = Math.max(0, timestamp - state.worldTransition.startedAt);
-    const progress = Math.min(1, elapsed / state.worldTransition.duration);
-    context.fillStyle = `rgba(3, 5, 3, ${1 - progress})`;
-    context.fillRect(0, 0, elements.canvas.width, elements.canvas.height);
+  context.restore();
+
+  const target = journeyTargetAnchor();
+  for (const anchor of state.anchors) {
+    const active = anchor.kind === state.selectedAnchor?.kind || anchor.kind === state.nearbyAnchor?.kind;
+    drawWorldAnchor(anchor, active, anchor.kind === target?.kind, timestamp);
   }
 }
 
 function drawSite(timestamp) {
   const recipe = state.siteRecipe;
   const images = state.assets.images;
-  const camera = computeSiteCamera(elements.canvas.width, elements.canvas.height);
+  const scale = Math.min(elements.canvas.width / SITE_CANVAS.width, elements.canvas.height / SITE_CANVAS.height);
+  const camera = Object.freeze({
+    scale,
+    destX: (elements.canvas.width - SITE_CANVAS.width * scale) / 2,
+    destY: (elements.canvas.height - SITE_CANVAS.height * scale) / 2,
+    destWidth: SITE_CANVAS.width * scale,
+    destHeight: SITE_CANVAS.height * scale,
+    viewportWidth: elements.canvas.width,
+    viewportHeight: elements.canvas.height
+  });
   state.camera = camera;
   context.setTransform(1, 0, 0, 1, 0, 0);
-  context.fillStyle = '#050705';
+  const backdrop = context.createRadialGradient(
+    elements.canvas.width / 2, elements.canvas.height / 2, 20,
+    elements.canvas.width / 2, elements.canvas.height / 2, Math.max(elements.canvas.width, elements.canvas.height)
+  );
+  backdrop.addColorStop(0, '#34452b');
+  backdrop.addColorStop(1, '#0d140d');
+  context.fillStyle = backdrop;
   context.fillRect(0, 0, elements.canvas.width, elements.canvas.height);
   context.imageSmoothingEnabled = false;
   context.setTransform(camera.scale, 0, 0, camera.scale, camera.destX, camera.destY);
@@ -375,6 +745,26 @@ function drawSite(timestamp) {
       }
     }
   }
+
+  const evidencePath = shortestSitePath(recipe, state.siteNodeId, recipe.evidenceNodeId);
+  for (let index = 1; index < evidencePath.length; index += 1) {
+    const node = evidencePath[index];
+    context.globalAlpha = 0.66 + Math.sin(timestamp / 170 + index) * 0.2;
+    context.fillStyle = '#f1cc6c';
+    context.beginPath();
+    context.ellipse(node.x * 64 + 32, node.y * 64 + 36, 5, 3, 0, 0, Math.PI * 2);
+    context.fill();
+  }
+  context.globalAlpha = 1;
+  const evidenceNode = siteNodeById(recipe, recipe.evidenceNodeId);
+  if (evidenceNode) {
+    const pulse = 9 + Math.sin(timestamp / 160) * 3;
+    context.strokeStyle = '#ffe7a0';
+    context.lineWidth = 2;
+    context.beginPath();
+    context.arc(evidenceNode.x * 64 + 32, evidenceNode.y * 64 + 47, pulse, 0, Math.PI * 2);
+    context.stroke();
+  }
   for (const entry of recipe.rearDecor) drawTile(entry);
 
   const depthItems = [
@@ -394,6 +784,15 @@ function drawSite(timestamp) {
     else if (item.type === 'npc') {
       drawCharacter(images.get(item.entry.assetId), item.entry.direction, 'idle', item.entry.x * 64 + 32, item.entry.y * 64 + 52);
     } else {
+      context.fillStyle = 'rgba(5, 9, 5, .64)';
+      context.beginPath();
+      context.ellipse(state.sitePosition.x * 64 + 32, state.sitePosition.y * 64 + 50, 13, 6, 0, 0, Math.PI * 2);
+      context.fill();
+      context.strokeStyle = '#ffe28a';
+      context.lineWidth = 2;
+      context.beginPath();
+      context.ellipse(state.sitePosition.x * 64 + 32, state.sitePosition.y * 64 + 50, 16, 8, 0, 0, Math.PI * 2);
+      context.stroke();
       drawCharacter(
         images.get('character.player'),
         state.siteDirection,
@@ -401,6 +800,19 @@ function drawSite(timestamp) {
         state.sitePosition.x * 64 + 32,
         state.sitePosition.y * 64 + 52
       );
+      const playerX = state.sitePosition.x * 64 + 32;
+      const playerY = state.sitePosition.y * 64 + 52;
+      context.font = '800 10px system-ui, sans-serif';
+      roundedRectangle(playerX - 24, playerY - 76, 48, 19, 6);
+      context.fillStyle = 'rgba(7, 16, 15, .94)';
+      context.fill();
+      context.strokeStyle = '#9ee8ed';
+      context.lineWidth = 1;
+      context.stroke();
+      context.fillStyle = '#d9ffff';
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+      context.fillText('あなた', playerX, playerY - 66);
     }
   }
   for (const entry of recipe.frontOccluders) drawTile(entry);
@@ -414,10 +826,25 @@ function drawSite(timestamp) {
   }
   context.restore();
   context.setTransform(1, 0, 0, 1, 0, 0);
+
+  const facility = facilityForAnchor(FACILITY_ANCHORS[recipe.facilityKind]);
+  const status = facilityState(facility);
+  const label = `${status.symbol} ${status.label} · ${FACILITY_ROLES[recipe.facilityKind] ?? recipe.facilityKind}`;
+  context.font = '700 11px system-ui, sans-serif';
+  const width = Math.ceil(context.measureText(label).width) + 18;
+  roundedRectangle(camera.destX + 12, camera.destY + 12, width, 25, 7);
+  context.fillStyle = 'rgba(8, 13, 8, .9)';
+  context.fill();
+  context.strokeStyle = status.color;
+  context.stroke();
+  context.fillStyle = '#f5edda';
+  context.textAlign = 'left';
+  context.textBaseline = 'middle';
+  context.fillText(label, camera.destX + 21, camera.destY + 25);
 }
 
 function draw(timestamp = 0) {
-  if (!state.worldReady || !state.worldImage || !context) return;
+  if (!state.worldReady || !state.assets || !context) return;
   if (state.view === 'site' && state.assets && state.siteRecipe) drawSite(timestamp);
   else drawWorld(timestamp);
 }
@@ -426,15 +853,26 @@ function updateNearbyAnchor() {
   state.nearbyAnchor = nearestFacilityAnchor(
     state.worldPosition.x,
     state.worldPosition.y,
-    state.presentAnchors,
-    58
+    state.anchors,
+    46
   );
-  if (state.nearbyAnchor && !state.selectedAnchor) state.selectedAnchor = state.nearbyAnchor;
+  if (state.nearbyAnchor) state.selectedAnchor = state.nearbyAnchor;
   updateFacilityDetail();
+  updateInteractionPrompt();
+}
+
+function updateDistrictBanner() {
+  const district = districtForPoint(state.worldPosition.x, state.worldPosition.y, WORLD_DISTRICTS);
+  if (!district || district.id === state.lastDistrictId) return;
+  state.lastDistrictId = district.id;
+  elements.districtBanner.textContent = district.label;
+  elements.districtBanner.hidden = false;
+  window.clearTimeout(state.districtBannerTimer);
+  state.districtBannerTimer = window.setTimeout(() => { elements.districtBanner.hidden = true; }, 1300);
 }
 
 function startNextWorldSegment(timestamp) {
-  if (state.worldMovement || state.worldTransition || state.worldQueue.length === 0) return;
+  if (state.worldMovement || state.worldQueue.length === 0) return;
   const target = state.worldQueue.shift();
   const fromId = state.worldNodeId;
   const edge = navigationEdgeBetween(fromId, target.id);
@@ -445,18 +883,18 @@ function startNextWorldSegment(timestamp) {
   const distance = Math.hypot(target.x - state.worldPosition.x, target.y - state.worldPosition.y);
   state.worldDirection = directionBetweenPoints(state.worldPosition, target, state.worldDirection);
   state.worldNodeId = target.id;
-  if (edge.type === 'transition') {
-    state.worldPosition = { x: target.x, y: target.y };
-    state.worldTransition = { startedAt: timestamp, duration: 180, fromId, toId: target.id };
-    updateNearbyAnchor();
-    return;
-  }
-  state.worldMovement = createInterpolatedMovement(state.worldPosition, target, timestamp, Math.max(160, Math.min(520, distance * 3)));
+  state.worldMovementEdge = edge.type;
+  state.worldMovement = createInterpolatedMovement(state.worldPosition, target, timestamp, Math.max(105, Math.min(165, distance * 2)));
+  state.journey.walked = true;
+  markJourneySteps();
+  elements.canvas.dataset.moving = 'true';
 }
 
 function queueWorldPath(path, timestamp = performance.now()) {
   state.worldQueue = path.slice(1);
+  const started = state.worldQueue.length > 0;
   startNextWorldSegment(timestamp);
+  return started;
 }
 
 function startNextSiteSegment(timestamp) {
@@ -464,7 +902,7 @@ function startNextSiteSegment(timestamp) {
   const target = state.siteQueue.shift();
   state.siteDirection = directionBetweenPoints(state.sitePosition, target, state.siteDirection);
   state.siteNodeId = target.id;
-  state.siteMovement = createInterpolatedMovement(state.sitePosition, target, timestamp, 180);
+  state.siteMovement = createInterpolatedMovement(state.sitePosition, target, timestamp, 135);
 }
 
 function queueSitePath(path, timestamp = performance.now()) {
@@ -473,11 +911,6 @@ function queueSitePath(path, timestamp = performance.now()) {
 }
 
 function updateMovements(timestamp) {
-  if (state.worldTransition && timestamp >= state.worldTransition.startedAt + state.worldTransition.duration) {
-    state.worldTransition = null;
-    updateSummary();
-    startNextWorldSegment(timestamp);
-  }
   if (state.worldMovement) {
     const sample = sampleInterpolatedMovement(state.worldMovement, timestamp);
     state.worldPosition = { x: sample.x, y: sample.y };
@@ -485,9 +918,21 @@ function updateMovements(timestamp) {
     if (sample.done) {
       state.worldPosition = { ...state.worldMovement.to };
       state.worldMovement = null;
+      if (state.worldMovementEdge === 'bridge') state.journey.bridgeCrossed = true;
+      if (state.worldMovementEdge === 'stairs') state.journey.stairsUsed = true;
+      state.worldMovementEdge = null;
       updateNearbyAnchor();
+      updateDistrictBanner();
       updateSummary();
-      startNextWorldSegment(timestamp);
+      updateJourney();
+      if (state.worldQueue.length > 0) startNextWorldSegment(timestamp);
+      else {
+        delete elements.canvas.dataset.moving;
+        const queuedDirection = state.worldPendingDirection ?? state.worldHeldDirection;
+        state.worldPendingDirection = null;
+        if (queuedDirection) moveWorldDirection(queuedDirection, timestamp);
+        else announceWorldArrival();
+      }
     }
   }
   if (state.siteMovement) {
@@ -497,12 +942,18 @@ function updateMovements(timestamp) {
     if (sample.done) {
       state.sitePosition = { ...state.siteMovement.to };
       state.siteMovement = null;
-      startNextSiteSegment(timestamp);
+      updateInteractionPrompt();
+      if (state.siteQueue.length > 0) startNextSiteSegment(timestamp);
     }
   }
 }
 
 function animationTick(timestamp) {
+  if (timestamp - state.lastFrameAt < 40) {
+    window.requestAnimationFrame(animationTick);
+    return;
+  }
+  state.lastFrameAt = timestamp;
   state.lastTimestamp = timestamp;
   updateMovements(timestamp);
   draw(timestamp);
@@ -519,37 +970,45 @@ function canPlay() {
 
 function beginWorldExploration() {
   if (!canPlay()) return false;
-  state.interactionStarted = true;
   state.view = 'world';
   elements.canvas.dataset.mode = 'world';
-  elements.help.hidden = false;
   updateNearbyAnchor();
   updateSummary();
   return true;
 }
 
-function showOverview() {
+function toggleOverview() {
   if (state.view === 'site') returnToWorld();
-  state.view = 'overview';
+  state.view = state.view === 'overview' ? 'world' : 'overview';
   state.worldMovement = null;
-  state.worldTransition = null;
+  state.worldMovementEdge = null;
   state.worldQueue = [];
-  elements.canvas.dataset.mode = 'overview';
+  state.worldHeldDirection = null;
+  state.worldPendingDirection = null;
+  delete elements.canvas.dataset.moving;
+  elements.canvas.dataset.mode = state.view;
   updateSummary();
   draw(state.lastTimestamp);
-  announce('街の全景を表示しました。');
+  announce(state.view === 'overview' ? '街の全景を表示しました。' : '歩いていた場所へ戻りました。');
 }
 
-function moveWorldDirection(direction) {
-  if (state.worldMovement || state.worldTransition || !beginWorldExploration()) return;
+function moveWorldDirection(direction, timestamp = performance.now()) {
+  if (!beginWorldExploration()) return;
+  if (state.worldMovement) {
+    state.worldPendingDirection = direction;
+    return;
+  }
   const next = nextNodeForDirection(state.worldNodeId, direction);
   state.worldDirection = direction;
-  if (next.id !== state.worldNodeId) queueWorldPath([nearestNavigationNode(state.worldPosition.x, state.worldPosition.y), next]);
+  if (next.id !== state.worldNodeId) queueWorldPath([nearestNavigationNode(state.worldPosition.x, state.worldPosition.y), next], timestamp);
   else draw(state.lastTimestamp);
 }
 
 function moveSiteDirection(direction) {
-  if (state.siteMovement) return;
+  if (state.siteMovement) {
+    state.siteQueue = [];
+    return;
+  }
   const next = nextSiteNodeForDirection(state.siteRecipe, state.siteNodeId, direction);
   state.siteDirection = direction;
   if (next?.id !== state.siteNodeId) queueSitePath([siteNodeById(state.siteRecipe, state.siteNodeId), next]);
@@ -563,22 +1022,19 @@ function currentSiteNearEvidence() {
 function tryEnterSelectedFacility() {
   const anchor = state.nearbyAnchor;
   const facility = facilityForAnchor(anchor);
-  if (!anchor || facility?.present !== true) {
-    announce('入れる施設の近くまで移動してください。');
+  if (!anchor) {
+    announce('施設名の表示がある入口まで移動してください。');
     return;
   }
   state.selectedAnchor = anchor;
-  const recipes = siteRecipesForFacility(facility.kind);
+  const recipes = siteRecipesForFacility(facility?.kind ?? anchor.kind);
   if (recipes.length === 1) enterSite(recipes[0].id);
   else showSiteChoice(recipes);
 }
 
 function enterSite(siteId) {
   const recipe = siteRecipeById(siteId);
-  if (!recipe || !canPlay() || !facilityIsPresent(recipe.facilityKind)) {
-    announce('この検査場所は、観測された施設が存在するときだけ開きます。');
-    return;
-  }
+  if (!recipe || !canPlay()) return;
   const anchor = FACILITY_ANCHORS[recipe.facilityKind];
   if (!anchor) return;
   state.worldReturn = {
@@ -596,13 +1052,22 @@ function enterSite(siteId) {
   state.siteQueue = [];
   state.selectedAnchor = anchor;
   state.view = 'site';
+  if (recipe.facilityKind === 'dojo' && state.journey.stage === 'reach_dojo') state.journey.stage = 'inspect_dojo';
+  if (recipe.facilityKind === 'house' && state.journey.stage === 'reach_house') {
+    state.journey.secondFacilityVisited = true;
+    state.journey.stage = 'complete';
+  }
   elements.canvas.dataset.mode = 'site';
   closeJournal({ restoreFocus: false });
   closeSiteChoice({ restoreFocus: false });
   updateFacilityDetail();
   updateSummary();
+  updateInteractionPrompt();
+  updateJourney();
   elements.canvas.focus();
-  announce(`${recipe.label}に入りました。矢印キーまたはWASDで歩き、奥でEnterまたはSpaceを押すと根拠を確認できます。`);
+  const facility = facilityForAnchor(anchor);
+  const prefix = facility?.present === true ? '' : '未確認区画の';
+  announce(`${prefix}${recipe.label}に入りました。光る入口まで歩くと根拠を確認できます。`);
 }
 
 function returnToWorld() {
@@ -617,13 +1082,20 @@ function returnToWorld() {
     state.worldNodeId = saved.nodeId;
     state.worldPosition = { ...saved.position };
     state.worldDirection = saved.direction;
-    state.selectedAnchor = state.presentAnchors.find((anchor) => anchor.kind === saved.selectedKind) ?? state.selectedAnchor;
+    state.selectedAnchor = state.anchors.find((anchor) => anchor.kind === saved.selectedKind) ?? state.selectedAnchor;
   }
+  if (state.journey.evidenceViewed && !state.journey.returnedToWorld) {
+    state.journey.returnedToWorld = true;
+    state.journey.stage = 'reach_house';
+    state.selectedAnchor = FACILITY_ANCHORS.house;
+  } else if (state.journey.stage === 'inspect_dojo') state.journey.stage = 'reach_dojo';
   elements.canvas.dataset.mode = 'world';
   updateNearbyAnchor();
   updateSummary();
+  updateInteractionPrompt();
+  updateJourney();
   elements.canvas.focus();
-  announce('同じ街道の位置へ戻りました。');
+  announce(state.journey.stage === 'reach_house' ? '街へ戻りました。次は森の住宅へ向かいます。' : '同じ街道の位置へ戻りました。');
 }
 
 function canvasPoint(event) {
@@ -638,34 +1110,35 @@ function handleCanvasClick(event) {
   if (!state.worldReady || !state.camera || !canPlay()) return;
   const screen = canvasPoint(event);
   if (state.view === 'site') {
-    if (state.siteMovement) return;
     const point = screenToSite(state.camera, screen);
     if (!point) return;
     const target = nearestSiteNode(state.siteRecipe, point.x / 64, point.y / 64);
     const path = shortestSitePath(state.siteRecipe, state.siteNodeId, target.id);
-    queueSitePath(path);
+    if (state.siteMovement) state.siteQueue = path.slice(1);
+    else queueSitePath(path);
     elements.canvas.focus();
     return;
   }
   const world = screenToWorld(state.camera, screen);
-  if (!world || state.worldMovement || state.worldTransition || !beginWorldExploration()) return;
+  if (!world || !beginWorldExploration()) return;
   const target = nearestNavigationNode(world.x, world.y);
   const path = shortestNavigationPath(state.worldNodeId, target.id);
-  const anchor = nearestFacilityAnchor(world.x, world.y, state.presentAnchors, 32);
+  const anchor = nearestFacilityAnchor(world.x, world.y, state.anchors, 52 / state.camera.scale);
   if (anchor) state.selectedAnchor = anchor;
-  queueWorldPath(path);
+  const started = queueWorldPath(path);
   updateFacilityDetail();
   elements.canvas.focus();
-  announce(anchor ? `${anchor.label}へ向かっています。近くでEnterまたはSpaceを押してください。` : `${districtLabel(target)}へ移動しています。`);
+  if (started) {
+    announce(anchor ? `${anchor.label}へ向かっています。近くでEnterまたはSpaceを押してください。` : `${districtLabel(target)}へ移動しています。`);
+  } else announceWorldArrival();
 }
 
 function handleCanvasMove(event) {
   if (!state.worldReady || state.view === 'site' || !state.camera) return;
   const world = screenToWorld(state.camera, canvasPoint(event));
-  const next = world ? nearestFacilityAnchor(world.x, world.y, state.presentAnchors, 24 / state.camera.scale) : null;
+  const next = world ? nearestFacilityAnchor(world.x, world.y, state.anchors, 44 / state.camera.scale) : null;
   if (next?.kind === state.hoveredAnchor?.kind) return;
   state.hoveredAnchor = next;
-  state.interactionStarted = true;
   elements.canvas.title = next?.label ?? '';
   draw(state.lastTimestamp);
 }
@@ -675,13 +1148,16 @@ function handleCanvasKey(event) {
   if (direction) {
     event.preventDefault();
     if (state.view === 'site') moveSiteDirection(direction);
-    else moveWorldDirection(direction);
+    else {
+      state.worldHeldDirection = direction;
+      moveWorldDirection(direction);
+    }
     return;
   }
   if (!['Enter', ' '].includes(event.key)) return;
   event.preventDefault();
   if (state.view === 'site') {
-    if (currentSiteNearEvidence()) openJournal(elements.canvas);
+    if (currentSiteNearEvidence()) openCurrentEvidence();
     else announce('施設の奥まで歩くと、根拠を確認できます。');
   } else if (beginWorldExploration()) tryEnterSelectedFacility();
 }
@@ -694,51 +1170,37 @@ async function loadTown() {
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     state.town = await response.json();
-    state.presentAnchors = anchorsForPresentFacilities(state.town?.model?.facilities);
     updateNearbyAnchor();
   } catch {
     state.town = null;
-    state.presentAnchors = [];
-    state.selectedAnchor = null;
     state.nearbyAnchor = null;
-    announce('街の検査情報を取得できませんでした。風景のみ表示します。');
+    announce('検査情報を取得できませんでした。施設は未確認として表示します。');
   }
   updateSummary();
   updateFacilityDetail();
-}
-
-function loadWorldImage() {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.decoding = 'async';
-    image.addEventListener('load', () => {
-      if (image.naturalWidth !== WORLD_IMAGE.width || image.naturalHeight !== WORLD_IMAGE.height) {
-        reject(new Error('World image dimensions do not match the completion design'));
-        return;
-      }
-      state.worldImage = image;
-      state.worldReady = true;
-      elements.loading.hidden = true;
-      resizeCanvas();
-      resolve();
-    }, { once: true });
-    image.addEventListener('error', () => reject(new Error('World image failed to load')), { once: true });
-    image.src = WORLD_IMAGE.src;
-  });
 }
 
 async function loadAssets() {
   try {
     const siteAudit = auditSiteRecipes();
     const usageAudit = auditRuntimeAssetUsage();
-    if (!siteAudit.ok || !usageAudit.ok) throw new Error('Runtime usage audit failed');
+    const worldAudit = auditWorldMap();
+    if (!siteAudit.ok || !usageAudit.ok || !worldAudit.ok) throw new Error('街の地理または素材の検証に失敗しました。');
     state.assets = await loadForgeAssetImages();
+    state.worldReady = true;
+    elements.loading.hidden = true;
+    resizeCanvas();
+    updateNearbyAnchor();
+    updateDistrictBanner();
+    updateJourney();
   } catch (error) {
     state.assets = null;
+    state.worldReady = false;
     state.assetError = error;
-    elements.assetErrorText.textContent = error?.message || '承認済み必須素材を読み込めません。代替素材は使用しません。';
+    elements.loading.hidden = true;
+    elements.assetErrorText.textContent = error?.message || '承認済み素材を読み込めません。';
     elements.assetError.hidden = false;
-    announce('承認済み必須素材を読み込めません。代替素材は使用しません。');
+    announce('街を開けませんでした。承認済み素材を確認してください。');
   }
 }
 
@@ -750,14 +1212,19 @@ elements.canvas.addEventListener('mouseleave', () => {
   draw(state.lastTimestamp);
 });
 elements.canvas.addEventListener('keydown', handleCanvasKey);
-elements.overviewButton.addEventListener('click', showOverview);
+window.addEventListener('keyup', (event) => {
+  const direction = directionForKey[event.key];
+  if (direction && state.worldHeldDirection === direction) state.worldHeldDirection = null;
+});
+elements.overviewButton.addEventListener('click', toggleOverview);
 elements.backButton.addEventListener('click', returnToWorld);
 elements.journalButton.addEventListener('click', () => openJournal(elements.journalButton));
 elements.journalClose.addEventListener('click', () => closeJournal());
 elements.siteEnterButton.addEventListener('click', () => {
   const facility = selectedFacility();
-  if (!facility || facility.present !== true) return;
-  const recipes = siteRecipesForFacility(facility.kind);
+  const kind = facility?.kind ?? state.selectedAnchor?.kind;
+  if (!kind) return;
+  const recipes = siteRecipesForFacility(kind);
   if (recipes.length === 1) enterSite(recipes[0].id);
   else showSiteChoice(recipes);
 });
@@ -768,23 +1235,17 @@ document.addEventListener('keydown', (event) => {
   if (!elements.siteChoice.hidden) closeSiteChoice();
   else if (!elements.journal.hidden) closeJournal();
   else if (state.view === 'site') returnToWorld();
-  else if (state.view === 'world') showOverview();
+  else if (state.view === 'overview') toggleOverview();
 });
 
-elements.canvas.dataset.mode = 'overview';
+elements.canvas.dataset.mode = 'world';
 updateSummary();
 updateFacilityDetail();
+updateJourney();
 window.requestAnimationFrame(animationTick);
 
-Promise.allSettled([loadTown(), loadWorldImage(), loadAssets()]).then((results) => {
-  if (results[1].status === 'rejected') {
-    state.worldReady = false;
-    elements.loading.hidden = true;
-    elements.canvas.hidden = true;
-    elements.worldFallback.hidden = false;
-    announce('街の風景を表示できませんでした。');
-    return;
-  }
+Promise.allSettled([loadTown(), loadAssets()]).then(() => {
+  if (!state.worldReady) return;
   elements.canvas.focus();
-  if (!state.assetError) announce('街の全景を表示しました。矢印キー、WASD、またはクリックで探索を始められます。');
+  announce('街が開きました。矢印キー、WASD、または金色の道のクリックで歩けます。');
 });
