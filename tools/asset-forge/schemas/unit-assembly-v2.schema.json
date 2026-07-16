@@ -37,7 +37,7 @@
     "sourceLimits": {
       "$ref": "generation-job-v2.schema.json#/definitions/sourceLimits"
     },
-    "generationMode": { "enum": ["per-unit", "monolithic-atlas", "terrain-composed-atlas"] },
+    "generationMode": { "enum": ["per-unit", "monolithic-atlas", "character-direction-strips", "terrain-composed-atlas"] },
     "generationUnitSetSha256": { "$ref": "#/definitions/sha256" },
     "expectations": { "$ref": "#/definitions/expectations" },
     "sourceRequiredCount": { "type": "integer", "minimum": 1, "maximum": 100 },

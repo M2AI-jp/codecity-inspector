@@ -23,7 +23,7 @@
     "category": {
       "enum": ["character", "building", "terrain", "overlay", "structure", "interior", "prop", "ui", "effect"]
     },
-    "generationMode": { "enum": ["per-unit", "monolithic-atlas", "terrain-composed-atlas"] },
+    "generationMode": { "enum": ["per-unit", "monolithic-atlas", "character-direction-strips", "terrain-composed-atlas"] },
     "generationUnitSetSha256": { "$ref": "#/definitions/sha256" },
     "generationExpectations": { "$ref": "#/definitions/expectations" },
     "generationUnitIds": {
@@ -38,6 +38,9 @@
     },
     "characterAtlasLayoutPlan": {
       "$ref": "generation-job-v2.schema.json#/definitions/characterAtlasLayoutPlan"
+    },
+    "characterDirectionStripPlan": {
+      "$ref": "generation-job-v2.schema.json#/definitions/characterDirectionStripPlan"
     },
     "members": {
       "type": "object",
@@ -137,6 +140,27 @@
         "properties": {
           "category": { "const": "character" },
           "generationMode": { "const": "monolithic-atlas" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "generationMode": { "const": "character-direction-strips" } },
+        "required": ["generationMode"]
+      },
+      "then": {
+        "properties": {
+          "category": { "const": "character" },
+          "characterDirectionStripPlan": {
+            "$ref": "generation-job-v2.schema.json#/definitions/characterDirectionStripPlan"
+          }
+        },
+        "required": ["characterDirectionStripPlan"]
+      },
+      "else": {
+        "not": {
+          "properties": { "characterDirectionStripPlan": {} },
+          "required": ["characterDirectionStripPlan"]
         }
       }
     }

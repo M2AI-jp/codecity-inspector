@@ -194,3 +194,26 @@ test('character-atlas-layout-v1 schema is exact and opt-in only for character mo
   unknownConfigField.characterAtlasLayoutPlan.directionStripMode = true;
   assert.equal(validateWith('generation-job-v2.schema.json', unknownConfigField).ok, false);
 });
+
+test('character-direction-strips schema requires one exact character-only hash-bound plan', async () => {
+  const { job } = await buildWaveAJob({
+    assetId: 'character.player',
+    generationMode: 'character-direction-strips'
+  });
+  assert.equal(validateWith('generation-job-v2.schema.json', job).ok, true);
+  const wrongCategory = structuredClone(job);
+  wrongCategory.category = 'terrain';
+  assert.equal(validateWith('generation-job-v2.schema.json', wrongCategory).ok, false);
+  const wrongMode = structuredClone(job);
+  wrongMode.generationMode = 'per-unit';
+  assert.equal(validateWith('generation-job-v2.schema.json', wrongMode).ok, false);
+  const missingPlan = structuredClone(job);
+  delete missingPlan.characterDirectionStripPlan;
+  assert.equal(validateWith('generation-job-v2.schema.json', missingPlan).ok, false);
+  const wrongConfigSha = structuredClone(job);
+  wrongConfigSha.characterDirectionStripPlan.configSha256 = '0'.repeat(64);
+  assert.equal(validateWith('generation-job-v2.schema.json', wrongConfigSha).ok, false);
+  const unknownConfigField = structuredClone(job);
+  unknownConfigField.characterDirectionStripPlan.providerCanvasRatio = '3:2';
+  assert.equal(validateWith('generation-job-v2.schema.json', unknownConfigField).ok, false);
+});

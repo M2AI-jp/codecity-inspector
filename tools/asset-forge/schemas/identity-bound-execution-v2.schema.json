@@ -25,9 +25,12 @@
     "promptSha256": { "$ref": "#/definitions/sha256" },
     "referenceAuthorizationSha256": { "$ref": "#/definitions/sha256" },
     "generationUnitSetSha256": { "$ref": "#/definitions/sha256" },
-    "generationMode": { "enum": ["per-unit", "monolithic-atlas"] },
+    "generationMode": { "enum": ["per-unit", "monolithic-atlas", "character-direction-strips"] },
     "characterAtlasLayoutPlan": {
       "$ref": "generation-job-v2.schema.json#/definitions/characterAtlasLayoutPlan"
+    },
+    "characterDirectionStripPlan": {
+      "$ref": "generation-job-v2.schema.json#/definitions/characterDirectionStripPlan"
     },
     "identityMaster": {
       "type": "object",
@@ -82,6 +85,16 @@
         "executionPromptSha256": { "$ref": "#/definitions/sha256" }
       }
     },
+    "directionStripExecutions": {
+      "type": "array", "minItems": 4, "maxItems": 4,
+      "items": [
+        { "allOf": [{ "$ref": "#/definitions/directionStripExecution" }, { "type": "object", "properties": { "direction": { "const": "front" } } }] },
+        { "allOf": [{ "$ref": "#/definitions/directionStripExecution" }, { "type": "object", "properties": { "direction": { "const": "back" } } }] },
+        { "allOf": [{ "$ref": "#/definitions/directionStripExecution" }, { "type": "object", "properties": { "direction": { "const": "left" } } }] },
+        { "allOf": [{ "$ref": "#/definitions/directionStripExecution" }, { "type": "object", "properties": { "direction": { "const": "right" } } }] }
+      ],
+      "additionalItems": false
+    },
     "units": {
       "type": "array", "minItems": 40, "maxItems": 40,
       "items": {
@@ -95,7 +108,7 @@
           "baseUnitPromptSha256": { "$ref": "#/definitions/sha256" },
           "executionPromptPath": {
             "type": "string",
-            "pattern": "^generated/jobs/v2/fable5-v2/wave-a/[a-z0-9_-]+-job_v2_[a-f0-9]{20}/identity-bindings/identity_binding_[a-f0-9]{20}/execution-prompts/(?:unit_[a-z0-9_]+|monolithic-atlas)\\.md$"
+            "pattern": "^generated/jobs/v2/fable5-v2/wave-a/[a-z0-9_-]+-job_v2_[a-f0-9]{20}/identity-bindings/identity_binding_[a-f0-9]{20}/execution-prompts/(?:unit_[a-z0-9_]+|monolithic-atlas|direction-strip-(?:front|back|left|right))\\.md$"
           },
           "executionPromptSha256": { "$ref": "#/definitions/sha256" },
           "consistencyInputSha256": { "$ref": "#/definitions/sha256" },
@@ -118,6 +131,28 @@
         "required": ["atlasExecution"]
       },
       "else": { "properties": { "atlasExecution": false } }
+    },
+    {
+      "if": {
+        "properties": { "generationMode": { "const": "character-direction-strips" } },
+        "required": ["generationMode"]
+      },
+      "then": {
+        "properties": {
+          "characterDirectionStripPlan": {
+            "$ref": "generation-job-v2.schema.json#/definitions/characterDirectionStripPlan"
+          },
+          "directionStripExecutions": {}
+        },
+        "required": ["characterDirectionStripPlan", "directionStripExecutions"]
+      },
+      "else": {
+        "properties": { "directionStripExecutions": false },
+        "not": {
+          "properties": { "characterDirectionStripPlan": {} },
+          "required": ["characterDirectionStripPlan"]
+        }
+      }
     },
     {
       "if": {
@@ -147,6 +182,30 @@
   ],
   "definitions": {
     "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "directionStripExecution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "direction", "layout", "contentAspectRatio", "columns", "rows",
+        "unitOrder", "executionPromptPath", "executionPromptSha256"
+      ],
+      "properties": {
+        "direction": { "enum": ["front", "back", "left", "right"] },
+        "layout": { "const": "character-direction-strip-frames-by-column" },
+        "contentAspectRatio": { "const": "5:1" },
+        "columns": { "const": 10 },
+        "rows": { "const": 1 },
+        "unitOrder": {
+          "type": "array", "minItems": 10, "maxItems": 10, "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^unit_[a-z0-9_]+$" }
+        },
+        "executionPromptPath": {
+          "type": "string",
+          "pattern": "^generated/jobs/v2/fable5-v2/wave-a/[a-z0-9_-]+-job_v2_[a-f0-9]{20}/identity-bindings/identity_binding_[a-f0-9]{20}/execution-prompts/direction-strip-(?:front|back|left|right)\\.md$"
+        },
+        "executionPromptSha256": { "$ref": "#/definitions/sha256" }
+      }
+    },
     "jobPackPath": {
       "type": "string",
       "pattern": "^generated/jobs/v2/fable5-v2/wave-a/[a-z0-9_-]+-job_v2_[a-f0-9]{20}/job-pack\\.json$"

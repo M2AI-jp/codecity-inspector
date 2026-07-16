@@ -141,6 +141,9 @@ async function writeWaveAJobPackLocked({
       ...(job.characterAtlasLayoutPlan ? {
         characterAtlasLayoutPlan: job.characterAtlasLayoutPlan
       } : {}),
+      ...(job.characterDirectionStripPlan ? {
+        characterDirectionStripPlan: job.characterDirectionStripPlan
+      } : {}),
       identityMasterPlan: job.identityMasterPlan
     })),
     authorization: Buffer.from(canonicalJson(authorization)),
@@ -179,6 +182,9 @@ async function writeWaveAJobPackLocked({
     identityMasterPlanId: job.identityMasterPlan?.planId ?? null,
     ...(job.characterAtlasLayoutPlan ? {
       characterAtlasLayoutPlan: job.characterAtlasLayoutPlan
+    } : {}),
+    ...(job.characterDirectionStripPlan ? {
+      characterDirectionStripPlan: job.characterDirectionStripPlan
     } : {}),
     members: {
       job: { path: toPosixRelative(root, memberPaths.job), sha256: sha256(memberBytes.job) },

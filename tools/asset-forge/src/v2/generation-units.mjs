@@ -3,6 +3,7 @@ import { canonicalJson, sha256 } from '../hashing.mjs';
 export const GENERATION_MODES_V2 = Object.freeze([
   'per-unit',
   'monolithic-atlas',
+  'character-direction-strips',
   'terrain-composed-atlas'
 ]);
 export const UNIT_EXPECTATIONS_V2 = Object.freeze([

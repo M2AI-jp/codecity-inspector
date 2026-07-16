@@ -39,6 +39,12 @@ import {
   PROVIDER_KEY_NORMALIZE_STEP,
   normalizeProviderKey
 } from './provider-key-normalize.mjs';
+import {
+  CHARACTER_DIRECTION_STRIP_COLUMNS,
+  CHARACTER_DIRECTION_STRIP_DIRECTIONS,
+  CHARACTER_DIRECTION_STRIP_MODE,
+  characterDirectionStripPlanFor
+} from './character-direction-strips.mjs';
 
 const MAX_JSON_BYTES = 2 * 1024 * 1024;
 const MAX_REFERENCE_BYTES = 25 * 1024 * 1024;
@@ -53,6 +59,7 @@ const CHARACTER_ATLAS_COLUMNS = 10;
 const CHARACTER_ATLAS_ROWS = 4;
 const CHARACTER_ATLAS_UNIT_COUNT = CHARACTER_ATLAS_COLUMNS * CHARACTER_ATLAS_ROWS;
 const CHARACTER_ATLAS_LAYOUT = 'character-row-major-directions-by-row-frames-by-column';
+const CHARACTER_DIRECTION_STRIP_LAYOUT = 'character-direction-strip-frames-by-column';
 const LEGACY_TRANSFORM_STEPS = Object.freeze([
   'crop', 'chroma-key-remove', 'nearest-downscale', 'hard-alpha'
 ]);
@@ -251,6 +258,9 @@ function expectedUnitPlan(job) {
     ...(job.characterAtlasLayoutPlan ? {
       characterAtlasLayoutPlan: job.characterAtlasLayoutPlan
     } : {}),
+    ...(job.characterDirectionStripPlan ? {
+      characterDirectionStripPlan: job.characterDirectionStripPlan
+    } : {}),
     identityMasterPlan: job.identityMasterPlan
   };
 }
@@ -337,6 +347,8 @@ export async function verifyWaveAJobPack(jobPackPath, {
       !== canonicalJson(built.job.generationUnits.map(({ unitId }) => unitId))
     || canonicalJson(pack.characterAtlasLayoutPlan ?? null)
       !== canonicalJson(built.job.characterAtlasLayoutPlan ?? null)
+    || canonicalJson(pack.characterDirectionStripPlan ?? null)
+      !== canonicalJson(built.job.characterDirectionStripPlan ?? null)
     || pack.identityMasterPlanId !== (built.job.identityMasterPlan?.planId ?? null)) {
     throw new Error('Wave A job-pack generation-unit plan mismatch');
   }
@@ -1079,6 +1091,82 @@ function validateCharacterMonolithicCropLayout(job, records) {
   }
 }
 
+function canonicalCharacterDirectionStripUnits(job) {
+  if (job.category !== 'character' || job.generationMode !== CHARACTER_DIRECTION_STRIP_MODE
+    || job.generationUnits.length !== CHARACTER_ATLAS_UNIT_COUNT
+    || job.artifactContracts.length !== 1
+    || job.artifactContracts[0].role !== 'primary') {
+    throw new Error('Wave A character direction strips require one canonical 40-unit primary job');
+  }
+  requireCanonicalEqual(
+    job.characterDirectionStripPlan,
+    characterDirectionStripPlanFor(job.assetDefinition, job.generationMode),
+    'character direction-strip job plan'
+  );
+  const first = job.generationUnits[0];
+  const cellWidth = first.targetRect.width;
+  const cellHeight = first.targetRect.height;
+  const outputSize = job.artifactContracts[0].outputSize;
+  if (cellWidth !== 48 || cellHeight !== 96
+    || outputSize.width !== cellWidth * CHARACTER_DIRECTION_STRIP_COLUMNS
+    || outputSize.height !== cellHeight * CHARACTER_DIRECTION_STRIP_DIRECTIONS.length) {
+    throw new Error('Wave A character direction strips require the canonical 10x4 48x96 runtime layout');
+  }
+  for (const [index, unit] of job.generationUnits.entries()) {
+    const directionIndex = Math.floor(index / CHARACTER_DIRECTION_STRIP_COLUMNS);
+    const column = index % CHARACTER_DIRECTION_STRIP_COLUMNS;
+    const expectedRect = {
+      x: column * cellWidth,
+      y: directionIndex * cellHeight,
+      width: cellWidth,
+      height: cellHeight
+    };
+    if (unit.cellIndex !== index
+      || unit.direction !== CHARACTER_DIRECTION_STRIP_DIRECTIONS[directionIndex]
+      || canonicalJson(unit.targetRect) !== canonicalJson(expectedRect)
+      || !unit.sourceRequired || unit.expectation !== 'expected-nonempty') {
+      throw new Error(`Wave A character direction-strip unit ${unit.unitId} is not canonical`);
+    }
+  }
+  return job.generationUnits;
+}
+
+function validateCharacterDirectionStripCropLayout(job, records) {
+  const units = canonicalCharacterDirectionStripUnits(job);
+  if (records.length !== units.length) {
+    throw new Error('Wave A character direction strips require exactly 40 ordered crop claims');
+  }
+  for (const [directionIndex, direction] of CHARACTER_DIRECTION_STRIP_DIRECTIONS.entries()) {
+    const start = directionIndex * CHARACTER_DIRECTION_STRIP_COLUMNS;
+    const group = records.slice(start, start + CHARACTER_DIRECTION_STRIP_COLUMNS);
+    const firstCrop = group[0]?.input?.cropRect;
+    if (!validRect(firstCrop)) {
+      throw new Error(`Wave A ${direction} direction strip requires ten explicit cropRects`);
+    }
+    if (firstCrop.width * 2 !== firstCrop.height
+      || firstCrop.width * CHARACTER_DIRECTION_STRIP_COLUMNS !== firstCrop.height * 5) {
+      throw new Error(`Wave A ${direction} direction strip requires a 5:1 row of portrait 1:2 cells`);
+    }
+    for (const [column, record] of group.entries()) {
+      const crop = record?.input?.cropRect;
+      const unit = units[start + column];
+      const expected = {
+        x: firstCrop.x + column * firstCrop.width,
+        y: firstCrop.y,
+        width: firstCrop.width,
+        height: firstCrop.height
+      };
+      if (record?.unit?.unitId !== unit.unitId || record?.unit?.direction !== direction
+        || !validRect(crop) || canonicalJson(crop) !== canonicalJson(expected)) {
+        throw new Error(`Wave A ${direction} direction-strip crops must be ten equal contiguous cells in canonical order`);
+      }
+      if (crop.width * unit.targetRect.height !== crop.height * unit.targetRect.width) {
+        throw new Error(`Wave A ${unit.unitId} direction-strip crop aspect does not match targetRect`);
+      }
+    }
+  }
+}
+
 function validateSourceSharing(job, records, identity) {
   const { generationMode } = job;
   const realPaths = records.map(({ source }) => source.canonicalPath);
@@ -1086,6 +1174,24 @@ function validateSourceSharing(job, records, identity) {
   if (generationMode === 'per-unit') {
     if (new Set(realPaths).size !== records.length || new Set(hashes).size !== records.length) {
       throw new Error('Wave A per-unit mode requires a unique primary source path and bytes for every unit');
+    }
+  } else if (generationMode === CHARACTER_DIRECTION_STRIP_MODE) {
+    validateCharacterDirectionStripCropLayout(job, records);
+    const directionPaths = [];
+    const directionHashes = [];
+    for (let index = 0; index < CHARACTER_DIRECTION_STRIP_DIRECTIONS.length; index += 1) {
+      const start = index * CHARACTER_DIRECTION_STRIP_COLUMNS;
+      const group = records.slice(start, start + CHARACTER_DIRECTION_STRIP_COLUMNS);
+      const paths = new Set(group.map(({ source }) => source.canonicalPath));
+      const groupHashes = new Set(group.map(({ source }) => source.sha256));
+      if (paths.size !== 1 || groupHashes.size !== 1) {
+        throw new Error(`Wave A ${CHARACTER_DIRECTION_STRIP_DIRECTIONS[index]} direction strip requires one shared provider-original source`);
+      }
+      directionPaths.push([...paths][0]);
+      directionHashes.push([...groupHashes][0]);
+    }
+    if (new Set(directionPaths).size !== 4 || new Set(directionHashes).size !== 4) {
+      throw new Error('Wave A character direction strips require four distinct source paths and four distinct source hashes');
     }
   } else {
     if (new Set(realPaths).size !== 1 || new Set(hashes).size !== 1
@@ -1267,6 +1373,68 @@ function identityAtlasExecutionPrompt(job, bindingContext) {
   ].join('\n');
 }
 
+function identityDirectionStripExecutionPrompt(job, direction, bindingContext) {
+  const units = canonicalCharacterDirectionStripUnits(job)
+    .filter((unit) => unit.direction === direction)
+    .map((unit, column) => ({
+      column,
+      unitId: unit.unitId,
+      baseUnitPromptSha256: unit.unitPromptSha256,
+      direction: unit.direction,
+      frameId: unit.frameId,
+      semanticRole: unit.semanticRole,
+      targetRect: unit.targetRect,
+      visualContent: unit.visualContent
+    }));
+  if (units.length !== CHARACTER_DIRECTION_STRIP_COLUMNS) {
+    throw new Error(`Wave A ${direction} identity direction strip requires exactly ten semantic units`);
+  }
+  const plan = job.characterDirectionStripPlan;
+  return [
+    '# Issued identity-bound character direction-strip execution',
+    '',
+    `Canonical job ID: ${job.id}`,
+    `Canonical job provenance key: ${job.provenanceKey}`,
+    `Generation mode: ${job.generationMode}`,
+    `Direction-strip policy: ${plan.version}`,
+    `Direction-strip config SHA-256: ${plan.configSha256}`,
+    `Canonical generation-unit set SHA-256: ${job.generationUnitSetSha256}`,
+    `Identity binding: ${bindingContext.bindingId}`,
+    `Identity plan: ${job.identityMasterPlan.planId}`,
+    `Identity master prompt SHA-256: ${job.identityMasterPlan.promptSha256}`,
+    `Canonical transformed identity PNG: ${bindingContext.transformedPath}`,
+    `Canonical transformed identity SHA-256: ${bindingContext.transformedSha256}`,
+    `Canonical ${direction} identity cell SHA-256: ${bindingContext.directionCellSha256}`,
+    `Required direction: ${direction}`,
+    '',
+    'Generate exactly one provider-native raster containing one horizontal content strip of exactly ten',
+    'uniform contiguous cells and no other panels or figures. The content strip is exactly 5:1 overall;',
+    'each of its ten cells is portrait 1:2, with no gutters, gaps, borders, padding bands, or extra cells.',
+    'A normal landscape provider canvas may surround the 5:1 content strip, but a continuous full outer',
+    'margin of exact flat #FF00FF must remain visible around the entire content strip.',
+    `Every one of the ten frames, including every work frame, must face ${direction} and remain on that axis.`,
+    ...(direction === 'front' || direction === 'back' ? [
+      `${direction} means exactly ${direction === 'front' ? 'toward the viewer' : 'away from the viewer'}; profile and three-quarter turns are forbidden.`
+    ] : [
+      `Keep a strict ${direction}-facing side view in every cell; never swap, mirror, or turn toward another direction.`
+    ]),
+    'Keep identity, outfit, anatomy, palette, role tool, scale, and one common foot baseline consistent',
+    'with the exact transformed identity PNG. Keep each subject at or below 80% of cell width and 88%',
+    'of cell height. Use exact flat #FF00FF for all background. No labels, captions, checkerboards,',
+    'scenes, shadows outside the cell, alternate directions, neighboring examples, or generated grid lines.',
+    '',
+    `Layout: ${CHARACTER_DIRECTION_STRIP_LAYOUT}`,
+    `Canonical ${direction} ten-unit order:`,
+    canonicalJson(units).trimEnd(),
+    '',
+    'This is the sole provider instruction for these ten units; do not invoke their individual contracts.',
+    'The importer accepts exactly one provider-original source for this direction and ten equal contiguous',
+    'nonoverlapping crop rectangles in this order. The other three directions require three different',
+    'provider-original source paths and byte hashes. Asset Forge has no provider-signed invocation receipt.',
+    ''
+  ].join('\n');
+}
+
 function withoutContentDigest(record) {
   const copy = structuredClone(record);
   delete copy.contentDigest;
@@ -1339,6 +1507,7 @@ function identityBindingPaths(root, verifiedPack, job, identity) {
 function identityBindingPlan(verifiedPack, identity, paths) {
   const { job } = verifiedPack;
   const monolithicAtlas = job.generationMode === 'monolithic-atlas';
+  const directionStrips = job.generationMode === CHARACTER_DIRECTION_STRIP_MODE;
   const atlasExecutionPromptPath = monolithicAtlas
     ? `${paths.bindingRoot}/execution-prompts/monolithic-atlas.md`
     : null;
@@ -1352,12 +1521,38 @@ function identityBindingPlan(verifiedPack, identity, paths) {
   const atlasExecutionPromptSha256 = atlasExecutionPromptText
     ? sha256(atlasExecutionPromptText)
     : null;
+  const directionStripPrompts = directionStrips
+    ? CHARACTER_DIRECTION_STRIP_DIRECTIONS.map((direction, index) => {
+        const executionPromptPath =
+          `${paths.bindingRoot}/execution-prompts/direction-strip-${direction}.md`;
+        const executionPromptText = identityDirectionStripExecutionPrompt(job, direction, {
+          bindingId: paths.bindingId,
+          transformedPath: paths.transformedPath,
+          transformedSha256: identity.transformedSha256,
+          directionCellSha256: identity.cellHashes[index]
+        });
+        return {
+          direction,
+          executionPromptPath,
+          executionPromptSha256: sha256(executionPromptText),
+          executionPromptText
+        };
+      })
+    : [];
+  const directionStripPromptByDirection = new Map(
+    directionStripPrompts.map((record) => [record.direction, record])
+  );
   const units = job.generationUnits.map((unit) => {
+    const directionStripPrompt = directionStripPromptByDirection.get(unit.direction) ?? null;
     const executionPromptPath = monolithicAtlas
       ? atlasExecutionPromptPath
+      : directionStrips
+        ? directionStripPrompt.executionPromptPath
       : `${paths.bindingRoot}/execution-prompts/${unit.unitId}.md`;
     const executionPromptText = monolithicAtlas
       ? atlasExecutionPromptText
+      : directionStrips
+        ? directionStripPrompt.executionPromptText
       : identityExecutionPrompt(job, unit, {
           bindingId: paths.bindingId,
           transformedPath: paths.transformedPath,
@@ -1391,6 +1586,9 @@ function identityBindingPlan(verifiedPack, identity, paths) {
     ...(job.characterAtlasLayoutPlan ? {
       characterAtlasLayoutPlan: structuredClone(job.characterAtlasLayoutPlan)
     } : {}),
+    ...(job.characterDirectionStripPlan ? {
+      characterDirectionStripPlan: structuredClone(job.characterDirectionStripPlan)
+    } : {}),
     ...(monolithicAtlas ? {
       atlasExecution: {
         layout: CHARACTER_ATLAS_LAYOUT,
@@ -1400,6 +1598,20 @@ function identityBindingPlan(verifiedPack, identity, paths) {
         executionPromptPath: atlasExecutionPromptPath,
         executionPromptSha256: atlasExecutionPromptSha256
       }
+    } : {}),
+    ...(directionStrips ? {
+      directionStripExecutions: directionStripPrompts.map((record) => ({
+        direction: record.direction,
+        layout: CHARACTER_DIRECTION_STRIP_LAYOUT,
+        contentAspectRatio: '5:1',
+        columns: CHARACTER_DIRECTION_STRIP_COLUMNS,
+        rows: 1,
+        unitOrder: job.generationUnits
+          .filter(({ direction }) => direction === record.direction)
+          .map(({ unitId }) => unitId),
+        executionPromptPath: record.executionPromptPath,
+        executionPromptSha256: record.executionPromptSha256
+      }))
     } : {}),
     identityMaster: {
       planId: job.identityMasterPlan.planId,
@@ -1477,7 +1689,8 @@ export async function prepareWaveAIdentityBinding({
   const verifiedPack = await verifyWaveAJobPack(jobPackPath, { root, forgeRoot });
   const { job } = verifiedPack;
   if (assetId !== job.assetId || job.category !== 'character'
-    || !['per-unit', 'monolithic-atlas'].includes(job.generationMode) || !job.identityMasterPlan
+    || !['per-unit', 'monolithic-atlas', CHARACTER_DIRECTION_STRIP_MODE].includes(job.generationMode)
+    || !job.identityMasterPlan
     || job.generationUnits.length !== 40) {
     throw new Error('Wave A identity binding requires an exact 40-unit character job pack');
   }
@@ -1506,7 +1719,9 @@ export async function prepareWaveAIdentityBinding({
         bytes: Buffer.from(unit.executionPromptText),
         label: job.generationMode === 'monolithic-atlas'
           ? 'identity-bound monolithic atlas execution prompt'
-          : `${unit.unitId} identity-bound execution prompt`
+          : job.generationMode === CHARACTER_DIRECTION_STRIP_MODE
+            ? 'identity-bound direction-strip execution prompt'
+            : `${unit.unitId} identity-bound execution prompt`
       }
     ])).values()];
     const destinations = [
@@ -1588,7 +1803,7 @@ export async function verifyWaveAIdentityBinding(bindingPath, {
   const { job } = verified;
   const effectiveSourceBudget = sourceBudget ?? createUniqueSourceBudget(job);
   if (job.category !== 'character'
-    || !['per-unit', 'monolithic-atlas'].includes(job.generationMode)
+    || !['per-unit', 'monolithic-atlas', CHARACTER_DIRECTION_STRIP_MODE].includes(job.generationMode)
     || job.generationUnits.length !== 40 || !job.identityMasterPlan) {
     throw new Error('Wave A identity binding is not attached to a canonical 40-unit character job');
   }
@@ -2135,6 +2350,16 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
         `${stem}-monolithic-atlas.source-original.${sourceFormatExtension(sourceRecords[0].source.image.sourceFormat)}`
       )
     : null;
+  const directionStripSourcePaths = job.generationMode === CHARACTER_DIRECTION_STRIP_MODE
+    ? new Map(CHARACTER_DIRECTION_STRIP_DIRECTIONS.map((direction) => {
+        const record = sourceRecords.find(({ unit }) => unit.direction === direction);
+        return [direction, path.join(
+          outputRoot,
+          'sources',
+          `${stem}-direction-strip-${direction}.source-original.${sourceFormatExtension(record.source.image.sourceFormat)}`
+        )];
+      }))
+    : new Map();
   const monolithicNormalizedPath = replayedProviderKeyNormalization
     ? path.join(
         outputRoot,
@@ -2147,7 +2372,7 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
     : [];
   const expectedUnits = await Promise.all(unitRecords.map(async (record) => {
     const sourcePath = record.sourceRecord
-      ? (monolithicSourcePath ?? path.join(
+      ? (monolithicSourcePath ?? directionStripSourcePaths.get(record.unit.direction) ?? path.join(
           outputRoot,
           'sources',
           `${stem}-${record.unit.unitId}.source-original.${sourceFormatExtension(record.sourceRecord.source.image.sourceFormat)}`
@@ -3027,6 +3252,12 @@ async function importWaveACandidateLocked({
       input: unitSources[index]
     })));
   }
+  if (job.category === 'character' && job.generationMode === CHARACTER_DIRECTION_STRIP_MODE) {
+    validateCharacterDirectionStripCropLayout(job, coverage.required.map((unit, index) => ({
+      unit,
+      input: unitSources[index]
+    })));
+  }
   const preflight = composedTerrain
     ? await preflightTerrainInputs(job, terrainComposition)
     : await preflightUnitSources(job, unitSources);
@@ -3107,6 +3338,18 @@ async function importWaveACandidateLocked({
         )}`
       )
     : null;
+  const directionStripSourcePaths = job.generationMode === CHARACTER_DIRECTION_STRIP_MODE
+    ? new Map(CHARACTER_DIRECTION_STRIP_DIRECTIONS.map((direction) => {
+        const record = assembled.unitRecords.find(
+          ({ unit, sourceRecord }) => unit.direction === direction && sourceRecord
+        );
+        return [direction, path.join(
+          outputRoot,
+          'sources',
+          `${stem}-direction-strip-${direction}.source-original.${sourceFormatExtension(record.sourceRecord.source.image.sourceFormat)}`
+        )];
+      }))
+    : new Map();
   const monolithicNormalizedPath = assembled.providerKeyNormalization
     ? path.join(
         outputRoot,
@@ -3126,7 +3369,7 @@ async function importWaveACandidateLocked({
       return { ...record, sourcePath: null, transformedPath };
     }
     if (!record.sourceRecord) return { ...record, sourcePath: null, transformedPath: null };
-    const sourcePath = monolithicSourcePath ?? path.join(
+    const sourcePath = monolithicSourcePath ?? directionStripSourcePaths.get(record.unit.direction) ?? path.join(
       outputRoot,
       'sources',
       `${stem}-${record.unit.unitId}.source-original.${sourceFormatExtension(record.sourceRecord.source.image.sourceFormat)}`

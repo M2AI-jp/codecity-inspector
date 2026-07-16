@@ -89,10 +89,11 @@
         }
       ]
     },
-    "generationMode": { "enum": ["per-unit", "monolithic-atlas", "terrain-composed-atlas"] },
+    "generationMode": { "enum": ["per-unit", "monolithic-atlas", "character-direction-strips", "terrain-composed-atlas"] },
     "terrainCompositionPlan": { "$ref": "#/definitions/terrainCompositionPlan" },
     "providerKeyNormalizationPlan": { "$ref": "#/definitions/providerKeyNormalizationPlan" },
     "characterAtlasLayoutPlan": { "$ref": "#/definitions/characterAtlasLayoutPlan" },
+    "characterDirectionStripPlan": { "$ref": "#/definitions/characterDirectionStripPlan" },
     "generationUnits": {
       "type": "array",
       "minItems": 1,
@@ -334,6 +335,25 @@
           "generationMode": { "const": "monolithic-atlas" }
         }
       }
+    },
+    {
+      "if": {
+        "properties": { "generationMode": { "const": "character-direction-strips" } },
+        "required": ["generationMode"]
+      },
+      "then": {
+        "properties": {
+          "category": { "const": "character" },
+          "characterDirectionStripPlan": { "$ref": "#/definitions/characterDirectionStripPlan" }
+        },
+        "required": ["characterDirectionStripPlan"]
+      },
+      "else": {
+        "not": {
+          "properties": { "characterDirectionStripPlan": {} },
+          "required": ["characterDirectionStripPlan"]
+        }
+      }
     }
   ],
   "definitions": {
@@ -375,6 +395,47 @@
           "const": "axis-locked-all-frames-including-walk-no-profile-or-three-quarter"
         },
         "leftRightDirectionPolicy": { "const": "fixed-row-direction" },
+        "providerInvocationEvidence": { "const": "unverified-no-provider-receipt" }
+      }
+    },
+    "characterDirectionStripPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion", "originKind", "version", "algorithm", "configSha256",
+        "stripCount", "contentAspectRatio", "columnsPerStrip", "rowsPerStrip",
+        "cellAspectRatio", "uniformContiguousCells", "gapsAllowed",
+        "maximumSubjectWidthPermille", "maximumSubjectHeightPermille",
+        "fullOuterKeyMarginRequired", "directionOrder", "directionPolicy",
+        "providerInvocationEvidence"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "originKind": { "const": "provider-generation-guidance" },
+        "version": { "const": "character-direction-strip-layout-v1" },
+        "algorithm": { "const": "character-direction-strip/exact-10x1-portrait-row-v1" },
+        "configSha256": { "const": "12d5f69cd111e524e09c85f9cba748c18474731dbffb628923c83d39b8afa7d6" },
+        "stripCount": { "const": 4 },
+        "contentAspectRatio": { "const": "5:1" },
+        "columnsPerStrip": { "const": 10 },
+        "rowsPerStrip": { "const": 1 },
+        "cellAspectRatio": { "const": "1:2" },
+        "uniformContiguousCells": { "const": true },
+        "gapsAllowed": { "const": false },
+        "maximumSubjectWidthPermille": { "const": 800 },
+        "maximumSubjectHeightPermille": { "const": 880 },
+        "fullOuterKeyMarginRequired": { "const": true },
+        "directionOrder": {
+          "type": "array", "minItems": 4, "maxItems": 4,
+          "items": [
+            { "const": "front" }, { "const": "back" },
+            { "const": "left" }, { "const": "right" }
+          ],
+          "additionalItems": false
+        },
+        "directionPolicy": {
+          "const": "axis-locked-all-frames-including-work-no-profile-or-three-quarter"
+        },
         "providerInvocationEvidence": { "const": "unverified-no-provider-receipt" }
       }
     },

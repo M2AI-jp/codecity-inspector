@@ -19,6 +19,10 @@ import {
   CHARACTER_ATLAS_LAYOUT_VERSION,
   characterAtlasLayoutPlanFor
 } from './character-atlas-layout.mjs';
+import {
+  CHARACTER_DIRECTION_STRIP_MODE,
+  characterDirectionStripPlanFor
+} from './character-direction-strips.mjs';
 
 export const FABLE5_REQUIRED_SET_ID = 'fable5-v2';
 export const FABLE5_WAVE_A_ID = 'A';
@@ -140,7 +144,8 @@ function exactUnitPrompt(asset, unit, {
   generationMode,
   identityMasterPlan,
   terrainCompositionPlan,
-  providerKeyNormalizationPlan
+  providerKeyNormalizationPlan,
+  characterDirectionStripPlan
 }) {
   const generationInstruction = unit.sourceRequired
     ? (generationMode === 'terrain-composed-atlas'
@@ -159,6 +164,14 @@ function exactUnitPrompt(asset, unit, {
               `This job alone opts into ${providerKeyNormalizationPlan.version} (${providerKeyNormalizationPlan.configSha256}).`,
               'The provider-original PNG remains immutable; only a separate deterministic full-size canonical PNG may replace the narrowly shifted outer-connected key with exact #FF00FF.'
             ] : [])
+          ]
+        : generationMode === CHARACTER_DIRECTION_STRIP_MODE && asset.category === 'character'
+        ? [
+            `This is one formal cell contract inside an identity-bound ${unit.direction} direction strip containing exactly ten contiguous portrait cells. Do not invoke this unit prompt by itself; the identity binding supplies the sole direction-level generation instruction and the importer produces the exact ${unit.targetRect.width}x${unit.targetRect.height} cell.`,
+            `Direction-strip policy: ${characterDirectionStripPlan.version}; config SHA-256: ${characterDirectionStripPlan.configSha256}.`,
+            `Every frame in this strip, including work frames, must remain axis-locked ${unit.direction}; no profile or three-quarter substitution is allowed for front/back.`,
+            'Use exact flat #FF00FF as removable background inside this cell. No anti-aliasing, caption,',
+            'comparison panel, alternate direction, scene, or baked checkerboard.'
           ]
         : [
             `Generate exactly one semantic unit, centered in a crop-safe ${unit.targetRect.width}:${unit.targetRect.height} aspect region of the provider-native raster; the importer produces the exact ${unit.targetRect.width}x${unit.targetRect.height} cell.`,
@@ -210,7 +223,8 @@ function bindGenerationUnits(
   generationMode,
   identityMasterPlan,
   terrainCompositionPlan,
-  providerKeyNormalizationPlan
+  providerKeyNormalizationPlan,
+  characterDirectionStripPlan
 ) {
   const units = enumerateWaveAGenerationUnits(asset).map((unit) => {
     const unitPromptText = exactUnitPrompt(asset, unit, {
@@ -220,7 +234,8 @@ function bindGenerationUnits(
       generationMode,
       identityMasterPlan,
       terrainCompositionPlan,
-      providerKeyNormalizationPlan
+      providerKeyNormalizationPlan,
+      characterDirectionStripPlan
     });
     return {
       ...unit,
@@ -244,7 +259,8 @@ function bindGenerationUnits(
 export function assetSpecificPrompt(asset, {
   generationMode = 'per-unit',
   terrainCompositionPlan = null,
-  providerKeyNormalizationPlan = null
+  providerKeyNormalizationPlan = null,
+  characterDirectionStripPlan = null
 } = {}) {
   if (generationMode === 'terrain-composed-atlas') {
     if (!terrainCompositionPlan) {
@@ -268,6 +284,35 @@ export function assetSpecificPrompt(asset, {
       `Placement space: pixels=${asset.placementSpace.pixels}; tiles=${asset.placementSpace.tiles}`,
       '',
       'The earlier terrain-autotile brief and exact AssetDefinition below describe the final visual and gameplay contract. For this job mode they do not authorize provider generation of the final sheet. The importer alone performs nearest downscale, shared-seam construction, canonical masking, transparent-cell zeroing, hard alpha, atlas assembly, and byte replay.',
+      '',
+      '```json',
+      canonicalJson(asset).trimEnd(),
+      '```',
+      ''
+    ].join('\n');
+  }
+  if (generationMode === CHARACTER_DIRECTION_STRIP_MODE) {
+    if (!characterDirectionStripPlan) {
+      throw new Error('Character direction-strip prompt requires its hash-bound layout plan');
+    }
+    return [
+      '# Exact Fable5 Wave A character direction-strip instruction',
+      '',
+      `Required set: ${FABLE5_REQUIRED_SET_ID}`,
+      `Wave: ${FABLE5_WAVE_A_ID}`,
+      `Asset ID: ${asset.id}`,
+      `Display name: ${asset.displayName}`,
+      `Game meaning: ${asset.gameMeaning}`,
+      `Final runtime artifact (do not generate directly): ${asset.outputSize.width}x${asset.outputSize.height} PNG`,
+      'Provider deliverable per invocation: one identity-bound direction strip, not the final 10x4 sheet and not an individual frame.',
+      `Direction-strip policy: ${characterDirectionStripPlan.version}; config SHA-256: ${characterDirectionStripPlan.configSha256}.`,
+      'Each invocation contains exactly ten contiguous portrait 1:2 cells in one horizontal 5:1 content strip, surrounded by a continuous outer margin of exact flat #FF00FF.',
+      'All ten frames, including work frames, stay on the named direction axis. Front/back forbid profile and three-quarter turns; left/right never swap.',
+      'The identity binding issued after the identity master supplies the exact direction, ten unit IDs, semantic content, and identity hashes for each invocation.',
+      `Scale class: ${asset.scaleClass}`,
+      `Placement space: pixels=${asset.placementSpace.pixels}; tiles=${asset.placementSpace.tiles}`,
+      '',
+      'The exact AssetDefinition below remains authoritative for palette, silhouette, contacts, animation continuity, exclusions, and gameplay meaning. The importer alone crops the four provider-original strips into 40 cells, removes the key, downsizes with nearest, hardens alpha, assembles the runtime atlas, and byte-replays it.',
       '',
       '```json',
       canonicalJson(asset).trimEnd(),
@@ -375,6 +420,9 @@ export async function buildWaveAJob({
   if (generationMode === 'terrain-composed-atlas' && asset.category !== 'terrain') {
     throw new Error('terrain-composed-atlas mode is available only for Wave A terrain assets');
   }
+  if (generationMode === CHARACTER_DIRECTION_STRIP_MODE && asset.category !== 'character') {
+    throw new Error('character-direction-strips mode is available only for Wave A character assets');
+  }
   const terrainCompositionPlan = generationMode === 'terrain-composed-atlas'
     ? terrainCompositionPlanFor(asset)
     : null;
@@ -384,10 +432,14 @@ export async function buildWaveAJob({
   const characterAtlasLayoutPlan = characterAtlasLayout
     ? characterAtlasLayoutPlanFor(asset, generationMode)
     : null;
+  const characterDirectionStripPlan = generationMode === CHARACTER_DIRECTION_STRIP_MODE
+    ? characterDirectionStripPlanFor(asset, generationMode)
+    : null;
   const promptText = await renderPrompt(asset, forgeRoot, {
     generationMode,
     terrainCompositionPlan,
-    providerKeyNormalizationPlan
+    providerKeyNormalizationPlan,
+    characterDirectionStripPlan
   });
   const promptSha256 = sha256(promptText);
   const binding = definitionBindingSnapshot(asset, promptSha256);
@@ -427,7 +479,8 @@ export async function buildWaveAJob({
     generationMode,
     identityMasterPlan,
     terrainCompositionPlan,
-    providerKeyNormalizationPlan
+    providerKeyNormalizationPlan,
+    characterDirectionStripPlan
   );
   const stableProvenance = {
     requiredSetId: FABLE5_REQUIRED_SET_ID,
@@ -447,6 +500,7 @@ export async function buildWaveAJob({
     ...(terrainCompositionPlan ? { terrainCompositionPlan } : {}),
     ...(providerKeyNormalizationPlan ? { providerKeyNormalizationPlan } : {}),
     ...(characterAtlasLayoutPlan ? { characterAtlasLayoutPlan } : {}),
+    ...(characterDirectionStripPlan ? { characterDirectionStripPlan } : {}),
     generationUnitSetSha256: generation.unitSetSha256,
     generationExpectations: generation.expectations,
     identityMasterPlanSha256: identityMasterPlan
@@ -551,6 +605,7 @@ export async function buildWaveAJob({
     ...(terrainCompositionPlan ? { terrainCompositionPlan } : {}),
     ...(providerKeyNormalizationPlan ? { providerKeyNormalizationPlan } : {}),
     ...(characterAtlasLayoutPlan ? { characterAtlasLayoutPlan } : {}),
+    ...(characterDirectionStripPlan ? { characterDirectionStripPlan } : {}),
     generationUnits: generation.units,
     generationUnitSetSha256: generation.unitSetSha256,
     generationExpectations: generation.expectations,

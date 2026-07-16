@@ -111,6 +111,7 @@ export async function main(argv = process.argv.slice(2)) {
       commands: [
         'make-job-v2 --asset <wave-a-asset-id> [--seed <seed>]',
         'make-job-v2 --asset <character-asset-id> --mode monolithic-atlas [--seed <seed>]',
+        'make-job-v2 --asset <character-asset-id> --mode character-direction-strips [--seed <seed>]',
         'make-job-v2 --asset <character-asset-id> --mode monolithic-atlas --character-atlas-layout character-atlas-layout-v1 [--seed <seed>]',
         'make-job-v2 --asset <character-asset-id> --mode monolithic-atlas --provider-key-normalization provider-key-normalize-v1 [--seed <seed>]',
         'make-job-v2 --asset <terrain-asset-id> --mode terrain-composed-atlas [--seed <seed>]',

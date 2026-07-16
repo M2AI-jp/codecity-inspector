@@ -35,6 +35,12 @@ import {
   CHARACTER_ATLAS_LAYOUT_CONFIG_SHA256,
   CHARACTER_ATLAS_LAYOUT_VERSION
 } from '../src/v2/character-atlas-layout.mjs';
+import {
+  CHARACTER_DIRECTION_STRIP_CONFIG_SHA256,
+  CHARACTER_DIRECTION_STRIP_DIRECTIONS,
+  CHARACTER_DIRECTION_STRIP_MODE,
+  CHARACTER_DIRECTION_STRIP_VERSION
+} from '../src/v2/character-direction-strips.mjs';
 import { verifyPendingGenerationForWaveApproval } from '../src/v3/provenance.mjs';
 
 const NOW = '2026-07-16T02:00:00.000Z';
@@ -367,6 +373,69 @@ async function monolithicCharacterSourcesForJob(root, job, {
   }));
 }
 
+async function directionStripSourcesForJob(root, job, {
+  scale = 2,
+  prefix = 'character-direction-strip',
+  background = '#fa05faff'
+} = {}) {
+  assert.equal(job.generationMode, CHARACTER_DIRECTION_STRIP_MODE);
+  const required = job.generationUnits.filter(({ sourceRequired }) => sourceRequired);
+  assert.equal(required.length, 40);
+  const padding = 8;
+  const cellWidth = 48 * scale;
+  const cellHeight = 96 * scale;
+  const records = [];
+  for (const [directionIndex, direction] of CHARACTER_DIRECTION_STRIP_DIRECTIONS.entries()) {
+    const units = required.filter((unit) => unit.direction === direction);
+    assert.equal(units.length, 10);
+    const composites = [];
+    for (const [column, unit] of units.entries()) {
+      const index = directionIndex * 10 + column;
+      const bodyWidth = (30 + (index % 8)) * scale;
+      const bodyHeight = (66 + (index % 13)) * scale;
+      composites.push({
+        input: await sharp({
+          create: {
+            width: bodyWidth,
+            height: bodyHeight,
+            channels: 4,
+            background: {
+              r: 35 + (index * 47) % 200,
+              g: 70 + (index * 53) % 170,
+              b: 15 + (index * 29) % 80,
+              alpha: 1
+            }
+          }
+        }).png().toBuffer(),
+        left: padding + column * cellWidth + Math.floor((cellWidth - bodyWidth) / 2),
+        top: padding + cellHeight - bodyHeight
+      });
+    }
+    const bytes = await sharp({
+      create: {
+        width: cellWidth * 10 + padding * 2,
+        height: cellHeight + padding * 2,
+        channels: 4,
+        background
+      }
+    }).composite(composites).png({ adaptiveFiltering: false, palette: false }).toBuffer();
+    const sourceOriginal = await writeInput(root, `${prefix}-${direction}.png`, bytes);
+    for (const [column, unit] of units.entries()) {
+      records.push({
+        unitId: unit.unitId,
+        sourceOriginal,
+        cropRect: {
+          x: padding + column * cellWidth,
+          y: padding,
+          width: cellWidth,
+          height: cellHeight
+        }
+      });
+    }
+  }
+  return records;
+}
+
 async function persistResultMutation(root, originalId, nextResult) {
   const manifestPath = path.join(root, 'data', 'local', 'generations.json');
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
@@ -473,6 +542,9 @@ test('Wave A job packs bind 109 definitions to 771 generation units and honest p
     'make-job-v2 --asset <character-asset-id> --mode monolithic-atlas [--seed <seed>]'
   ));
   assert.ok(help.commands.includes(
+    'make-job-v2 --asset <character-asset-id> --mode character-direction-strips [--seed <seed>]'
+  ));
+  assert.ok(help.commands.includes(
     'make-job-v2 --asset <terrain-asset-id> --mode terrain-composed-atlas [--seed <seed>]'
   ));
   await assert.rejects(
@@ -486,6 +558,19 @@ test('Wave A job packs bind 109 definitions to 771 generation units and honest p
       assetId: 'terrain.cliff', generationMode: 'terrain-composed-atlas'
     }, { forgeRoot: root }),
     /excludes terrain\.cliff until directional face inputs are defined/
+  );
+  await assert.rejects(
+    () => buildWaveAJob({
+      assetId: 'terrain.grass', generationMode: CHARACTER_DIRECTION_STRIP_MODE
+    }, { forgeRoot: root }),
+    /available only for Wave A character/
+  );
+  await assert.rejects(
+    () => buildWaveAJob({
+      assetId: 'character.player', generationMode: CHARACTER_DIRECTION_STRIP_MODE,
+      providerKeyNormalization: 'provider-key-normalize-v1'
+    }, { forgeRoot: root }),
+    /only for character monolithic-atlas/
   );
   await assert.rejects(
     () => main(['make-job-v2', '--asset', 'character.player', '--mode', 'unsupported']),
@@ -1024,6 +1109,152 @@ test('character monolithic atlas issues one identity-bound 10x4 prompt and repla
   );
   await persistResultMutation(root, original.id, original);
   assert.equal((await processCandidate({ generationId: original.id }, {
+    root, forgeRoot: root
+  })).status, 'audited-pending');
+});
+
+test('character direction strips issue four identity-bound prompts and fail closed to four 10-cell sources', async (t) => {
+  const root = await fixtureRoot(t);
+  const pack = await makeWaveAJob({
+    assetId: 'character.player',
+    generationMode: CHARACTER_DIRECTION_STRIP_MODE,
+    seed: 'four-direction-strips'
+  }, { root, forgeRoot: root });
+  assert.equal(pack.job.category, 'character');
+  assert.equal(pack.job.generationUnits.length, 40);
+  assert.equal(pack.job.characterDirectionStripPlan.version, CHARACTER_DIRECTION_STRIP_VERSION);
+  assert.equal(
+    pack.job.characterDirectionStripPlan.configSha256,
+    CHARACTER_DIRECTION_STRIP_CONFIG_SHA256
+  );
+  assert.equal(Object.hasOwn(pack.job, 'providerKeyNormalizationPlan'), false);
+  assert.deepEqual(pack.pack.characterDirectionStripPlan, pack.job.characterDirectionStripPlan);
+  const unitPlan = JSON.parse(await readFile(path.join(root, pack.pack.members.unitPlan.path), 'utf8'));
+  assert.deepEqual(unitPlan.characterDirectionStripPlan, pack.job.characterDirectionStripPlan);
+  assert.match(pack.job.promptText, /one identity-bound direction strip/);
+  assert.match(pack.job.promptText, /exactly ten contiguous portrait 1:2 cells/);
+  assert.match(pack.job.generationUnits[39].unitPromptText, /including work frames/);
+
+  const identity = await identitySource(root, 'direction-strip-identity.png');
+  const bound = await prepareWaveAIdentity({
+    assetId: 'character.player',
+    jobPackPath: pack.result.jobPackPath,
+    identityMasterSource: {
+      sourceOriginal: identity,
+      cropRect: { x: 0, y: 0, width: 384, height: 192 }
+    }
+  }, { root, forgeRoot: root });
+  assert.deepEqual(bound.binding.characterDirectionStripPlan, pack.job.characterDirectionStripPlan);
+  assert.deepEqual(
+    bound.binding.directionStripExecutions.map(({ direction }) => direction),
+    CHARACTER_DIRECTION_STRIP_DIRECTIONS
+  );
+  assert.equal(bound.binding.directionStripExecutions.length, 4);
+  assert.equal(new Set(bound.binding.units.map(({ executionPromptPath }) => executionPromptPath)).size, 4);
+  assert.equal(new Set(bound.binding.units.map(({ executionPromptSha256 }) => executionPromptSha256)).size, 4);
+  for (const [index, execution] of bound.binding.directionStripExecutions.entries()) {
+    const direction = CHARACTER_DIRECTION_STRIP_DIRECTIONS[index];
+    assert.deepEqual(execution.unitOrder, pack.job.generationUnits
+      .filter((unit) => unit.direction === direction)
+      .map(({ unitId }) => unitId));
+    assert.equal(execution.unitOrder.length, 10);
+    const promptBytes = await readFile(path.join(root, execution.executionPromptPath));
+    assert.equal(sha256(promptBytes), execution.executionPromptSha256);
+    const prompt = promptBytes.toString('utf8');
+    for (const required of [
+      pack.job.id,
+      pack.job.generationUnitSetSha256,
+      pack.job.identityMasterPlan.promptSha256,
+      bound.binding.identityMaster.consistencyInputSha256,
+      bound.binding.identityMaster.directionCellSha256s[index],
+      'exactly 5:1 overall',
+      `Required direction: ${direction}`,
+      'including every work frame'
+    ]) assert.ok(prompt.includes(required));
+    for (const unit of pack.job.generationUnits.filter((record) => record.direction === direction)) {
+      assert.ok(prompt.includes(unit.unitId));
+      assert.ok(prompt.includes(unit.unitPromptSha256));
+    }
+  }
+  const tamperedPrompt = bound.binding.directionStripExecutions[1];
+  const promptAbsolute = path.join(root, tamperedPrompt.executionPromptPath);
+  const promptBytes = await readFile(promptAbsolute);
+  await writeFile(promptAbsolute, 'tampered direction strip prompt');
+  await assert.rejects(() => verifyWaveAIdentityBinding(bound.bindingPath, {
+    root, forgeRoot: root
+  }), /prompt mismatch/);
+  await writeFile(promptAbsolute, promptBytes);
+
+  const unitSources = await directionStripSourcesForJob(root, pack.job);
+  const manifestBeforeFailures = await readFile(path.join(root, 'data/local/generations.json'));
+  await assert.rejects(() => importWaveACandidate({
+    assetId: 'character.player',
+    jobPackPath: pack.result.jobPackPath,
+    unitSources,
+    identityBindingPath: null
+  }, { root, forgeRoot: root }), /issue an identity binding first/);
+  const gap = structuredClone(unitSources);
+  gap[1].cropRect.x += 1;
+  await assert.rejects(() => importWaveACandidate({
+    assetId: 'character.player', jobPackPath: pack.result.jobPackPath,
+    unitSources: gap, identityBindingPath: bound.bindingPath
+  }, { root, forgeRoot: root }), /ten equal contiguous cells/);
+  const mixedDirection = structuredClone(unitSources);
+  mixedDirection[9].sourceOriginal = mixedDirection[10].sourceOriginal;
+  await assert.rejects(() => importWaveACandidate({
+    assetId: 'character.player', jobPackPath: pack.result.jobPackPath,
+    unitSources: mixedDirection, identityBindingPath: bound.bindingPath
+  }, { root, forgeRoot: root }), /front direction strip requires one shared/);
+  const aliasedDirection = structuredClone(unitSources);
+  for (let index = 10; index < 20; index += 1) {
+    aliasedDirection[index].sourceOriginal = unitSources[0].sourceOriginal;
+  }
+  await assert.rejects(() => importWaveACandidate({
+    assetId: 'character.player', jobPackPath: pack.result.jobPackPath,
+    unitSources: aliasedDirection, identityBindingPath: bound.bindingPath
+  }, { root, forgeRoot: root }), /four distinct source paths and four distinct source hashes/);
+  const duplicateBytesPath = await writeInput(
+    root,
+    'duplicate-front-strip.png',
+    await readFile(unitSources[0].sourceOriginal)
+  );
+  const duplicateHash = structuredClone(unitSources);
+  for (let index = 10; index < 20; index += 1) {
+    duplicateHash[index].sourceOriginal = duplicateBytesPath;
+  }
+  await assert.rejects(() => importWaveACandidate({
+    assetId: 'character.player', jobPackPath: pack.result.jobPackPath,
+    unitSources: duplicateHash, identityBindingPath: bound.bindingPath
+  }, { root, forgeRoot: root }), /four distinct source paths and four distinct source hashes/);
+  assert.ok((await readFile(path.join(root, 'data/local/generations.json')))
+    .equals(manifestBeforeFailures));
+
+  const imported = await importWaveACandidate({
+    assetId: 'character.player',
+    jobPackPath: pack.result.jobPackPath,
+    unitSources,
+    identityBindingPath: bound.bindingPath
+  }, { root, forgeRoot: root });
+  const assembly = imported.result.unitAssemblyV2;
+  assert.equal(assembly.generationMode, CHARACTER_DIRECTION_STRIP_MODE);
+  assert.equal(Object.hasOwn(assembly, 'providerKeyNormalization'), false);
+  assert.equal(new Set(assembly.units.map(({ sourceSnapshot }) => sourceSnapshot.path)).size, 4);
+  assert.equal(new Set(assembly.units.map(({ sourceOriginal }) => sourceOriginal.sha256)).size, 4);
+  assert.equal(new Set(assembly.units.map(({ outputCellSha256 }) => outputCellSha256)).size, 40);
+  for (const direction of CHARACTER_DIRECTION_STRIP_DIRECTIONS) {
+    const units = assembly.units.filter((unit) => unit.direction === direction);
+    assert.equal(new Set(units.map(({ sourceSnapshot }) => sourceSnapshot.path)).size, 1);
+    assert.match(units[0].sourceSnapshot.path, new RegExp(`direction-strip-${direction}`));
+  }
+  assert.deepEqual(assembly.units[0].transformSteps, [
+    'auto-border-key-detect', 'crop', 'soft-matte-despill', 'zero-hidden-rgb',
+    'nearest-downscale', 'hard-alpha-zero-hidden-rgb'
+  ]);
+  assert.equal(assembly.units[0].transformEvidence.detectedKeyColor, '#FA05FA');
+  await assert.doesNotReject(() => verifyPersistedWaveAUnitAssembly(imported.result, {
+    root, forgeRoot: root
+  }));
+  assert.equal((await processCandidate({ generationId: imported.result.id }, {
     root, forgeRoot: root
   })).status, 'audited-pending');
 });
