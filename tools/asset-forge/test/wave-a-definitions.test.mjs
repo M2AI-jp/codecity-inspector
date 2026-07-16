@@ -73,6 +73,18 @@ test('Wave A expands to 109 schema-valid and cross-field-valid v2 definitions', 
   assert.equal(definitions.filter((definition) => definition.visualContractVersion === 2).length, 109);
 });
 
+test('all 109 human-facing asset prompts serialize placement space without object-coercion garbage', () => {
+  for (const definition of definitions) {
+    const prompt = assetSpecificPrompt(definition);
+    assert.match(
+      prompt,
+      /Placement space: pixels=pixel-edges-top-left; tiles=tile-edges-north-west/,
+      definition.id
+    );
+    assert.doesNotMatch(prompt, /\[object (?:Object|Array)\]|\bundefined\b|\bNaN\b/, definition.id);
+  }
+});
+
 test('Wave A keeps 128 PNGs, 771 declared slots, 63 transparent reservations, and 708 semantic cells canonical', () => {
   const counts = Object.fromEntries([...new Set(definitions.map((definition) => definition.category))]
     .map((category) => [category, definitions.filter((definition) => definition.category === category).length]));

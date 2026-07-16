@@ -182,7 +182,7 @@ export function assetSpecificPrompt(asset) {
     `Game meaning: ${asset.gameMeaning}`,
     `Native output: ${asset.outputSize.width}x${asset.outputSize.height} PNG`,
     `Scale class: ${asset.scaleClass}`,
-    `Placement space: ${asset.placementSpace}`,
+    `Placement space: pixels=${asset.placementSpace.pixels}; tiles=${asset.placementSpace.tiles}`,
     `Pivot: (${asset.pivot.x}, ${asset.pivot.y}); baseline edge: ${asset.baseline.edgeY}`,
     'Generation background key: exact flat #FF00FF; import tolerance 0; hard-alpha threshold 127.',
     '',
