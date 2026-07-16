@@ -1,124 +1,160 @@
 <!doctype html>
 <html lang="ja">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>CodeCity Inspector — コードの街を歩いて調べる</title>
-    <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="/styles.css">
-  </head>
-  <body>
-    <div class="game-shell">
-      <header class="game-hud">
-        <div class="hud-identity">
-          <h1 id="repo-name">読み込み中…</h1>
-          <span id="level-badge" class="level-badge">Lv.-</span>
-          <span id="place-label" class="place-label">旧市街</span>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#10172a">
+  <title>CodeCity Inspector — Fable5</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div id="app" class="app-shell">
+    <header class="topbar">
+      <div class="identity">
+        <span class="eyebrow">コードの街を調査</span>
+        <strong id="repository-name">街を読み込み中</strong>
+      </div>
+      <div class="topbar-actions">
+        <span id="habitability-badge" class="habitability-badge" aria-live="polite">検査中</span>
+        <div class="zoom-control" aria-label="表示倍率">
+          <button id="zoom-out" type="button" class="icon-button" aria-label="縮小">−</button>
+          <output id="zoom-value" aria-live="polite">2×</output>
+          <button id="zoom-in" type="button" class="icon-button" aria-label="拡大">＋</button>
         </div>
-        <div class="hud-actions">
-          <button id="back-btn" type="button" class="hud-button" hidden>街へ戻る</button>
-          <button id="overview-btn" type="button" class="hud-button" aria-pressed="false">街を見渡す</button>
-          <button id="journal-btn" type="button" class="hud-button" aria-controls="journal-drawer" aria-expanded="false">根拠を見る</button>
-        </div>
-      </header>
+        <button id="journal-button" type="button" class="primary-button" disabled>調査手帳</button>
+      </div>
+    </header>
 
-      <main class="world-stage" aria-labelledby="world-heading">
-        <h2 id="world-heading" class="visually-hidden">CodeCityの世界</h2>
-        <canvas id="world-canvas" tabindex="0"
-          aria-label="CodeCityの街。矢印キーまたはWASD、道のクリックで歩き、EnterまたはSpaceで施設を調べます。"></canvas>
-        <div id="world-loading" class="world-message" role="status">
-          <span class="loading-mark" aria-hidden="true">⌂</span>
-          <strong>コードの街を開いています</strong>
-          <span>道と施設を読み込んでいます…</span>
-        </div>
-        <div id="asset-error" class="world-message world-fallback" role="alert" hidden>
-          <strong>街を開けませんでした。</strong>
-          <span id="asset-error-text">承認済み素材を確認して再読み込みしてください。</span>
-        </div>
+    <main class="game-stage" aria-label="生成されたコードの街">
+      <canvas id="world-canvas" tabindex="0" aria-label="街のゲーム画面。矢印キー、WASD、クリックまたはタッチで移動できます。">
+        お使いのブラウザーはゲーム画面に対応していません。
+      </canvas>
 
-        <section id="journey-card" class="journey-card" aria-labelledby="journey-title">
-          <p id="journey-kicker" class="journey-kicker">最初の調査</p>
-          <h2 id="journey-title">橋と階段の先、道場へ</h2>
-          <p id="journey-copy">金色の足あとを追って、テストの状態を調べましょう。</p>
-          <ol class="journey-progress" aria-label="街の調査の進み具合">
-            <li id="journey-step-walk"><span>1</span>歩く</li>
-            <li id="journey-step-route"><span>2</span>橋・階段</li>
-            <li id="journey-step-evidence"><span>3</span>根拠</li>
-            <li id="journey-step-return"><span>4</span>次の施設</li>
-          </ol>
-        </section>
+      <section id="startup-panel" class="startup-panel" aria-live="polite">
+        <div class="spinner" aria-hidden="true"></div>
+        <p id="startup-message">検査結果から街を組み立てています…</p>
+      </section>
 
-        <div id="district-banner" class="district-banner" hidden aria-live="polite"></div>
-        <div id="interaction-prompt" class="interaction-prompt" hidden>
-          <span class="prompt-key">Enter</span>
-          <span id="interaction-prompt-text">施設を調べる</span>
-        </div>
-        <div id="world-help" class="world-help" aria-label="操作方法">
-          <span><kbd>WASD</kbd><kbd>矢印</kbd> 歩く</span>
-          <span><kbd>クリック</kbd> 道を選ぶ</span>
-          <span><kbd>Enter</kbd> 調べる</span>
-        </div>
-        <div id="world-status" class="visually-hidden" role="status" aria-live="polite"></div>
-      </main>
-    </div>
+      <section id="game-error" class="game-error" role="alert" hidden>
+        <span class="eyebrow">ゲームを停止しました</span>
+        <h1 id="game-error-title">街を開始できません</h1>
+        <p id="game-error-message"></p>
+        <ul id="game-error-details"></ul>
+        <p class="error-note">未承認素材や仮の素材では続行しません。承認済み素材を揃えてから再読み込みしてください。</p>
+      </section>
 
-    <section id="site-choice-panel" class="site-choice" hidden role="dialog" aria-modal="true" aria-labelledby="site-choice-title">
+      <section id="context-hint" class="context-hint" aria-live="polite" hidden>
+        <span class="hint-speaker">門番の案内</span>
+        <strong id="objective-text">市庁舎へ向かう</strong>
+        <button id="objective-guide" class="objective-guide" type="button">目的地へ案内</button>
+      </section>
+
+      <section id="nearby-prompt" class="nearby-prompt" aria-live="polite" hidden>
+        <span id="nearby-place"></span>
+        <strong id="nearby-action"></strong>
+        <kbd>E</kbd>
+        <small>Tabで操作ボタンへ</small>
+      </section>
+
+      <button id="action-button" class="action-button" type="button" disabled aria-label="近くを調べる" aria-keyshortcuts="E Enter">
+        <span aria-hidden="true">◎</span>
+        <strong>調べる</strong>
+      </button>
+
+      <p id="screen-reader-status" class="visually-hidden" aria-live="polite"></p>
+    </main>
+  </div>
+
+  <dialog id="dialogue" class="dialogue" aria-labelledby="dialogue-speaker">
+    <form method="dialog" class="dialogue-card">
       <header>
-        <div>
-          <p class="drawer-kicker">近くの調査区画</p>
-          <h2 id="site-choice-title">検査場所を選ぶ</h2>
-        </div>
-        <button id="site-choice-close-btn" type="button" class="drawer-close" aria-label="検査場所の選択を閉じる">×</button>
+        <span class="eyebrow">会話</span>
+        <button id="dialogue-close" class="icon-button" value="close" aria-label="会話を閉じる">×</button>
       </header>
-      <div id="site-choice-buttons" class="site-choice-buttons"></div>
+      <h2 id="dialogue-speaker">記録官</h2>
+      <p id="dialogue-body"></p>
+      <div id="dialogue-choices" class="dialogue-choices"></div>
+    </form>
+  </dialog>
+
+  <dialog id="journal" class="journal" aria-labelledby="journal-title">
+    <section class="journal-sheet">
+      <header class="panel-header">
+        <div>
+          <span class="eyebrow">現地調査の記録</span>
+          <h2 id="journal-title">調査手帳</h2>
+        </div>
+        <button id="journal-close" class="icon-button" type="button" aria-label="手帳を閉じる">×</button>
+      </header>
+      <div class="journal-grid">
+        <section aria-labelledby="questions-title">
+          <h3 id="questions-title">今回の問い</h3>
+          <div id="question-list" class="question-list"></div>
+        </section>
+        <section aria-labelledby="findings-title">
+          <h3 id="findings-title">現場の発見</h3>
+          <div id="finding-list" class="finding-list"></div>
+        </section>
+        <section aria-labelledby="legend-title">
+          <h3 id="legend-title">証拠の読み方</h3>
+          <dl class="evidence-legend">
+            <div class="observed"><dt>● 観測</dt><dd>検査で直接確認できたこと</dd></div>
+            <div class="inferred"><dt>▲ 推定</dt><dd>観測から妥当に考えられること</dd></div>
+            <div class="unknown"><dt>? 不明</dt><dd>この検査だけでは断定しないこと</dd></div>
+            <div><dt>街の建物</dt><dd>確認したファイルや施設を表します。施設があることは、現在活動中であることを意味しません。</dd></div>
+            <div><dt>測量中の区画</dt><dd>承認済み画像の照合中を表します。壊れているという判定ではありません。</dd></div>
+            <div><dt>窓の灯り</dt><dd>対応するテストとの関連が静的検査で見つかった家です。テストを実行したことや、成功したことを意味しません。</dd></div>
+            <div><dt>暗い窓</dt><dd>対応するテストが、この検査ではまだ見つかっていない家です。建物やコードの故障・失敗を意味しません。</dd></div>
+            <div><dt>街灯の光</dt><dd>街の表示上で点灯しています。人や処理が現在活動中だという証拠ではありません。</dd></div>
+            <div><dt>建物を覆う蔦</dt><dd>外観の特徴を表します。放棄、故障、未使用を断定する印ではありません。</dd></div>
+            <div><dt>足場と覆い布</dt><dd>調査中の外観を表します。工事が実行中、または建物が壊れているという意味ではありません。</dd></div>
+            <div><dt>存在と活動</dt><dd>施設の存在を確認しても、現在動いているかは別に調べます。</dd></div>
+          </dl>
+        </section>
+        <section aria-labelledby="absent-title">
+          <h3 id="absent-title">この街にない施設</h3>
+          <div id="absent-list" class="finding-list"></div>
+        </section>
+        <section aria-labelledby="survey-title">
+          <h3 id="survey-title">測量の範囲と限界</h3>
+          <div id="survey-list" class="finding-list"></div>
+        </section>
+        <section aria-labelledby="locations-title">
+          <h3 id="locations-title">街の場所</h3>
+          <div id="location-list" class="location-list"></div>
+        </section>
+      </div>
     </section>
+  </dialog>
 
-    <aside id="journal-drawer" class="journal-drawer" hidden aria-labelledby="journal-title">
-      <header class="drawer-header">
-        <div>
-          <p class="drawer-kicker">リポジトリから得た根拠</p>
-          <h2 id="journal-title">観測・推測・未確認</h2>
-        </div>
-        <button id="journal-close-btn" type="button" class="drawer-close" aria-label="検査記録を閉じる">×</button>
-      </header>
+  <aside id="evidence-panel" class="evidence-panel" aria-labelledby="evidence-title" hidden>
+    <header class="panel-header">
+      <div>
+        <span class="eyebrow">証拠</span>
+        <h2 id="evidence-title">証拠</h2>
+      </div>
+      <button id="evidence-close" class="icon-button" type="button" aria-label="証拠を閉じる">×</button>
+    </header>
+    <p id="evidence-saying" class="evidence-saying"></p>
+    <section class="evidence-group observed" aria-labelledby="observed-title">
+      <h3 id="observed-title">● 観測したこと</h3>
+      <ul id="evidence-observed"></ul>
+    </section>
+    <section class="evidence-group inferred" aria-labelledby="inferred-title">
+      <h3 id="inferred-title">▲ 推定できること</h3>
+      <ul id="evidence-inferred"></ul>
+    </section>
+    <section class="evidence-group unknown" aria-labelledby="unknown-title">
+      <h3 id="unknown-title">? まだ不明なこと</h3>
+      <ul id="evidence-unknown"></ul>
+    </section>
+    <details>
+      <summary>検査入力</summary>
+      <pre id="evidence-source"></pre>
+      <button id="evidence-copy" class="journal-action" type="button">検査入力をコピー</button>
+    </details>
+  </aside>
 
-      <section class="drawer-summary" aria-label="街の概要">
-        <dl>
-          <div><dt>街</dt><dd id="drawer-repo">-</dd></div>
-          <div><dt>街の状態</dt><dd id="drawer-habitability">-</dd></div>
-          <div><dt>現在地</dt><dd id="drawer-location">旧市街</dd></div>
-        </dl>
-      </section>
-
-      <section id="facility-empty" class="drawer-card">
-        <h3>施設の入口へ向かいましょう</h3>
-        <p>入口は街の中で名前と状態が表示されています。近づいてEnterを押すと、その施設がある／ない根拠を確認できます。</p>
-      </section>
-
-      <section id="facility-detail" class="drawer-card" hidden>
-        <p id="facility-district" class="drawer-kicker"></p>
-        <h3 id="facility-name">-</h3>
-        <dl class="facility-stats">
-          <div><dt>街での役割</dt><dd id="facility-kind">-</dd></div>
-          <div><dt>状態</dt><dd id="facility-presence">-</dd></div>
-          <div><dt>根拠件数</dt><dd id="facility-count">-</dd></div>
-        </dl>
-        <button id="site-enter-btn" type="button" class="site-enter-button">この施設を歩いて調べる</button>
-        <div class="evidence-group evidence-observed">
-          <h4><span aria-hidden="true">●</span> 観測 — ファイルから確認</h4>
-          <ul id="evidence-observed"></ul>
-        </div>
-        <div class="evidence-group evidence-inferred">
-          <h4><span aria-hidden="true">▲</span> 推測 — 観測から導出</h4>
-          <ul id="evidence-inferred"></ul>
-        </div>
-        <div class="evidence-group evidence-unknown">
-          <h4><span aria-hidden="true">?</span> 未確認 — 実行せず保留</h4>
-          <ul id="evidence-unknown"></ul>
-        </div>
-      </section>
-    </aside>
-
-    <script type="module" src="/app.js"></script>
-  </body>
+  <script type="module" src="/app.js"></script>
+</body>
 </html>

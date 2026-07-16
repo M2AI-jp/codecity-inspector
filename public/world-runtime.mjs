@@ -1,760 +1,789 @@
-const MAP_COLUMNS = 32;
-const MAP_ROWS = 24;
-const CELL_SIZE = 64;
-const WORLD_WIDTH = MAP_COLUMNS * CELL_SIZE;
-const WORLD_HEIGHT = MAP_ROWS * CELL_SIZE;
+export const TILE_SIZE = 64;
+export const INTEGER_ZOOMS = Object.freeze([1, 2, 3]);
+export const TOUR_WITNESS_COUNT = 3;
 
-const FIELD_ASSET_IDS = Object.freeze([
-  'field.bridge_stone', 'field.bridge_wood', 'field.cliff', 'field.cobblestone',
-  'field.dirt_path', 'field.dock_floor', 'field.fence_wood', 'field.grass',
-  'field.plaza', 'field.river_edge', 'field.road_corner', 'field.road_edge',
-  'field.road_intersection', 'field.rock', 'field.snow', 'field.stairs_stone',
-  'field.tree', 'field.wall_stone', 'field.water'
+const DIRECTIONS = Object.freeze(['north', 'east', 'south', 'west']);
+const QUESTION_PRIORITY = Object.freeze([
+  'unresolved',
+  'cycle',
+  'unverified',
+  'unreached',
+  'runtime_unknown',
+  'truncation',
+  'survey_scope',
+  'facility_absent',
+  'test_association',
+  'entrypoint',
+  'facility_present'
 ]);
 
-const BUILDING_ASSET_IDS = Object.freeze([
-  'building.dock', 'building.dojo', 'building.gate', 'building.guild',
-  'building.house.medium', 'building.house.small', 'building.hut', 'building.inn',
-  'building.old_house', 'building.pub', 'building.ruin', 'building.shop',
-  'building.town_hall', 'building.warehouse', 'building.watchtower',
-  'building.well', 'building.workshop'
-]);
-
-const CHARACTER_ASSET_IDS = Object.freeze([
-  'character.dock_ferryman', 'character.dojo_inspector', 'character.gatekeeper',
-  'character.guildmaster', 'character.innkeeper', 'character.mob.artisan',
-  'character.mob.child', 'character.mob.delivery_person', 'character.mob.dock_worker',
-  'character.mob.elder', 'character.mob.inn_guest', 'character.mob.merchant',
-  'character.mob.tavern_guest', 'character.mob.townsfolk_female',
-  'character.mob.townsfolk_male', 'character.mob.traveler', 'character.player',
-  'character.tavern_master', 'character.town_clerk', 'character.warehouse_keeper',
-  'character.watchtower_guard', 'character.workshop_artisan'
-]);
-
-const OBJECT_ASSET_IDS = Object.freeze([
-  'object.barrel', 'object.bench', 'object.blue_flag', 'object.construction_sign',
-  'object.crate', 'object.flowerbed', 'object.grass_patch', 'object.lamp',
-  'object.notice_board', 'object.red_flag', 'object.rubble', 'object.signboard',
-  'object.stacked_crates', 'object.streetlight', 'object.unverified_tag',
-  'object.warning_stake', 'object.well', 'object.yellow_flag'
-]);
-
-const EFFECT_ASSET_IDS = Object.freeze(['effect.construction_dust', 'effect.water_ripple']);
-
-export const WORLD_DISTRICTS = Object.freeze([
-  Object.freeze({ id: 'old_town', label: '旧市街', x: 0, y: 0, width: 16 * CELL_SIZE, height: 12 * CELL_SIZE }),
-  Object.freeze({ id: 'snow_quarter', label: '雪地区', x: 16 * CELL_SIZE, y: 0, width: 16 * CELL_SIZE, height: 12 * CELL_SIZE }),
-  Object.freeze({ id: 'harbor', label: '港', x: 0, y: 12 * CELL_SIZE, width: 16 * CELL_SIZE, height: 12 * CELL_SIZE }),
-  Object.freeze({ id: 'woodland', label: '森林', x: 16 * CELL_SIZE, y: 12 * CELL_SIZE, width: 16 * CELL_SIZE, height: 12 * CELL_SIZE })
-]);
-
-function districtIdForCell(x, y) {
-  if (y < 12) return x < 16 ? 'old_town' : 'snow_quarter';
-  return x < 16 ? 'harbor' : 'woodland';
+function isRecord(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
-function cellKey(x, y) {
-  return `${x},${y}`;
+function finite(value) {
+  return typeof value === 'number' && Number.isFinite(value);
 }
 
-export function worldNodeIdAt(cellX, cellY) {
-  return `n-${cellX}-${cellY}`;
+function positiveInteger(value) {
+  return Number.isInteger(value) && value > 0;
 }
 
-function insideMap(x, y) {
-  return Number.isInteger(x) && Number.isInteger(y)
-    && x >= 0 && y >= 0 && x < MAP_COLUMNS && y < MAP_ROWS;
+function clamp(value, minimum, maximum) {
+  return Math.max(minimum, Math.min(maximum, value));
 }
 
-function makeGroundAndRoutes() {
-  const ground = Array.from({ length: MAP_ROWS }, (_, y) => Array.from({ length: MAP_COLUMNS }, (_, x) => {
-    if (x >= 16 && y < 12) return 'field.snow';
-    if (x >= 16 && y >= 12) return 'field.grass';
-    return y < 12 ? 'field.grass' : 'field.cobblestone';
-  }));
-  const walkable = new Set();
-  const setGround = (x, y, assetId) => {
-    if (insideMap(x, y)) ground[y][x] = assetId;
-  };
-  const fill = (left, top, right, bottom, assetId) => {
-    for (let y = top; y <= bottom; y += 1) {
-      for (let x = left; x <= right; x += 1) setGround(x, y, assetId);
+function uniqueStrings(values) {
+  return [...new Set((Array.isArray(values) ? values : []).filter((value) => typeof value === 'string' && value.length > 0))];
+}
+
+export function compareCodeUnits(left, right) {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
+export function validateRuntimeWorldPlan(plan) {
+  const issues = [];
+  if (!isRecord(plan)) return { ok: false, issues: ['worldPlan must be an object'] };
+  if (plan.schemaVersion !== 2) issues.push('worldPlan.schemaVersion must be 2');
+  if (typeof plan.seed !== 'string' || plan.seed.length === 0) issues.push('worldPlan.seed is required');
+  if (typeof plan.inspectionDigest !== 'string' || plan.inspectionDigest.length === 0) issues.push('worldPlan.inspectionDigest is required');
+  if (!isRecord(plan.validation) || plan.validation.ok !== true) issues.push('worldPlan.validation.ok must be true');
+
+  const world = plan.world;
+  if (!isRecord(world)) {
+    issues.push('worldPlan.world is required');
+  } else {
+    if (!positiveInteger(world.widthTiles)) issues.push('world.widthTiles must be a positive integer');
+    if (!positiveInteger(world.heightTiles)) issues.push('world.heightTiles must be a positive integer');
+    if (world.tileSize !== TILE_SIZE) issues.push(`world.tileSize must be ${TILE_SIZE}`);
+  }
+
+  const expectedCells = positiveInteger(world?.widthTiles) && positiveInteger(world?.heightTiles)
+    ? world.widthTiles * world.heightTiles
+    : null;
+  if (!Array.isArray(plan.terrain)) {
+    issues.push('terrain must be a row-major array');
+  } else if (expectedCells !== null && plan.terrain.length !== expectedCells) {
+    issues.push(`terrain must contain ${expectedCells} row-major cells`);
+  }
+
+  for (const key of ['districts', 'streets', 'buildings', 'npcs', 'props', 'lights', 'facts']) {
+    if (!Array.isArray(plan[key])) issues.push(`${key} must be an array`);
+  }
+  if (!isRecord(plan.nav) || !Array.isArray(plan.nav.nodes) || !Array.isArray(plan.nav.edges)) {
+    issues.push('nav.nodes and nav.edges must be arrays');
+  }
+  if (!isRecord(plan.playerStart)) {
+    issues.push('playerStart is required');
+  } else {
+    if (!Number.isInteger(plan.playerStart.x) || !Number.isInteger(plan.playerStart.y)) issues.push('playerStart coordinates must be integers');
+    if (!DIRECTIONS.includes(plan.playerStart.facing)) issues.push('playerStart.facing is invalid');
+    if (typeof plan.playerStart.navNodeId !== 'string') issues.push('playerStart.navNodeId is required');
+  }
+
+  const nodeIds = new Set();
+  for (const node of plan.nav?.nodes ?? []) {
+    if (!isRecord(node) || typeof node.id !== 'string' || node.id.length === 0) {
+      issues.push('every nav node needs an id');
+      continue;
     }
-  };
-  const lineCells = (x1, y1, x2, y2) => {
-    if (x1 !== x2 && y1 !== y2) throw new Error('World route lines must be four-directional');
-    const cells = [];
-    const dx = Math.sign(x2 - x1);
-    const dy = Math.sign(y2 - y1);
-    let x = x1;
-    let y = y1;
-    while (true) {
-      cells.push([x, y]);
-      if (x === x2 && y === y2) break;
-      x += dx;
-      y += dy;
+    if (nodeIds.has(node.id)) issues.push(`duplicate nav node: ${node.id}`);
+    nodeIds.add(node.id);
+    if (!Number.isInteger(node.x) || !Number.isInteger(node.y)) issues.push(`nav node ${node.id} coordinates must be integers`);
+  }
+  for (const edge of plan.nav?.edges ?? []) {
+    if (!isRecord(edge) || typeof edge.id !== 'string') {
+      issues.push('every nav edge needs an id');
+      continue;
     }
-    return cells;
-  };
-  const route = (x1, y1, x2, y2, assetId) => {
-    for (const [x, y] of lineCells(x1, y1, x2, y2)) {
-      walkable.add(cellKey(x, y));
-      setGround(x, y, assetId);
+    if (!nodeIds.has(edge.from) || !nodeIds.has(edge.to)) issues.push(`nav edge ${edge.id} points to a missing node`);
+  }
+  if (typeof plan.playerStart?.navNodeId === 'string' && !nodeIds.has(plan.playerStart.navNodeId)) {
+    issues.push('playerStart.navNodeId points to a missing node');
+  }
+
+  const buildingIds = new Set();
+  for (const building of plan.buildings ?? []) {
+    if (!isRecord(building) || typeof building.id !== 'string' || building.id.length === 0) {
+      issues.push('every building needs an id');
+      continue;
     }
-  };
-
-  // Civic wall, the elevated snow shelf, and the continuous river/harbor.
-  fill(0, 0, 15, 0, 'field.wall_stone');
-  fill(17, 7, 31, 7, 'field.cliff');
-  fill(15, 8, 16, 23, 'field.water');
-  fill(0, 19, 16, 23, 'field.water');
-  fill(14, 8, 14, 18, 'field.river_edge');
-  fill(17, 8, 17, 23, 'field.river_edge');
-  fill(0, 18, 14, 18, 'field.river_edge');
-
-  // The snow shelf has a built southern retaining wall, so the lower camera
-  // view ends in masonry instead of an empty white rectangle.
-  fill(18, 11, 31, 11, 'field.wall_stone');
-
-  // Working harbor quay and pier. The pier remains walkable into the water.
-  fill(1, 12, 13, 17, 'field.dock_floor');
-  fill(5, 16, 9, 18, 'field.dock_floor');
-  fill(7, 19, 9, 21, 'field.dock_floor');
-
-  // Woodland perimeter and lived-in terrain details.
-  fill(18, 23, 31, 23, 'field.tree');
-  fill(31, 17, 31, 22, 'field.tree');
-  for (const x of [22, 27]) fill(x, 12, x, 15, 'field.tree');
-  fill(28, 18, 30, 21, 'field.tree');
-  fill(22, 17, 30, 17, 'field.fence_wood');
-  for (const [x, y] of [[22, 20], [23, 19], [28, 20], [30, 19]]) setGround(x, y, 'field.rock');
-
-  // Old-town streets. Buildings face the two horizontal streets; the eastern
-  // riverbank lane connects them without crossing a building footprint.
-  route(6, 5, 14, 5, 'field.cobblestone');
-  route(14, 5, 14, 10, 'field.cobblestone');
-  route(2, 10, 14, 10, 'field.cobblestone');
-  for (const x of [5, 6, 7]) {
-    walkable.add(cellKey(x, 5));
-    setGround(x, 5, 'field.plaza');
+    if (buildingIds.has(building.id)) issues.push(`duplicate building: ${building.id}`);
+    buildingIds.add(building.id);
+    if (typeof building.assetId !== 'string') issues.push(`building ${building.id} needs an assetId`);
+    if (!isRecord(building.footprint)
+      || !Number.isInteger(building.footprint.x)
+      || !Number.isInteger(building.footprint.y)
+      || !positiveInteger(building.footprint.w)
+      || !positiveInteger(building.footprint.h)) issues.push(`building ${building.id} has an invalid footprint`);
+    if (!isRecord(building.entrance) || !Number.isInteger(building.entrance.x) || !Number.isInteger(building.entrance.y)) {
+      issues.push(`building ${building.id} has an invalid entrance`);
+    }
   }
 
-  // The only route to the elevated snow district crosses the stone bridge and
-  // climbs the cliff stair, making both actions part of the first long journey.
-  route(14, 9, 20, 9, 'field.cobblestone');
-  route(20, 5, 20, 9, 'field.cobblestone');
-  route(20, 5, 29, 5, 'field.cobblestone');
-  route(20, 9, 29, 9, 'field.cobblestone');
-  setGround(15, 9, 'field.bridge_stone');
-  setGround(16, 9, 'field.bridge_stone');
-  setGround(20, 7, 'field.stairs_stone');
-
-  // Old town descends into one continuous harbor street.
-  route(0, 10, 2, 10, 'field.cobblestone');
-  route(0, 10, 0, 16, 'field.cobblestone');
-  route(0, 16, 14, 16, 'field.cobblestone');
-  route(8, 16, 8, 20, 'field.dock_floor');
-
-  // The wooden bridge joins the harbor to an organic woodland path. A lower
-  // path reaches the hut and ruin without entering either footprint.
-  route(14, 16, 14, 17, 'field.cobblestone');
-  route(14, 17, 17, 17, 'field.dirt_path');
-  route(17, 16, 30, 16, 'field.dirt_path');
-  route(17, 16, 17, 22, 'field.dirt_path');
-  route(17, 22, 26, 22, 'field.dirt_path');
-  setGround(15, 17, 'field.bridge_wood');
-  setGround(16, 17, 'field.bridge_wood');
-
-  // Authored road joints break up the urban paving while preserving the same
-  // four-directional route graph.
-  for (const [x, y] of [[14, 5], [14, 10], [20, 9], [0, 10], [0, 16], [14, 16], [17, 16]]) {
-    setGround(x, y, 'field.road_corner');
-  }
-  for (const [x, y] of [[14, 9], [17, 17]]) {
-    setGround(x, y, 'field.road_intersection');
-  }
-  for (const [x, y] of [[13, 9], [17, 9], [0, 12], [0, 15]]) setGround(x, y, 'field.road_edge');
-
-  return {
-    ground: ground.map((row) => Object.freeze(row)),
-    walkable: Object.freeze([...walkable].map((key) => key.split(',').map(Number))
-      .sort((left, right) => left[1] - right[1] || left[0] - right[0])
-      .map(([x, y]) => Object.freeze({ id: worldNodeIdAt(x, y), x, y })))
-  };
+  return { ok: issues.length === 0, issues };
 }
 
-const MAP_DATA = makeGroundAndRoutes();
-
-export const WORLD_MAP = Object.freeze({
-  columns: MAP_COLUMNS,
-  rows: MAP_ROWS,
-  cellSize: CELL_SIZE,
-  width: WORLD_WIDTH,
-  height: WORLD_HEIGHT,
-  ground: Object.freeze(MAP_DATA.ground),
-  walkable: MAP_DATA.walkable,
-  districts: WORLD_DISTRICTS
-});
-
-export function groundAssetAt(x, y, map = WORLD_MAP) {
-  return Number.isInteger(x) && Number.isInteger(y) ? map?.ground?.[y]?.[x] ?? null : null;
-}
-
-const WALKABLE_FIELD_IDS = new Set([
-  'field.bridge_stone', 'field.bridge_wood', 'field.cobblestone', 'field.dirt_path',
-  'field.dock_floor', 'field.plaza', 'field.road_corner', 'field.road_edge',
-  'field.road_intersection', 'field.snow', 'field.stairs_stone'
-]);
-const BRIDGE_FIELD_IDS = new Set(['field.bridge_stone', 'field.bridge_wood']);
-const BOUNDARY_FIELD_IDS = new Set(['field.cliff', 'field.wall_stone']);
-const VARIED_FIELD_IDS = new Set(['field.grass', 'field.dirt_path', 'field.snow', 'field.cobblestone']);
-
-export function groundTransformAt(x, y, map = WORLD_MAP) {
-  const assetId = groundAssetAt(x, y, map);
-  let quarterTurns = 0;
-  if (assetId === 'field.river_edge') {
-    if (groundAssetAt(x + 1, y, map) === 'field.water') quarterTurns = 3;
-    else if (groundAssetAt(x - 1, y, map) === 'field.water') quarterTurns = 1;
-    else if (groundAssetAt(x, y - 1, map) === 'field.water') quarterTurns = 2;
-  } else if (assetId === 'field.road_edge') {
-    const horizontal = WALKABLE_FIELD_IDS.has(groundAssetAt(x - 1, y, map))
-      || WALKABLE_FIELD_IDS.has(groundAssetAt(x + 1, y, map));
-    quarterTurns = horizontal ? 1 : 0;
-  } else if (assetId === 'field.road_corner') {
-    const right = WALKABLE_FIELD_IDS.has(groundAssetAt(x + 1, y, map));
-    const down = WALKABLE_FIELD_IDS.has(groundAssetAt(x, y + 1, map));
-    const left = WALKABLE_FIELD_IDS.has(groundAssetAt(x - 1, y, map));
-    quarterTurns = right && down ? 0 : down && left ? 1 : left ? 2 : 3;
-  } else if (VARIED_FIELD_IDS.has(assetId)) {
-    quarterTurns = (x * 3 + y * 5) % 4 >= 2 ? 2 : 0;
-  }
-  const mayFlip = VARIED_FIELD_IDS.has(assetId)
-    || ['field.plaza', 'field.rock', 'field.tree', 'field.water'].includes(assetId);
-  return Object.freeze({ quarterTurns, flipX: mayFlip && ((x * 7 + y * 11) & 1) === 1 });
-}
-
-function structure(id, assetId, facilityKind, cellX, cellY, entranceX, entranceY, label, district, anchor = true) {
-  const x = cellX * CELL_SIZE;
-  const y = cellY * CELL_SIZE;
+export function tileCenter(x, y, tileSize = TILE_SIZE) {
   return Object.freeze({
-    id, assetId, facilityKind, label, district, anchor,
-    x, y, width: 256, height: 256, baselineY: y + 240,
-    entranceNodeId: worldNodeIdAt(entranceX, entranceY),
-    entrance: Object.freeze({ x: entranceX, y: entranceY })
+    x: x * tileSize + tileSize / 2,
+    y: y * tileSize + tileSize / 2
   });
 }
 
-export const WORLD_STRUCTURES = Object.freeze([
-  structure('town-hall', 'building.town_hall', 'town_hall', 4, 1, 6, 5, '役場', 'old_town'),
-  structure('guild-hall', 'building.guild', 'guild', 8, 1, 10, 5, '接続者ギルド', 'old_town'),
-  structure('travelers-inn', 'building.inn', 'inn', 12, 1, 14, 5, '宿屋', 'old_town'),
-  structure('old-town-gate', 'building.gate', 'gate', 0, 6, 2, 10, '門', 'old_town'),
-  structure('tavern', 'building.pub', 'pub', 4, 6, 6, 10, '酒場', 'old_town'),
-  structure('market-shop', 'building.shop', 'shop', 8, 6, 10, 10, '商店', 'old_town'),
-  structure('training-dojo', 'building.dojo', 'dojo', 18, 1, 20, 5, '道場', 'snow_quarter'),
-  structure('snow-residence', 'building.old_house', 'house', 22, 1, 24, 5, '雪地区の住居', 'snow_quarter', false),
-  structure('snow-watchtower', 'building.watchtower', 'watchtower', 27, 1, 29, 5, '見張り台', 'snow_quarter'),
-  structure('freight-warehouse', 'building.warehouse', 'warehouse', 1, 12, 3, 16, '倉庫', 'harbor'),
-  structure('harbor-dock', 'building.dock', 'dock', 6, 12, 8, 16, '船着場', 'harbor'),
-  structure('harbor-house', 'building.house.medium', 'house', 10, 12, 12, 16, '港の住居', 'harbor', false),
-  structure('artisan-workshop', 'building.workshop', 'workshop', 18, 12, 20, 16, '工房', 'woodland'),
-  structure('woodland-well', 'building.well', 'well', 23, 12, 25, 16, '井戸', 'woodland'),
-  structure('woodland-home', 'building.house.small', 'house', 28, 12, 30, 16, '住宅', 'woodland'),
-  structure('woodland-hut', 'building.hut', 'house', 18, 18, 20, 22, '森の小屋', 'woodland', false),
-  structure('overgrown-ruin', 'building.ruin', 'ruin', 24, 18, 26, 22, '廃屋', 'woodland')
-]);
-
-function prop(assetId, x, y, context, options = {}) {
-  return Object.freeze({ assetId, x, y, context, ...options });
-}
-
-export const WORLD_PROPS = Object.freeze([
-  prop('object.barrel', 5, 17, 'harbor cargo'),
-  prop('object.bench', 3, 5, 'civic plaza edge'),
-  prop('object.blue_flag', 4, 5, 'town hall'),
-  prop('object.construction_sign', 21, 17, 'workshop yard'),
-  prop('object.crate', 10, 17, 'harbor cargo'),
-  prop('object.flowerbed', 3, 5, 'old-town residence'),
-  prop('object.grass_patch', 23, 17, 'woodland verge'),
-  prop('object.lamp', 7, 11, 'tavern street'),
-  prop('object.notice_board', 2, 5, 'civic information'),
-  prop('object.red_flag', 19, 6, 'dojo marker'),
-  prop('object.rubble', 28, 22, 'ruin debris'),
-  prop('object.signboard', 3, 11, 'gate direction'),
-  prop('object.stacked_crates', 4, 17, 'warehouse freight'),
-  prop('object.streetlight', 11, 11, 'market street'),
-  prop('object.unverified_tag', 27, 22, 'ruin status'),
-  prop('object.warning_stake', 21, 8, 'snow cliff'),
-  prop('object.well', 26, 17, 'well square'),
-  prop('object.yellow_flag', 8, 0, 'guild banner'),
-
-  // Repeated approved props make the world read as lived-in districts rather
-  // than a sparse catalog. Every copy remains off the walkable centerline.
-  prop('object.flowerbed', 0, 5, 'gate garden'),
-  prop('object.grass_patch', 1, 5, 'gate verge'),
-  prop('object.lamp', 3, 4, 'civic lane'),
-  prop('object.streetlight', 11, 5, 'market frontage', { offsetX: 20 }),
-  prop('object.barrel', 12, 6, 'inn delivery'),
-  prop('object.crate', 13, 7, 'inn delivery'),
-  prop('object.bench', 12, 11, 'riverside rest'),
-  prop('object.notice_board', 1, 11, 'harbor notices'),
-  prop('object.blue_flag', 18, 6, 'snow district boundary'),
-  prop('object.lamp', 22, 6, 'snow stair lantern'),
-  prop('object.bench', 25, 6, 'snow overlook'),
-  prop('object.stacked_crates', 26, 6, 'watch supply'),
-  prop('object.barrel', 30, 6, 'watch supply'),
-  prop('object.rubble', 18, 8, 'cliff scree'),
-  prop('object.warning_stake', 22, 8, 'cliff warning'),
-  prop('object.crate', 2, 17, 'warehouse freight'),
-  prop('object.barrel', 6, 17, 'dock freight'),
-  prop('object.stacked_crates', 9, 17, 'dock freight'),
-  prop('object.yellow_flag', 13, 15, 'harbor wayfinding'),
-  prop('object.lamp', 13, 17, 'bridge lantern'),
-  prop('object.construction_sign', 22, 18, 'workshop storage'),
-  prop('object.grass_patch', 23, 18, 'forest undergrowth'),
-  prop('object.flowerbed', 27, 17, 'home garden'),
-  prop('object.bench', 29, 17, 'home garden'),
-  prop('object.rubble', 22, 21, 'hut repair'),
-  prop('object.warning_stake', 23, 21, 'ruin approach'),
-  prop('object.red_flag', 28, 21, 'ruin warning'),
-  prop('object.grass_patch', 29, 22, 'ruin overgrowth')
-]);
-
-function npc(assetId, x, y, role, facilityKind, district, direction = 'down', offsetX = 0) {
-  return Object.freeze({ assetId, x, y, role, facilityKind, district, direction, offsetX });
-}
-
-export const WORLD_NPCS = Object.freeze([
-  npc('character.town_clerk', 6, 5, '役場の案内係', 'town_hall', 'old_town', 'down', -12),
-  npc('character.guildmaster', 10, 5, '接続者ギルド長', 'guild', 'old_town', 'down', -12),
-  npc('character.innkeeper', 14, 5, '宿屋の主人', 'inn', 'old_town', 'down', -12),
-  npc('character.gatekeeper', 2, 10, '門番', 'gate', 'old_town', 'right', -12),
-  npc('character.tavern_master', 6, 10, '酒場の主人', 'pub', 'old_town', 'down', -12),
-  npc('character.mob.tavern_guest', 6, 10, '酒場の客', 'pub', 'old_town', 'left', 12),
-  npc('character.mob.merchant', 10, 10, '商人', 'shop', 'old_town', 'down', -12),
-  npc('character.mob.townsfolk_female', 7, 5, '広場の住民', 'town_hall', 'old_town', 'left', 12),
-  npc('character.mob.townsfolk_male', 3, 10, '旧市街の住民', 'gate', 'old_town', 'right', 12),
-  npc('character.mob.inn_guest', 13, 5, '宿泊客', 'inn', 'old_town', 'right', 12),
-  npc('character.dojo_inspector', 20, 5, '検査官', 'dojo', 'snow_quarter', 'down', -12),
-  npc('character.mob.traveler', 24, 5, '雪道の旅人', 'house', 'snow_quarter', 'right', 12),
-  npc('character.watchtower_guard', 29, 5, '見張り番', 'watchtower', 'snow_quarter', 'left', -12),
-  npc('character.warehouse_keeper', 3, 16, '倉庫番', 'warehouse', 'harbor', 'down', -12),
-  npc('character.mob.delivery_person', 3, 16, '配達人', 'warehouse', 'harbor', 'right', 12),
-  npc('character.dock_ferryman', 8, 16, '渡し守', 'dock', 'harbor', 'down', -12),
-  npc('character.mob.dock_worker', 8, 17, '港湾作業員', 'dock', 'harbor', 'left', 12),
-  npc('character.workshop_artisan', 20, 16, '工房の職人', 'workshop', 'woodland', 'down', -12),
-  npc('character.mob.artisan', 21, 16, '手伝い職人', 'workshop', 'woodland', 'left', 12),
-  npc('character.mob.elder', 25, 16, '井戸端の長老', 'well', 'woodland', 'right', 12),
-  npc('character.mob.child', 30, 16, '森の子ども', 'house', 'woodland', 'left', -12)
-]);
-
-export const WORLD_EFFECTS = Object.freeze([
-  Object.freeze({ assetId: 'effect.water_ripple', x: 10, y: 20, context: 'water' }),
-  Object.freeze({ assetId: 'effect.construction_dust', x: 28, y: 22, context: 'ruin', facilityKind: 'ruin' })
-]);
-
-function edgeTypeForCells(left, right) {
-  const assets = [groundAssetAt(left.x, left.y), groundAssetAt(right.x, right.y)];
-  if (assets.some((assetId) => BRIDGE_FIELD_IDS.has(assetId))) return 'bridge';
-  if (assets.includes('field.stairs_stone')) return 'stairs';
-  return 'walk';
-}
-
-function buildNavigationData(walkableCells) {
-  const cells = new Map(walkableCells.map(({ x, y }) => [cellKey(x, y), { x, y }]));
-  const edgeDefinitions = [];
-  for (const cell of cells.values()) {
-    for (const [dx, dy] of [[1, 0], [0, 1]]) {
-      const neighbor = cells.get(cellKey(cell.x + dx, cell.y + dy));
-      if (!neighbor) continue;
-      edgeDefinitions.push(Object.freeze({
-        from: worldNodeIdAt(cell.x, cell.y),
-        to: worldNodeIdAt(neighbor.x, neighbor.y),
-        type: edgeTypeForCells(cell, neighbor)
-      }));
-    }
-  }
-  edgeDefinitions.sort((left, right) => left.from.localeCompare(right.from) || left.to.localeCompare(right.to));
-  const neighbors = new Map([...cells.values()].map(({ x, y }) => [worldNodeIdAt(x, y), []]));
-  for (const edge of edgeDefinitions) {
-    neighbors.get(edge.from).push({ id: edge.to, type: edge.type });
-    neighbors.get(edge.to).push({ id: edge.from, type: edge.type });
-  }
-  const nodes = [...cells.values()].sort((left, right) => left.y - right.y || left.x - right.x).map(({ x, y }) => {
-    const links = neighbors.get(worldNodeIdAt(x, y)).sort((left, right) => left.id.localeCompare(right.id));
-    return Object.freeze({
-      id: worldNodeIdAt(x, y),
-      cellX: x,
-      cellY: y,
-      x: x * CELL_SIZE + CELL_SIZE / 2,
-      y: y * CELL_SIZE + 52,
-      district: districtIdForCell(x, y),
-      groundAssetId: groundAssetAt(x, y),
-      neighbors: Object.freeze(links.map((link) => link.id)),
-      links: Object.freeze(links.map((link) => Object.freeze(link)))
-    });
+function normalizeBuilding(building, tileSize) {
+  const footprint = Object.freeze({
+    tileX: building.footprint.x,
+    tileY: building.footprint.y,
+    tileWidth: building.footprint.w,
+    tileHeight: building.footprint.h,
+    x: building.footprint.x * tileSize,
+    y: building.footprint.y * tileSize,
+    width: building.footprint.w * tileSize,
+    height: building.footprint.h * tileSize
   });
-  return { nodes: Object.freeze(nodes), edges: Object.freeze(edgeDefinitions) };
+  const entrance = tileCenter(building.entrance.x, building.entrance.y, tileSize);
+  const interactionTile = building.interaction?.anchor;
+  const interaction = Object.freeze({
+    x: Number.isInteger(interactionTile?.x) ? interactionTile.x * tileSize + tileSize / 2 : entrance.x,
+    y: Number.isInteger(interactionTile?.y) ? interactionTile.y * tileSize + tileSize / 2 : entrance.y,
+    verb: typeof building.interaction?.verb === 'string' ? building.interaction.verb : 'inspect',
+    factRefs: Object.freeze(uniqueStrings(building.interaction?.factRefs))
+  });
+  return Object.freeze({ ...building, footprint, entrance: Object.freeze({ ...building.entrance, ...entrance }), interaction });
 }
 
-const NAVIGATION_DATA = buildNavigationData(WORLD_MAP.walkable);
-export const NAVIGATION_NODES = NAVIGATION_DATA.nodes;
-export const NAVIGATION_EDGES = NAVIGATION_DATA.edges;
-export const PLAYER_START_NODE_ID = worldNodeIdAt(7, 5);
+export function createWorldRuntime(plan) {
+  const validation = validateRuntimeWorldPlan(plan);
+  if (!validation.ok) throw new Error(`WorldPlan cannot be played:\n- ${validation.issues.join('\n- ')}`);
 
-export function navigationNodeById(id, nodes = NAVIGATION_NODES) {
-  return nodes.find((node) => node.id === id) ?? null;
-}
+  const tileSize = plan.world.tileSize;
+  const nodes = plan.nav.nodes.map((node) => {
+    const center = tileCenter(node.x, node.y, tileSize);
+    return Object.freeze({ ...node, worldX: center.x, worldY: center.y });
+  });
+  const nodeById = new Map(nodes.map((node) => [node.id, node]));
+  const adjacency = new Map(nodes.map((node) => [node.id, []]));
+  const edgeByPair = new Map();
+  for (const edge of plan.nav.edges) {
+    adjacency.get(edge.from).push(Object.freeze({ nodeId: edge.to, edge }));
+    adjacency.get(edge.to).push(Object.freeze({ nodeId: edge.from, edge }));
+    edgeByPair.set(`${edge.from}\u0000${edge.to}`, edge);
+    edgeByPair.set(`${edge.to}\u0000${edge.from}`, edge);
+  }
 
-export function navigationEdgeBetween(fromId, toId, edges = NAVIGATION_EDGES) {
-  return edges.find((edge) => (edge.from === fromId && edge.to === toId)
-    || (edge.from === toId && edge.to === fromId)) ?? null;
-}
-
-export function nearestNavigationNode(x, y, nodes = NAVIGATION_NODES) {
-  if (!Number.isFinite(x) || !Number.isFinite(y) || nodes.length === 0) return null;
-  return [...nodes].sort((left, right) => {
-    const leftDistance = ((left.x - x) ** 2) + ((left.y - y) ** 2);
-    const rightDistance = ((right.x - x) ** 2) + ((right.y - y) ** 2);
-    return leftDistance - rightDistance || left.id.localeCompare(right.id);
-  })[0] ?? null;
-}
-
-const DIRECTION_VECTORS = Object.freeze({
-  up: Object.freeze({ x: 0, y: -1 }),
-  down: Object.freeze({ x: 0, y: 1 }),
-  left: Object.freeze({ x: -1, y: 0 }),
-  right: Object.freeze({ x: 1, y: 0 })
-});
-
-export function nextNodeForDirection(currentId, direction, nodes = NAVIGATION_NODES) {
-  const current = navigationNodeById(currentId, nodes);
-  const vector = DIRECTION_VECTORS[direction];
-  if (!current || !vector) return current;
-  const candidates = current.links.map((link) => navigationNodeById(link.id, nodes)).filter(Boolean)
-    .map((node) => {
-      const dx = node.x - current.x;
-      const dy = node.y - current.y;
-      const distance = Math.hypot(dx, dy);
-      const dot = distance > 0 ? ((dx / distance) * vector.x) + ((dy / distance) * vector.y) : -1;
-      return { node, dot, distance };
+  const buildings = plan.buildings.map((building) => normalizeBuilding(building, tileSize));
+  const facts = plan.facts.map((fact) => Object.freeze({
+    ...fact,
+    evidence: Object.freeze({
+      observed: Object.freeze(uniqueStrings(fact.evidence?.observed)),
+      inferred: Object.freeze(uniqueStrings(fact.evidence?.inferred)),
+      unknown: Object.freeze(uniqueStrings(fact.evidence?.unknown))
     })
-    .filter((candidate) => candidate.dot > 0)
-    .sort((left, right) => right.dot - left.dot || left.distance - right.distance
-      || left.node.id.localeCompare(right.node.id));
-  return candidates[0]?.node ?? current;
+  }));
+  const terrainRows = Array.from({ length: plan.world.heightTiles }, (_, y) => Object.freeze(
+    plan.terrain.slice(y * plan.world.widthTiles, (y + 1) * plan.world.widthTiles)
+  ));
+  const startNode = nodeById.get(plan.playerStart.navNodeId);
+
+  return Object.freeze({
+    plan,
+    tileSize,
+    widthTiles: plan.world.widthTiles,
+    heightTiles: plan.world.heightTiles,
+    width: plan.world.widthTiles * tileSize,
+    height: plan.world.heightTiles * tileSize,
+    terrainRows: Object.freeze(terrainRows),
+    nodes: Object.freeze(nodes),
+    nodeById,
+    adjacency,
+    edgeByPair,
+    buildings: Object.freeze(buildings),
+    buildingById: new Map(buildings.map((building) => [building.id, building])),
+    facts: Object.freeze(facts),
+    factById: new Map(facts.map((fact) => [fact.id, fact])),
+    start: Object.freeze({
+      x: startNode.worldX,
+      y: startNode.worldY,
+      facing: plan.playerStart.facing,
+      navNodeId: startNode.id
+    })
+  });
 }
 
-export function navigationIsConnected(nodes = NAVIGATION_NODES) {
-  if (nodes.length === 0) return false;
-  const byId = new Map(nodes.map((node) => [node.id, node]));
-  const seen = new Set([nodes[0].id]);
-  const queue = [nodes[0].id];
-  while (queue.length) {
-    const id = queue.shift();
-    for (const neighbor of byId.get(id)?.neighbors ?? []) {
-      if (!byId.has(neighbor) || seen.has(neighbor)) continue;
-      seen.add(neighbor);
-      queue.push(neighbor);
+export function terrainCellAt(runtime, tileX, tileY) {
+  if (!Number.isInteger(tileX) || !Number.isInteger(tileY)) return null;
+  return runtime.terrainRows[tileY]?.[tileX] ?? null;
+}
+
+export function nearestNode(runtime, x, y, { space } = {}) {
+  let best = null;
+  let bestDistance = Infinity;
+  for (const node of runtime.nodes) {
+    if (space && node.space !== space) continue;
+    const distance = Math.hypot(node.worldX - x, node.worldY - y);
+    if (distance < bestDistance) {
+      best = node;
+      bestDistance = distance;
     }
   }
-  return seen.size === nodes.length;
+  return best ? Object.freeze({ node: best, distance: bestDistance }) : null;
 }
 
-export function shortestNavigationPath(fromId, toId, nodes = NAVIGATION_NODES) {
-  const byId = new Map(nodes.map((node) => [node.id, node]));
-  if (!byId.has(fromId) || !byId.has(toId)) return Object.freeze([]);
-  if (fromId === toId) return Object.freeze([byId.get(fromId)]);
-  const previous = new Map([[fromId, null]]);
+export function edgeBetween(runtime, fromId, toId) {
+  return runtime.edgeByPair.get(`${fromId}\u0000${toId}`) ?? null;
+}
+
+export function shortestPath(runtime, fromId, toId) {
+  if (!runtime.nodeById.has(fromId) || !runtime.nodeById.has(toId)) return [];
+  if (fromId === toId) return [fromId];
   const queue = [fromId];
-  while (queue.length) {
-    const id = queue.shift();
-    for (const neighbor of byId.get(id).neighbors) {
-      if (previous.has(neighbor) || !byId.has(neighbor)) continue;
-      previous.set(neighbor, id);
-      if (neighbor === toId) {
-        const path = [];
-        let cursor = toId;
-        while (cursor !== null) {
-          path.push(byId.get(cursor));
-          cursor = previous.get(cursor);
+  const previous = new Map([[fromId, null]]);
+  for (let cursor = 0; cursor < queue.length; cursor += 1) {
+    const current = queue[cursor];
+    for (const neighbour of runtime.adjacency.get(current) ?? []) {
+      if (previous.has(neighbour.nodeId)) continue;
+      previous.set(neighbour.nodeId, current);
+      if (neighbour.nodeId === toId) {
+        const path = [toId];
+        let step = current;
+        while (step !== null) {
+          path.push(step);
+          step = previous.get(step);
         }
-        return Object.freeze(path.reverse());
+        return path.reverse();
       }
-      queue.push(neighbor);
+      queue.push(neighbour.nodeId);
     }
   }
-  return Object.freeze([]);
+  return [];
 }
 
-export function directionBetweenPoints(from, to, fallback = 'down') {
-  if (!from || !to) return fallback;
+export function navigationIsConnected(runtime) {
+  if (runtime.nodes.length === 0) return false;
+  const seen = new Set([runtime.nodes[0].id]);
+  const queue = [runtime.nodes[0].id];
+  for (let cursor = 0; cursor < queue.length; cursor += 1) {
+    for (const neighbour of runtime.adjacency.get(queue[cursor]) ?? []) {
+      if (seen.has(neighbour.nodeId)) continue;
+      seen.add(neighbour.nodeId);
+      queue.push(neighbour.nodeId);
+    }
+  }
+  return seen.size === runtime.nodes.length;
+}
+
+export function directionBetweenPoints(from, to) {
   const dx = to.x - from.x;
   const dy = to.y - from.y;
-  if (Math.abs(dx) >= Math.abs(dy) && dx !== 0) return dx < 0 ? 'left' : 'right';
-  if (dy !== 0) return dy < 0 ? 'up' : 'down';
-  return fallback;
+  if (Math.abs(dx) >= Math.abs(dy)) return dx >= 0 ? 'east' : 'west';
+  return dy >= 0 ? 'south' : 'north';
 }
 
-export function createInterpolatedMovement(from, to, startedAt, duration = 240) {
-  if (!from || !to || !Number.isFinite(startedAt)) return null;
-  const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : 240;
+export function nextNodeForDirection(runtime, fromId, direction) {
+  const origin = runtime.nodeById.get(fromId);
+  if (!origin || !DIRECTIONS.includes(direction)) return null;
+  const vector = {
+    north: [0, -1],
+    east: [1, 0],
+    south: [0, 1],
+    west: [-1, 0]
+  }[direction];
+  let best = null;
+  let bestScore = -Infinity;
+  for (const neighbour of runtime.adjacency.get(fromId) ?? []) {
+    const node = runtime.nodeById.get(neighbour.nodeId);
+    const dx = node.worldX - origin.worldX;
+    const dy = node.worldY - origin.worldY;
+    const distance = Math.hypot(dx, dy) || 1;
+    const alignment = (dx / distance) * vector[0] + (dy / distance) * vector[1];
+    if (alignment <= 0.35) continue;
+    const score = alignment * 1000 - distance;
+    if (score > bestScore) {
+      best = node;
+      bestScore = score;
+    }
+  }
+  return best;
+}
+
+export function createInterpolatedMovement({ from, to, startedAt = 0, duration = 180, reducedMotion = false }) {
+  const safeDuration = reducedMotion ? 0 : Math.max(1, duration);
   return Object.freeze({
-    from: Object.freeze({ x: Number(from.x), y: Number(from.y) }),
-    to: Object.freeze({ x: Number(to.x), y: Number(to.y) }),
+    from: Object.freeze({ x: from.x, y: from.y }),
+    to: Object.freeze({ x: to.x, y: to.y }),
     startedAt,
-    duration: safeDuration,
-    direction: directionBetweenPoints(from, to)
+    duration: safeDuration
   });
 }
 
-export function sampleInterpolatedMovement(movement, timestamp) {
-  if (!movement || !Number.isFinite(timestamp)) return null;
-  const progress = Math.max(0, Math.min(1, (timestamp - movement.startedAt) / movement.duration));
-  const eased = progress < 0.5 ? 2 * progress * progress : 1 - ((-2 * progress + 2) ** 2) / 2;
+export function sampleInterpolatedMovement(movement, now) {
+  if (!movement || movement.duration === 0) return Object.freeze({ ...movement?.to, progress: 1, done: true });
+  const progress = clamp((now - movement.startedAt) / movement.duration, 0, 1);
+  const eased = 1 - (1 - progress) ** 3;
   return Object.freeze({
     x: movement.from.x + (movement.to.x - movement.from.x) * eased,
     y: movement.from.y + (movement.to.y - movement.from.y) * eased,
     progress,
-    done: progress >= 1,
-    direction: movement.direction
+    done: progress >= 1
   });
 }
 
-const ANCHOR_STRUCTURE_IDS = Object.freeze({
-  town_hall: 'town-hall', gate: 'old-town-gate', guild: 'guild-hall',
-  pub: 'tavern', shop: 'market-shop', inn: 'travelers-inn', dock: 'harbor-dock',
-  dojo: 'training-dojo', well: 'woodland-well', workshop: 'artisan-workshop',
-  warehouse: 'freight-warehouse', watchtower: 'snow-watchtower',
-  house: 'woodland-home', ruin: 'overgrown-ruin'
-});
-
-export const FACILITY_ANCHORS = Object.freeze(Object.fromEntries(Object.entries(ANCHOR_STRUCTURE_IDS).map(([kind, structureId]) => {
-  const building = WORLD_STRUCTURES.find((entry) => entry.id === structureId);
-  const node = navigationNodeById(building?.entranceNodeId);
-  if (!building || !node) throw new Error(`Facility anchor is not on a world route: ${kind}`);
-  return [kind, Object.freeze({
-    kind,
-    label: building.label,
-    x: node.x,
-    y: node.y,
-    cellX: node.cellX,
-    cellY: node.cellY,
-    district: building.district,
-    nodeId: node.id,
-    structureId: building.id
-  })];
-})));
-
-export function anchorsForPresentFacilities(facilities = []) {
-  const presentKinds = new Set(facilities.filter((facility) => facility?.present === true).map((facility) => facility.kind));
-  return Object.values(FACILITY_ANCHORS).filter((anchor) => presentKinds.has(anchor.kind));
-}
-
-export function nearestFacilityAnchor(x, y, anchors, maxDistance = Infinity) {
-  if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
-  const nearest = [...(anchors ?? [])].map((anchor) => ({
-    anchor,
-    distance: Math.hypot(anchor.x - x, anchor.y - y)
-  })).sort((left, right) => left.distance - right.distance
-    || left.anchor.kind.localeCompare(right.anchor.kind))[0];
-  return nearest && nearest.distance <= maxDistance ? nearest.anchor : null;
-}
-
-export function worldRenderLayers({
-  view = 'overview',
-  interactionStarted = false,
-  hasPlayerAsset = false,
-  hoveredAnchor = null,
-  selectedAnchor = null,
-  nearbyAnchor = null
-} = {}) {
-  void interactionStarted;
-  const anchors = [hoveredAnchor, selectedAnchor, nearbyAnchor].filter(Boolean)
-    .filter((anchor, index, list) => list.findIndex((item) => item.kind === anchor.kind) === index);
+export function computeWorldCamera({ viewportWidth, viewportHeight, worldWidth, worldHeight, focusX, focusY, zoom }) {
+  if (!INTEGER_ZOOMS.includes(zoom)) throw new RangeError('zoom must be one of 1, 2, or 3');
+  if (![viewportWidth, viewportHeight, worldWidth, worldHeight, focusX, focusY].every(finite)) {
+    throw new TypeError('camera inputs must be finite numbers');
+  }
+  const sourceWidth = Math.min(worldWidth, viewportWidth / zoom);
+  const sourceHeight = Math.min(worldHeight, viewportHeight / zoom);
   return Object.freeze({
-    drawPlayer: hasPlayerAsset && (view === 'overview' || view === 'world'),
-    anchors: Object.freeze(anchors)
+    sourceX: clamp(focusX - sourceWidth / 2, 0, Math.max(0, worldWidth - sourceWidth)),
+    sourceY: clamp(focusY - sourceHeight / 2, 0, Math.max(0, worldHeight - sourceHeight)),
+    sourceWidth,
+    sourceHeight,
+    scale: zoom,
+    zoom,
+    viewportWidth,
+    viewportHeight
   });
 }
 
-function positiveViewport(value) {
-  return Number.isFinite(value) && value > 0 ? value : 1;
+export function worldToScreen(camera, x, y) {
+  return Object.freeze({ x: (x - camera.sourceX) * camera.scale, y: (y - camera.sourceY) * camera.scale });
 }
 
-export function computeWorldCamera({
-  mode = 'overview',
-  viewportWidth,
-  viewportHeight,
-  focusX = WORLD_WIDTH / 2,
-  focusY = WORLD_HEIGHT / 2,
-  worldWidth = WORLD_WIDTH,
-  worldHeight = WORLD_HEIGHT
-} = {}) {
-  const width = positiveViewport(viewportWidth);
-  const height = positiveViewport(viewportHeight);
-  const safeWorldWidth = positiveViewport(worldWidth);
-  const safeWorldHeight = positiveViewport(worldHeight);
-  if (mode !== 'follow') {
-    const scale = Math.min(1, width / safeWorldWidth, height / safeWorldHeight);
-    const destWidth = safeWorldWidth * scale;
-    const destHeight = safeWorldHeight * scale;
-    return {
-      mode: 'overview', scale, sourceX: 0, sourceY: 0,
-      sourceWidth: safeWorldWidth, sourceHeight: safeWorldHeight,
-      destX: (width - destWidth) / 2, destY: (height - destHeight) / 2,
-      destWidth, destHeight, viewportWidth: width, viewportHeight: height
-    };
+export function screenToWorld(camera, x, y) {
+  return Object.freeze({ x: camera.sourceX + x / camera.scale, y: camera.sourceY + y / camera.scale });
+}
+
+export function districtForPoint(runtime, x, y) {
+  const tileX = Math.floor(x / runtime.tileSize);
+  const tileY = Math.floor(y / runtime.tileSize);
+  return runtime.plan.districts.find((district) => tileX >= district.bounds.x
+    && tileY >= district.bounds.y
+    && tileX < district.bounds.x + district.bounds.w
+    && tileY < district.bounds.y + district.bounds.h) ?? null;
+}
+
+export function isTownHallInteraction(building) {
+  return building?.facilityKind === 'town_hall' && building?.interaction?.verb === 'receive-journal';
+}
+
+export function interactionProtocol(building) {
+  const verb = building?.interaction?.verb;
+  if (verb === 'receive-journal') {
+    return Object.freeze(isTownHallInteraction(building)
+      ? { verb, kind: 'ledger', family: 'ledger', supported: true }
+      : { verb, kind: 'away-sign', family: null, supported: false });
   }
-  const scale = 1;
-  const sourceWidth = Math.min(safeWorldWidth, width);
-  const sourceHeight = Math.min(safeWorldHeight, height);
-  const sourceX = Math.max(0, Math.min(safeWorldWidth - sourceWidth, focusX - sourceWidth / 2));
-  const sourceY = Math.max(0, Math.min(safeWorldHeight - sourceHeight, focusY - sourceHeight / 2));
-  return {
-    mode: 'follow', scale, sourceX, sourceY, sourceWidth, sourceHeight,
-    destX: (width - sourceWidth) / 2, destY: (height - sourceHeight) / 2,
-    destWidth: sourceWidth, destHeight: sourceHeight,
-    viewportWidth: width, viewportHeight: height
-  };
+  const protocol = ({
+    'inspect-entry-tags': { kind: 'entry-tags', family: 'spatial' },
+    'watch-forms': { kind: 'forms', family: 'observe' },
+    'talk-neighbor': { kind: 'neighbor', family: 'talk' },
+    'use-telescope': { kind: 'overview', family: 'operate' },
+    'read-away-sign': { kind: 'away-sign', family: 'inspect' },
+    'inspect-field-notice': { kind: 'away-sign', family: 'inspect' }
+  })[verb];
+  return Object.freeze(protocol
+    ? { verb, ...protocol, supported: true }
+    : { verb: typeof verb === 'string' ? verb : 'unknown', kind: 'away-sign', family: null, supported: false });
 }
 
-export function worldToScreen(camera, point) {
-  if (!camera || !point) return null;
-  return {
-    x: camera.destX + (point.x - camera.sourceX) * camera.scale,
-    y: camera.destY + (point.y - camera.sourceY) * camera.scale
-  };
+export function interactionFamily(building) {
+  return interactionProtocol(building).family ?? 'unsupported';
 }
 
-export function screenToWorld(camera, point) {
-  if (!camera || !point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return null;
-  if (point.x < camera.destX || point.y < camera.destY
-    || point.x > camera.destX + camera.destWidth || point.y > camera.destY + camera.destHeight) return null;
-  return {
-    x: camera.sourceX + (point.x - camera.destX) / camera.scale,
-    y: camera.sourceY + (point.y - camera.destY) / camera.scale
-  };
+export function interactionVerbLabel(family) {
+  return ({
+    ledger: '記録簿を開く',
+    spatial: '位置関係を確かめる',
+    observe: '痕跡を観察する',
+    talk: '住人に聞く',
+    operate: '装置を動かす',
+    inspect: '留守札を読む'
+  })[family] ?? '留守札を読む';
 }
 
-export function districtForPoint(x, y, districts = WORLD_DISTRICTS) {
-  return districts.find((district) => x >= district.x && x < district.x + district.width
-    && y >= district.y && y < district.y + district.height) ?? null;
-}
-
-export function collectWorldAssetUsage() {
-  const used = new Set(['character.player']);
-  for (const row of WORLD_MAP.ground) for (const assetId of row) used.add(assetId);
-  for (const entry of WORLD_STRUCTURES) used.add(entry.assetId);
-  for (const entry of WORLD_PROPS) used.add(entry.assetId);
-  for (const entry of WORLD_NPCS) used.add(entry.assetId);
-  for (const entry of WORLD_EFFECTS) used.add(entry.assetId);
-  return Object.freeze([...used].sort());
-}
-
-function overlapping(left, right) {
-  return left.x < right.x + right.width && left.x + left.width > right.x
-    && left.y < right.y + right.height && left.y + left.height > right.y;
-}
-
-export function auditWorldMap() {
-  const issues = [];
-  if (WORLD_MAP.columns !== 32 || WORLD_MAP.rows !== 24 || WORLD_MAP.cellSize !== 64
-    || WORLD_MAP.width !== 2048 || WORLD_MAP.height !== 1536) issues.push('world dimensions must be 32x24 at 64px');
-  if (WORLD_MAP.ground.length !== 24 || WORLD_MAP.ground.some((row) => row.length !== 32)) {
-    issues.push('world ground must be a complete 32x24 grid');
+export function nearestInteraction(runtime, x, y, maxDistance = runtime.tileSize * 1.8) {
+  let best = null;
+  for (const building of runtime.buildings) {
+    const distance = Math.hypot(building.interaction.x - x, building.interaction.y - y);
+    if (distance > maxDistance || distance >= (best?.distance ?? Infinity)) continue;
+    best = Object.freeze({
+      type: 'building',
+      building,
+      x: building.interaction.x,
+      y: building.interaction.y,
+      distance,
+      family: interactionFamily(building)
+    });
   }
-  const groundIds = new Set(WORLD_MAP.ground.flat());
-  if (FIELD_ASSET_IDS.some((assetId) => !groundIds.has(assetId)) || groundIds.size !== FIELD_ASSET_IDS.length) {
-    issues.push('world ground must use exactly all 19 approved field assets');
+  return best;
+}
+
+function pointInFootprint(building, x, y, margin = 0) {
+  return x >= building.footprint.x - margin
+    && x <= building.footprint.x + building.footprint.width + margin
+    && y >= building.footprint.y - margin
+    && y <= building.footprint.y + building.footprint.height + margin;
+}
+
+export function buildingForCutaway(runtime, x, y) {
+  const inside = runtime.buildings.find((building) => pointInFootprint(building, x, y, runtime.tileSize * 0.15));
+  if (inside) return inside;
+  const nearby = nearestInteraction(runtime, x, y, runtime.tileSize * 0.8);
+  return nearby?.building ?? null;
+}
+
+export function withinBuildingReleaseZone(runtime, building, x, y) {
+  if (!building) return false;
+  return pointInFootprint(building, x, y, runtime.tileSize)
+    || Math.hypot(building.interaction.x - x, building.interaction.y - y) <= runtime.tileSize;
+}
+
+export function occludingBuilding(runtime, x, y, cutawayBuildingId = null) {
+  return runtime.buildings.find((building) => building.id !== cutawayBuildingId && pointInFootprint(building, x, y)) ?? null;
+}
+
+export function playerOccluded(runtime, x, y, cutawayBuildingId = null) {
+  return Boolean(occludingBuilding(runtime, x, y, cutawayBuildingId));
+}
+
+export function buildingFactIds(runtime, building) {
+  const ids = [...building.interaction.factRefs];
+  for (const npc of runtime.plan.npcs) {
+    if (npc.home === building.id) ids.push(...uniqueStrings(npc.factRefs));
   }
-  if (!navigationIsConnected()) issues.push('world navigation must be one connected component');
-  for (const node of NAVIGATION_NODES) {
-    if (!insideMap(node.cellX, node.cellY) || !WALKABLE_FIELD_IDS.has(node.groundAssetId)) {
-      issues.push(`navigation node ${node.id} is not on a visible walkable field`);
+  for (const prop of runtime.plan.props) {
+    if (!prop.factRef) continue;
+    const point = tileCenter(prop.x, prop.y, runtime.tileSize);
+    if (pointInFootprint(building, point.x, point.y)) ids.push(prop.factRef);
+  }
+  return [...new Set(ids)].filter((id) => runtime.factById.has(id));
+}
+
+function factRoomFiles(fact) {
+  const params = fact?.params ?? {};
+  return uniqueStrings([
+    params.path,
+    params.source,
+    params.test,
+    params.from,
+    ...((Array.isArray(params.members) ? params.members : []))
+  ]);
+}
+
+export function residentConversationTarget(runtime, building, fact) {
+  const rooms = Array.isArray(building?.rooms) ? building.rooms : [];
+  const npcs = Array.isArray(runtime?.plan?.npcs) ? runtime.plan.npcs : [];
+  const roomByFile = new Map(rooms
+    .filter((room) => typeof room?.file === 'string' && room.file.length > 0)
+    .map((room) => [room.file, room]));
+  const exactRoom = factRoomFiles(fact).map((file) => roomByFile.get(file)).find(Boolean) ?? null;
+  const room = exactRoom
+    ?? rooms.find((candidate) => typeof candidate?.npcId === 'string' && candidate.npcId.length > 0)
+    ?? rooms[0]
+    ?? null;
+  const roomActor = typeof room?.npcId === 'string'
+    ? npcs.find((npc) => npc.id === room.npcId && npc.home === building.id) ?? null
+    : null;
+  const actor = exactRoom ? roomActor : roomActor ?? npcs.find((npc) => npc.home === building?.id) ?? null;
+  return Object.freeze({ room, actor, exactRoom: exactRoom !== null });
+}
+
+export function selectTourQuestions(facts, maximum = 3) {
+  const rank = new Map(QUESTION_PRIORITY.map((type, index) => [type, index]));
+  return [...facts]
+    .filter((fact) => fact && typeof fact.id === 'string')
+    .sort((left, right) => (rank.get(left.type) ?? 999) - (rank.get(right.type) ?? 999) || compareCodeUnits(left.id, right.id))
+    .slice(0, maximum);
+}
+
+export function selectableTourQuestions(runtime) {
+  if (!runtime?.facts || !runtime?.factById || !Array.isArray(runtime.buildings)) return [];
+  return selectTourQuestions(
+    runtime.facts.filter((fact) => factHasWitnessSite(runtime, fact.id)),
+    TOUR_WITNESS_COUNT
+  );
+}
+
+export function interactionFactId(runtime, building, selectedQuestionId = null) {
+  if (!runtime || !building) return null;
+  const factIds = buildingFactIds(runtime, building);
+  if (typeof selectedQuestionId === 'string' && factIds.includes(selectedQuestionId)) return selectedQuestionId;
+  return factIds[0] ?? null;
+}
+
+export function formatDialogueText(value, maximumColumns = 40, maximumLines = 3) {
+  const width = positiveInteger(maximumColumns) ? maximumColumns : 40;
+  const lineLimit = positiveInteger(maximumLines) ? maximumLines : 3;
+  const remaining = Array.from(String(value ?? '').trim().replace(/\s+/g, ' '));
+  const lines = [];
+  while (remaining.length > 0 && lines.length < lineLimit) {
+    const isLast = lines.length === lineLimit - 1;
+    if (isLast && remaining.length > width) {
+      lines.push(`${remaining.slice(0, Math.max(1, width - 1)).join('')}…`);
+      break;
+    }
+    let take = Math.min(width, remaining.length);
+    if (remaining.length > width && !isLast) {
+      const window = remaining.slice(0, width);
+      const preferred = window.reduce((best, character, index) => (
+        index >= Math.floor(width * 0.55) && /[。！？、」』]/.test(character) ? index + 1 : best
+      ), 0);
+      if (preferred > 0) take = preferred;
+    }
+    lines.push(remaining.splice(0, take).join('').trim());
+  }
+  return lines.filter(Boolean).join('\n');
+}
+
+function basenameLabel(value, fallback = '対象') {
+  if (typeof value !== 'string' || value.length === 0) return fallback;
+  const withoutQuery = value.split(/[?#]/, 1)[0];
+  return withoutQuery.split(/[\\/]/).filter(Boolean).at(-1) ?? fallback;
+}
+
+function factSubject(fact) {
+  const params = fact?.params ?? {};
+  if (typeof params.path === 'string') return basenameLabel(params.path);
+  if (typeof params.from === 'string') return basenameLabel(params.from);
+  if (typeof params.source === 'string') return basenameLabel(params.source);
+  if (typeof params.name === 'string') return params.name;
+  if (typeof params.kind === 'string') return ({
+    'dynamic-import': '動的な参照',
+    'static-import': '静的な参照',
+    import: '参照',
+    require: '読み込み'
+  })[params.kind] ?? '参照関係';
+  if (typeof params.facilityKind === 'string') return ({
+    town_hall: '市庁舎', gate: '街の門', dojo: '道場', inn: '宿屋',
+    house: '住居', survey_tower: '測量塔', dock: '港', guild: '会館'
+  })[params.facilityKind] ?? '街の施設';
+  return 'この対象';
+}
+
+export function describeFact(fact) {
+  if (!fact) return 'この問いの証拠は、まだ街で見つかっていません。';
+  const subject = factSubject(fact);
+  if (fact.type === 'unverified') {
+    return `${subject} は、まだ道場に通っていないだけで、壊れているとは確認されていません。`;
+  }
+  if (typeof fact.sayings?.primary === 'string'
+    && fact.sayings.primary.length > 0
+    && !/^fact\.[a-z_]+\.primary$/.test(fact.sayings.primary)
+    && !/(?:fact\.[a-z0-9_.-]+|[\\/])/.test(fact.sayings.primary)) return fact.sayings.primary;
+  const target = fact.params?.targetHint ? `から「${basenameLabel(fact.params.targetHint)}」へ` : '';
+  const members = Array.isArray(fact.params?.members)
+    ? fact.params.members.map((value) => basenameLabel(value)).join('と')
+    : subject;
+  if (fact.type === 'survey_scope') {
+    const unknown = (fact.evidence?.unknown?.length ?? 0) > 0;
+    if (fact.params?.dimension === 'repository') {
+      return unknown
+        ? 'この検査では、リポジトリ名までは確認できません。'
+        : `この街は「${fact.params?.name ?? '名称未設定'}」リポジトリの測量結果です。`;
+    }
+    if (fact.params?.dimension === 'files') {
+      return unknown
+        ? 'この検査では、街を作るファイルの総数はまだ分かりません。'
+        : `街を作るファイルを ${fact.params?.count ?? 0} 件、直接確認しました。`;
+    }
+    if (fact.params?.dimension === 'static_dependencies') {
+      return unknown
+        ? 'この検査では、ファイル同士を結ぶ静的な道の総数はまだ分かりません。'
+        : `ファイル同士を結ぶ静的な道を ${fact.params?.count ?? 0} 本、直接確認しました。`;
     }
   }
-  for (const edge of NAVIGATION_EDGES) {
-    const from = navigationNodeById(edge.from);
-    const to = navigationNodeById(edge.to);
-    if (!from || !to || Math.abs(from.cellX - to.cellX) + Math.abs(from.cellY - to.cellY) !== 1) {
-      issues.push(`navigation edge ${edge.from} -> ${edge.to} is not four-directional`);
-    }
-    if (!['walk', 'bridge', 'stairs'].includes(edge.type)) issues.push(`navigation edge ${edge.from} -> ${edge.to} has an unknown type`);
-  }
-  if (WORLD_STRUCTURES.length !== 17 || new Set(WORLD_STRUCTURES.map((entry) => entry.assetId)).size !== 17
-    || BUILDING_ASSET_IDS.some((assetId) => !WORLD_STRUCTURES.some((entry) => entry.assetId === assetId))) {
-    issues.push('world structures must use exactly all 17 approved buildings');
-  }
-  for (let index = 0; index < WORLD_STRUCTURES.length; index += 1) {
-    const building = WORLD_STRUCTURES[index];
-    if (building.width !== 256 || building.height !== 256 || building.x < 0 || building.y < 0
-      || building.x + building.width > WORLD_WIDTH || building.y + building.height > WORLD_HEIGHT) {
-      issues.push(`${building.id} violates the native 256px world contract`);
-    }
-    if (!navigationNodeById(building.entranceNodeId)) issues.push(`${building.id} entrance is not on the navigation graph`);
-    for (const other of WORLD_STRUCTURES.slice(index + 1)) {
-      if (overlapping(building, other)) issues.push(`${building.id} overlaps ${other.id}`);
-    }
-  }
-  if (Object.keys(FACILITY_ANCHORS).length !== 14) issues.push('world must expose exactly 14 facility anchors');
-  for (const anchor of Object.values(FACILITY_ANCHORS)) {
-    if (shortestNavigationPath(PLAYER_START_NODE_ID, anchor.nodeId).length === 0) {
-      issues.push(`${anchor.kind} is unreachable from the player start`);
-    }
-  }
-  for (const bridgeId of BRIDGE_FIELD_IDS) {
-    for (let y = 0; y < MAP_ROWS; y += 1) for (let x = 0; x < MAP_COLUMNS; x += 1) {
-      if (groundAssetAt(x, y) !== bridgeId) continue;
-      const crossesWater = groundAssetAt(x, y - 1) === 'field.water' && groundAssetAt(x, y + 1) === 'field.water';
-      if (!crossesWater) issues.push(`${bridgeId} at ${x},${y} does not cross the waterway`);
-    }
-  }
-  for (let y = 0; y < MAP_ROWS; y += 1) for (let x = 0; x < MAP_COLUMNS; x += 1) {
-    if (groundAssetAt(x, y) !== 'field.stairs_stone') continue;
-    const neighbors = [groundAssetAt(x - 1, y), groundAssetAt(x + 1, y), groundAssetAt(x, y - 1), groundAssetAt(x, y + 1)];
-    if (!neighbors.some((assetId) => BOUNDARY_FIELD_IDS.has(assetId))) issues.push(`stairs at ${x},${y} do not meet a cliff or wall`);
-  }
-  const dojoPath = shortestNavigationPath(PLAYER_START_NODE_ID, FACILITY_ANCHORS.dojo.nodeId);
-  const journeyTypes = dojoPath.slice(1).map((node, index) => navigationEdgeBetween(dojoPath[index].id, node.id)?.type);
-  if (!journeyTypes.includes('bridge') || !journeyTypes.includes('stairs')) {
-    issues.push('the first journey to the snow dojo must cross a bridge and stairs');
-  }
-  if (WORLD_PROPS.length < 18 || new Set(WORLD_PROPS.map((entry) => entry.assetId)).size !== 18
-    || OBJECT_ASSET_IDS.some((assetId) => !WORLD_PROPS.some((entry) => entry.assetId === assetId))) {
-    issues.push('world props must use only and at least once all 18 approved objects');
-  }
-  if (WORLD_NPCS.length !== 21 || new Set(WORLD_NPCS.map((entry) => entry.assetId)).size !== 21
-    || CHARACTER_ASSET_IDS.filter((assetId) => assetId !== 'character.player')
-      .some((assetId) => !WORLD_NPCS.some((entry) => entry.assetId === assetId))) {
-    issues.push('world NPCs must use exactly all 21 non-player characters');
-  }
-  for (const entry of [...WORLD_PROPS, ...WORLD_NPCS, ...WORLD_EFFECTS]) {
-    if (!insideMap(entry.x, entry.y)) issues.push(`${entry.assetId} is outside the world`);
-  }
-  const waterRipple = WORLD_EFFECTS.find((entry) => entry.assetId === 'effect.water_ripple');
-  const dust = WORLD_EFFECTS.find((entry) => entry.assetId === 'effect.construction_dust');
-  if (!waterRipple || groundAssetAt(waterRipple.x, waterRipple.y) !== 'field.water' || waterRipple.context !== 'water') {
-    issues.push('water ripple must animate on water');
-  }
-  if (!dust || !['repair', 'ruin'].includes(dust.context)) issues.push('construction dust must belong to repair or ruin work');
-  const usage = collectWorldAssetUsage();
-  const expectedUsage = [...BUILDING_ASSET_IDS, ...CHARACTER_ASSET_IDS, ...EFFECT_ASSET_IDS, ...FIELD_ASSET_IDS, ...OBJECT_ASSET_IDS].sort();
-  if (usage.length !== 78 || usage.some((assetId, index) => assetId !== expectedUsage[index])) {
-    issues.push('world render data must use exactly the approved 78 assets');
-  }
+  return ({
+    entrypoint: `${subject} は、検査で確認された街への入口です。`,
+    unresolved: `${subject}${target}の参照先が街の記録から見つかりません。`,
+    cycle: `${members} は互いに参照し続ける輪になっています。`,
+    test_association: `${subject}と${basenameLabel(fact.params?.test, 'テスト')}の関連が推定されています。`,
+    unreached: `${subject} へ至る道筋はまだ見つかっていません。`,
+    runtime_unknown: `${subject} の実行時の様子は、この調査だけでは分かりません。`,
+    truncation: `検査上限に達したため、一部の範囲はまだ不明です。`,
+    facility_absent: `${subject} に対応する施設は街にありません。`,
+    facility_present: `${subject} に対応する施設が街で確認されています。`
+  })[fact.type] ?? `${subject} について確かめる必要があります。`;
+}
+
+export function createTourState() {
   return Object.freeze({
-    ok: issues.length === 0,
-    issues: Object.freeze(issues),
-    usage,
-    counts: Object.freeze({
-      fields: groundIds.size,
-      structures: WORLD_STRUCTURES.length,
-      npcs: WORLD_NPCS.length + 1,
-      props: WORLD_PROPS.length,
-      effects: WORLD_EFFECTS.length,
-      navigationNodes: NAVIGATION_NODES.length,
-      navigationEdges: NAVIGATION_EDGES.length
-    })
+    version: 1,
+    status: 'need-journal',
+    journalReceived: false,
+    questionId: null,
+    witnesses: Object.freeze([]),
+    answer: null
   });
+}
+
+export function tourHasQuestionWitness(state) {
+  return typeof state?.questionId === 'string'
+    && (state.witnesses ?? []).some((entry) => entry.factIds.includes(state.questionId));
+}
+
+export function tourCanReport(state) {
+  return (state?.witnesses?.length ?? 0) >= TOUR_WITNESS_COUNT && tourHasQuestionWitness(state);
+}
+
+export function factHasWitnessSite(runtime, factId) {
+  if (!runtime?.factById?.has(factId)) return false;
+  return runtime.buildings.some((building) => {
+    const protocol = interactionProtocol(building);
+    return protocol.supported && protocol.family && protocol.family !== 'ledger'
+      && buildingFactIds(runtime, building).includes(factId);
+  });
+}
+
+export function restoreTourState(value, runtime) {
+  if (!isRecord(value) || value.version !== 1 || !runtime?.buildingById || !runtime?.factById) return createTourState();
+  const allowedStatuses = new Set(['need-journal', 'choose-question', 'investigating', 'return-town-hall', 'answer', 'complete']);
+  if (!allowedStatuses.has(value.status) || !Array.isArray(value.witnesses)
+    || value.witnesses.length > TOUR_WITNESS_COUNT) return createTourState();
+  const selectableQuestionIds = new Set(selectableTourQuestions(runtime).map((fact) => fact.id));
+  if (value.questionId !== null
+    && (typeof value.questionId !== 'string' || !selectableQuestionIds.has(value.questionId))) return createTourState();
+  const questionId = typeof value.questionId === 'string' && selectableQuestionIds.has(value.questionId)
+    ? value.questionId
+    : null;
+  const witnesses = [];
+  const seenBuildings = new Set();
+  const seenFamilies = new Set();
+  for (const entry of value.witnesses) {
+    if (!isRecord(entry) || typeof entry.buildingId !== 'string' || typeof entry.family !== 'string') return createTourState();
+    const building = runtime.buildingById.get(entry.buildingId);
+    const protocol = interactionProtocol(building);
+    if (!building || !protocol.supported || !protocol.family || protocol.family === 'ledger' || protocol.family !== entry.family) return createTourState();
+    if (seenBuildings.has(building.id) || seenFamilies.has(protocol.family)) return createTourState();
+    const factId = interactionFactId(runtime, building, questionId);
+    if (!factId || !Array.isArray(entry.factIds) || entry.factIds.length !== 1 || entry.factIds[0] !== factId) return createTourState();
+    seenBuildings.add(building.id);
+    seenFamilies.add(protocol.family);
+    witnesses.push(Object.freeze({
+      buildingId: building.id,
+      family: protocol.family,
+      factIds: Object.freeze([factId])
+    }));
+  }
+  const restored = Object.freeze({
+    version: 1,
+    status: value.status,
+    journalReceived: value.journalReceived === true,
+    questionId,
+    witnesses: Object.freeze(witnesses),
+    answer: typeof value.answer === 'boolean' ? value.answer : null
+  });
+  const empty = witnesses.length === 0 && restored.questionId === null && restored.answer === null;
+  if (restored.status === 'need-journal') return !restored.journalReceived && empty ? restored : createTourState();
+  if (restored.status === 'choose-question') return restored.journalReceived && empty ? restored : createTourState();
+  if (!restored.journalReceived || !restored.questionId) return createTourState();
+  const canReport = tourCanReport(restored);
+  if (restored.status === 'investigating') return !canReport && restored.answer === null ? restored : createTourState();
+  if (restored.status === 'return-town-hall') return canReport && restored.answer === null ? restored : createTourState();
+  if (restored.status === 'answer') return canReport && restored.answer === null ? restored : createTourState();
+  if (restored.status === 'complete') return canReport && typeof restored.answer === 'boolean' ? restored : createTourState();
+  return createTourState();
+}
+
+export function reduceTour(state, action, runtime = null) {
+  if (!isRecord(action)) return state;
+  const actionBuilding = typeof action.buildingId === 'string' ? runtime?.buildingById?.get(action.buildingId) : null;
+  if (action.type === 'receiveJournal' && state.status === 'need-journal' && isTownHallInteraction(actionBuilding)) {
+    return Object.freeze({ ...state, status: 'choose-question', journalReceived: true });
+  }
+  if (action.type === 'selectQuestion' && state.status === 'choose-question'
+    && typeof action.questionId === 'string'
+    && selectableTourQuestions(runtime).some((fact) => fact.id === action.questionId)) {
+    return Object.freeze({ ...state, status: 'investigating', questionId: action.questionId });
+  }
+  if (action.type === 'witness' && state.status === 'investigating'
+    && typeof action.buildingId === 'string'
+    && typeof action.family === 'string') {
+    const protocol = interactionProtocol(actionBuilding);
+    if (!actionBuilding || !protocol.supported || !protocol.family || protocol.family === 'ledger' || action.family !== protocol.family) return state;
+    const factId = interactionFactId(runtime, actionBuilding, state.questionId);
+    if (!factId || action.factId !== factId) return state;
+    const existingBuildingIndex = state.witnesses.findIndex((entry) => entry.buildingId === actionBuilding.id);
+    if (existingBuildingIndex >= 0) return state;
+    const existingFamilyIndex = state.witnesses.findIndex((entry) => entry.family === protocol.family);
+    const witness = Object.freeze({
+      buildingId: actionBuilding.id,
+      family: protocol.family,
+      factIds: Object.freeze([factId])
+    });
+    let nextWitnesses;
+    if (existingFamilyIndex >= 0) {
+      if (factId !== state.questionId) return state;
+      nextWitnesses = [...state.witnesses];
+      nextWitnesses[existingFamilyIndex] = witness;
+    } else {
+      nextWitnesses = [...state.witnesses, witness];
+    }
+    const witnesses = Object.freeze(nextWitnesses);
+    return Object.freeze({
+      ...state,
+      witnesses,
+      status: witnesses.length >= TOUR_WITNESS_COUNT
+        && witnesses.some((entry) => entry.factIds.includes(state.questionId))
+        ? 'return-town-hall'
+        : 'investigating'
+    });
+  }
+  if (action.type === 'report' && state.status === 'return-town-hall'
+    && isTownHallInteraction(actionBuilding) && tourCanReport(state)) {
+    return Object.freeze({ ...state, status: 'answer' });
+  }
+  if (action.type === 'answer' && state.status === 'answer' && typeof action.value === 'boolean') {
+    return Object.freeze({ ...state, status: 'complete', answer: action.value });
+  }
+  return state;
+}
+
+function firstDepthIndex(entries, minimumDepth) {
+  let low = 0;
+  let high = entries.length;
+  while (low < high) {
+    const middle = (low + high) >> 1;
+    if (entries[middle].depth < minimumDepth) low = middle + 1;
+    else high = middle;
+  }
+  return low;
+}
+
+export function visibleDepthEntries(sortedEntries, camera, maximumHeight = 0) {
+  if (!Array.isArray(sortedEntries) || !camera) return [];
+  const left = camera.sourceX;
+  const right = camera.sourceX + camera.sourceWidth;
+  const top = camera.sourceY;
+  const bottom = camera.sourceY + camera.sourceHeight;
+  const start = firstDepthIndex(sortedEntries, top - Math.max(0, maximumHeight));
+  const visible = [];
+  for (let index = start; index < sortedEntries.length; index += 1) {
+    const entry = sortedEntries[index];
+    if (entry.depth > bottom + Math.max(0, maximumHeight)) break;
+    const bounds = entry.bounds;
+    if (!bounds || bounds.x + bounds.width < left || bounds.x > right
+      || bounds.y + bounds.height < top || bounds.y > bottom) continue;
+    visible.push(entry);
+  }
+  return visible;
+}
+
+export function tourObjective(state) {
+  return ({
+    'need-journal': '市庁舎で調査手帳を受け取る',
+    'choose-question': '調べる問いをひとつ選ぶ',
+    investigating: `異なる方法で現場を調べる（${state.witnesses.length}/${TOUR_WITNESS_COUNT}）`,
+    'return-town-hall': '市庁舎へ戻って発見を報告する',
+    answer: '記録官の最後の問いに答える',
+    complete: '最初の調査は完了しました。街を自由に歩けます'
+  })[state.status] ?? '街を調べる';
+}
+
+export function progressStorageKey(repositoryName, inspectionDigest) {
+  const repository = typeof repositoryName === 'string' && repositoryName.length > 0 ? repositoryName : 'unknown-repository';
+  const digest = typeof inspectionDigest === 'string' && inspectionDigest.length > 0 ? inspectionDigest : 'unknown-inspection';
+  return `fable5:tour:v1:${encodeURIComponent(repository)}:${encodeURIComponent(digest)}`;
 }
