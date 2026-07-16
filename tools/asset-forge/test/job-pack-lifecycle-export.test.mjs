@@ -1,19 +1,33 @@
 import assert from 'node:assert/strict';
-import { access, cp, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { access, cp, mkdir, mkdtemp as fsMkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import test from 'node:test';
+import test, { after } from 'node:test';
 import { FORGE_ROOT, pathsFor } from '../src/config.mjs';
 import { exportApproved } from '../src/export/export-approved.mjs';
 import { withFileLock } from '../src/fs-safe.mjs';
 import { sha256 } from '../src/hashing.mjs';
 import { auditTransparentPng } from '../src/images/audit-alpha.mjs';
 import { buildJob } from '../src/jobs/build-job.mjs';
-import { promotionPreview, promoteCandidate, rejectCandidate } from '../src/jobs/lifecycle.mjs';
+import {
+  promotionPreviewInternal as promotionPreview,
+  promoteCandidateInternal as promoteCandidate,
+  rejectCandidate
+} from '../src/jobs/lifecycle.mjs';
 import { runJob } from '../src/jobs/run-job.mjs';
 import { validateWith } from '../src/schemas.mjs';
 import { writeJobPack } from '../src/jobs/write-job-pack.mjs';
 import { createMockPng } from '../src/providers/mock-provider.mjs';
+
+const TEMP_ROOTS = new Set();
+async function mkdtemp(prefix) {
+  const root = await fsMkdtemp(prefix);
+  TEMP_ROOTS.add(root);
+  return root;
+}
+after(async () => {
+  await Promise.all([...TEMP_ROOTS].map((root) => rm(root, { recursive: true, force: true })));
+});
 
 async function forgeInputsWithReference() {
   const root = await mkdtemp(path.join(os.tmpdir(), 'forge-pack-inputs-'));
@@ -169,7 +183,7 @@ test('reject copies a pending candidate without changing approved state; promote
   const preview = await promotionPreview({ generationId: generated.result.id }, { root });
   assert.equal(preview.sourceSha256, generated.result.outputSha256);
   await assert.rejects(() => promoteCandidate({
-    generationId: generated.result.id, reviewer: 'human', note: 'looks good', write: true,
+    generationId: generated.result.id, reviewer: 'automation', note: 'looks good', write: true,
     confirmed: true,
     expectedSourceSha256: preview.sourceSha256,
     expectedApprovedPath: preview.approvedPath

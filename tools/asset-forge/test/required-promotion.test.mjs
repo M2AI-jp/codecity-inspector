@@ -10,7 +10,8 @@ import {
   beginRequiredPromotion,
   buildRequiredPromotionPlan,
   canonicalRequiredPlan,
-  executeRequiredPromotion,
+  executeRequiredPromotion as executeRequiredPromotionPublic,
+  executeRequiredPromotionInternal as executeRequiredPromotion,
   isExactRequiredPromotionAnswer,
   requiredPromotionNote,
   requiredPromotionPhrase,
@@ -110,9 +111,30 @@ test('non-TTY required promotion refuses before preflight and leaves its temp ro
       root,
       planBuilder: async () => { planned = true; throw new Error('must not run'); }
     }),
-    /stdin and stdout.*interactive TTYs/
+    /does not accept streams, roots, clocks, or dependency overrides/
   );
   assert.equal(planned, false);
+  const descriptors = [process.stdin, process.stdout]
+    .map((stream) => Object.getOwnPropertyDescriptor(stream, 'isTTY'));
+  try {
+    Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true });
+    Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true });
+    await assert.rejects(
+      () => beginRequiredPromotion(),
+      /real interactive TTYs/
+    );
+  } finally {
+    for (const [index, stream] of [process.stdin, process.stdout].entries()) {
+      if (descriptors[index]) Object.defineProperty(stream, 'isTTY', descriptors[index]);
+      else delete stream.isTTY;
+    }
+  }
+  await assert.rejects(
+    () => executeRequiredPromotionPublic(syntheticPreflight(), requiredPromotionPhrase(
+      canonicalRequiredPlan(syntheticPlan()).digest
+    ), { promoter: async () => ({ status: 'approved' }) }),
+    /does not accept roots, clocks, promoters, or dependency overrides/
+  );
   assert.equal(await readFile(path.join(root, 'sentinel.txt'), 'utf8'), 'unchanged');
 });
 
@@ -137,6 +159,20 @@ test('required selection rejects count, missing, duplicate, and wrong states wit
   const categoryMismatch = structuredClone(generations);
   categoryMismatch[0].category = 'object';
   assert.throws(() => selectRequiredGenerations(definitions, categoryMismatch), /category mismatches/);
+  for (const marker of [
+    { requiredSetId: 'fable5-v2' },
+    { waveId: 'A' },
+    { visualContractVersion: 2 },
+    { productionRecipesV2: [] },
+    { unitAssemblyV2: {} }
+  ]) {
+    const waveA = structuredClone(generations);
+    Object.assign(waveA[0], marker);
+    assert.throws(
+      () => selectRequiredGenerations(definitions, waveA),
+      /rejects Fable5 VisualAssetContract v2 \/ Wave A/
+    );
+  }
   const withOptional = [
     ...generations,
     { id: 'gen_optional', assetId: 'field.optional', category: 'field', status: 'pending' }

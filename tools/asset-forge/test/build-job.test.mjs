@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { cp, mkdir, mkdtemp, readFile, rename, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -8,8 +8,9 @@ import { sha256 } from '../src/hashing.mjs';
 import { buildJob } from '../src/jobs/build-job.mjs';
 import { createMockPng } from '../src/providers/mock-provider.mjs';
 
-async function forgeFixture() {
+async function forgeFixture(t) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'forge-job-inputs-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
   await cp(path.join(FORGE_ROOT, 'data'), path.join(root, 'data'), { recursive: true });
   await cp(path.join(FORGE_ROOT, 'prompts'), path.join(root, 'prompts'), { recursive: true });
   await cp(path.join(FORGE_ROOT, 'references'), path.join(root, 'references'), { recursive: true });
@@ -31,8 +32,8 @@ async function replaceWorldReference(root, marker) {
   return { bytes, hash: sha256(bytes), manifestPath, absolutePath };
 }
 
-test('job provenance includes seed, prompt, world reference hash, and output contract', async () => {
-  const forgeRoot = await forgeFixture();
+test('job provenance includes seed, prompt, world reference hash, and output contract', async (t) => {
+  const forgeRoot = await forgeFixture(t);
   const reference = await replaceWorldReference(forgeRoot, 'one');
   const first = await buildJob({ assetId: 'character.player', provider: 'mock', seed: 'one' }, { forgeRoot });
   assert.deepEqual(first.job.referenceImageIds, ['world_visual_master', 'character_visual_master']);
@@ -56,8 +57,8 @@ test('job provenance includes seed, prompt, world reference hash, and output con
   assert.notEqual(referenceChange.job.provenanceKey, first.job.provenanceKey);
 });
 
-test('required jobs reject pending references even when the pending escape hatch is requested', async () => {
-  const forgeRoot = await forgeFixture();
+test('required jobs reject pending references even when the pending escape hatch is requested', async (t) => {
+  const forgeRoot = await forgeFixture(t);
   const manifestPath = path.join(forgeRoot, 'data', 'manifests', 'references.json');
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
   const reference = manifest.references.find((entry) => entry.id === 'character_visual_master');

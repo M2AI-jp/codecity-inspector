@@ -8,6 +8,8 @@
     "assetId", "sourcePath", "frameWidth", "frameHeight", "columns", "rows", "frames"
   ],
   "properties": {
+    "visualContractVersion": { "enum": [1, 2] },
+    "layout": { "enum": ["legacy", "character-4x10", "terrain-blob16"] },
     "assetId": { "type": "string", "minLength": 1 },
     "sourcePath": { "type": "string", "minLength": 1 },
     "frameWidth": { "type": "integer", "minimum": 1 },
@@ -33,5 +35,53 @@
         }
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "visualContractVersion": { "const": 2 } },
+        "required": ["visualContractVersion"]
+      },
+      "then": {
+        "required": ["layout"],
+        "properties": { "layout": { "enum": ["character-4x10", "terrain-blob16"] } }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "visualContractVersion": { "const": 2 },
+          "layout": { "const": "character-4x10" }
+        },
+        "required": ["visualContractVersion", "layout"]
+      },
+      "then": {
+        "properties": {
+          "frameWidth": { "const": 48 },
+          "frameHeight": { "const": 96 },
+          "columns": { "const": 10 },
+          "rows": { "const": 4 },
+          "frames": { "type": "array", "minItems": 40, "maxItems": 40 }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "visualContractVersion": { "const": 2 },
+          "layout": { "const": "terrain-blob16" }
+        },
+        "required": ["visualContractVersion", "layout"]
+      },
+      "then": {
+        "properties": {
+          "frameWidth": { "const": 64 },
+          "frameHeight": { "const": 64 },
+          "columns": { "const": 5 },
+          "rows": { "const": 5 },
+          "frames": { "type": "array", "minItems": 25, "maxItems": 25 }
+        }
+      }
+    }
+  ]
 }

@@ -22,10 +22,10 @@
         "properties": {
           "assetId": { "type": "string", "minLength": 1 },
           "supersededGenerationId": { "type": "string", "minLength": 1 },
-          "supersededApprovedPath": { "type": "string", "pattern": "^generated/(characters|buildings|fields|objects|ui|effects)/approved/[a-z0-9_-]+\\.png$" },
+          "supersededApprovedPath": { "type": "string", "pattern": "^generated/(characters|buildings|fields|objects|ui|effects|terrains|overlays|structures|interiors|props)/approved/[a-z0-9_-]+\\.png$" },
           "supersededApprovedSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
           "replacementGenerationId": { "type": "string", "minLength": 1 },
-          "replacementApprovedPath": { "type": "string", "pattern": "^generated/(characters|buildings|fields|objects|ui|effects)/approved/[a-z0-9_-]+\\.png$" },
+          "replacementApprovedPath": { "type": "string", "pattern": "^generated/(characters|buildings|fields|objects|ui|effects|terrains|overlays|structures|interiors|props)/approved/[a-z0-9_-]+\\.png$" },
           "replacementApprovedSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
           "reviewer": { "const": "human" },
           "note": { "type": "string", "minLength": 1 },
@@ -50,10 +50,10 @@
           "approvedAt": { "type": "string", "format": "date-time" },
           "sourcePath": {
             "type": "string",
-            "pattern": "^(generated|processed)/(characters|buildings|fields|objects|ui|effects)/pending/[a-z0-9_-]+\\.png$"
+            "pattern": "^(generated|processed)/(characters|buildings|fields|objects|ui|effects|terrains|overlays|structures|interiors|props)/pending/[a-z0-9_-]+\\.png$"
           },
           "sourceSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
-          "approvedPath": { "type": "string", "pattern": "^generated/(characters|buildings|fields|objects|ui|effects)/approved/[a-z0-9_-]+\\.png$" },
+          "approvedPath": { "type": "string", "pattern": "^generated/(characters|buildings|fields|objects|ui|effects|terrains|overlays|structures|interiors|props)/approved/[a-z0-9_-]+\\.png$" },
           "approvedSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
         }
       }

@@ -3,6 +3,7 @@ import { pathToFileURL } from 'node:url';
 import path from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import { FORGE_ROOT } from './config.mjs';
+import { assertCanonicalInteractiveTerminal } from './human-write-gate.mjs';
 import { exportApproved } from './export/export-approved.mjs';
 import { batchRun } from './jobs/batch-run.mjs';
 import { readAssetDefinitions } from './jobs/define-assets.mjs';
@@ -20,6 +21,16 @@ import { runJob } from './jobs/run-job.mjs';
 import { writeJobPack } from './jobs/write-job-pack.mjs';
 import { compiledSchemaNames } from './schemas.mjs';
 import { validateRepository } from './validate.mjs';
+import { importWaveARequest, listWaveAAssets, makeWaveAJob } from './v2/operator.mjs';
+import {
+  parseV3WaveIds,
+  runV3Export
+} from './v3/operator.mjs';
+import {
+  executeWaveAApproval,
+  formatWaveAApprovalPreview,
+  previewWaveAApproval
+} from './v3/wave-operator.mjs';
 
 const BOOLEAN_FLAGS = new Set([
   'dry-run', 'yes-subscription', 'allow-pending-reference', 'write', 'trim', 'materialize-source'
@@ -27,6 +38,11 @@ const BOOLEAN_FLAGS = new Set([
 
 function optionName(flag) {
   return flag.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+}
+
+function requireOnlyOptions(command, options, allowed) {
+  const unexpected = Object.keys(options).filter((key) => !allowed.includes(key));
+  if (unexpected.length) throw new Error(`${command} does not accept option: --${unexpected[0]}`);
 }
 
 export function parseArgs(argv) {
@@ -87,6 +103,21 @@ async function operatorImport(options) {
 
 export async function main(argv = process.argv.slice(2)) {
   const { command, options } = parseArgs(argv);
+  if (command === 'help') {
+    requireOnlyOptions(command, options, []);
+    return {
+      purpose: 'Asset Forge prepares and audits local game assets without executing inspected repository code.',
+      phase: 'Phase 0-C approval and provenance infrastructure; this does not generate or approve Wave A assets.',
+      commands: [
+        'make-job-v2 --asset <wave-a-asset-id> [--seed <seed>]',
+        'import-v2 --recipe review/import-requests/v2/<request>.json',
+        'list-v2',
+        'approve-wave-a --note <human-review-note>  (interactive TTY; one exact 109-asset bulk ceremony)',
+        'export-v3 --waves A [--write]'
+      ],
+      authority: 'Wave A has no per-asset approval command; only a committed bulk wave approval authorizes export.'
+    };
+  }
   if (command === 'validate') return validateRepository();
   if (command === 'list') {
     return { assets: (await readAssetDefinitions()).map(({ id, category, displayName }) => ({ id, category, displayName })) };
@@ -128,7 +159,21 @@ export async function main(argv = process.argv.slice(2)) {
     });
   }
   if (command === 'make-job') return writeJobPack(generationOptions({ ...options, provider: 'job-pack' }));
+  if (command === 'make-job-v2') {
+    requireOnlyOptions(command, options, ['asset', 'seed']);
+    if (!options.asset) throw new Error('--asset is required');
+    return makeWaveAJob({ assetId: options.asset, seed: options.seed ?? '' });
+  }
   if (command === 'import') return operatorImport(options);
+  if (command === 'import-v2') {
+    requireOnlyOptions(command, options, ['recipe']);
+    if (!options.recipe) throw new Error('--recipe is required');
+    return importWaveARequest({ requestPath: options.recipe });
+  }
+  if (command === 'list-v2') {
+    requireOnlyOptions(command, options, []);
+    return { assets: await listWaveAAssets() };
+  }
   if (command === 'persist-source') {
     if (!options.generation) throw new Error('--generation is required');
     return materializeProductionSourceSnapshot({ generationId: options.generation });
@@ -146,12 +191,26 @@ export async function main(argv = process.argv.slice(2)) {
     if (!options.generation) throw new Error('--generation is required');
     return rejectCandidate({ generationId: options.generation, reason: options.reason });
   }
+  if (command === 'approve-wave-a') {
+    requireOnlyOptions(command, options, ['note']);
+    assertCanonicalInteractiveTerminal('Wave A bulk approval');
+    if (!options.note) throw new Error('--note is required');
+    const preview = await previewWaveAApproval({ note: options.note });
+    process.stdout.write(formatWaveAApprovalPreview(preview));
+    if (preview.status === 'already-approved') return preview;
+    const terminal = createInterface({ input: process.stdin, output: process.stdout });
+    let answer;
+    try {
+      answer = await terminal.question('Type the exact confirmation above: ');
+    } finally {
+      terminal.close();
+    }
+    return executeWaveAApproval(preview, answer);
+  }
   if (command === 'promote-required') {
     if (Object.keys(options).length !== 0) throw new Error('promote-required does not accept flags or options');
-    if (!(process.stdin.isTTY && process.stdout.isTTY)) {
-      throw new Error('Required promotion requires stdin and stdout to both be interactive TTYs');
-    }
-    const preflight = await beginRequiredPromotion({ input: process.stdin, output: process.stdout });
+    assertCanonicalInteractiveTerminal('Required promotion');
+    const preflight = await beginRequiredPromotion();
     process.stdout.write(formatRequiredPromotionPlan(preflight));
     const terminal = createInterface({ input: process.stdin, output: process.stdout });
     let answer;
@@ -166,22 +225,18 @@ export async function main(argv = process.argv.slice(2)) {
     if (!options.generation) throw new Error('--generation is required');
     const preview = await promotionPreview({
       generationId: options.generation,
-      supersedesGenerationId: options.supersedes
+      supersedesGenerationId: options.supersedes,
+      note: options.note
     });
-    if (!process.stdin.isTTY || !process.stdout.isTTY) throw new Error('Promotion requires an interactive TTY');
+    assertCanonicalInteractiveTerminal('Promotion');
     process.stdout.write(`${JSON.stringify(preview, null, 2)}\n`);
     const terminal = createInterface({ input: process.stdin, output: process.stdout });
-    const answer = await terminal.question('Type APPROVE to confirm this exact hash: ');
+    const answer = await terminal.question('Type the exact confirmation phrase shown above: ');
     terminal.close();
     return promoteCandidate({
-      generationId: options.generation,
-      reviewer: options.reviewer,
-      note: options.note,
-      write: Boolean(options.write),
-      confirmed: answer === 'APPROVE',
-      expectedSourceSha256: preview.sourceSha256,
-      expectedApprovedPath: preview.approvedPath,
-      supersedesGenerationId: options.supersedes
+      preview,
+      answer,
+      write: Boolean(options.write)
     });
   }
   if (command === 'export') {
@@ -189,6 +244,14 @@ export async function main(argv = process.argv.slice(2)) {
     return exportApproved({
       write: Boolean(options.write),
       publicRoot: path.resolve(FORGE_ROOT, '..', '..', 'public')
+    });
+  }
+  if (command === 'export-v3') {
+    requireOnlyOptions(command, options, ['waves', 'write']);
+    const waveIds = parseV3WaveIds(options.waves);
+    return runV3Export({
+      waveIds,
+      write: Boolean(options.write)
     });
   }
   throw new Error(`Unknown command: ${command}`);

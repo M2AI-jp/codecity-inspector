@@ -1,13 +1,22 @@
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { FORGE_ROOT, pathsFor } from './config.mjs';
-import { hashFile, sha256 } from './hashing.mjs';
+import { canonicalJson, hashFile, sha256 } from './hashing.mjs';
 import { auditTransparentPng } from './images/audit-alpha.mjs';
 import { readExternalImage } from './images/inspect-image.mjs';
+import {
+  auditBuildingBundleV2,
+  auditVisualAssetV2,
+  visualContractV2Problems
+} from './images/visual-contract-v2.mjs';
 import { assertExistingFileWithin, assertExistingPendingCandidate, assertExistingStateFile } from './paths.mjs';
 import { inspectPng } from './png-core.mjs';
 import { validateWith } from './schemas.mjs';
 import { outputContractFor } from './jobs/build-job.mjs';
+import { readWaveADefinitions } from './v2/definition-builder.mjs';
+import { inspectWaveAReferenceAuthorization } from './v2/reference-authorization.mjs';
+import { assertBundleLedger } from './v3/bundle-ledger.mjs';
+import { readBundleLedger } from './v3/persistence.mjs';
 
 async function loadJson(filePath, issues, label = path.basename(filePath)) {
   try {
@@ -333,6 +342,54 @@ export async function inspectGenerationOutput(root, generation, {
       }
     }
     const alphaAudit = await auditTransparentPng(bytes);
+    if (definition?.visualContractVersion === 2) {
+      if (definition.category === 'building') {
+        const artifacts = generation.outputArtifacts ?? [];
+        if (artifacts.length !== 2 || artifacts[0]?.role !== 'base' || artifacts[1]?.role !== 'roof') {
+          throw new Error('v2 layered building generation is missing its ordered base/roof artifact bundle');
+        }
+        const auditedArtifacts = [];
+        for (const artifact of artifacts) {
+          const artifactPath = await assertExistingFileWithin(root, artifact.path);
+          const artifactBytes = await readFile(artifactPath);
+          const artifactInspection = inspectPng(artifactBytes);
+          if (sha256(artifactBytes) !== artifact.sha256
+            || OUTPUT_INSPECTION_KEYS.some((key) => artifactInspection[key] !== artifact.inspection?.[key])) {
+            throw new Error(`v2 layered building ${artifact.role} artifact integrity failed`);
+          }
+          auditedArtifacts.push({ role: artifact.role, bytes: artifactBytes });
+        }
+        if (generation.outputPath !== artifacts[0].path || generation.outputSha256 !== artifacts[0].sha256) {
+          throw new Error('v2 layered building primary pointer must identify its base artifact');
+        }
+        const bundleAudit = await auditBuildingBundleV2(auditedArtifacts, definition, {
+          sourceArtifacts: auditedArtifacts
+        });
+        if (!bundleAudit.ok) throw new Error(`v2 layered building technical gates failed: ${bundleAudit.problems.join('; ')}`);
+      } else {
+        const contractAudit = await auditVisualAssetV2(bytes, definition, { verifyResize: false });
+        if (!contractAudit.ok) throw new Error(`v2 technical gates failed: ${contractAudit.problems.join('; ')}`);
+        if (!generation.processedFromGenerationId || !generation.technicalInspection) {
+          throw new Error('v2 generation has not passed the required process technical-gate step');
+        }
+        const recorded = generation.technicalInspection;
+        const observed = contractAudit.technicalInspection;
+        if (recorded.visualContractVersion !== 2
+          || !sameRect(recorded.alpha?.subjectBbox, observed.alpha.subjectBbox)
+          || recorded.alpha?.partialAlphaPixels !== observed.alpha.partialAlphaPixels
+          || recorded.alpha?.borderVisiblePixels !== observed.alpha.borderVisiblePixels
+          || !sameValues(recorded.exactSeams?.checkedTileIndices, observed.exactSeams.checkedTileIndices)
+          || recorded.exactSeams?.mismatchCount !== 0
+          || recorded.resize?.kernel !== 'nearest'
+          || recorded.resize?.enlarged !== false
+          || recorded.resize?.output?.width !== actual.width
+          || recorded.resize?.output?.height !== actual.height
+          || recorded.resize?.source?.width < actual.width
+          || recorded.resize?.source?.height < actual.height) {
+          throw new Error('v2 technical inspection record does not match recomputed output gates');
+        }
+      }
+    }
     return { problem: null, bytes, inspection: actual, alphaAudit };
   } catch (error) {
     return { problem: `generation output integrity failed: ${error.message}` };
@@ -385,6 +442,16 @@ export async function productionRecipeProblem(root, generation, {
   if (recipe.canvas?.width !== generation.outputInspection?.width
     || recipe.canvas?.height !== generation.outputInspection?.height) {
     return 'recipe canvas does not match output inspection';
+  }
+  if (definition?.visualContractVersion === 2) {
+    if (recipe.backgroundRemoval?.cleanup?.resizeKernel !== 'nearest'
+      || recipe.spriteContract?.resizeKernel && recipe.spriteContract.resizeKernel !== 'nearest'
+      || recipe.effectContract?.resizeKernel && recipe.effectContract.resizeKernel !== 'nearest') {
+      return 'v2 production recipe is not nearest-resize-only';
+    }
+    if (recipe.source?.width < recipe.canvas.width || recipe.source?.height < recipe.canvas.height) {
+      return 'v2 production recipe would enlarge its source';
+    }
   }
   const bbox = recipe.subjectBbox;
   if (!bbox || bbox.x + bbox.width > recipe.canvas.width || bbox.y + bbox.height > recipe.canvas.height
@@ -458,11 +525,66 @@ export async function validateRepository({ root = FORGE_ROOT } = {}) {
   const assets = catalogs.flatMap((catalog) => catalog.assets ?? []);
   const ids = assets.map((asset) => asset.id);
   const assetIds = new Set(ids);
+  let waveADefinitions = [];
+  let waveAReferenceAuthorization = null;
+  let bundleLedger = null;
+  let hasFable5V2 = false;
+  try {
+    await readFile(path.join(root, 'data', 'v2', 'waves.json'));
+    hasFable5V2 = true;
+  } catch (error) {
+    if (error?.code !== 'ENOENT') {
+      issues.push({ code: 'READ_FAILED', path: 'data/v2/waves.json', message: error.message });
+    }
+  }
+  if (hasFable5V2) {
+    try {
+      waveADefinitions = await readWaveADefinitions({ root });
+      if (waveADefinitions.length !== 109) throw new Error(`expected 109 definitions, found ${waveADefinitions.length}`);
+      for (const definition of waveADefinitions) {
+        for (const prompt of definition.promptFiles) {
+          if (!prompt.startsWith('prompts/')) throw new Error(`unsafe prompt path for ${definition.id}: ${prompt}`);
+          await assertExistingFileWithin(paths.prompts, prompt.slice('prompts/'.length));
+        }
+      }
+    } catch (error) {
+      issues.push({ code: 'INVALID_FABLE5_WAVE_A_DEFINITIONS', message: error.message });
+    }
+    try {
+      waveAReferenceAuthorization = await inspectWaveAReferenceAuthorization({ root });
+      if (!waveAReferenceAuthorization.ok) {
+        issues.push({
+          code: 'FABLE5_WAVE_A_REFERENCE_AUTHORIZATION_NOT_READY',
+          status: waveAReferenceAuthorization.status,
+          problems: waveAReferenceAuthorization.problems
+        });
+      }
+    } catch (error) {
+      issues.push({ code: 'INVALID_FABLE5_WAVE_A_REFERENCE_AUTHORIZATION', message: error.message });
+    }
+    try {
+      bundleLedger = await readBundleLedger({ root });
+      const inspection = assertBundleLedger(bundleLedger);
+      const currentById = new Map(waveADefinitions.map((definition) => [definition.id, definition]));
+      for (const [assetId, approval] of inspection.activeByAsset) {
+        const definition = currentById.get(assetId);
+        if (!definition) throw new Error(`v3 ledger contains an asset outside current Wave A: ${assetId}`);
+        if (approval.definitionSha256 !== sha256(canonicalJson(definition))) {
+          throw new Error(`v3 ledger definition hash is stale: ${assetId}`);
+        }
+      }
+    } catch (error) {
+      issues.push({ code: 'INVALID_FABLE5_V3_BUNDLE_LEDGER', message: error.message });
+    }
+  }
   for (const id of duplicateValues(ids)) issues.push({ code: 'DUPLICATE_ID', id });
   for (const catalog of catalogs) {
     for (const asset of catalog.assets ?? []) {
       if (asset.category !== catalog.category || !asset.id?.startsWith(`${catalog.category}.`)) {
         issues.push({ code: 'CATEGORY_MISMATCH', id: asset.id, catalogCategory: catalog.category, assetCategory: asset.category });
+      }
+      for (const message of visualContractV2Problems(asset)) {
+        issues.push({ code: 'INVALID_VISUAL_CONTRACT_V2', id: asset.id, message });
       }
       for (const prompt of asset.promptFiles ?? []) {
         try {
@@ -691,11 +813,24 @@ export async function validateRepository({ root = FORGE_ROOT } = {}) {
       });
     }
   }
+  const waveADefinitionById = new Map(waveADefinitions.map((definition) => [definition.id, definition]));
   for (const generation of localGenerations?.results ?? []) {
-    const definition = definitionById.get(generation.assetId);
+    const isFable5V2Generation = generation.requiredSetId === 'fable5-v2';
+    const definition = isFable5V2Generation
+      ? waveADefinitionById.get(generation.assetId)
+      : definitionById.get(generation.assetId);
     if (!definition) {
       issues.push({ code: 'UNKNOWN_GENERATION_ASSET', generationId: generation.id, assetId: generation.assetId });
       continue;
+    }
+    if (isFable5V2Generation && (generation.visualContractVersion !== 2
+      || generation.waveId !== 'A'
+      || generation.definitionSha256 !== sha256(canonicalJson(definition)))) {
+      issues.push({
+        code: 'STALE_OR_MISROUTED_FABLE5_GENERATION',
+        generationId: generation.id,
+        assetId: generation.assetId
+      });
     }
     const historical = supersededGenerationIds.has(generation.id);
     const problem = historical

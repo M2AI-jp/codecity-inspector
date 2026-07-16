@@ -1,0 +1,280 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://codecity-inspector.local/asset-forge/generation-job-v2.schema.json",
+  "title": "Fable5WaveAGenerationJob",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "requiredSetId", "waveId", "visualContractVersion",
+    "id", "assetId", "category", "provider", "seed", "assetDefinition",
+    "assetDefinitionSha256", "definitionSha256", "promptText", "promptSha256",
+    "promptFiles", "referenceAuthorizationSha256", "independentReviewSha256",
+    "referenceImages", "artifactContracts", "generationMode", "generationUnits",
+    "generationUnitSetSha256", "generationExpectations", "identityMasterPlan", "technicalGates",
+    "provenanceKey", "createdBy"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 2 },
+    "requiredSetId": { "const": "fable5-v2" },
+    "waveId": { "const": "A" },
+    "visualContractVersion": { "const": 2 },
+    "id": { "type": "string", "pattern": "^job_v2_[a-f0-9]{20}$" },
+    "assetId": {
+      "type": "string",
+      "pattern": "^(character|building|terrain|overlay|structure|interior|prop|ui|effect)\\.[a-z0-9_]+(?:\\.[a-z0-9_]+)*$"
+    },
+    "category": {
+      "enum": ["character", "building", "terrain", "overlay", "structure", "interior", "prop", "ui", "effect"]
+    },
+    "provider": { "const": "job-pack" },
+    "seed": { "type": "string" },
+    "assetDefinition": { "$ref": "asset-definition.schema.json" },
+    "assetDefinitionSha256": { "$ref": "#/definitions/sha256" },
+    "definitionSha256": { "$ref": "#/definitions/sha256" },
+    "promptText": { "type": "string", "minLength": 1 },
+    "promptSha256": { "$ref": "#/definitions/sha256" },
+    "promptFiles": {
+      "type": "array",
+      "minItems": 3,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^prompts/v2/[a-z0-9_/-]+\\.md$" }
+    },
+    "referenceAuthorizationSha256": { "$ref": "#/definitions/sha256" },
+    "independentReviewSha256": { "$ref": "#/definitions/sha256" },
+    "referenceImages": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": [
+        { "$ref": "#/definitions/globalReference" },
+        { "$ref": "#/definitions/subjectReference" }
+      ],
+      "additionalItems": false
+    },
+    "artifactContracts": {
+      "oneOf": [
+        {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "items": [
+            {
+              "allOf": [
+                { "$ref": "#/definitions/artifactContract" },
+                { "type": "object", "properties": { "role": { "const": "primary" } } }
+              ]
+            }
+          ],
+          "additionalItems": false
+        },
+        {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": [
+            {
+              "allOf": [
+                { "$ref": "#/definitions/artifactContract" },
+                { "type": "object", "properties": { "role": { "const": "base" } } }
+              ]
+            },
+            {
+              "allOf": [
+                { "$ref": "#/definitions/artifactContract" },
+                { "type": "object", "properties": { "role": { "const": "roof" } } }
+              ]
+            }
+          ],
+          "additionalItems": false
+        }
+      ]
+    },
+    "generationMode": { "enum": ["per-unit", "monolithic-atlas"] },
+    "generationUnits": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": { "$ref": "generation-unit-v2.schema.json" }
+    },
+    "generationUnitSetSha256": { "$ref": "#/definitions/sha256" },
+    "generationExpectations": { "$ref": "#/definitions/expectations" },
+    "identityMasterPlan": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "identity-master-plan-v2.schema.json" }
+      ]
+    },
+    "technicalGates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["inspectionGates", "inputPolicy"],
+      "properties": {
+        "inspectionGates": { "type": "object" },
+        "inputPolicy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "format", "nativeOutputSize", "resizeKernel", "allowEnlargement", "allowImportMutation",
+            "expectedGenerator",
+            "chromaKeyColor", "chromaKeyTolerance", "hardAlphaThreshold",
+            "hiddenRgbPolicy", "transparentUnitPolicy", "assemblyKernel"
+          ],
+          "properties": {
+            "format": { "const": "png" },
+            "nativeOutputSize": { "const": true },
+            "resizeKernel": { "const": "nearest" },
+            "allowEnlargement": { "const": false },
+            "allowImportMutation": { "const": false },
+            "expectedGenerator": { "const": "codex-imagegen-built-in" },
+            "chromaKeyColor": { "const": "#FF00FF" },
+            "chromaKeyTolerance": { "const": 0 },
+            "hardAlphaThreshold": { "const": 127 },
+            "hiddenRgbPolicy": { "const": "zero" },
+            "transparentUnitPolicy": { "const": "zero-rgba" },
+            "assemblyKernel": { "const": "raw-copy" }
+          }
+        }
+      }
+    },
+    "provenanceKey": { "$ref": "#/definitions/sha256" },
+    "createdBy": { "const": "codex" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "category": { "const": "building" } }, "required": ["category"] },
+      "then": {
+        "properties": {
+          "artifactContracts": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": [
+              { "type": "object", "properties": { "role": { "const": "base" } }, "required": ["role"] },
+              { "type": "object", "properties": { "role": { "const": "roof" } }, "required": ["role"] }
+            ],
+            "additionalItems": false
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "artifactContracts": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 1,
+            "items": [
+              { "type": "object", "properties": { "role": { "const": "primary" } }, "required": ["role"] }
+            ],
+            "additionalItems": false
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "category": { "const": "character" } }, "required": ["category"] },
+      "then": {
+        "properties": {
+          "identityMasterPlan": { "$ref": "identity-master-plan-v2.schema.json" },
+          "generationUnits": {
+            "type": "array", "minItems": 40, "maxItems": 40,
+            "items": {
+              "allOf": [
+                { "$ref": "generation-unit-v2.schema.json" },
+                {
+                  "type": "object",
+                  "properties": { "direction": {}, "consistencyPlanId": {} },
+                  "required": ["direction", "consistencyPlanId"]
+                }
+              ]
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "identityMasterPlan": { "type": "null" },
+          "generationUnits": {
+            "type": "array", "minItems": 1, "maxItems": 100,
+            "items": {
+              "allOf": [
+                { "$ref": "generation-unit-v2.schema.json" },
+                {
+                  "not": {
+                    "type": "object",
+                    "properties": { "consistencyPlanId": {} },
+                    "required": ["consistencyPlanId"]
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "expectations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["expected-nonempty", "semantic-transparent", "reserved-transparent"],
+      "properties": {
+        "expected-nonempty": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "semantic-transparent": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "reserved-transparent": { "type": "integer", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "positiveSize": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["width", "height"],
+      "properties": {
+        "width": { "type": "integer", "minimum": 1, "maximum": 8192 },
+        "height": { "type": "integer", "minimum": 1, "maximum": 8192 }
+      }
+    },
+    "point": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y"],
+      "properties": {
+        "x": { "type": "integer", "minimum": 0, "maximum": 8192 },
+        "y": { "type": "integer", "minimum": 0, "maximum": 8192 }
+      }
+    },
+    "artifactContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "fileSuffix", "outputSize", "anchor"],
+      "properties": {
+        "role": { "enum": ["primary", "base", "roof"] },
+        "fileSuffix": { "enum": [".png", ".base.png", ".roof.png"] },
+        "outputSize": { "$ref": "#/definitions/positiveSize" },
+        "anchor": { "$ref": "#/definitions/point" }
+      }
+    },
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "sha256", "role", "extension"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "sha256": { "$ref": "#/definitions/sha256" },
+        "role": { "enum": ["global-style", "primary-subject"] },
+        "extension": { "enum": ["png", "jpg", "jpeg", "webp"] }
+      }
+    },
+    "globalReference": {
+      "allOf": [
+        { "$ref": "#/definitions/reference" },
+        { "type": "object", "properties": { "role": { "const": "global-style" } } }
+      ]
+    },
+    "subjectReference": {
+      "allOf": [
+        { "$ref": "#/definitions/reference" },
+        { "type": "object", "properties": { "role": { "const": "primary-subject" } } }
+      ]
+    }
+  }
+}

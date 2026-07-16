@@ -10,15 +10,26 @@
     "subscriptionRun", "manualImport", "warnings", "createdAt", "inspection"
   ],
   "properties": {
+    "visualContractVersion": { "enum": [1, 2] },
+    "requiredSetId": { "const": "fable5-v2" },
+    "waveId": { "const": "A" },
+    "definitionSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "assetDefinitionSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "referenceAuthorizationSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
     "id": { "type": "string", "minLength": 1 },
     "jobId": { "type": "string", "minLength": 1 },
     "assetId": { "type": "string", "minLength": 1 },
-    "category": { "enum": ["character", "building", "field", "object", "ui", "effect"] },
+    "category": {
+      "enum": [
+        "character", "building", "field", "object", "ui", "effect",
+        "terrain", "overlay", "structure", "interior", "prop"
+      ]
+    },
     "status": { "enum": ["pending", "failed", "job-pack", "rejected", "approved"] },
     "provider": { "enum": ["mock", "job-pack", "manual-import", "codex-subscription"] },
     "outputPath": {
       "type": "string",
-      "pattern": "^(generated/(characters|buildings|fields|objects|ui|effects)/(pending|rejected|approved)|processed/(characters|buildings|fields|objects|ui|effects)/pending)/[a-z0-9_-]+\\.png$"
+      "pattern": "^(generated/(characters|buildings|fields|objects|ui|effects|terrains|overlays|structures|interiors|props)/(pending|rejected|approved)|processed/(characters|buildings|fields|objects|ui|effects|terrains|overlays|structures|interiors|props)/pending)/[a-z0-9_-]+\\.png$"
     },
     "outputSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
     "metadataPath": { "type": "string", "minLength": 1 },
@@ -34,7 +45,7 @@
     "manualImport": { "type": "boolean" },
     "sourcePath": {
       "type": "string",
-      "pattern": "^generated/(characters|buildings|fields|objects|ui|effects)/pending/[a-z0-9_-]+\\.source\\.(png|jpg|webp)$"
+      "pattern": "^generated/(characters|buildings|fields|objects|ui|effects|terrains|overlays|structures|interiors|props)/pending/[a-z0-9_-]+\\.source\\.(png|jpg|webp)$"
     },
     "sourceSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
     "sourceFormat": { "enum": ["png", "jpeg", "webp"] },
@@ -51,6 +62,39 @@
         "frames": { "type": "integer", "minimum": 1 },
         "bytes": { "type": "integer", "minimum": 1 }
       }
+    },
+    "outputArtifacts": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": [
+        {
+          "allOf": [
+            { "$ref": "#/definitions/outputArtifact" },
+            { "type": "object", "properties": { "role": { "const": "base" } } }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/definitions/outputArtifact" },
+            { "type": "object", "properties": { "role": { "const": "roof" } } }
+          ]
+        }
+      ],
+      "additionalItems": false
+    },
+    "technicalInspection": { "$ref": "#/definitions/technicalInspection" },
+    "bundleTechnicalInspection": { "$ref": "#/definitions/bundleTechnicalInspection" },
+    "productionRecipesV2": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 2,
+      "items": { "$ref": "#/definitions/productionRecipeV2" }
+    },
+    "unitAssemblyV2": { "$ref": "unit-assembly-v2.schema.json" },
+    "sourceJobPackPathV2": {
+      "type": "string",
+      "pattern": "^generated/jobs/v2/fable5-v2/wave-a/[a-z0-9_-]+-job_v2_[a-f0-9]{20}/job-pack\\.json$"
     },
     "jobPackPath": { "type": "string" },
     "error": { "type": "string" },
@@ -73,7 +117,7 @@
         "reviewer": { "const": "human" },
         "note": { "type": "string", "minLength": 1 },
         "approvedAt": { "type": "string", "format": "date-time" },
-        "approvedPath": { "type": "string", "pattern": "^generated/(characters|buildings|fields|objects|ui|effects)/approved/[a-z0-9_-]+\\.png$" },
+        "approvedPath": { "type": "string", "pattern": "^generated/(characters|buildings|fields|objects|ui|effects|terrains|overlays|structures|interiors|props)/approved/[a-z0-9_-]+\\.png$" },
         "approvedSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
       }
     },
@@ -82,7 +126,18 @@
   },
   "allOf": [
     {
-      "if": { "properties": { "status": { "const": "pending" } } },
+      "if": {
+        "allOf": [
+          { "properties": { "status": { "const": "pending" } }, "required": ["status"] },
+          { "not": {
+            "properties": {
+              "requiredSetId": { "const": "fable5-v2" },
+              "category": { "const": "building" }
+            },
+            "required": ["requiredSetId", "category"]
+          } }
+        ]
+      },
       "then": {
         "properties": { "outputPath": {}, "outputSha256": {}, "outputInspection": {} },
         "required": ["outputPath", "outputSha256", "outputInspection"],
@@ -147,7 +202,12 @@
       }
     },
     {
-      "if": { "properties": { "provider": { "const": "manual-import" } } },
+      "if": {
+        "allOf": [
+          { "properties": { "provider": { "const": "manual-import" } }, "required": ["provider"] },
+          { "not": { "properties": { "requiredSetId": { "const": "fable5-v2" } }, "required": ["requiredSetId"] } }
+        ]
+      },
       "then": {
         "properties": { "manualImport": { "const": true }, "sourcePath": {}, "sourceSha256": {}, "sourceFormat": {} },
         "required": ["sourcePath", "sourceSha256", "sourceFormat"]
@@ -156,6 +216,128 @@
     {
       "if": { "not": { "properties": { "provider": { "const": "manual-import" } } } },
       "then": { "properties": { "manualImport": { "const": false } } }
+    },
+    {
+      "if": {
+        "properties": { "requiredSetId": { "const": "fable5-v2" } },
+        "required": ["requiredSetId"]
+      },
+      "then": {
+        "properties": {
+          "visualContractVersion": { "const": 2 },
+          "waveId": { "const": "A" },
+          "definitionSha256": {},
+          "assetDefinitionSha256": {},
+          "referenceAuthorizationSha256": {}
+        },
+        "required": [
+          "visualContractVersion", "waveId", "definitionSha256",
+          "assetDefinitionSha256", "referenceAuthorizationSha256"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "requiredSetId": { "const": "fable5-v2" },
+          "status": { "const": "pending" }
+        },
+        "required": ["requiredSetId", "status"]
+      },
+      "then": {
+        "properties": {
+          "manualImport": { "const": true },
+          "sourceJobPackPathV2": {},
+          "productionRecipesV2": {},
+          "unitAssemblyV2": {}
+        },
+        "required": ["sourceJobPackPathV2", "productionRecipesV2", "unitAssemblyV2"]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "requiredSetId": { "const": "fable5-v2" },
+          "status": { "const": "pending" },
+          "category": { "const": "building" }
+        },
+        "required": ["requiredSetId", "status", "category"]
+      },
+      "then": {
+        "properties": {
+          "outputArtifacts": {},
+          "bundleTechnicalInspection": {},
+          "productionRecipesV2": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": [
+              { "allOf": [
+                { "$ref": "#/definitions/productionRecipeV2" },
+                { "type": "object", "properties": { "role": { "const": "base" } } }
+              ] },
+              { "allOf": [
+                { "$ref": "#/definitions/productionRecipeV2" },
+                { "type": "object", "properties": { "role": { "const": "roof" } } }
+              ] }
+            ],
+            "additionalItems": false
+          }
+        },
+        "required": ["outputArtifacts", "bundleTechnicalInspection"],
+        "not": {
+          "anyOf": [
+            { "properties": { "outputPath": {} }, "required": ["outputPath"] },
+            { "properties": { "outputSha256": {} }, "required": ["outputSha256"] },
+            { "properties": { "outputInspection": {} }, "required": ["outputInspection"] },
+            { "properties": { "technicalInspection": {} }, "required": ["technicalInspection"] }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "allOf": [
+          {
+            "properties": {
+              "requiredSetId": { "const": "fable5-v2" },
+              "status": { "const": "pending" }
+            },
+            "required": ["requiredSetId", "status"]
+          },
+          { "not": { "properties": { "category": { "const": "building" } }, "required": ["category"] } }
+        ]
+      },
+      "then": {
+        "properties": {
+          "outputPath": {},
+          "outputSha256": {},
+          "outputInspection": {},
+          "technicalInspection": {},
+          "productionRecipesV2": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 1,
+            "items": [
+              { "allOf": [
+                { "$ref": "#/definitions/productionRecipeV2" },
+                { "type": "object", "properties": { "role": { "const": "primary" } } }
+              ] }
+            ],
+            "additionalItems": false
+          }
+        },
+        "required": ["outputPath", "outputSha256", "outputInspection", "technicalInspection"],
+        "not": {
+          "anyOf": [
+            { "properties": { "outputArtifacts": {} }, "required": ["outputArtifacts"] },
+            {
+              "properties": { "bundleTechnicalInspection": {} },
+              "required": ["bundleTechnicalInspection"]
+            }
+          ]
+        }
+      }
     },
     {
       "if": {
@@ -170,7 +352,7 @@
               "sourceSnapshot": {
                 "type": "object",
                 "properties": {
-                  "path": { "type": "string", "pattern": "^generated/(characters|buildings|fields|objects|ui|effects)/approved/[a-z0-9_-]+\\.source-original\\.(png|jpg|webp)$" }
+                  "path": { "type": "string", "pattern": "^generated/(characters|buildings|fields|objects|ui|effects|terrains|overlays|structures|interiors|props)/approved/[a-z0-9_-]+\\.source-original\\.(png|jpg|webp)$" }
                 }
               }
             },
@@ -189,7 +371,7 @@
               "sourceSnapshot": {
                 "type": "object",
                 "properties": {
-                  "path": { "type": "string", "pattern": "^generated/(characters|buildings|fields|objects|ui|effects)/pending/sources/[a-z0-9_-]+\\.source-original\\.(png|jpg|webp)$" }
+                  "path": { "type": "string", "pattern": "^generated/(characters|buildings|fields|objects|ui|effects|terrains|overlays|structures|interiors|props)/pending/sources/[a-z0-9_-]+\\.source-original\\.(png|jpg|webp)$" }
                 }
               }
             }
@@ -199,6 +381,127 @@
     }
   ],
   "definitions": {
+    "positiveSize": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["width", "height"],
+      "properties": {
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "outputArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "path", "sha256", "inspection"],
+      "properties": {
+        "role": { "enum": ["base", "roof"] },
+        "path": {
+          "type": "string",
+          "pattern": "^(generated|processed)/(characters|buildings|fields|objects|ui|effects|terrains|overlays|structures|interiors|props)/(pending|rejected|approved)/[a-z0-9_.-]+\\.png$"
+        },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "inspection": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["format", "width", "height", "channels", "frames", "bytes"],
+          "properties": {
+            "format": { "const": "png" },
+            "width": { "type": "integer", "minimum": 1 },
+            "height": { "type": "integer", "minimum": 1 },
+            "channels": { "type": "integer", "minimum": 1, "maximum": 4 },
+            "frames": { "const": 1 },
+            "bytes": { "type": "integer", "minimum": 1 }
+          }
+        }
+      }
+    },
+    "technicalInspection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["visualContractVersion", "alpha", "exactSeams", "resize", "cells"],
+      "properties": {
+        "visualContractVersion": { "const": 2 },
+        "alpha": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "subjectBbox", "opaquePixels", "transparentPixels", "hiddenRgbPixels",
+            "partialAlphaPixels", "borderVisiblePixels", "passed"
+          ],
+          "properties": {
+            "subjectBbox": { "$ref": "#/definitions/rect" },
+            "opaquePixels": { "type": "integer", "minimum": 1 },
+            "transparentPixels": { "type": "integer", "minimum": 1 },
+            "hiddenRgbPixels": { "const": 0 },
+            "partialAlphaPixels": { "const": 0 },
+            "borderVisiblePixels": { "type": "integer", "minimum": 0 },
+            "passed": { "const": true }
+          }
+        },
+        "exactSeams": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["checkedTileIndices", "mismatchCount", "passed"],
+          "properties": {
+            "checkedTileIndices": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": { "type": "integer", "minimum": 0 }
+            },
+            "mismatchCount": { "const": 0 },
+            "passed": { "const": true }
+          }
+        },
+        "resize": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kernel", "source", "output", "enlarged", "passed"],
+          "properties": {
+            "kernel": { "const": "nearest" },
+            "source": { "$ref": "#/definitions/positiveSize" },
+            "output": { "$ref": "#/definitions/positiveSize" },
+            "enlarged": { "const": false },
+            "passed": { "const": true }
+          }
+        },
+        "cells": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "declaredSlots", "semanticCells", "expectedNonempty",
+            "expectedTransparentSemantic", "reservedTransparent", "records", "passed"
+          ],
+          "properties": {
+            "declaredSlots": { "type": "integer", "minimum": 1, "maximum": 100 },
+            "semanticCells": { "type": "integer", "minimum": 1, "maximum": 100 },
+            "expectedNonempty": { "type": "integer", "minimum": 1, "maximum": 100 },
+            "expectedTransparentSemantic": { "type": "integer", "minimum": 0, "maximum": 100 },
+            "reservedTransparent": { "type": "integer", "minimum": 0, "maximum": 100 },
+            "records": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 100,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["index", "role", "expectation", "sha256", "visiblePixels"],
+                "properties": {
+                  "index": { "type": "integer", "minimum": 0, "maximum": 99 },
+                  "role": { "type": "string", "minLength": 1 },
+                  "expectation": {
+                    "enum": ["nonempty", "semantic-transparent", "reserved-transparent"]
+                  },
+                  "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+                  "visiblePixels": { "type": "integer", "minimum": 0 }
+                }
+              }
+            },
+            "passed": { "const": true }
+          }
+        }
+      }
+    },
     "rect": {
       "type": "object",
       "additionalProperties": false,
@@ -208,6 +511,165 @@
         "y": { "type": "integer", "minimum": 0 },
         "width": { "type": "integer", "minimum": 1 },
         "height": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "bundleTechnicalInspection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["visualContractVersion", "atomicPair", "roles", "artifacts", "passed"],
+      "properties": {
+        "visualContractVersion": { "const": 2 },
+        "atomicPair": { "const": true },
+        "roles": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": [{ "const": "base" }, { "const": "roof" }],
+          "additionalItems": false
+        },
+        "artifacts": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["role", "technicalInspection"],
+              "properties": {
+                "role": { "const": "base" },
+                "technicalInspection": { "$ref": "#/definitions/technicalInspection" }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["role", "technicalInspection"],
+              "properties": {
+                "role": { "const": "roof" },
+                "technicalInspection": { "$ref": "#/definitions/technicalInspection" }
+              }
+            }
+          ],
+          "additionalItems": false
+        },
+        "passed": { "const": true }
+      }
+    },
+    "productionRecipeV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role", "method", "generator", "toolMode", "transformSteps", "promptSnapshot",
+        "inputReferences", "sourceOriginal", "artifact"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": { "method": { "const": "imagegen" } },
+            "required": ["method"]
+          },
+          "then": { "properties": { "generator": { "const": "codex-imagegen-built-in" } } },
+          "else": { "properties": { "generator": { "const": "codecity-unit-assembler-v2" } } }
+        }
+      ],
+      "properties": {
+        "role": { "enum": ["primary", "base", "roof"] },
+        "method": { "enum": ["imagegen", "unit-assembly"] },
+        "generator": { "enum": ["codex-imagegen-built-in", "codecity-unit-assembler-v2"] },
+        "toolMode": { "const": "built-in" },
+        "transformSteps": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "none", "crop", "chroma-key-remove", "nearest-downscale", "hard-alpha"
+            ]
+          }
+        },
+        "cropRect": { "$ref": "#/definitions/rect" },
+        "chromaKey": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["keyColor", "tolerance"],
+          "properties": {
+            "keyColor": { "type": "string", "pattern": "^#[a-fA-F0-9]{6}$" },
+            "tolerance": { "type": "integer", "minimum": 0, "maximum": 255 }
+          }
+        },
+        "alphaThreshold": { "type": "integer", "minimum": 0, "maximum": 255 },
+        "promptSnapshot": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "sha256"],
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^generated/jobs/v2/fable5-v2/wave-a/[a-z0-9_-]+-job_v2_[a-f0-9]{20}/prompt\\.md$"
+            },
+            "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+          }
+        },
+        "inputReferences": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": [
+            {
+              "allOf": [
+                { "$ref": "#/definitions/inputReferenceV2" },
+                { "type": "object", "properties": { "role": { "const": "global-style" } } }
+              ]
+            },
+            {
+              "allOf": [
+                { "$ref": "#/definitions/inputReferenceV2" },
+                { "type": "object", "properties": { "role": { "const": "primary-subject" } } }
+              ]
+            }
+          ],
+          "additionalItems": false
+        },
+        "sourceOriginal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "sha256", "format", "width", "height"],
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^generated/(characters|buildings|terrains|overlays|structures|interiors|props|ui|effects)/pending/sources/[a-z0-9_-]+\\.source-original\\.(png|jpg|webp)$"
+            },
+            "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+            "format": { "enum": ["png", "jpeg", "webp"] },
+            "width": { "type": "integer", "minimum": 1 },
+            "height": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "artifact": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "sha256", "width", "height"],
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^generated/(characters|buildings|terrains|overlays|structures|interiors|props|ui|effects)/pending/[a-z0-9_-]+\\.png$"
+            },
+            "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+            "width": { "type": "integer", "minimum": 1 },
+            "height": { "type": "integer", "minimum": 1 }
+          }
+        }
+      }
+    },
+    "inputReferenceV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "sha256", "role"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "role": { "enum": ["global-style", "primary-subject"] }
       }
     },
     "productionRecipe": {
@@ -282,7 +744,14 @@
         "assetId": { "type": "string", "minLength": 1 },
         "method": { "enum": ["imagegen", "direct-extraction"] },
         "generator": { "type": "string", "minLength": 1 },
-        "scaleClass": { "enum": ["tiny", "small", "medium", "large", "landmark"] },
+        "scaleClass": {
+          "enum": [
+            "tiny", "small", "medium", "large", "landmark",
+            "S", "M", "L", "XL", "tower", "rowhouse_s", "rowhouse_l",
+            "terrain", "character", "structure", "overlay_s", "overlay_m", "overlay_l", "overlay_xl",
+            "interior", "prop32", "prop64", "prop_tall", "effect32", "effect64", "ui"
+          ]
+        },
         "generationPromptPath": {
           "type": "string",
           "pattern": "^review/prompts/[a-z0-9][a-z0-9/_-]+\\.txt$"
@@ -402,7 +871,7 @@
           "properties": {
             "path": {
               "type": "string",
-              "pattern": "^generated/(characters|buildings|fields|objects|ui|effects)/(approved|pending/sources)/[a-z0-9_-]+\\.source-original\\.(png|jpg|webp)$"
+              "pattern": "^generated/(characters|buildings|fields|objects|ui|effects|terrains|overlays|structures|interiors|props)/(approved|pending/sources)/[a-z0-9_-]+\\.source-original\\.(png|jpg|webp)$"
             },
             "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
             "width": { "type": "integer", "minimum": 1 },

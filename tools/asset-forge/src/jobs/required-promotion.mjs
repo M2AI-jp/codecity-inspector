@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import { FORGE_ROOT, pathsFor } from '../config.mjs';
+import { assertCanonicalInteractiveTerminal } from '../human-write-gate.mjs';
 import { readJson, withFileLock } from '../fs-safe.mjs';
 import { canonicalJson, hashFile, sha256 } from '../hashing.mjs';
 import { readLocalGenerationManifest } from '../manifests/local-generations.mjs';
@@ -9,12 +10,13 @@ import { assertExistingFileWithin, assertExistingPendingCandidate, assertExistin
 import { validateWith } from '../schemas.mjs';
 import { validateRepository } from '../validate.mjs';
 import { readAssetDefinitions } from './define-assets.mjs';
-import { promoteCandidate, promotionPreview } from './lifecycle.mjs';
+import { promoteCandidateInternal, promotionPreviewInternal } from './lifecycle.mjs';
 
 export const REQUIRED_PROMOTION_COUNT = 78;
 export const REQUIRED_PLAN_KEYS = Object.freeze([
   'assetId', 'generationId', 'sourcePath', 'sourceSha256', 'approvedPath', 'approvedSha256'
 ]);
+const ISSUED_REQUIRED_PREFLIGHTS = new WeakMap();
 
 function compareCodeUnits(left, right) {
   return left < right ? -1 : left > right ? 1 : 0;
@@ -77,6 +79,12 @@ export function selectRequiredGenerations(definitions, generations, {
     if (matches.length === 0) throw new Error(`Required promotion candidate is missing: ${definition.id}`);
     if (matches.length !== 1) throw new Error(`Required promotion candidate is duplicated: ${definition.id}`);
     const generation = matches[0];
+    if (generation.requiredSetId === 'fable5-v2' || generation.waveId === 'A'
+      || generation.visualContractVersion === 2 || generation.productionRecipesV2 !== undefined
+      || generation.unitAssemblyV2 !== undefined || definition.requiredSetId === 'fable5-v2'
+      || definition.waveId === 'A' || definition.visualContractVersion === 2) {
+      throw new Error(`Required legacy promotion rejects Fable5 VisualAssetContract v2 / Wave A candidate: ${definition.id}`);
+    }
     if (!['pending', 'approved'].includes(generation.status)) {
       throw new Error(`Required promotion candidate has a disallowed state: ${definition.id} (${generation.status})`);
     }
@@ -300,7 +308,7 @@ export async function buildRequiredPromotionPlan({
   const resolved = {
     readDefinitions: dependencies.readDefinitions ?? readAssetDefinitions,
     readGenerations: dependencies.readGenerations ?? readLocalGenerationManifest,
-    previewer: dependencies.previewer ?? promotionPreview,
+    previewer: dependencies.previewer ?? promotionPreviewInternal,
     validator: dependencies.validator ?? validateRepository
   };
   const firstValidation = await resolved.validator({ root });
@@ -399,13 +407,16 @@ export function formatRequiredPromotionPlan(preflight) {
   return lines.join('\n');
 }
 
-export async function beginRequiredPromotion({ input, output }, {
-  planBuilder = buildRequiredPromotionPlan,
-  root = FORGE_ROOT,
-  forgeRoot = FORGE_ROOT
-} = {}) {
-  if (!input?.isTTY || !output?.isTTY) throw new Error('Required promotion requires stdin and stdout to both be interactive TTYs');
-  return planBuilder({ root, forgeRoot });
+export async function beginRequiredPromotion() {
+  if (arguments.length !== 0) {
+    throw new Error('Required promotion public preflight does not accept streams, roots, clocks, or dependency overrides');
+  }
+  assertCanonicalInteractiveTerminal('Required promotion');
+  const preflight = await buildRequiredPromotionPlan({ root: FORGE_ROOT, forgeRoot: FORGE_ROOT });
+  ISSUED_REQUIRED_PREFLIGHTS.set(preflight, {
+    digest: sha256(canonicalJson(preflight))
+  });
+  return preflight;
 }
 
 function samePreflight(left, right) {
@@ -420,11 +431,14 @@ function safeErrorMessage(error) {
     .slice(0, 500);
 }
 
-export async function executeRequiredPromotion(preflight, answer, {
+// Internal read/write orchestration seam for deterministic tests. It is not
+// re-exported by the CLI or any public operator index. The public authority
+// below always supplies the canonical root, verifier, promoter, and clock.
+export async function executeRequiredPromotionInternal(preflight, answer, {
   root = FORGE_ROOT,
   forgeRoot = FORGE_ROOT,
   planBuilder = buildRequiredPromotionPlan,
-  promoter = promoteCandidate
+  promoter = promoteCandidateInternal
 } = {}) {
   assertPreflight(preflight);
   if (!isExactRequiredPromotionAnswer(answer, preflight.digest)) {
@@ -492,5 +506,26 @@ export async function executeRequiredPromotion(preflight, answer, {
       newlyApprovedCount: stable.pendingCount,
       exported: false
     };
+  });
+}
+
+export async function executeRequiredPromotion(preflight, answer) {
+  if (arguments.length !== 2) {
+    throw new Error('Required promotion public execution does not accept roots, clocks, promoters, or dependency overrides');
+  }
+  assertCanonicalInteractiveTerminal('Required promotion');
+  const issued = ISSUED_REQUIRED_PREFLIGHTS.get(preflight);
+  if (!issued || issued.digest !== sha256(canonicalJson(preflight))) {
+    throw new Error('Required promotion execution requires the exact in-process preflight issued by beginRequiredPromotion');
+  }
+  if (!isExactRequiredPromotionAnswer(answer, preflight.digest)) {
+    throw new Error('Required promotion confirmation did not exactly match the displayed batch');
+  }
+  ISSUED_REQUIRED_PREFLIGHTS.delete(preflight);
+  return executeRequiredPromotionInternal(preflight, answer, {
+    root: FORGE_ROOT,
+    forgeRoot: FORGE_ROOT,
+    planBuilder: buildRequiredPromotionPlan,
+    promoter: promoteCandidateInternal
   });
 }

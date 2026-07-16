@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://codecity-inspector.local/asset-forge/wave-a-import-request-v2.schema.json",
+  "title": "Fable5WaveAUnitImportRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "requiredSetId", "waveId", "assetId", "jobPackPath",
+    "unitSources", "identityBindingPath"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 2 },
+    "requiredSetId": { "const": "fable5-v2" },
+    "waveId": { "const": "A" },
+    "assetId": {
+      "type": "string",
+      "pattern": "^(character|building|terrain|overlay|structure|interior|prop|ui|effect)\\.[a-z0-9_]+(?:\\.[a-z0-9_]+)*$"
+    },
+    "jobPackPath": {
+      "type": "string",
+      "pattern": "^generated/jobs/v2/fable5-v2/wave-a/[a-z0-9_-]+-job_v2_[a-f0-9]{20}/job-pack\\.json$"
+    },
+    "unitSources": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["unitId", "sourceOriginal"],
+        "properties": {
+          "unitId": { "type": "string", "pattern": "^unit_[a-z0-9_]+$" },
+          "sourceOriginal": { "$ref": "#/definitions/absolutePath" },
+          "cropRect": { "$ref": "#/definitions/rect" }
+        }
+      }
+    },
+    "identityBindingPath": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "string", "pattern": "^generated/jobs/v2/fable5-v2/wave-a/[a-z0-9_-]+-job_v2_[a-f0-9]{20}/identity-bindings/identity_binding_[a-f0-9]{20}/unit-execution\\.json$" }
+      ]
+    }
+  },
+  "definitions": {
+    "absolutePath": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 4096,
+      "pattern": "^/[^\\u0000]+$"
+    },
+    "rect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "width", "height"],
+      "properties": {
+        "x": { "type": "integer", "minimum": 0, "maximum": 8192 },
+        "y": { "type": "integer", "minimum": 0, "maximum": 8192 },
+        "width": { "type": "integer", "minimum": 1, "maximum": 8192 },
+        "height": { "type": "integer", "minimum": 1, "maximum": 8192 }
+      }
+    }
+  }
+}

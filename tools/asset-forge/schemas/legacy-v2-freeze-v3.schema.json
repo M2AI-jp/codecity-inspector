@@ -1,0 +1,61 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://codecity-inspector.local/asset-forge/legacy-v2-freeze-v3.schema.json",
+  "title": "Fable5LegacyV2FreezeV3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "contract", "requiredAssetCount", "requiredAssetIdsSha256",
+    "assetManifestSha256", "approvalManifestSha256", "assets", "freezeDigest"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 3 },
+    "contract": { "const": "fable5-legacy-v2-freeze-v1" },
+    "requiredAssetCount": { "const": 78 },
+    "requiredAssetIdsSha256": { "$ref": "#/definitions/sha256" },
+    "assetManifestSha256": { "$ref": "#/definitions/sha256" },
+    "approvalManifestSha256": { "$ref": "#/definitions/sha256" },
+    "assets": {
+      "type": "array", "minItems": 78, "maxItems": 78,
+      "items": { "$ref": "#/definitions/frozenAsset" }
+    },
+    "freezeDigest": { "$ref": "#/definitions/sha256" }
+  },
+  "definitions": {
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "legacyAssetId": {
+      "type": "string",
+      "pattern": "^(building|character|field|object|effect)\\.[a-z0-9_]+(?:\\.[a-z0-9_]+)*$"
+    },
+    "frozenAsset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assetId", "category", "definitionSha256", "assetManifestEntrySha256",
+        "approvalRecordSha256", "approvedPath", "approvedArtifactSha256",
+        "approvedArtifactBytes", "width", "height", "approvedMetadataPath",
+        "approvedMetadataSha256"
+      ],
+      "properties": {
+        "assetId": { "$ref": "#/definitions/legacyAssetId" },
+        "category": { "enum": ["building", "character", "field", "object", "effect"] },
+        "definitionSha256": { "$ref": "#/definitions/sha256" },
+        "assetManifestEntrySha256": { "$ref": "#/definitions/sha256" },
+        "approvalRecordSha256": { "$ref": "#/definitions/sha256" },
+        "approvedPath": {
+          "type": "string",
+          "pattern": "^generated/(buildings|characters|fields|objects|effects)/approved/[a-z0-9][a-z0-9_.-]*\\.png$"
+        },
+        "approvedArtifactSha256": { "$ref": "#/definitions/sha256" },
+        "approvedArtifactBytes": { "type": "integer", "minimum": 1 },
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 },
+        "approvedMetadataPath": {
+          "type": "string",
+          "pattern": "^generated/(buildings|characters|fields|objects|effects)/approved/[a-z0-9][a-z0-9_.-]*\\.json$"
+        },
+        "approvedMetadataSha256": { "$ref": "#/definitions/sha256" }
+      }
+    }
+  }
+}

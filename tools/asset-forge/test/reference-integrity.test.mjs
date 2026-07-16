@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { cp, mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises';
+import { cp, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import crypto from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 import { FORGE_ROOT } from '../src/config.mjs';
 import { buildJob } from '../src/jobs/build-job.mjs';
-import { promoteCandidate } from '../src/jobs/lifecycle.mjs';
+import { promoteCandidateInternal as promoteCandidate } from '../src/jobs/lifecycle.mjs';
 import { processCandidate } from '../src/jobs/process-candidate.mjs';
 import { runJob } from '../src/jobs/run-job.mjs';
 import { validateRepository } from '../src/validate.mjs';
@@ -72,8 +72,9 @@ async function filesBelow(directory) {
   return found;
 }
 
-async function forgeFixture(prefix) {
+async function forgeFixture(t, prefix) {
   const root = await mkdtemp(path.join(os.tmpdir(), prefix));
+  t.after(() => rm(root, { recursive: true, force: true }));
   for (const directory of ['data', 'prompts', 'references']) {
     await cp(path.join(FORGE_ROOT, directory), path.join(root, directory), { recursive: true });
   }
@@ -228,8 +229,8 @@ test('all 78 required definitions use the world master; non-characters also use 
   }
 });
 
-test('build requires world and character masters and rejects subject gaps, target mismatches, and hash mismatches', async () => {
-  const root = await forgeFixture('forge-reference-gates-');
+test('build requires world and character masters and rejects subject gaps, target mismatches, and hash mismatches', async (t) => {
+  const root = await forgeFixture(t, 'forge-reference-gates-');
   await assert.doesNotReject(() => buildJob({ assetId: 'character.player' }, { forgeRoot: root }));
 
   const characterFile = path.join(root, 'data', 'asset-definitions', 'characters.json');
@@ -266,8 +267,8 @@ test('build requires world and character masters and rejects subject gaps, targe
   await assert.rejects(() => buildJob({ assetId: 'character.player' }, { forgeRoot: root }), /hash mismatch/i);
 });
 
-test('processing, promotion, and repository validation reject tampered saved generation provenance', async () => {
-  const root = await forgeFixture('forge-generation-reference-gates-');
+test('processing, promotion, and repository validation reject tampered saved generation provenance', async (t) => {
+  const root = await forgeFixture(t, 'forge-generation-reference-gates-');
   const generated = await runJob({ assetId: 'field.grass', provider: 'mock' }, {
     root, forgeRoot: root, now: () => '2026-07-14T00:00:00.000Z'
   });

@@ -1,19 +1,33 @@
 import assert from 'node:assert/strict';
-import { cp, mkdtemp, readFile, symlink, writeFile } from 'node:fs/promises';
+import { cp, mkdtemp as fsMkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import sharp from 'sharp';
-import test from 'node:test';
+import test, { after } from 'node:test';
 import { FORGE_ROOT } from '../src/config.mjs';
 import { hashApprovedTree, sha256 } from '../src/hashing.mjs';
 import { processImageBuffer, extractGridFrames } from '../src/images/process-image.mjs';
 import { buildJob } from '../src/jobs/build-job.mjs';
 import { importCandidate } from '../src/jobs/manual-import.mjs';
 import { processCandidate } from '../src/jobs/process-candidate.mjs';
-import { materializeProductionSourceSnapshot, promotionPreview, promoteCandidate } from '../src/jobs/lifecycle.mjs';
+import {
+  materializeProductionSourceSnapshot,
+  promotionPreviewInternal as promotionPreview,
+  promoteCandidateInternal as promoteCandidate
+} from '../src/jobs/lifecycle.mjs';
 import { runJob } from '../src/jobs/run-job.mjs';
 import { inspectPng } from '../src/png-core.mjs';
 import { createMockPng } from '../src/providers/mock-provider.mjs';
+
+const TEMP_ROOTS = new Set();
+async function mkdtemp(prefix) {
+  const root = await fsMkdtemp(prefix);
+  TEMP_ROOTS.add(root);
+  return root;
+}
+after(async () => {
+  await Promise.all([...TEMP_ROOTS].map((root) => rm(root, { recursive: true, force: true })));
+});
 
 test('manual import decodes by signature, preserves source, normalizes PNG, and stays pending', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'forge-import-state-'));

@@ -180,6 +180,7 @@
 | **合計** | **158** | **65** | **93** | **109** | **49** |
 
 - 検算: remake 65 = terrain 8＋structure 5＋building 16＋prop 12＋character 22＋effect 2。retire 13はこの台帳に**含まれない**（§3参照。台帳から削除もしない）。
+- Wave Aの数量は **109 ID / 128 PNG / 771 declared sheet slots**（autotile各25、character各40、connect/animation/UI各frame、建物base+roofを実数で加算）。内訳は **708 semantic cells（696 expected-nonempty＋12 expected-transparentのautotile mask=0 transition）/ 63 reserved-transparent cells**。透明予約63枠は意味ある制作対象として数えず、意味を持つ透明transition 12枠とは区別する。したがって「IDを109件定義した」「128 PNGを置いた」「透明予約を含む771枠がある」だけを数百素材の完成とは扱わない。696セルの非空、12セルの意味どおりの透明、63予約セルの透明、全708 semantic cellsの役割・視覚品質と到達可能sceneでの意味を審査するまで未完成とする。
 - wave A の選定根拠: (1) **全19建物**を含む=fail-closed下で中規模repoが起動できる（設計書§12.1・blocker解消）、(2) slice 5 verb（役場・門・道場・住宅・櫓）の演者と道具が揃う（dojo_student, training_dummy, practice_target, 通行札はgate造形内）、(3) tiny-townの3つの見どころ（切れた橋=broken端部+lantern_warning、渦の広場=cycle_wellcurb、灯り1軒=window_glow）が全て描ける。
 - wave C（optional・required set外）: portrait 12、biome variant追加、audio以外の演出強化。
 - **注**: 各IDの完全仕様（§6-3様式）の起票タイミングは設計書§14 **D15**（default: wave A分をPhase 0完了までに確定、残りはwave毎）。handoff §11-10の「全ID即時仕様化」からの逸脱として所有者承認を求める。
@@ -211,6 +212,8 @@ handoff §8.6 の不足に対応する。**いずれも実装担当と別のread
 設計承認 → definition起票（§6-3様式・D15のタイミング）→ 必要referenceの所有者提供＋rights/license note（D14）→ job pack → **Codex画像生成（無制限・外部）** → recipe-aware増分import＋source snapshot → native/repeat/ensemble審査 → **権限ある人間の承認** → wave単位の明示export。
 
 ## 6-2. 審査基準（native / repeat / ensemble）
+
+**「完成素材」の境界**: imagegenの出力source、`#FF00FF`背景つき画像、job pack、pending import、定義だけのセルは完成素材に数えない。完成候補は、決定論的recipeで規定寸法の透過PNGへ変換され、`transparentPixels >= 1`、binary alpha、alpha=0画素のhidden RGB=0、nearest-only、全semantic cell内容、pivot/baseline、seam、base/roof対応を機械検査済みであること。さらにnative/repeat/ensemble審査・権限ある人間のwave一括承認・v3 atomic exportを通って初めてruntimeで使用可能とする。ゲーム画面への組込み、到達可能性、他素材との縮尺・輪郭・色・接地の確認前は、承認済みであってもゲーム完成素材とは扱わない。
 
 - **native**: 等倍で輪郭明瞭・投影/光源が§1どおり・binary alpha・接地楕円あり。
 - **repeat**（terrain/overlay/fence等）: 3×3敷詰めでseamなし・反復が2秒で目視特定されない。
@@ -246,6 +249,12 @@ acceptance: native=窓割り視認 / repeat=n/a / ensemble=港blueprintで桟橋
 replacement: 旧building.innをsupersede / priority: wave A
 ```
 
+## 6-5. シート素材の制作単位と決定論的atlas assembly
+
+character 40枠、autotile 25枠、connect/animation/UIの複数枠を、imagegenが一度で正確な格子へ配置できることに賭けない。job packは完成PNG単位に加えて、各semantic cellまたは整合性を保てる最小stripを**generation unit**として列挙し、unitごとの正確なprompt hash・入力reference hash・source bytes hash・crop/key/downscale recipe・atlas target rectを保存する。`semantic-transparent`と`reserved-transparent`は画像生成せず、契約どおりの透明セルとして決定論的に組み立てる。
+
+atlas assemblyは各unitを透過・hard alpha・native cell寸法へ検査してから、重複なし・欠落なしで規定rectへ配置する。完成sheetを再分解したcell hash/visible pixel数/役割がunit台帳と一致し、全sheetを同じ入力からbyte-identicalに再構成できることをimport gateとする。characterは先にidentity masterのsourceを規定の192×96透過PNGへ変換・保存し、そのexact path/hashを40 unitすべてのprompt hashへ結びつけた**第二段unit execution pack**を発行してから各動作を生成する。任意identity hashのimport時後付けは禁止する。これにより「identity-bound指示がunit提出前に存在した」ことは観測できるが、外部画像生成ツールへ実際に同じbytesを渡した事実はprovider署名receiptがない限り未確認であり、人間のidentity一貫性審査と混同しない。terrainはmask/edge契約から遷移形状を決め、機械的な同一セル複製を禁止する。monolithic sheet生成は、同じcell/atlas検査を通る場合だけ最適化として許可し、既定経路にはしない。
+
 ## 7. 制作wave（承認セレモニーの束ね方）
 
 | wave | 内容 | ID数（§4正本） | 対応phase（設計書§15） |
@@ -264,4 +273,5 @@ replacement: 旧building.innをsupersede / priority: wave A
 - [x] 変更後required set＝**§4正本台帳 158 ID**（remake 65/add 93、wave A 109/B 49）と移行手順（§5）
 - [x] 素材消化にならない使用規則（§0の置換gate・§6-2 ensemble審査・WorldPlanのassetId参照検査）
 - [x] pivot/baseline/footprint/entrance/collision/occlusion/state/animation/edge契約の様式（§6-3）と記入例（§6-4・寸法はscaleClass表と一致）
-- [ ] 全件のdefinition化（タイミングは設計書§14 **D15** の所有者判断。default: wave A分をPhase 0完了までに確定）
+- [x] Wave A 109 IDのdefinition化（D15 defaultのPhase 0範囲。128 PNG契約・771 slotをhash-boundな正本として確定）
+- [ ] Wave B 49 IDの詳細definition化（required wave台帳への列挙は完了、画像制作に必要なper-asset仕様化はPhase 4前に実施）

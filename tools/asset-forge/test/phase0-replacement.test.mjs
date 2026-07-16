@@ -1,15 +1,19 @@
 import assert from 'node:assert/strict';
-import { cp, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp as fsMkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import sharp from 'sharp';
-import test from 'node:test';
+import test, { after } from 'node:test';
 import { FORGE_ROOT } from '../src/config.mjs';
 import { exportApproved } from '../src/export/export-approved.mjs';
 import { hashApprovedTree, sha256 } from '../src/hashing.mjs';
 import { buildJob } from '../src/jobs/build-job.mjs';
 import {
-  appendApprovalTransition, materializeProductionSourceSnapshot, promoteCandidate, promotionPreview
+  appendApprovalTransition, materializeProductionSourceSnapshot,
+  promoteCandidate as promoteCandidatePublic,
+  promoteCandidateInternal as promoteCandidate,
+  promotionPreview as promotionPreviewPublic,
+  promotionPreviewInternal as promotionPreview
 } from '../src/jobs/lifecycle.mjs';
 import {
   importCandidate, readProductionRecipeDraft
@@ -19,6 +23,16 @@ import { writeJobPack } from '../src/jobs/write-job-pack.mjs';
 import { createMockPng } from '../src/providers/mock-provider.mjs';
 import { validateWith } from '../src/schemas.mjs';
 import { inspectHistoricalApprovedArtifact } from '../src/validate.mjs';
+
+const TEMP_ROOTS = new Set();
+async function mkdtemp(prefix) {
+  const root = await fsMkdtemp(prefix);
+  TEMP_ROOTS.add(root);
+  return root;
+}
+after(async () => {
+  await Promise.all([...TEMP_ROOTS].map((root) => rm(root, { recursive: true, force: true })));
+});
 
 function approval({ generationId, assetId, approvedPath, hash }) {
   return {
@@ -73,6 +87,43 @@ async function withSyntheticTty(callback) {
     });
   }
 }
+
+test('legacy public promotion cannot use mutable isTTY flags or dependency overrides', async () => {
+  const fakePreview = {
+    generationId: 'gen_fake',
+    sourceSha256: 'a'.repeat(64),
+    approvedPath: 'generated/fields/approved/fake.png',
+    note: 'spoof attempt',
+    confirmationPhrase: `APPROVE LEGACY PROMOTION ${'b'.repeat(64)}`
+  };
+  const descriptors = [process.stdin, process.stdout]
+    .map((stream) => Object.getOwnPropertyDescriptor(stream, 'isTTY'));
+  try {
+    Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true });
+    Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true });
+    await assert.rejects(
+      () => promoteCandidatePublic({
+        preview: fakePreview,
+        answer: fakePreview.confirmationPhrase,
+        write: true
+      }),
+      /real interactive TTYs/
+    );
+  } finally {
+    for (const [index, stream] of [process.stdin, process.stdout].entries()) {
+      if (descriptors[index]) Object.defineProperty(stream, 'isTTY', descriptors[index]);
+      else delete stream.isTTY;
+    }
+  }
+  await assert.rejects(
+    () => promotionPreviewPublic({ generationId: 'gen_fake' }, { root: '/tmp/fake' }),
+    /accepts only generationId/
+  );
+  await assert.rejects(
+    () => promoteCandidatePublic({ preview: fakePreview }, { root: '/tmp/fake' }),
+    /accepts only preview, answer, and write/
+  );
+});
 
 test('supersession transition preserves the former approval and appends immutable history', () => {
   const oldHash = 'a'.repeat(64);

@@ -1,0 +1,1966 @@
+import { readFile, realpath, rm } from 'node:fs/promises';
+import path from 'node:path';
+import sharp from 'sharp';
+import { FORGE_ROOT, pathsFor } from '../config.mjs';
+import { atomicWriteFile, withFileLock } from '../fs-safe.mjs';
+import { canonicalJson, hashApprovedTree, hashFile, sha256 } from '../hashing.mjs';
+import { readExternalImage } from '../images/inspect-image.mjs';
+import { auditBuildingBundleV2, auditVisualAssetV2 } from '../images/visual-contract-v2.mjs';
+import {
+  appendGenerationResultUnlocked,
+  readLocalGenerationManifest
+} from '../manifests/local-generations.mjs';
+import {
+  assetFileStem,
+  assertNoSymlinkPath,
+  assertExistingFileWithin,
+  categoryDirectory,
+  resolveWithin,
+  toPosixRelative
+} from '../paths.mjs';
+import { inspectPng } from '../png-core.mjs';
+import { validateWith } from '../schemas.mjs';
+import { buildWaveAJob } from './build-job.mjs';
+
+const MAX_JSON_BYTES = 2 * 1024 * 1024;
+const MAX_REFERENCE_BYTES = 25 * 1024 * 1024;
+const INPUT_KEYS = new Set(['unitId', 'sourceOriginal', 'cropRect']);
+const IDENTITY_INPUT_KEYS = new Set(['sourceOriginal', 'cropRect']);
+const IDENTITY_BINDING_PATH = /^generated\/jobs\/v2\/fable5-v2\/wave-a\/[a-z0-9_-]+-job_v2_[a-f0-9]{20}\/identity-bindings\/identity_binding_[a-f0-9]{20}\/unit-execution\.json$/;
+
+async function readBoundedWithin(root, relativePath, maximum = MAX_JSON_BYTES) {
+  const absolute = await assertExistingFileWithin(root, relativePath);
+  const bytes = await readFile(absolute);
+  if (bytes.length > maximum) throw new Error(`Wave A job-pack member exceeds ${maximum} bytes`);
+  return { absolute, bytes };
+}
+
+function parseJson(bytes, label) {
+  try {
+    return JSON.parse(bytes.toString('utf8'));
+  } catch (error) {
+    throw new Error(`${label} is not valid JSON`, { cause: error });
+  }
+}
+
+function withoutDigest(pack) {
+  const copy = structuredClone(pack);
+  delete copy.contentDigest;
+  return copy;
+}
+
+function sameBytes(left, right) {
+  return Buffer.isBuffer(left) && Buffer.isBuffer(right) && left.equals(right);
+}
+
+function requirePackMember(packDirectory, member, label) {
+  if (!member || path.posix.dirname(member.path) !== packDirectory) {
+    throw new Error(`Wave A ${label} escapes its job-pack directory`);
+  }
+  return member;
+}
+
+function requirePackReference(packDirectory, member) {
+  if (!member?.path?.startsWith(`${packDirectory}/references/`)
+    || path.posix.dirname(member.path) !== `${packDirectory}/references`) {
+    throw new Error(`Wave A reference ${member?.id ?? 'unknown'} escapes its job-pack reference directory`);
+  }
+  return member;
+}
+
+function expectedUnitPlan(job) {
+  return {
+    schemaVersion: 2,
+    requiredSetId: job.requiredSetId,
+    waveId: job.waveId,
+    assetId: job.assetId,
+    generationMode: job.generationMode,
+    generationUnitSetSha256: job.generationUnitSetSha256,
+    generationExpectations: job.generationExpectations,
+    generationUnits: job.generationUnits,
+    identityMasterPlan: job.identityMasterPlan
+  };
+}
+
+export async function verifyWaveAJobPack(jobPackPath, {
+  root = FORGE_ROOT,
+  forgeRoot = FORGE_ROOT
+} = {}) {
+  if (path.resolve(root) !== path.resolve(forgeRoot)) {
+    throw new Error('Wave A verification requires one canonical Forge root');
+  }
+  if (typeof jobPackPath !== 'string'
+    || !/^generated\/jobs\/v2\/fable5-v2\/wave-a\/[a-z0-9_-]+-job_v2_[a-f0-9]{20}\/job-pack\.json$/.test(jobPackPath)) {
+    throw new Error('Wave A import requires an explicit fable5-v2/A job-pack path');
+  }
+  const packRead = await readBoundedWithin(root, jobPackPath);
+  const pack = parseJson(packRead.bytes, 'Wave A job pack');
+  const packValidation = validateWith('job-pack-v2.schema.json', pack);
+  if (!packValidation.ok) {
+    throw new Error(`Invalid Wave A job pack: ${JSON.stringify(packValidation.errors)}`);
+  }
+  if (pack.requiredSetId !== 'fable5-v2' || pack.waveId !== 'A'
+    || pack.contentDigest !== sha256(canonicalJson(withoutDigest(pack)))) {
+    throw new Error('Wave A job-pack identity or content digest mismatch');
+  }
+  const packDirectory = path.posix.dirname(jobPackPath);
+  const memberReads = {};
+  for (const [name, member] of Object.entries(pack.members)) {
+    requirePackMember(packDirectory, member, name);
+    const read = await readBoundedWithin(root, member.path);
+    if (sha256(read.bytes) !== member.sha256) throw new Error(`Wave A ${name} member hash mismatch`);
+    memberReads[name] = read;
+  }
+  const packedJob = parseJson(memberReads.job.bytes, 'Wave A packed job');
+  const jobValidation = validateWith('generation-job-v2.schema.json', packedJob);
+  if (!jobValidation.ok) {
+    throw new Error(`Invalid Wave A packed job: ${JSON.stringify(jobValidation.errors)}`);
+  }
+  if (packedJob.requiredSetId !== 'fable5-v2' || packedJob.waveId !== 'A'
+    || packedJob.id !== pack.jobId || packedJob.assetId !== pack.assetId
+    || packedJob.category !== pack.category) {
+    throw new Error('Wave A pack and packed job identity mismatch');
+  }
+  const built = await buildWaveAJob({
+    assetId: pack.assetId,
+    seed: packedJob.seed,
+    generationMode: packedJob.generationMode
+  }, { forgeRoot });
+  if (canonicalJson(packedJob) !== canonicalJson(built.job)) {
+    throw new Error('Wave A job pack is stale relative to the current approved hash-bound job');
+  }
+  if (!sameBytes(memberReads.prompt.bytes, Buffer.from(built.job.promptText))
+    || sha256(memberReads.prompt.bytes) !== built.job.promptSha256
+    || canonicalJson(parseJson(memberReads.definition.bytes, 'Wave A definition snapshot'))
+      !== canonicalJson(built.asset)
+    || sha256(memberReads.definition.bytes) !== built.job.definitionSha256
+    || canonicalJson(parseJson(memberReads.authorization.bytes, 'Wave A authorization snapshot'))
+      !== canonicalJson(built.authorization)
+    || sha256(memberReads.authorization.bytes) !== built.job.referenceAuthorizationSha256
+    || !sameBytes(memberReads.independentReview.bytes, built.independentReviewBytes)
+    || sha256(memberReads.independentReview.bytes) !== built.job.independentReviewSha256) {
+    throw new Error('Wave A job-pack prompt, definition, or authorization snapshot mismatch');
+  }
+  if (canonicalJson(parseJson(memberReads.unitPlan.bytes, 'Wave A unit plan'))
+      !== canonicalJson(expectedUnitPlan(built.job))
+    || pack.generationMode !== built.job.generationMode
+    || pack.generationUnitSetSha256 !== built.job.generationUnitSetSha256
+    || canonicalJson(pack.generationExpectations) !== canonicalJson(built.job.generationExpectations)
+    || canonicalJson(pack.generationUnitIds)
+      !== canonicalJson(built.job.generationUnits.map(({ unitId }) => unitId))
+    || pack.identityMasterPlanId !== (built.job.identityMasterPlan?.planId ?? null)) {
+    throw new Error('Wave A job-pack generation-unit plan mismatch');
+  }
+  if (pack.artifactRoles.length !== built.job.artifactContracts.length
+    || pack.artifactRoles.some((role, index) => role !== built.job.artifactContracts[index].role)) {
+    throw new Error('Wave A job-pack artifact roles do not match the current definition');
+  }
+  const referenceReads = [];
+  for (const [index, member] of pack.references.entries()) {
+    requirePackReference(packDirectory, member);
+    const read = await readBoundedWithin(root, member.path, MAX_REFERENCE_BYTES);
+    const expected = built.job.referenceImages[index];
+    if (member.id !== expected.id || member.role !== expected.role
+      || member.sha256 !== expected.sha256 || sha256(read.bytes) !== expected.sha256
+      || !sameBytes(read.bytes, built.references[index].bytes)) {
+      throw new Error(`Wave A reference snapshot mismatch: ${member.id}`);
+    }
+    referenceReads.push(read);
+  }
+  return { pack, job: packedJob, asset: built.asset, built, memberReads, referenceReads };
+}
+
+function parseHexColor(value) {
+  return [
+    Number.parseInt(value.slice(1, 3), 16),
+    Number.parseInt(value.slice(3, 5), 16),
+    Number.parseInt(value.slice(5, 7), 16)
+  ];
+}
+
+async function decodedRgba(buffer) {
+  return sharp(buffer, { animated: false, failOn: 'error' })
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+}
+
+function cropRaw(current, crop) {
+  if (!crop || ![crop.x, crop.y, crop.width, crop.height].every(Number.isInteger)
+    || crop.x < 0 || crop.y < 0 || crop.width < 1 || crop.height < 1) {
+    throw new Error('Wave A source cropRect is invalid');
+  }
+  if (crop.x + crop.width > current.info.width || crop.y + crop.height > current.info.height) {
+    throw new Error('Wave A source cropRect escapes source-original pixels');
+  }
+  const channels = current.info.channels;
+  const data = Buffer.alloc(crop.width * crop.height * channels);
+  for (let y = 0; y < crop.height; y += 1) {
+    const sourceStart = ((crop.y + y) * current.info.width + crop.x) * channels;
+    current.data.copy(data, y * crop.width * channels, sourceStart, sourceStart + crop.width * channels);
+  }
+  return { data, info: { width: crop.width, height: crop.height, channels } };
+}
+
+function chromaKeyRaw(current, keyColor = '#FF00FF', tolerance = 0) {
+  const key = parseHexColor(keyColor);
+  const data = Buffer.from(current.data);
+  for (let offset = 0; offset < data.length; offset += current.info.channels) {
+    const distance = Math.max(
+      Math.abs(data[offset] - key[0]),
+      Math.abs(data[offset + 1] - key[1]),
+      Math.abs(data[offset + 2] - key[2])
+    );
+    if (distance <= tolerance) {
+      data[offset] = 0;
+      data[offset + 1] = 0;
+      data[offset + 2] = 0;
+      data[offset + 3] = 0;
+    }
+  }
+  return { data, info: { ...current.info } };
+}
+
+async function resizeNearestRaw(current, outputSize) {
+  if (current.info.width < outputSize.width || current.info.height < outputSize.height) {
+    throw new Error('Wave A canonical transform would enlarge source-original pixels');
+  }
+  if (current.info.width === outputSize.width && current.info.height === outputSize.height) {
+    return { data: Buffer.from(current.data), info: { ...current.info } };
+  }
+  return sharp(current.data, {
+    raw: {
+      width: current.info.width,
+      height: current.info.height,
+      channels: current.info.channels
+    }
+  }).resize(outputSize.width, outputSize.height, {
+    fit: 'fill',
+    kernel: sharp.kernel.nearest
+  }).raw().toBuffer({ resolveWithObject: true });
+}
+
+function hardAlphaAndZeroRaw(current, threshold = 127) {
+  const data = Buffer.from(current.data);
+  for (let offset = 0; offset < data.length; offset += current.info.channels) {
+    if (data[offset + 3] <= threshold) {
+      data[offset] = 0;
+      data[offset + 1] = 0;
+      data[offset + 2] = 0;
+      data[offset + 3] = 0;
+    } else data[offset + 3] = 255;
+  }
+  return { data, info: { ...current.info } };
+}
+
+async function canonicalUnitTransform(sourceOriginal, cropRect, outputSize) {
+  let current = await decodedRgba(sourceOriginal.buffer);
+  if (cropRect) current = cropRaw(current, cropRect);
+  current = chromaKeyRaw(current, '#FF00FF', 0);
+  current = await resizeNearestRaw(current, outputSize);
+  current = hardAlphaAndZeroRaw(current, 127);
+  return current;
+}
+
+async function encodeRawPng(raw, width, height) {
+  return sharp(raw, { raw: { width, height, channels: 4 } })
+    .png({ adaptiveFiltering: false, palette: false, compressionLevel: 9 })
+    .toBuffer();
+}
+
+function pixelAudit(raw) {
+  let visiblePixels = 0;
+  let transparentPixels = 0;
+  let partialAlphaPixels = 0;
+  let hiddenRgbPixels = 0;
+  let opaqueMagentaPixels = 0;
+  for (let offset = 0; offset < raw.length; offset += 4) {
+    const alpha = raw[offset + 3];
+    if (alpha === 0) {
+      transparentPixels += 1;
+      if (raw[offset] !== 0 || raw[offset + 1] !== 0 || raw[offset + 2] !== 0) hiddenRgbPixels += 1;
+    } else {
+      visiblePixels += 1;
+      if (alpha !== 255) partialAlphaPixels += 1;
+      if (raw[offset] === 255 && raw[offset + 1] === 0 && raw[offset + 2] === 255) {
+        opaqueMagentaPixels += 1;
+      }
+    }
+  }
+  return {
+    visiblePixels,
+    transparentPixels,
+    partialAlphaPixels,
+    hiddenRgbPixels,
+    opaqueMagentaPixels
+  };
+}
+
+function requireCleanNonemptyUnit(unit, audit) {
+  const problems = [];
+  if (audit.visiblePixels === 0) problems.push('is empty');
+  if (audit.partialAlphaPixels !== 0) problems.push('contains partial alpha');
+  if (audit.hiddenRgbPixels !== 0) problems.push('contains hidden RGB');
+  if (audit.opaqueMagentaPixels !== 0) problems.push('contains opaque #FF00FF');
+  if (problems.length > 0) throw new Error(`Wave A ${unit.unitId} ${problems.join(', ')}`);
+}
+
+function requireZeroTransparentUnit(unit, raw, audit) {
+  if (unit.sourceRequired || audit.visiblePixels !== 0 || audit.transparentPixels * 4 !== raw.length
+    || audit.partialAlphaPixels !== 0 || audit.hiddenRgbPixels !== 0
+    || audit.opaqueMagentaPixels !== 0 || raw.some((byte) => byte !== 0)) {
+    throw new Error(`Wave A ${unit.unitId} transparent contract is not exact zero RGBA`);
+  }
+}
+
+function rawCell(raw, artifactSize, rect) {
+  const data = Buffer.alloc(rect.width * rect.height * 4);
+  for (let y = 0; y < rect.height; y += 1) {
+    const sourceStart = ((rect.y + y) * artifactSize.width + rect.x) * 4;
+    raw.copy(data, y * rect.width * 4, sourceStart, sourceStart + rect.width * 4);
+  }
+  return data;
+}
+
+function copyCell(target, targetSize, rect, cell) {
+  if (cell.length !== rect.width * rect.height * 4) {
+    throw new Error('Wave A transformed unit byte length does not match targetRect');
+  }
+  for (let y = 0; y < rect.height; y += 1) {
+    const targetStart = ((rect.y + y) * targetSize.width + rect.x) * 4;
+    cell.copy(target, targetStart, y * rect.width * 4, (y + 1) * rect.width * 4);
+  }
+}
+
+function sameInputReferences(actual, expected) {
+  return canonicalJson(actual) === canonicalJson(expected.map(({ id, sha256: digest, role }) => ({
+    id, sha256: digest, role
+  })));
+}
+
+export async function verifyWaveATransformReplay(sourceOriginal, artifact, production, outputSize) {
+  if (production.transformSteps.length === 1 && production.transformSteps[0] === 'none') {
+    if (sourceOriginal.sourceFormat !== 'png' || !sourceOriginal.buffer.equals(artifact.buffer)) {
+      throw new Error('production none transform requires byte-identical PNG source-original and artifact');
+    }
+    return;
+  }
+  let current = await decodedRgba(sourceOriginal.buffer);
+  for (const step of production.transformSteps) {
+    if (step === 'crop') current = cropRaw(current, production.cropRect);
+    else if (step === 'chroma-key-remove') {
+      current = chromaKeyRaw(current, production.chromaKey.keyColor, production.chromaKey.tolerance);
+    } else if (step === 'nearest-downscale') current = await resizeNearestRaw(current, outputSize);
+    else if (step === 'hard-alpha') current = hardAlphaAndZeroRaw(current, production.alphaThreshold);
+    else throw new Error(`production transform is not replayable: ${step}`);
+  }
+  if (current.info.width !== outputSize.width || current.info.height !== outputSize.height) {
+    throw new Error('production transform replay does not end at the native output size');
+  }
+  const actual = await decodedRgba(artifact.buffer);
+  if (actual.info.width !== current.info.width || actual.info.height !== current.info.height
+    || !actual.data.equals(current.data)) {
+    throw new Error('production transform replay does not reproduce the imported artifact pixels');
+  }
+}
+
+function validRect(rect) {
+  return rect && typeof rect === 'object' && !Array.isArray(rect)
+    && Object.keys(rect).sort().join(',') === 'height,width,x,y'
+    && [rect.x, rect.y, rect.width, rect.height].every(Number.isInteger)
+    && rect.x >= 0 && rect.y >= 0 && rect.width > 0 && rect.height > 0;
+}
+
+function validateCallerInputs(unitSources, identityBindingPath) {
+  if (!Array.isArray(unitSources) || unitSources.length === 0 || unitSources.length > 100) {
+    throw new Error('Wave A import requires 1..100 ordered unitSources');
+  }
+  for (const source of unitSources) {
+    if (!source || typeof source !== 'object' || Array.isArray(source)
+      || Object.keys(source).some((key) => !INPUT_KEYS.has(key))
+      || typeof source.unitId !== 'string'
+      || typeof source.sourceOriginal !== 'string'
+      || !path.isAbsolute(source.sourceOriginal)
+      || (source.cropRect !== undefined && !validRect(source.cropRect))) {
+      throw new Error('Wave A unit source may declare only unitId, absolute sourceOriginal, and valid cropRect');
+    }
+  }
+  if (identityBindingPath !== null
+    && (typeof identityBindingPath !== 'string' || !IDENTITY_BINDING_PATH.test(identityBindingPath))) {
+    throw new Error('Wave A identity binding must be a canonical issued unit-execution path or null');
+  }
+}
+
+function exactSourceCoverage(job, unitSources) {
+  const required = job.generationUnits.filter(({ sourceRequired }) => sourceRequired);
+  const requiredIds = required.map(({ unitId }) => unitId);
+  const actualIds = unitSources.map(({ unitId }) => unitId);
+  const requiredSet = new Set(requiredIds);
+  const duplicates = [...new Set(actualIds.filter((id, index) => actualIds.indexOf(id) !== index))];
+  const missing = requiredIds.filter((id) => !actualIds.includes(id));
+  const extra = actualIds.filter((id) => !requiredSet.has(id));
+  if (missing.length > 0 || duplicates.length > 0 || extra.length > 0) {
+    throw new Error(`Wave A unit coverage mismatch: missing=${missing.join(',') || 'none'}; duplicate=${duplicates.join(',') || 'none'}; extra=${extra.join(',') || 'none'}`);
+  }
+  if (canonicalJson(actualIds) !== canonicalJson(requiredIds)) {
+    throw new Error('Wave A unit source order/frame binding does not match the canonical job');
+  }
+  return { required, missing, duplicates, extra };
+}
+
+async function cachedExternalSource(sourcePath, cache) {
+  let canonicalPathBefore;
+  try {
+    canonicalPathBefore = await realpath(sourcePath);
+  } catch (error) {
+    throw new Error(`Wave A source-original could not be resolved: ${sourcePath}`, { cause: error });
+  }
+  const requestedPath = path.resolve(sourcePath);
+  let image = cache.get(requestedPath);
+  if (!image) {
+    // Read the caller's exact requested path so the safe reader's lstat/O_NOFOLLOW
+    // checks cannot be bypassed by handing it a pre-resolved symlink target.
+    image = await readExternalImage(sourcePath);
+    cache.set(requestedPath, image);
+  }
+  const canonicalPathAfter = await realpath(sourcePath);
+  if (canonicalPathAfter !== canonicalPathBefore) {
+    throw new Error('Wave A source path changed while resolving alias identity');
+  }
+  return {
+    canonicalPath: canonicalPathAfter,
+    image,
+    sha256: sha256(image.buffer)
+  };
+}
+
+function sourceFormatExtension(format) {
+  return format === 'jpeg' ? 'jpg' : format;
+}
+
+function validateSourceSharing(generationMode, records, identity) {
+  const realPaths = records.map(({ source }) => source.canonicalPath);
+  const hashes = records.map(({ source }) => source.sha256);
+  if (generationMode === 'per-unit') {
+    if (new Set(realPaths).size !== records.length || new Set(hashes).size !== records.length) {
+      throw new Error('Wave A per-unit mode requires a unique primary source path and bytes for every unit');
+    }
+  } else {
+    if (new Set(realPaths).size !== 1 || new Set(hashes).size !== 1
+      || records.some(({ input }) => !input.cropRect)
+      || new Set(records.map(({ input }) => canonicalJson(input.cropRect))).size !== records.length) {
+      throw new Error('Wave A monolithic-atlas mode requires one shared source and a unique cropRect for every unit');
+    }
+  }
+  if (identity && (realPaths.includes(identity.source.canonicalPath)
+    || hashes.includes(identity.source.sha256)
+    || hashes.includes(identity.transformedSha256))) {
+    throw new Error('Wave A identity master cannot alias or duplicate a primary unit source');
+  }
+}
+
+async function readIdentityMaster(identityMasterSource, job, cache) {
+  if (!job.identityMasterPlan) {
+    if (identityMasterSource !== null) throw new Error('Non-character Wave A jobs forbid identityMasterSource');
+    return null;
+  }
+  if (!identityMasterSource) throw new Error('Character Wave A jobs require identityMasterSource');
+  const source = await cachedExternalSource(identityMasterSource.sourceOriginal, cache);
+  const { image } = source;
+  const plan = job.identityMasterPlan;
+  if (!identityMasterSource.cropRect
+    && (image.metadata.width !== plan.outputSize.width
+      || image.metadata.height !== plan.outputSize.height)) {
+    throw new Error('Wave A large identity source requires an explicit 2:1 cropRect');
+  }
+  const effectiveCrop = identityMasterSource.cropRect ?? {
+    x: 0,
+    y: 0,
+    width: image.metadata.width,
+    height: image.metadata.height
+  };
+  if (effectiveCrop.width * plan.outputSize.height
+    !== effectiveCrop.height * plan.outputSize.width) {
+    throw new Error('Wave A identity master cropRect must have the exact 2:1 target aspect ratio');
+  }
+  const transformed = await canonicalUnitTransform(image, effectiveCrop, plan.outputSize);
+  const transformedPng = await encodeRawPng(
+    transformed.data,
+    plan.outputSize.width,
+    plan.outputSize.height
+  );
+  const audit = pixelAudit(transformed.data);
+  if (audit.visiblePixels === 0 || audit.transparentPixels === 0
+    || audit.partialAlphaPixels !== 0 || audit.hiddenRgbPixels !== 0
+    || audit.opaqueMagentaPixels !== 0) {
+    throw new Error('Wave A transformed identity master must be visible, transparent, hard-alpha, zero-hidden-RGB, and magenta-free');
+  }
+  const cellHashes = [];
+  for (let index = 0; index < 4; index += 1) {
+    const cell = rawCell(transformed.data, plan.outputSize, {
+      x: index * plan.cellSize.width,
+      y: 0,
+      ...plan.cellSize
+    });
+    if (pixelAudit(cell).visiblePixels === 0) throw new Error('Wave A identity master has an empty direction cell');
+    cellHashes.push(sha256(cell));
+  }
+  if (new Set(cellHashes).size !== 4) {
+    throw new Error('Wave A identity master direction cells must be byte-distinct');
+  }
+  return {
+    input: identityMasterSource,
+    source,
+    effectiveCrop,
+    raw: transformed.data,
+    transformedPng,
+    transformedSha256: sha256(transformedPng),
+    audit,
+    cellHashes
+  };
+}
+
+function identityExecutionPrompt(job, unit, bindingContext) {
+  return [
+    unit.unitPromptText.trimEnd(),
+    '',
+    '# Issued identity consistency input',
+    '',
+    `Identity binding: ${bindingContext.bindingId}`,
+    `Identity plan: ${job.identityMasterPlan.planId}`,
+    `Canonical transformed identity PNG: ${bindingContext.transformedPath}`,
+    `Canonical transformed identity SHA-256: ${bindingContext.transformedSha256}`,
+    'Supply that exact 192x96 PNG as the identity-consistency image input together with the two',
+    'authorized style/subject references. Preserve the matching direction, outfit, anatomy, palette,',
+    'role tool, and baseline in this one semantic frame. Do not substitute or regenerate the identity',
+    'master. This issued instruction binds this intended unit slot to those identity bytes, but Asset Forge has no',
+    'provider-signed invocation receipt and therefore does not claim cryptographic proof of delivery.',
+    ''
+  ].join('\n');
+}
+
+function withoutContentDigest(record) {
+  const copy = structuredClone(record);
+  delete copy.contentDigest;
+  return copy;
+}
+
+function requireCanonicalEqual(actual, expected, label) {
+  if (canonicalJson(actual) !== canonicalJson(expected)) {
+    throw new Error(`Wave A ${label} does not match canonical evidence`);
+  }
+}
+
+async function readPersistedImage(root, snapshot, label) {
+  const absolute = resolveWithin(root, snapshot.path);
+  await assertNoSymlinkPath(root, absolute);
+  const image = await readExternalImage(absolute);
+  const digest = sha256(image.buffer);
+  if (digest !== snapshot.sha256 || image.sourceFormat !== snapshot.format
+    || image.metadata.width !== snapshot.width || image.metadata.height !== snapshot.height) {
+    throw new Error(`Wave A ${label} snapshot hash/format/dimensions mismatch`);
+  }
+  return { absolute, image, sha256: digest };
+}
+
+function identityBindingKey(job, identity) {
+  return sha256(canonicalJson({
+    jobProvenanceKey: job.provenanceKey,
+    identityPlanId: job.identityMasterPlan.planId,
+    identityPlanPromptSha256: job.identityMasterPlan.promptSha256,
+    sourceOriginalSha256: identity.source.sha256,
+    sourceOriginalFormat: identity.source.image.sourceFormat,
+    sourceOriginalSize: {
+      width: identity.source.image.metadata.width,
+      height: identity.source.image.metadata.height
+    },
+    cropRect: identity.effectiveCrop,
+    transformedSha256: identity.transformedSha256,
+    directionCellSha256s: identity.cellHashes
+  }));
+}
+
+function identityBindingPaths(root, verifiedPack, job, identity) {
+  const key = identityBindingKey(job, identity);
+  const bindingId = `identity_binding_${key.slice(0, 20)}`;
+  const packDirectory = path.posix.dirname(verifiedPack.pack.members.job.path);
+  const bindingRoot = `${packDirectory}/identity-bindings/${bindingId}`;
+  const sourceExtension = sourceFormatExtension(identity.source.image.sourceFormat);
+  return {
+    key,
+    bindingId,
+    bindingRoot,
+    sourcePath: `${bindingRoot}/identity-master.source-original.${sourceExtension}`,
+    transformedPath: `${bindingRoot}/identity-master.png`,
+    planPath: `${bindingRoot}/unit-execution.json`
+  };
+}
+
+function identityBindingPlan(verifiedPack, identity, paths) {
+  const { job } = verifiedPack;
+  const units = job.generationUnits.map((unit) => {
+    const executionPromptPath = `${paths.bindingRoot}/execution-prompts/${unit.unitId}.md`;
+    const executionPromptText = identityExecutionPrompt(job, unit, {
+      bindingId: paths.bindingId,
+      transformedPath: paths.transformedPath,
+      transformedSha256: identity.transformedSha256
+    });
+    return {
+      unitId: unit.unitId,
+      baseUnitPromptSha256: unit.unitPromptSha256,
+      executionPromptPath,
+      executionPromptSha256: sha256(executionPromptText),
+      consistencyInputSha256: identity.transformedSha256,
+      inputReferences: structuredClone(unit.inputReferences),
+      executionPromptText
+    };
+  });
+  const planWithoutDigest = {
+    schemaVersion: 2,
+    requiredSetId: 'fable5-v2',
+    waveId: 'A',
+    status: 'identity-bound-unit-execution',
+    bindingId: paths.bindingId,
+    jobPackPath: verifiedPack.pack.members.job.path.replace(/\/job\.json$/, '/job-pack.json'),
+    jobId: job.id,
+    jobProvenanceKey: job.provenanceKey,
+    assetId: job.assetId,
+    definitionSha256: job.definitionSha256,
+    promptSha256: job.promptSha256,
+    referenceAuthorizationSha256: job.referenceAuthorizationSha256,
+    generationUnitSetSha256: job.generationUnitSetSha256,
+    generationMode: job.generationMode,
+    identityMaster: {
+      planId: job.identityMasterPlan.planId,
+      planPromptSha256: job.identityMasterPlan.promptSha256,
+      inputReferences: structuredClone(job.identityMasterPlan.inputReferences),
+      sourceOriginal: {
+        sha256: identity.source.sha256,
+        format: identity.source.image.sourceFormat,
+        width: identity.source.image.metadata.width,
+        height: identity.source.image.metadata.height,
+        cropRect: structuredClone(identity.effectiveCrop)
+      },
+      sourceSnapshot: {
+        path: paths.sourcePath,
+        sha256: identity.source.sha256,
+        format: identity.source.image.sourceFormat,
+        width: identity.source.image.metadata.width,
+        height: identity.source.image.metadata.height
+      },
+      transformedSnapshot: {
+        path: paths.transformedPath,
+        sha256: identity.transformedSha256,
+        format: 'png',
+        width: job.identityMasterPlan.outputSize.width,
+        height: job.identityMasterPlan.outputSize.height
+      },
+      transformSteps: ['crop', 'chroma-key-remove', 'nearest-downscale', 'hard-alpha'],
+      consistencyInputSha256: identity.transformedSha256,
+      directionCellSha256s: identity.cellHashes,
+      auxiliary: true,
+      semanticCell: false,
+      approvedAsset: false
+    },
+    units: units.map(({ executionPromptText: omitted, ...unit }) => unit),
+    issuanceSequence: 'identity-binding-before-unit-source-import',
+    providerInvocationEvidence: 'unverified-no-provider-receipt'
+  };
+  return {
+    plan: {
+      ...planWithoutDigest,
+      contentDigest: sha256(canonicalJson(planWithoutDigest))
+    },
+    units
+  };
+}
+
+export async function prepareWaveAIdentityBinding({
+  assetId,
+  jobPackPath,
+  identityMasterSource
+}, {
+  root = FORGE_ROOT,
+  forgeRoot = FORGE_ROOT
+} = {}) {
+  if (path.resolve(root) !== path.resolve(forgeRoot)) {
+    throw new Error('Wave A identity preparation requires one canonical Forge root');
+  }
+  if (!identityMasterSource || typeof identityMasterSource !== 'object'
+    || Array.isArray(identityMasterSource)
+    || Object.keys(identityMasterSource).some((key) => !IDENTITY_INPUT_KEYS.has(key))
+    || typeof identityMasterSource.sourceOriginal !== 'string'
+    || !path.isAbsolute(identityMasterSource.sourceOriginal)
+    || (identityMasterSource.cropRect !== undefined && !validRect(identityMasterSource.cropRect))) {
+    throw new Error('Wave A identity master source may declare only absolute sourceOriginal and valid cropRect');
+  }
+  const verifiedPack = await verifyWaveAJobPack(jobPackPath, { root, forgeRoot });
+  const { job } = verifiedPack;
+  if (assetId !== job.assetId || job.category !== 'character'
+    || job.generationMode !== 'per-unit' || !job.identityMasterPlan
+    || job.generationUnits.length !== 40) {
+    throw new Error('Wave A identity binding requires the exact per-unit character job pack');
+  }
+  const identity = await readIdentityMaster(identityMasterSource, job, new Map());
+  const bindingPaths = identityBindingPaths(root, verifiedPack, job, identity);
+  const { plan, units } = identityBindingPlan(verifiedPack, identity, bindingPaths);
+  const validation = validateWith('identity-bound-execution-v2.schema.json', plan);
+  if (!validation.ok) {
+    throw new Error(`Invalid Wave A identity-bound execution plan: ${JSON.stringify(validation.errors)}`);
+  }
+  return withFileLock(root, pathsFor(root).requiredPromotionLock, async () => {
+    const currentPack = await verifyWaveAJobPack(jobPackPath, { root, forgeRoot });
+    if (canonicalJson(currentPack.job) !== canonicalJson(job)) {
+      throw new Error('Wave A character job pack changed before identity binding write');
+    }
+    const approvedBefore = await hashApprovedTree(root);
+    const destinations = [
+      {
+        path: resolveWithin(root, bindingPaths.sourcePath),
+        bytes: identity.source.image.buffer,
+        label: 'identity source-original'
+      },
+      {
+        path: resolveWithin(root, bindingPaths.transformedPath),
+        bytes: identity.transformedPng,
+        label: 'identity transformed snapshot'
+      },
+      ...units.map((unit) => ({
+        path: resolveWithin(root, unit.executionPromptPath),
+        bytes: Buffer.from(unit.executionPromptText),
+        label: `${unit.unitId} identity-bound execution prompt`
+      })),
+      {
+        path: resolveWithin(root, bindingPaths.planPath),
+        bytes: Buffer.from(canonicalJson(plan)),
+        label: 'identity-bound unit execution plan'
+      }
+    ];
+    const states = [];
+    for (const destination of destinations) {
+      const existing = await existingBytes(root, destination.path);
+      if (existing && !existing.equals(destination.bytes)) {
+        throw new Error(`Wave A ${destination.label} conflicts with prior identity binding debris`);
+      }
+      states.push(existing ? 'existing-identical' : 'missing');
+    }
+    const newlyWritten = [];
+    try {
+      for (const [index, destination] of destinations.entries()) {
+        if (states[index] === 'existing-identical') continue;
+        await writeOrVerify(root, destination.path, destination.bytes, destination.label);
+        newlyWritten.push(destination.path);
+      }
+      const approvedAfter = await hashApprovedTree(root);
+      if (approvedAfter !== approvedBefore) throw new Error('Approved tree changed during identity binding');
+      const verified = await verifyWaveAIdentityBinding(bindingPaths.planPath, { root, forgeRoot });
+      return {
+        status: 'identity-bound-unit-execution',
+        bindingPath: bindingPaths.planPath,
+        bindingSha256: verified.bindingSha256,
+        binding: verified.binding,
+        resumed: states.some((state) => state !== 'missing'),
+        approvedTreeSha256Before: approvedBefore,
+        approvedTreeSha256After: approvedAfter
+      };
+    } catch (error) {
+      for (const destination of newlyWritten.reverse()) await rm(destination, { force: true }).catch(() => {});
+      throw error;
+    }
+  });
+}
+
+export async function verifyWaveAIdentityBinding(bindingPath, {
+  root = FORGE_ROOT,
+  forgeRoot = FORGE_ROOT,
+  verifiedPack = null
+} = {}) {
+  if (typeof bindingPath !== 'string' || !IDENTITY_BINDING_PATH.test(bindingPath)) {
+    throw new Error('Wave A character import requires an issued identity-bound unit execution plan');
+  }
+  const planRead = await readBoundedWithin(root, bindingPath);
+  const binding = parseJson(planRead.bytes, 'Wave A identity-bound execution plan');
+  const validation = validateWith('identity-bound-execution-v2.schema.json', binding);
+  if (!validation.ok) {
+    throw new Error(`Invalid Wave A identity-bound execution plan: ${JSON.stringify(validation.errors)}`);
+  }
+  if (binding.contentDigest !== sha256(canonicalJson(withoutContentDigest(binding)))) {
+    throw new Error('Wave A identity-bound execution content digest mismatch');
+  }
+  const verified = verifiedPack ?? await verifyWaveAJobPack(binding.jobPackPath, { root, forgeRoot });
+  const { job } = verified;
+  if (job.category !== 'character' || job.generationMode !== 'per-unit'
+    || job.generationUnits.length !== 40 || !job.identityMasterPlan) {
+    throw new Error('Wave A identity binding is not attached to a canonical 40-unit character job');
+  }
+  const canonicalJobPackPath = verified.pack.members.job.path.replace(/\/job\.json$/, '/job-pack.json');
+  const expectedBindings = {
+    jobPackPath: canonicalJobPackPath,
+    jobId: job.id,
+    jobProvenanceKey: job.provenanceKey,
+    assetId: job.assetId,
+    definitionSha256: job.definitionSha256,
+    promptSha256: job.promptSha256,
+    referenceAuthorizationSha256: job.referenceAuthorizationSha256,
+    generationUnitSetSha256: job.generationUnitSetSha256,
+    generationMode: job.generationMode
+  };
+  requireCanonicalEqual(Object.fromEntries(Object.keys(expectedBindings).map((key) => [key, binding[key]])), expectedBindings, 'identity binding job authority');
+  const source = await readPersistedImage(root, binding.identityMaster.sourceSnapshot, 'identity source');
+  requireCanonicalEqual(binding.identityMaster.sourceOriginal, {
+    sha256: source.sha256,
+    format: source.image.sourceFormat,
+    width: source.image.metadata.width,
+    height: source.image.metadata.height,
+    cropRect: binding.identityMaster.sourceOriginal.cropRect
+  }, 'identity source record');
+  const identityCrop = binding.identityMaster.sourceOriginal.cropRect;
+  if (identityCrop.width * job.identityMasterPlan.outputSize.height
+    !== identityCrop.height * job.identityMasterPlan.outputSize.width) {
+    throw new Error('Wave A identity binding crop must keep the exact 2:1 target aspect ratio');
+  }
+  const transformedRaw = await canonicalUnitTransform(
+    source.image,
+    identityCrop,
+    job.identityMasterPlan.outputSize
+  );
+  const transformedPng = await encodeRawPng(
+    transformedRaw.data,
+    job.identityMasterPlan.outputSize.width,
+    job.identityMasterPlan.outputSize.height
+  );
+  const transformed = await readPersistedImage(root, binding.identityMaster.transformedSnapshot, 'identity transformed');
+  if (!transformed.image.buffer.equals(transformedPng)) {
+    throw new Error('Wave A identity transformed snapshot is not the byte-identical four-step replay');
+  }
+  const audit = pixelAudit(transformedRaw.data);
+  if (audit.visiblePixels === 0 || audit.transparentPixels === 0
+    || audit.partialAlphaPixels !== 0 || audit.hiddenRgbPixels !== 0
+    || audit.opaqueMagentaPixels !== 0) {
+    throw new Error('Wave A identity replay failed alpha/visibility gates');
+  }
+  const cellHashes = job.identityMasterPlan.directions.map((direction, index) => {
+    const cell = rawCell(transformedRaw.data, job.identityMasterPlan.outputSize, {
+      x: index * job.identityMasterPlan.cellSize.width,
+      y: 0,
+      ...job.identityMasterPlan.cellSize
+    });
+    if (pixelAudit(cell).visiblePixels === 0) throw new Error(`Wave A identity ${direction} cell is empty`);
+    return sha256(cell);
+  });
+  if (new Set(cellHashes).size !== 4) throw new Error('Wave A identity direction cells are not distinct');
+  const identity = {
+    source: { canonicalPath: source.absolute, image: source.image, sha256: source.sha256 },
+    effectiveCrop: structuredClone(binding.identityMaster.sourceOriginal.cropRect),
+    raw: transformedRaw.data,
+    transformedPng,
+    transformedSha256: sha256(transformedPng),
+    audit,
+    cellHashes
+  };
+  const derivedPaths = identityBindingPaths(root, verified, job, identity);
+  if (binding.bindingId !== derivedPaths.bindingId || bindingPath !== derivedPaths.planPath
+    || binding.identityMaster.sourceSnapshot.path !== derivedPaths.sourcePath
+    || binding.identityMaster.transformedSnapshot.path !== derivedPaths.transformedPath) {
+    throw new Error('Wave A identity binding paths are not canonical content-addressed paths');
+  }
+  const rebuilt = identityBindingPlan(verified, identity, derivedPaths);
+  requireCanonicalEqual(binding, rebuilt.plan, 'identity-bound execution plan');
+  for (const unit of rebuilt.units) {
+    const promptRead = await readBoundedWithin(root, unit.executionPromptPath);
+    if (!promptRead.bytes.equals(Buffer.from(unit.executionPromptText))
+      || sha256(promptRead.bytes) !== unit.executionPromptSha256
+      || !promptRead.bytes.includes(Buffer.from(derivedPaths.transformedPath))
+      || !promptRead.bytes.includes(Buffer.from(identity.transformedSha256))) {
+      throw new Error(`Wave A ${unit.unitId} identity-bound execution prompt mismatch`);
+    }
+  }
+  return {
+    binding,
+    bindingPath,
+    bindingSha256: sha256(planRead.bytes),
+    identity,
+    verifiedPack: verified,
+    executionUnits: rebuilt.units
+  };
+}
+
+export async function verifyPersistedWaveAUnitAssembly(result, {
+  root = FORGE_ROOT,
+  forgeRoot = FORGE_ROOT
+} = {}) {
+  if (path.resolve(root) !== path.resolve(forgeRoot)) {
+    throw new Error('Wave A persisted assembly verification requires one canonical Forge root');
+  }
+  const resultValidation = validateWith('generation-result.schema.json', result);
+  if (!resultValidation.ok) {
+    throw new Error(`Invalid persisted Wave A result: ${JSON.stringify(resultValidation.errors)}`);
+  }
+  if (result.requiredSetId !== 'fable5-v2' || result.waveId !== 'A'
+    || result.visualContractVersion !== 2 || result.status !== 'pending'
+    || result.provider !== 'manual-import' || !result.manualImport
+    || !result.unitAssemblyV2) {
+    throw new Error('Persisted result is not an explicit pending Fable5 Wave A unit assembly');
+  }
+  const assemblyValidation = validateWith('unit-assembly-v2.schema.json', result.unitAssemblyV2);
+  if (!assemblyValidation.ok) {
+    throw new Error(`Invalid persisted Wave A unit assembly: ${JSON.stringify(assemblyValidation.errors)}`);
+  }
+  const verifiedPack = await verifyWaveAJobPack(result.sourceJobPackPathV2, { root, forgeRoot });
+  const { asset, job } = verifiedPack;
+  const expectedResultAuthority = {
+    assetId: job.assetId,
+    category: job.category,
+    jobId: job.id,
+    definitionSha256: job.definitionSha256,
+    assetDefinitionSha256: job.assetDefinitionSha256,
+    promptHash: job.promptSha256,
+    referenceAuthorizationSha256: job.referenceAuthorizationSha256,
+    referenceImageIds: job.referenceImages.map(({ id }) => id),
+    referenceImageHashes: job.referenceImages.map(({ sha256: digest }) => digest)
+  };
+  requireCanonicalEqual(Object.fromEntries(Object.keys(expectedResultAuthority).map((key) => [key, result[key]])), expectedResultAuthority, 'persisted result authority');
+
+  let identityAuthority = null;
+  if (job.category === 'character') {
+    if (!result.unitAssemblyV2.identityMaster) {
+      throw new Error('Persisted character assembly omits its issued identity binding');
+    }
+    identityAuthority = await verifyWaveAIdentityBinding(
+      result.unitAssemblyV2.identityMaster.unitExecutionPlanPath,
+      { root, forgeRoot }
+    );
+    if (identityAuthority.bindingSha256
+      !== result.unitAssemblyV2.identityMaster.unitExecutionPlanSha256
+      || identityAuthority.binding.jobPackPath !== result.sourceJobPackPathV2) {
+      throw new Error('Persisted character assembly identity binding hash/job mismatch');
+    }
+  } else if (result.unitAssemblyV2.identityMaster !== null) {
+    throw new Error('Persisted non-character assembly contains identity evidence');
+  }
+
+  const executionById = new Map((identityAuthority?.executionUnits ?? []).map((unit) => [unit.unitId, unit]));
+  const sourceCache = new Map();
+  const transformedCache = new Map();
+  const sourceRecords = [];
+  const unitRecords = [];
+  const pendingRoot = `generated/${categoryDirectory(asset.category)}/pending`;
+  if (result.unitAssemblyV2.units.length !== job.generationUnits.length) {
+    throw new Error('Persisted unit ledger length does not match the canonical job');
+  }
+  for (const [index, unit] of job.generationUnits.entries()) {
+    const ledger = result.unitAssemblyV2.units[index];
+    const execution = executionById.get(unit.unitId) ?? null;
+    const expectedPromptSha256 = execution?.executionPromptSha256 ?? unit.unitPromptSha256;
+    const expectedCore = {
+      unitId: unit.unitId,
+      artifactRole: unit.artifactRole,
+      frameId: unit.frameId,
+      ...(unit.direction ? { direction: unit.direction } : {}),
+      semanticRole: unit.semanticRole,
+      targetRect: unit.targetRect,
+      expectation: unit.expectation,
+      sourceRequired: unit.sourceRequired,
+      unitPromptSha256: expectedPromptSha256,
+      inputReferences: unit.inputReferences,
+      consistencyPlanId: unit.consistencyPlanId ?? null,
+      consistencyInputSha256: identityAuthority?.identity.transformedSha256 ?? null
+    };
+    requireCanonicalEqual(Object.fromEntries(Object.keys(expectedCore).map((key) => [key, ledger[key]])), expectedCore, `${unit.unitId} canonical binding`);
+    const effectiveUnit = { ...unit, effectiveUnitPromptSha256: expectedPromptSha256 };
+    if (!unit.sourceRequired) {
+      if (ledger.sourceOriginal !== null || ledger.sourceSnapshot !== null
+        || ledger.transformedSnapshot !== null || ledger.transformSteps.length !== 0) {
+        throw new Error(`Wave A ${unit.unitId} transparent cell falsely claims source evidence`);
+      }
+      const raw = Buffer.alloc(unit.targetRect.width * unit.targetRect.height * 4);
+      const audit = pixelAudit(raw);
+      requireZeroTransparentUnit(unit, raw, audit);
+      if (ledger.outputCellSha256 !== sha256(raw)) {
+        throw new Error(`Wave A ${unit.unitId} zero-cell hash mismatch`);
+      }
+      requireCanonicalEqual(ledger.pixelAudit, audit, `${unit.unitId} zero-cell audit`);
+      unitRecords.push({ unit: effectiveUnit, sourceRecord: null, raw, audit });
+      continue;
+    }
+    if (!ledger.sourceOriginal || !ledger.sourceSnapshot || !ledger.transformedSnapshot
+      || !ledger.sourceSnapshot.path.startsWith(`${pendingRoot}/sources/`)
+      || !ledger.transformedSnapshot.path.startsWith(`${pendingRoot}/unit-cells/`)) {
+      throw new Error(`Wave A ${unit.unitId} source/transformed snapshot path is not pending evidence`);
+    }
+    let source = sourceCache.get(ledger.sourceSnapshot.path);
+    if (!source) {
+      source = await readPersistedImage(root, ledger.sourceSnapshot, `${unit.unitId} source-original`);
+      sourceCache.set(ledger.sourceSnapshot.path, source);
+    } else {
+      requireCanonicalEqual(ledger.sourceSnapshot, {
+        path: ledger.sourceSnapshot.path,
+        sha256: source.sha256,
+        format: source.image.sourceFormat,
+        width: source.image.metadata.width,
+        height: source.image.metadata.height
+      }, `${unit.unitId} shared source snapshot`);
+    }
+    requireCanonicalEqual(ledger.sourceOriginal, {
+      sha256: source.sha256,
+      format: source.image.sourceFormat,
+      width: source.image.metadata.width,
+      height: source.image.metadata.height,
+      cropRect: ledger.sourceOriginal.cropRect
+    }, `${unit.unitId} source record`);
+    const crop = ledger.sourceOriginal.cropRect;
+    if (!validRect(crop)
+      || crop.width * unit.targetRect.height !== crop.height * unit.targetRect.width) {
+      throw new Error(`Wave A ${unit.unitId} persisted crop has the wrong target aspect ratio`);
+    }
+    const transformed = await canonicalUnitTransform(source.image, crop, {
+      width: unit.targetRect.width,
+      height: unit.targetRect.height
+    });
+    const transformedPng = await encodeRawPng(
+      transformed.data,
+      unit.targetRect.width,
+      unit.targetRect.height
+    );
+    let persistedTransform = transformedCache.get(ledger.transformedSnapshot.path);
+    if (!persistedTransform) {
+      persistedTransform = await readPersistedImage(root, ledger.transformedSnapshot, `${unit.unitId} transformed`);
+      transformedCache.set(ledger.transformedSnapshot.path, persistedTransform);
+    }
+    if (!persistedTransform.image.buffer.equals(transformedPng)) {
+      throw new Error(`Wave A ${unit.unitId} transformed snapshot is not the byte-identical four-step replay`);
+    }
+    requireCanonicalEqual(ledger.transformSteps, [
+      'crop', 'chroma-key-remove', 'nearest-downscale', 'hard-alpha'
+    ], `${unit.unitId} transform steps`);
+    const audit = pixelAudit(transformed.data);
+    requireCleanNonemptyUnit(unit, audit);
+    if (ledger.outputCellSha256 !== sha256(transformed.data)) {
+      throw new Error(`Wave A ${unit.unitId} output cell hash mismatch`);
+    }
+    requireCanonicalEqual(ledger.pixelAudit, audit, `${unit.unitId} pixel audit`);
+    const sourceRecord = {
+      source: {
+        canonicalPath: source.absolute,
+        image: source.image,
+        sha256: source.sha256
+      },
+      effectiveCrop: structuredClone(crop)
+    };
+    sourceRecords.push({ unit: effectiveUnit, source: sourceRecord.source, input: { cropRect: crop } });
+    unitRecords.push({ unit: effectiveUnit, sourceRecord, raw: transformed.data, audit });
+  }
+
+  validateSourceSharing(job.generationMode, sourceRecords, identityAuthority?.identity ?? null);
+  const nonemptyHashes = unitRecords.filter(({ unit }) => unit.sourceRequired).map(({ raw }) => sha256(raw));
+  if (new Set(nonemptyHashes).size !== nonemptyHashes.length) {
+    throw new Error('Persisted expected-nonempty unit cells are byte-identical');
+  }
+  const rawByRole = new Map(job.artifactContracts.map((contract) => [
+    contract.role,
+    Buffer.alloc(contract.outputSize.width * contract.outputSize.height * 4)
+  ]));
+  for (const record of unitRecords) {
+    const contract = job.artifactContracts.find(({ role }) => role === record.unit.artifactRole);
+    copyCell(rawByRole.get(record.unit.artifactRole), contract.outputSize, record.unit.targetRect, record.raw);
+  }
+  const artifactRecords = [];
+  for (const contract of job.artifactContracts) {
+    const raw = rawByRole.get(contract.role);
+    artifactRecords.push({
+      contract,
+      raw,
+      png: await encodeRawPng(raw, contract.outputSize.width, contract.outputSize.height)
+    });
+  }
+  const assembled = {
+    identity: identityAuthority?.identity ?? null,
+    unitRecords,
+    artifactRecords
+  };
+  await replayAssembly(job, assembled);
+  finalCellAudit(job, assembled);
+  const auditedArtifacts = await auditArtifacts(asset, assembled);
+  assembled.artifactRecords = auditedArtifacts;
+  const { provenanceKey } = importProvenance(job, assembled);
+  const generationId = `gen_v2_import_${provenanceKey.slice(0, 20)}`;
+  if (result.provenanceKey !== provenanceKey || result.id !== generationId) {
+    throw new Error('Persisted Wave A provenanceKey/generationId is not canonical');
+  }
+  const stem = `${assetFileStem(asset.id)}-${provenanceKey.slice(0, 16)}`;
+  const outputRoot = path.join(root, 'generated', categoryDirectory(asset.category), 'pending');
+  const monolithicSourcePath = job.generationMode === 'monolithic-atlas'
+    ? path.join(
+        outputRoot,
+        'sources',
+        `${stem}-monolithic-atlas.source-original.${sourceFormatExtension(sourceRecords[0].source.image.sourceFormat)}`
+      )
+    : null;
+  const expectedUnits = await Promise.all(unitRecords.map(async (record) => {
+    const sourcePath = record.sourceRecord
+      ? (monolithicSourcePath ?? path.join(
+          outputRoot,
+          'sources',
+          `${stem}-${record.unit.unitId}.source-original.${sourceFormatExtension(record.sourceRecord.source.image.sourceFormat)}`
+        ))
+      : null;
+    const transformedPath = record.sourceRecord
+      ? path.join(outputRoot, 'unit-cells', `${stem}-${record.unit.unitId}.png`)
+      : null;
+    return {
+      unitId: record.unit.unitId,
+      artifactRole: record.unit.artifactRole,
+      frameId: record.unit.frameId,
+      ...(record.unit.direction ? { direction: record.unit.direction } : {}),
+      semanticRole: record.unit.semanticRole,
+      targetRect: structuredClone(record.unit.targetRect),
+      expectation: record.unit.expectation,
+      sourceRequired: record.unit.sourceRequired,
+      unitPromptSha256: record.unit.effectiveUnitPromptSha256 ?? record.unit.unitPromptSha256,
+      inputReferences: structuredClone(record.unit.inputReferences),
+      consistencyPlanId: record.unit.consistencyPlanId ?? null,
+      consistencyInputSha256: identityAuthority?.identity.transformedSha256 ?? null,
+      sourceOriginal: record.sourceRecord ? {
+        sha256: record.sourceRecord.source.sha256,
+        format: record.sourceRecord.source.image.sourceFormat,
+        width: record.sourceRecord.source.image.metadata.width,
+        height: record.sourceRecord.source.image.metadata.height,
+        cropRect: structuredClone(record.sourceRecord.effectiveCrop)
+      } : null,
+      sourceSnapshot: record.sourceRecord ? {
+        path: toPosixRelative(root, sourcePath),
+        sha256: record.sourceRecord.source.sha256,
+        format: record.sourceRecord.source.image.sourceFormat,
+        width: record.sourceRecord.source.image.metadata.width,
+        height: record.sourceRecord.source.image.metadata.height
+      } : null,
+      transformedSnapshot: record.sourceRecord ? {
+        path: toPosixRelative(root, transformedPath),
+        sha256: sha256(await encodeRawPng(
+          record.raw,
+          record.unit.targetRect.width,
+          record.unit.targetRect.height
+        )),
+        format: 'png',
+        width: record.unit.targetRect.width,
+        height: record.unit.targetRect.height
+      } : null,
+      transformSteps: record.sourceRecord
+        ? ['crop', 'chroma-key-remove', 'nearest-downscale', 'hard-alpha']
+        : [],
+      outputCellSha256: sha256(record.raw),
+      pixelAudit: record.audit
+    };
+  }));
+  const resultArtifacts = asset.category === 'building'
+    ? result.outputArtifacts
+    : [{
+        role: 'primary',
+        path: result.outputPath,
+        sha256: result.outputSha256,
+        inspection: result.outputInspection
+      }];
+  const expectedArtifactLedger = [];
+  const recipeRecords = [];
+  const expectedOutputRecords = [];
+  for (const [index, artifact] of auditedArtifacts.entries()) {
+    const suffix = artifact.contract.role === 'primary' ? '' : `-${artifact.contract.role}`;
+    const outputPath = toPosixRelative(root, path.join(outputRoot, `${stem}${suffix}.png`));
+    const assemblySourcePath = toPosixRelative(root, path.join(
+      outputRoot,
+      'sources',
+      `${stem}-${artifact.contract.role}.source-original.png`
+    ));
+    const persisted = resultArtifacts[index];
+    const expectedInspection = inspectPng(artifact.png);
+    requireCanonicalEqual(persisted, {
+      role: artifact.contract.role,
+      path: outputPath,
+      sha256: sha256(artifact.png),
+      inspection: expectedInspection
+    }, `${artifact.contract.role} result artifact`);
+    const persistedArtifact = await readPersistedImage(root, {
+      path: outputPath,
+      sha256: sha256(artifact.png),
+      format: 'png',
+      width: artifact.contract.outputSize.width,
+      height: artifact.contract.outputSize.height
+    }, `${artifact.contract.role} final artifact`);
+    if (!persistedArtifact.image.buffer.equals(artifact.png)) {
+      throw new Error(`Wave A ${artifact.contract.role} final atlas is not byte-identical reconstruction`);
+    }
+    const assemblySource = await readPersistedImage(root, {
+      path: assemblySourcePath,
+      sha256: sha256(artifact.png),
+      format: 'png',
+      width: artifact.contract.outputSize.width,
+      height: artifact.contract.outputSize.height
+    }, `${artifact.contract.role} assembly source`);
+    if (!assemblySource.image.buffer.equals(artifact.png)) {
+      throw new Error(`Wave A ${artifact.contract.role} assembly-source compatibility snapshot differs`);
+    }
+    expectedArtifactLedger.push({
+      role: artifact.contract.role,
+      path: outputPath,
+      sha256: sha256(artifact.png),
+      width: artifact.contract.outputSize.width,
+      height: artifact.contract.outputSize.height,
+      unitIds: job.generationUnits
+        .filter(({ artifactRole }) => artifactRole === artifact.contract.role)
+        .map(({ unitId }) => unitId)
+    });
+    recipeRecords.push({
+      contract: artifact.contract,
+      assemblySourcePath,
+      outputPath,
+      outputSha256: sha256(artifact.png)
+    });
+    expectedOutputRecords.push({
+      ...artifact,
+      outputPath,
+      outputSha256: sha256(artifact.png),
+      outputInspection: expectedInspection
+    });
+  }
+  const expectedRecipes = recipeRecords.map((record) => assemblyRecipe(
+    record,
+    job,
+    verifiedPack.pack.members.prompt.path
+  ));
+  requireCanonicalEqual(result.productionRecipesV2, expectedRecipes, 'production recipes');
+  const expectedIdentityLedger = identityAuthority ? {
+    planId: job.identityMasterPlan.planId,
+    promptSha256: job.identityMasterPlan.promptSha256,
+    inputReferences: structuredClone(job.identityMasterPlan.inputReferences),
+    sourceOriginal: structuredClone(identityAuthority.binding.identityMaster.sourceOriginal),
+    sourceSnapshot: structuredClone(identityAuthority.binding.identityMaster.sourceSnapshot),
+    transformedSnapshot: structuredClone(identityAuthority.binding.identityMaster.transformedSnapshot),
+    transformSteps: ['crop', 'chroma-key-remove', 'nearest-downscale', 'hard-alpha'],
+    consistencyInputSha256: identityAuthority.identity.transformedSha256,
+    directionCellSha256s: identityAuthority.identity.cellHashes,
+    auxiliary: true,
+    semanticCell: false,
+    approvedAsset: false,
+    unitExecutionPlanPath: identityAuthority.bindingPath,
+    unitExecutionPlanSha256: identityAuthority.bindingSha256,
+    issuanceSequence: identityAuthority.binding.issuanceSequence,
+    providerInvocationEvidence: identityAuthority.binding.providerInvocationEvidence
+  } : null;
+  const expectedAssembly = {
+    jobId: job.id,
+    jobProvenanceKey: job.provenanceKey,
+    definitionSha256: job.definitionSha256,
+    promptSha256: job.promptSha256,
+    referenceAuthorizationSha256: job.referenceAuthorizationSha256,
+    referenceImageHashes: job.referenceImages.map(({ sha256: digest }) => digest),
+    identityMasterPlanSha256: job.identityMasterPlan
+      ? sha256(canonicalJson(job.identityMasterPlan))
+      : null,
+    assemblyAlgorithm: 'crop-key-nearest-hard-alpha/raw-copy-v2',
+    generationMode: job.generationMode,
+    generationUnitSetSha256: job.generationUnitSetSha256,
+    expectations: structuredClone(job.generationExpectations),
+    sourceRequiredCount: job.generationUnits.filter(({ sourceRequired }) => sourceRequired).length,
+    identityMaster: expectedIdentityLedger,
+    units: expectedUnits,
+    artifacts: expectedArtifactLedger,
+    missingUnitIds: [],
+    duplicateUnitIds: [],
+    extraUnitIds: [],
+    replayPassed: true,
+    finalCellAuditPassed: true
+  };
+  requireCanonicalEqual(result.unitAssemblyV2, expectedAssembly, 'complete persisted unit assembly ledger');
+  if (asset.category === 'building') {
+    const expectedBundle = {
+      visualContractVersion: 2,
+      atomicPair: true,
+      roles: ['base', 'roof'],
+      artifacts: auditedArtifacts.map(({ contract, technical }) => ({
+        role: contract.role,
+        technicalInspection: technical.technicalInspection
+      })),
+      passed: true
+    };
+    requireCanonicalEqual(result.bundleTechnicalInspection, expectedBundle, 'building technical inspection');
+  } else {
+    requireCanonicalEqual(result.technicalInspection, auditedArtifacts[0].technical.technicalInspection, 'technical inspection');
+  }
+  const expectedMetadataPath = toPosixRelative(root, path.join(outputRoot, `${stem}.json`));
+  const canonicalJobPackPath = verifiedPack.pack.members.job.path.replace(/\/job\.json$/, '/job-pack.json');
+  const expectedResult = pendingUnitAssemblyResult({
+    asset,
+    job,
+    jobPackPath: canonicalJobPackPath,
+    provenanceKey,
+    generationId,
+    metadataPath: expectedMetadataPath,
+    recipes: expectedRecipes,
+    unitAssemblyV2: expectedAssembly,
+    outputRecords: expectedOutputRecords,
+    sourceRequiredCount: job.generationUnits.filter(({ sourceRequired }) => sourceRequired).length,
+    createdAt: result.createdAt
+  });
+  requireCanonicalEqual(result, expectedResult, 'complete pending result and truth labels');
+  const metadataRead = await readBoundedWithin(root, expectedMetadataPath);
+  if (!metadataRead.bytes.equals(Buffer.from(canonicalJson(result)))) {
+    throw new Error('Persisted Wave A metadata bytes differ from the generation ledger result');
+  }
+  return {
+    asset,
+    job,
+    result,
+    identityAuthority,
+    artifactRoles: auditedArtifacts.map(({ contract }) => contract.role),
+    provenanceKey,
+    generationId
+  };
+}
+
+async function assembleUnits(job, unitSources, boundIdentity) {
+  const sourceById = new Map(unitSources.map((source) => [source.unitId, source]));
+  const cache = new Map();
+  const identity = boundIdentity;
+  if (job.identityMasterPlan && !identity) {
+    throw new Error('Wave A character units require a previously issued identity binding');
+  }
+  if (!job.identityMasterPlan && identity) {
+    throw new Error('Non-character Wave A jobs forbid identity binding evidence');
+  }
+  const sourceRecords = [];
+  for (const unit of job.generationUnits.filter(({ sourceRequired }) => sourceRequired)) {
+    const input = sourceById.get(unit.unitId);
+    const source = await cachedExternalSource(input.sourceOriginal, cache);
+    const targetSize = {
+      width: unit.targetRect.width,
+      height: unit.targetRect.height
+    };
+    const effectiveCrop = input.cropRect ?? {
+      x: 0,
+      y: 0,
+      width: source.image.metadata.width,
+      height: source.image.metadata.height
+    };
+    if (effectiveCrop.width * targetSize.height !== effectiveCrop.height * targetSize.width) {
+      throw new Error(`Wave A ${unit.unitId} source/crop aspect ratio does not match targetRect`);
+    }
+    const transformed = await canonicalUnitTransform(source.image, effectiveCrop, targetSize);
+    const audit = pixelAudit(transformed.data);
+    requireCleanNonemptyUnit(unit, audit);
+    sourceRecords.push({ unit, input, effectiveCrop, source, raw: transformed.data, audit });
+  }
+  validateSourceSharing(job.generationMode, sourceRecords, identity);
+  const nonemptyHashes = sourceRecords.map(({ raw }) => sha256(raw));
+  if (new Set(nonemptyHashes).size !== nonemptyHashes.length) {
+    throw new Error('Wave A expected-nonempty generation units must not be byte-identical');
+  }
+  const sourceRecordById = new Map(sourceRecords.map((record) => [record.unit.unitId, record]));
+  const rawByRole = new Map(job.artifactContracts.map((contract) => [
+    contract.role,
+    Buffer.alloc(contract.outputSize.width * contract.outputSize.height * 4)
+  ]));
+  const unitRecords = [];
+  for (const unit of job.generationUnits) {
+    const sourceRecord = sourceRecordById.get(unit.unitId) ?? null;
+    const raw = sourceRecord?.raw ?? Buffer.alloc(unit.targetRect.width * unit.targetRect.height * 4);
+    const audit = pixelAudit(raw);
+    if (unit.sourceRequired) requireCleanNonemptyUnit(unit, audit);
+    else requireZeroTransparentUnit(unit, raw, audit);
+    const contract = job.artifactContracts.find(({ role }) => role === unit.artifactRole);
+    copyCell(rawByRole.get(unit.artifactRole), contract.outputSize, unit.targetRect, raw);
+    unitRecords.push({ unit, sourceRecord, raw, audit });
+  }
+  const artifactRecords = [];
+  for (const contract of job.artifactContracts) {
+    const raw = rawByRole.get(contract.role);
+    artifactRecords.push({
+      contract,
+      raw,
+      png: await encodeRawPng(raw, contract.outputSize.width, contract.outputSize.height)
+    });
+  }
+  return { identity, unitRecords, artifactRecords };
+}
+
+async function replayAssembly(job, assembled) {
+  if (assembled.identity) {
+    const replayIdentity = await canonicalUnitTransform(
+      assembled.identity.source.image,
+      assembled.identity.effectiveCrop,
+      job.identityMasterPlan.outputSize
+    );
+    const replayIdentityPng = await encodeRawPng(
+      replayIdentity.data,
+      job.identityMasterPlan.outputSize.width,
+      job.identityMasterPlan.outputSize.height
+    );
+    if (!replayIdentity.data.equals(assembled.identity.raw)
+      || !replayIdentityPng.equals(assembled.identity.transformedPng)) {
+      throw new Error('Wave A identity master replay differs from the canonical consistency input');
+    }
+  }
+  const replayByRole = new Map(job.artifactContracts.map((contract) => [
+    contract.role,
+    Buffer.alloc(contract.outputSize.width * contract.outputSize.height * 4)
+  ]));
+  for (const record of assembled.unitRecords) {
+    const { unit, sourceRecord } = record;
+    const replay = sourceRecord
+      ? await canonicalUnitTransform(
+          sourceRecord.source.image,
+          sourceRecord.effectiveCrop,
+          { width: unit.targetRect.width, height: unit.targetRect.height }
+        )
+      : { data: Buffer.alloc(unit.targetRect.width * unit.targetRect.height * 4) };
+    if (!replay.data.equals(record.raw)) {
+      throw new Error(`Wave A replay differs for ${unit.unitId}`);
+    }
+    const contract = job.artifactContracts.find(({ role }) => role === unit.artifactRole);
+    copyCell(replayByRole.get(unit.artifactRole), contract.outputSize, unit.targetRect, replay.data);
+  }
+  for (const artifact of assembled.artifactRecords) {
+    const replayRaw = replayByRole.get(artifact.contract.role);
+    const replayPng = await encodeRawPng(
+      replayRaw,
+      artifact.contract.outputSize.width,
+      artifact.contract.outputSize.height
+    );
+    if (!replayRaw.equals(artifact.raw) || !replayPng.equals(artifact.png)) {
+      throw new Error(`Wave A assembly replay differs for ${artifact.contract.role}`);
+    }
+  }
+}
+
+function finalCellAudit(job, assembled) {
+  const artifactByRole = new Map(assembled.artifactRecords.map((record) => [record.contract.role, record]));
+  for (const record of assembled.unitRecords) {
+    const artifact = artifactByRole.get(record.unit.artifactRole);
+    const cell = rawCell(artifact.raw, artifact.contract.outputSize, record.unit.targetRect);
+    if (!cell.equals(record.raw)) throw new Error(`Wave A final cell audit differs for ${record.unit.unitId}`);
+    const audit = pixelAudit(cell);
+    if (record.unit.sourceRequired) requireCleanNonemptyUnit(record.unit, audit);
+    else requireZeroTransparentUnit(record.unit, cell, audit);
+  }
+}
+
+async function auditArtifacts(asset, assembled) {
+  const audited = [];
+  for (const artifact of assembled.artifactRecords) {
+    const technical = await auditVisualAssetV2(artifact.png, asset, { verifyResize: false });
+    if (!technical.ok) {
+      throw new Error(`Wave A ${artifact.contract.role} technical gates rejected the assembled candidate: ${technical.problems.join('; ')}`);
+    }
+    audited.push({ ...artifact, technical });
+  }
+  if (asset.category === 'building') {
+    const bundle = await auditBuildingBundleV2(
+      audited.map(({ contract, png }) => ({ role: contract.role, bytes: png })),
+      asset
+    );
+    if (!bundle.ok) {
+      throw new Error(`Wave A building bundle gates rejected the assembled candidate: ${bundle.problems.join('; ')}`);
+    }
+  }
+  return audited;
+}
+
+async function existingBytes(root, absolutePath) {
+  try {
+    return await readFile(await assertExistingFileWithin(root, toPosixRelative(root, absolutePath)));
+  } catch (error) {
+    if (error?.code === 'ENOENT') return null;
+    throw error;
+  }
+}
+
+async function writeOrVerify(root, destination, bytes, label) {
+  const existing = await existingBytes(root, destination);
+  if (existing) {
+    if (!existing.equals(bytes)) throw new Error(`${label} conflicts with an incomplete prior Wave A import`);
+    return 'existing-identical';
+  }
+  await atomicWriteFile(root, destination, bytes);
+  return 'written';
+}
+
+function uniqueDestinations(destinations) {
+  const byPath = new Map();
+  for (const destination of destinations) {
+    const existing = byPath.get(destination.path);
+    if (existing && !existing.bytes.equals(destination.bytes)) {
+      throw new Error(`Wave A destination collision: ${destination.path}`);
+    }
+    if (!existing) byPath.set(destination.path, destination);
+  }
+  return [...byPath.values()];
+}
+
+function assemblyRecipe(record, job, promptPath) {
+  return {
+    role: record.contract.role,
+    method: 'unit-assembly',
+    generator: 'codecity-unit-assembler-v2',
+    toolMode: 'built-in',
+    transformSteps: ['none'],
+    promptSnapshot: { path: promptPath, sha256: job.promptSha256 },
+    inputReferences: job.referenceImages.map(({ id, sha256: digest, role }) => ({
+      id, sha256: digest, role
+    })),
+    sourceOriginal: {
+      path: record.assemblySourcePath,
+      sha256: record.outputSha256,
+      format: 'png',
+      width: record.contract.outputSize.width,
+      height: record.contract.outputSize.height
+    },
+    artifact: {
+      path: record.outputPath,
+      sha256: record.outputSha256,
+      width: record.contract.outputSize.width,
+      height: record.contract.outputSize.height
+    }
+  };
+}
+
+function importProvenance(job, assembled) {
+  const sourceEvidence = assembled.unitRecords.map(({ unit, sourceRecord, raw }) => ({
+    unitId: unit.unitId,
+    expectation: unit.expectation,
+    sourceRequired: unit.sourceRequired,
+    unitPromptSha256: unit.effectiveUnitPromptSha256 ?? unit.unitPromptSha256,
+    sourceOriginalSha256: sourceRecord?.source.sha256 ?? null,
+    cropRect: sourceRecord?.effectiveCrop ?? null,
+    outputCellSha256: sha256(raw),
+    consistencyInputSha256: assembled.identity?.transformedSha256 ?? null
+  }));
+  const provenanceKey = sha256(canonicalJson({
+    jobProvenanceKey: job.provenanceKey,
+    generationMode: job.generationMode,
+    generationUnitSetSha256: job.generationUnitSetSha256,
+    identityMasterSourceSha256: assembled.identity?.source.sha256 ?? null,
+    identityMasterTransformedSha256: assembled.identity?.transformedSha256 ?? null,
+    identityMasterCropRect: assembled.identity?.effectiveCrop ?? null,
+    sourceEvidence,
+    outputArtifacts: assembled.artifactRecords.map(({ contract, png }) => ({
+      role: contract.role,
+      sha256: sha256(png)
+    }))
+  }));
+  return { sourceEvidence, provenanceKey };
+}
+
+function pendingUnitAssemblyResult({
+  asset,
+  job,
+  jobPackPath,
+  provenanceKey,
+  generationId,
+  metadataPath,
+  recipes,
+  unitAssemblyV2,
+  outputRecords,
+  sourceRequiredCount,
+  createdAt
+}) {
+  const common = {
+    visualContractVersion: 2,
+    requiredSetId: 'fable5-v2',
+    waveId: 'A',
+    definitionSha256: job.definitionSha256,
+    assetDefinitionSha256: job.assetDefinitionSha256,
+    referenceAuthorizationSha256: job.referenceAuthorizationSha256,
+    id: generationId,
+    jobId: job.id,
+    assetId: asset.id,
+    category: asset.category,
+    status: 'pending',
+    provider: 'manual-import',
+    metadataPath,
+    promptHash: job.promptSha256,
+    provenanceKey,
+    referenceImageIds: job.referenceImages.map(({ id }) => id),
+    referenceImageHashes: job.referenceImages.map(({ sha256: digest }) => digest),
+    dryRun: false,
+    subscriptionRun: false,
+    manualImport: true,
+    sourceJobPackPathV2: jobPackPath,
+    productionRecipesV2: recipes,
+    unitAssemblyV2,
+    warnings: [
+      'Imported Fable5 Wave A unit assembly remains pending until explicit human visual approval.',
+      'Semantic-transparent and reserved-transparent cells are zero-RGBA contracts, not generated accomplishments.',
+      ...(job.identityMasterPlan ? [
+        'The identity master is auxiliary consistency evidence, not a semantic runtime cell or approved asset.',
+        'The importer associated submitted unit IDs and source hashes with a pre-existing issued plan that names exact prompt and identity hashes; this is record-level binding, not proof of provider delivery, execution, or generation order.'
+      ] : [])
+    ],
+    createdAt,
+    inspection: {
+      status: 'pending-inspection',
+      observed: [
+        `${sourceRequiredCount} expected-nonempty source units were transformed and assembled with no missing, duplicate, or extra unit IDs.`,
+        `${job.generationExpectations['semantic-transparent']} semantic-transparent and ${job.generationExpectations['reserved-transparent']} reserved-transparent cells were assembled as zero RGBA without source claims.`,
+        'Every unit transform and final atlas replayed byte-identically from persisted source evidence.'
+      ],
+      inferred: [
+        'The candidate is technically eligible for independent visual inspection.'
+      ],
+      unknown: [
+        'visual suitability', 'character identity quality', 'human approval', 'ensemble quality',
+        'runtime integration',
+        ...(job.identityMasterPlan ? [
+          'actual source generation after identity-binding issuance',
+          'actual provider use of the issued unit prompts',
+          'actual identity image delivery to the provider invocation'
+        ] : [])
+      ]
+    }
+  };
+  return asset.category === 'building' ? {
+    ...common,
+    outputArtifacts: outputRecords.map((record) => ({
+      role: record.contract.role,
+      path: record.outputPath,
+      sha256: record.outputSha256,
+      inspection: record.outputInspection
+    })),
+    bundleTechnicalInspection: {
+      visualContractVersion: 2,
+      atomicPair: true,
+      roles: ['base', 'roof'],
+      artifacts: outputRecords.map((record) => ({
+        role: record.contract.role,
+        technicalInspection: record.technical.technicalInspection
+      })),
+      passed: true
+    }
+  } : {
+    ...common,
+    outputPath: outputRecords[0].outputPath,
+    outputSha256: outputRecords[0].outputSha256,
+    outputInspection: outputRecords[0].outputInspection,
+    technicalInspection: outputRecords[0].technical.technicalInspection
+  };
+}
+
+export async function importWaveACandidate({
+  assetId,
+  jobPackPath,
+  unitSources,
+  identityBindingPath = null
+}, {
+  root = FORGE_ROOT,
+  forgeRoot = FORGE_ROOT
+} = {}) {
+  if (path.resolve(root) !== path.resolve(forgeRoot)) {
+    throw new Error('Wave A import requires one canonical Forge root');
+  }
+  validateCallerInputs(unitSources, identityBindingPath);
+  return withFileLock(root, pathsFor(root).requiredPromotionLock, () =>
+    importWaveACandidateLocked({
+      assetId, jobPackPath, unitSources, identityBindingPath
+    }, { root, forgeRoot }));
+}
+
+async function importWaveACandidateLocked({
+  assetId, jobPackPath, unitSources, identityBindingPath
+}, {
+  root, forgeRoot
+}) {
+  const approvedBefore = await hashApprovedTree(root);
+  const verifiedPack = await verifyWaveAJobPack(jobPackPath, { root, forgeRoot });
+  const { asset, job } = verifiedPack;
+  if (assetId !== asset.id || job.requiredSetId !== 'fable5-v2' || job.waveId !== 'A') {
+    throw new Error('Wave A import identity does not match explicit fable5-v2/A job pack');
+  }
+  let identityAuthority = null;
+  if (job.category === 'character') {
+    if (!identityBindingPath) {
+      throw new Error('Wave A character import rejects atomic identity afterthoughts; issue an identity binding first');
+    }
+    identityAuthority = await verifyWaveAIdentityBinding(identityBindingPath, {
+      root, forgeRoot, verifiedPack
+    });
+    if (identityAuthority.binding.jobPackPath !== jobPackPath) {
+      throw new Error('Wave A identity binding belongs to a different job pack');
+    }
+  } else if (identityBindingPath !== null) {
+    throw new Error('Non-character Wave A jobs forbid identityBindingPath');
+  }
+  const coverage = exactSourceCoverage(job, unitSources);
+  const assembled = await assembleUnits(job, unitSources, identityAuthority?.identity ?? null);
+  if (identityAuthority) {
+    const executionById = new Map(identityAuthority.executionUnits.map((unit) => [unit.unitId, unit]));
+    for (const record of assembled.unitRecords) {
+      const execution = executionById.get(record.unit.unitId);
+      if (!execution) throw new Error(`Wave A identity execution plan omits ${record.unit.unitId}`);
+      record.unit = {
+        ...record.unit,
+        effectiveUnitPromptSha256: execution.executionPromptSha256
+      };
+    }
+  }
+  await replayAssembly(job, assembled);
+  finalCellAudit(job, assembled);
+  const auditedArtifacts = await auditArtifacts(asset, assembled);
+  const { provenanceKey } = importProvenance(job, {
+    ...assembled,
+    artifactRecords: auditedArtifacts
+  });
+  const generationId = `gen_v2_import_${provenanceKey.slice(0, 20)}`;
+  const outputRoot = path.join(root, 'generated', categoryDirectory(asset.category), 'pending');
+  const stem = `${assetFileStem(asset.id)}-${provenanceKey.slice(0, 16)}`;
+  const outputRecords = auditedArtifacts.map((record) => {
+    const roleSuffix = record.contract.role === 'primary' ? '' : `-${record.contract.role}`;
+    const outputAbsolute = path.join(outputRoot, `${stem}${roleSuffix}.png`);
+    const assemblySourceAbsolute = path.join(
+      outputRoot,
+      'sources',
+      `${stem}-${record.contract.role}.source-original.png`
+    );
+    return {
+      ...record,
+      outputAbsolute,
+      outputPath: toPosixRelative(root, outputAbsolute),
+      outputSha256: sha256(record.png),
+      outputInspection: inspectPng(record.png),
+      assemblySourceAbsolute,
+      assemblySourcePath: toPosixRelative(root, assemblySourceAbsolute)
+    };
+  });
+  const monolithicSourcePath = job.generationMode === 'monolithic-atlas'
+    ? path.join(
+        outputRoot,
+        'sources',
+        `${stem}-monolithic-atlas.source-original.${sourceFormatExtension(
+          assembled.unitRecords.find(({ sourceRecord }) => sourceRecord)?.sourceRecord.source.image.sourceFormat
+        )}`
+      )
+    : null;
+  const unitPersistence = assembled.unitRecords.map((record) => {
+    if (!record.sourceRecord) return { ...record, sourcePath: null, transformedPath: null };
+    const sourcePath = monolithicSourcePath ?? path.join(
+      outputRoot,
+      'sources',
+      `${stem}-${record.unit.unitId}.source-original.${sourceFormatExtension(record.sourceRecord.source.image.sourceFormat)}`
+    );
+    const transformedPath = path.join(
+      outputRoot,
+      'unit-cells',
+      `${stem}-${record.unit.unitId}.png`
+    );
+    return { ...record, sourcePath, transformedPath };
+  });
+  const identityPersistence = assembled.identity ? {
+    ...assembled.identity,
+    sourceOriginalPath: resolveWithin(root, identityAuthority.binding.identityMaster.sourceSnapshot.path),
+    transformedPath: resolveWithin(root, identityAuthority.binding.identityMaster.transformedSnapshot.path)
+  } : null;
+  const transformedBytes = new Map();
+  for (const record of unitPersistence.filter(({ sourceRecord }) => sourceRecord)) {
+    transformedBytes.set(record.unit.unitId, await encodeRawPng(
+      record.raw,
+      record.unit.targetRect.width,
+      record.unit.targetRect.height
+    ));
+  }
+  const unitAssemblyV2 = {
+    jobId: job.id,
+    jobProvenanceKey: job.provenanceKey,
+    definitionSha256: job.definitionSha256,
+    promptSha256: job.promptSha256,
+    referenceAuthorizationSha256: job.referenceAuthorizationSha256,
+    referenceImageHashes: job.referenceImages.map(({ sha256: digest }) => digest),
+    identityMasterPlanSha256: job.identityMasterPlan
+      ? sha256(canonicalJson(job.identityMasterPlan))
+      : null,
+    assemblyAlgorithm: 'crop-key-nearest-hard-alpha/raw-copy-v2',
+    generationMode: job.generationMode,
+    generationUnitSetSha256: job.generationUnitSetSha256,
+    expectations: structuredClone(job.generationExpectations),
+    sourceRequiredCount: coverage.required.length,
+    identityMaster: identityPersistence ? {
+      planId: job.identityMasterPlan.planId,
+      promptSha256: job.identityMasterPlan.promptSha256,
+      inputReferences: structuredClone(job.identityMasterPlan.inputReferences),
+      sourceOriginal: {
+        sha256: identityPersistence.source.sha256,
+        format: identityPersistence.source.image.sourceFormat,
+        width: identityPersistence.source.image.metadata.width,
+        height: identityPersistence.source.image.metadata.height,
+        cropRect: structuredClone(identityPersistence.effectiveCrop)
+      },
+      sourceSnapshot: {
+        path: toPosixRelative(root, identityPersistence.sourceOriginalPath),
+        sha256: identityPersistence.source.sha256,
+        format: identityPersistence.source.image.sourceFormat,
+        width: identityPersistence.source.image.metadata.width,
+        height: identityPersistence.source.image.metadata.height
+      },
+      transformedSnapshot: {
+        path: toPosixRelative(root, identityPersistence.transformedPath),
+        sha256: identityPersistence.transformedSha256,
+        format: 'png',
+        width: job.identityMasterPlan.outputSize.width,
+        height: job.identityMasterPlan.outputSize.height
+      },
+      transformSteps: ['crop', 'chroma-key-remove', 'nearest-downscale', 'hard-alpha'],
+      consistencyInputSha256: identityPersistence.transformedSha256,
+      directionCellSha256s: identityPersistence.cellHashes,
+      auxiliary: true,
+      semanticCell: false,
+      approvedAsset: false,
+      unitExecutionPlanPath: identityAuthority.bindingPath,
+      unitExecutionPlanSha256: identityAuthority.bindingSha256,
+      issuanceSequence: identityAuthority.binding.issuanceSequence,
+      providerInvocationEvidence: identityAuthority.binding.providerInvocationEvidence
+    } : null,
+    units: unitPersistence.map((record) => ({
+      unitId: record.unit.unitId,
+      artifactRole: record.unit.artifactRole,
+      frameId: record.unit.frameId,
+      ...(record.unit.direction ? { direction: record.unit.direction } : {}),
+      semanticRole: record.unit.semanticRole,
+      targetRect: structuredClone(record.unit.targetRect),
+      expectation: record.unit.expectation,
+      sourceRequired: record.unit.sourceRequired,
+      unitPromptSha256: record.unit.effectiveUnitPromptSha256 ?? record.unit.unitPromptSha256,
+      inputReferences: structuredClone(record.unit.inputReferences),
+      consistencyPlanId: record.unit.consistencyPlanId ?? null,
+      consistencyInputSha256: identityPersistence?.transformedSha256 ?? null,
+      sourceOriginal: record.sourceRecord ? {
+        sha256: record.sourceRecord.source.sha256,
+        format: record.sourceRecord.source.image.sourceFormat,
+        width: record.sourceRecord.source.image.metadata.width,
+        height: record.sourceRecord.source.image.metadata.height,
+        cropRect: structuredClone(record.sourceRecord.effectiveCrop)
+      } : null,
+      sourceSnapshot: record.sourceRecord ? {
+        path: toPosixRelative(root, record.sourcePath),
+        sha256: record.sourceRecord.source.sha256,
+        format: record.sourceRecord.source.image.sourceFormat,
+        width: record.sourceRecord.source.image.metadata.width,
+        height: record.sourceRecord.source.image.metadata.height
+      } : null,
+      transformedSnapshot: record.sourceRecord ? {
+        path: toPosixRelative(root, record.transformedPath),
+        sha256: sha256(transformedBytes.get(record.unit.unitId)),
+        format: 'png',
+        width: record.unit.targetRect.width,
+        height: record.unit.targetRect.height
+      } : null,
+      transformSteps: record.sourceRecord
+        ? ['crop', 'chroma-key-remove', 'nearest-downscale', 'hard-alpha']
+        : [],
+      outputCellSha256: sha256(record.raw),
+      pixelAudit: record.audit
+    })),
+    artifacts: outputRecords.map((record) => ({
+      role: record.contract.role,
+      path: record.outputPath,
+      sha256: record.outputSha256,
+      width: record.contract.outputSize.width,
+      height: record.contract.outputSize.height,
+      unitIds: job.generationUnits
+        .filter(({ artifactRole }) => artifactRole === record.contract.role)
+        .map(({ unitId }) => unitId)
+    })),
+    missingUnitIds: [],
+    duplicateUnitIds: [],
+    extraUnitIds: [],
+    replayPassed: true,
+    finalCellAuditPassed: true
+  };
+  const promptPath = verifiedPack.pack.members.prompt.path;
+  const recipes = outputRecords.map((record) => assemblyRecipe(record, job, promptPath));
+  const metadataAbsolute = path.join(outputRoot, `${stem}.json`);
+  const metadataPath = toPosixRelative(root, metadataAbsolute);
+  const manifest = await readLocalGenerationManifest(root);
+  const existingResult = manifest.results.find(({ id }) => id === generationId) ?? null;
+  const existingMetadataBytes = await existingBytes(root, metadataAbsolute);
+  const existingMetadata = existingMetadataBytes
+    ? parseJson(existingMetadataBytes, 'Wave A import metadata')
+    : null;
+  const result = pendingUnitAssemblyResult({
+    asset,
+    job,
+    jobPackPath,
+    provenanceKey,
+    generationId,
+    metadataPath,
+    recipes,
+    unitAssemblyV2,
+    outputRecords,
+    sourceRequiredCount: coverage.required.length,
+    createdAt: existingResult?.createdAt ?? existingMetadata?.createdAt ?? new Date().toISOString()
+  });
+  const validation = validateWith('generation-result.schema.json', result);
+  if (!validation.ok) throw new Error(`Invalid Wave A import result: ${JSON.stringify(validation.errors)}`);
+  if (existingResult && canonicalJson(existingResult) !== canonicalJson(result)) {
+    throw new Error('Existing Wave A import ledger entry conflicts with deterministic provenance');
+  }
+  if (existingMetadata && canonicalJson(existingMetadata) !== canonicalJson(result)) {
+    throw new Error('Existing Wave A import metadata conflicts with deterministic provenance');
+  }
+  const destinations = uniqueDestinations([
+    ...unitPersistence.filter(({ sourceRecord }) => sourceRecord).flatMap((record) => [
+      {
+        path: record.sourcePath,
+        bytes: record.sourceRecord.source.image.buffer,
+        label: `${record.unit.unitId} source-original`
+      },
+      {
+        path: record.transformedPath,
+        bytes: transformedBytes.get(record.unit.unitId),
+        label: `${record.unit.unitId} transformed unit`
+      }
+    ]),
+    ...outputRecords.flatMap((record) => [
+      {
+        path: record.assemblySourceAbsolute,
+        bytes: record.png,
+        label: `${record.contract.role} replay assembly source`
+      },
+      {
+        path: record.outputAbsolute,
+        bytes: record.png,
+        label: `${record.contract.role} pending artifact`
+      }
+    ]),
+    { path: metadataAbsolute, bytes: Buffer.from(canonicalJson(result)), label: 'Wave A import metadata' }
+  ]);
+  const states = [];
+  for (const destination of destinations) {
+    const bytes = await existingBytes(root, destination.path);
+    if (bytes && !bytes.equals(destination.bytes)) {
+      throw new Error(`${destination.label} conflicts with an incomplete prior Wave A import`);
+    }
+    states.push(bytes ? 'existing-identical' : 'missing');
+  }
+  const newlyWritten = [];
+  try {
+    for (const [index, destination] of destinations.entries()) {
+      if (states[index] === 'existing-identical') continue;
+      await writeOrVerify(root, destination.path, destination.bytes, destination.label);
+      newlyWritten.push(destination.path);
+    }
+    for (const destination of destinations) {
+      if (await hashFile(destination.path) !== sha256(destination.bytes)) {
+        throw new Error(`Persisted Wave A import snapshot hash mismatch: ${destination.label}`);
+      }
+    }
+    const approvedAfter = await hashApprovedTree(root);
+    if (approvedAfter !== approvedBefore) throw new Error('Approved tree changed during Wave A import');
+    if (!existingResult) await appendGenerationResultUnlocked(root, result);
+    return {
+      status: 'pending',
+      result: existingResult ?? result,
+      resumed: Boolean(existingResult || existingMetadata || states.some((state) => state !== 'missing')),
+      approvedTreeSha256Before: approvedBefore,
+      approvedTreeSha256After: approvedAfter
+    };
+  } catch (error) {
+    for (const destination of newlyWritten.reverse()) await rm(destination, { force: true }).catch(() => {});
+    throw error;
+  }
+}

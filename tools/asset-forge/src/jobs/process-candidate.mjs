@@ -4,12 +4,44 @@ import { FORGE_ROOT, pathsFor } from '../config.mjs';
 import { atomicWriteFile, atomicWriteJson, withFileLock } from '../fs-safe.mjs';
 import { canonicalJson, hashApprovedTree, hashFile, sha256 } from '../hashing.mjs';
 import { extractGridFrames, processImageBuffer } from '../images/process-image.mjs';
+import { auditVisualAssetV2 } from '../images/visual-contract-v2.mjs';
 import { appendGenerationResultUnlocked, readLocalGenerationManifest } from '../manifests/local-generations.mjs';
-import { assertExistingStateFile, assetFileStem, categoryDirectory, toPosixRelative } from '../paths.mjs';
+import {
+  assertExistingStateFile,
+  assetFileStem,
+  categoryDirectory,
+  toPosixRelative
+} from '../paths.mjs';
 import { inspectPng } from '../png-core.mjs';
 import { assertGenerationReferenceMetadata } from '../references.mjs';
 import { validateWith } from '../schemas.mjs';
 import { findAsset } from './define-assets.mjs';
+import { verifyPersistedWaveAUnitAssembly } from '../v2/import-candidate.mjs';
+
+function isExplicitWaveAResult(result) {
+  const markers = [
+    result.requiredSetId === 'fable5-v2',
+    result.waveId === 'A',
+    result.visualContractVersion === 2
+  ];
+  if (markers.some(Boolean) && !markers.every(Boolean)) {
+    throw new Error('Generation has incomplete Fable5 v2 result markers');
+  }
+  return markers.every(Boolean);
+}
+
+async function auditExplicitWaveAResult(result, {
+  root, forgeRoot, alphaKey, tolerance, trim
+}) {
+  if (alphaKey !== 'none' || Number(tolerance) !== 0 || trim) {
+    throw new Error('V2 processing is audit-only; regenerate instead of mutating alpha, trim, or scale');
+  }
+  const deep = await verifyPersistedWaveAUnitAssembly(result, { root, forgeRoot });
+  return {
+    asset: deep.asset,
+    audited: deep.artifactRoles.map((role) => ({ role }))
+  };
+}
 
 export async function processCandidate({ generationId, alphaKey = 'none', tolerance = 0, trim = false }, {
   root = FORGE_ROOT,
@@ -27,25 +59,56 @@ async function processCandidateLocked({ generationId, alphaKey, tolerance, trim 
   const approvedBefore = await hashApprovedTree(root);
   const manifest = await readLocalGenerationManifest(root);
   const result = manifest.results.find((entry) => entry.id === generationId);
-  if (!result || result.status !== 'pending' || !result.outputPath) throw new Error('Processing requires a pending generation with output');
+  if (!result || result.status !== 'pending') throw new Error('Processing requires a pending generation with output');
+  if (isExplicitWaveAResult(result)) {
+    const audited = await auditExplicitWaveAResult(result, {
+      root, forgeRoot, alphaKey, tolerance, trim
+    });
+    const approvedAfter = await hashApprovedTree(root);
+    if (approvedAfter !== approvedBefore) throw new Error('Approved tree changed during V2 audit');
+    return {
+      status: 'audited-pending',
+      result,
+      artifactRoles: audited.audited.map(({ role }) => role),
+      approvedTreeSha256Before: approvedBefore,
+      approvedTreeSha256After: approvedAfter
+    };
+  }
+  if (!result.outputPath) throw new Error('Processing requires a pending generation with output');
   const inputPath = await assertExistingStateFile(root, result.category, 'pending', result.outputPath);
   const source = await readFile(inputPath);
   const sourceHashBefore = sha256(source);
   if (sourceHashBefore !== result.outputSha256) throw new Error('Pending source hash mismatch');
   const asset = await findAsset(result.assetId, { root: forgeRoot });
   await assertGenerationReferenceMetadata(asset, result, { root: forgeRoot });
+  if (asset.visualContractVersion === 2 && asset.category === 'building') {
+    throw new Error('V2 layered buildings require the atomic base/roof bundle pipeline');
+  }
+  if (asset.visualContractVersion === 2 && (alphaKey !== 'none' || Number(tolerance) !== 0 || trim)) {
+    throw new Error('V2 technical-gate processing is audit-only; regenerate instead of mutating alpha, trim, or scale');
+  }
+  if (result.productionRecipe && (alphaKey !== 'none' || trim)) {
+    throw new Error('Recipe-backed candidates cannot be destructively alpha-keyed or trimmed during processing');
+  }
   const processed = await processImageBuffer(source, {
     alphaKey,
     tolerance: Number(tolerance),
     trim: Boolean(trim)
   });
+  const technicalAudit = asset.visualContractVersion === 2
+    ? await auditVisualAssetV2(processed.png, asset, { sourceBuffer: source })
+    : null;
+  if (technicalAudit && !technicalAudit.ok) {
+    throw new Error(`V2 technical gates rejected the candidate: ${technicalAudit.problems.join('; ')}`);
+  }
   if (asset.category !== result.category) throw new Error('Generation category does not match asset definition');
   const processingKey = sha256(canonicalJson({
     sourceGenerationId: generationId,
     sourceSha256: sourceHashBefore,
     alphaKey,
     tolerance: Number(tolerance),
-    trim: Boolean(trim)
+    trim: Boolean(trim),
+    visualContractVersion: asset.visualContractVersion ?? 1
   }));
   const processedId = `gen_processed_${processingKey.slice(0, 20)}`;
   const outputRoot = path.join(pathsFor(root).processed, categoryDirectory(asset.category), 'pending');
@@ -83,7 +146,8 @@ async function processCandidateLocked({ generationId, alphaKey, tolerance, trim 
     trim: Boolean(trim),
     width: processed.width,
     height: processed.height,
-    frames
+    frames,
+    ...(technicalAudit ? { technicalInspection: technicalAudit.technicalInspection } : {})
   };
   await atomicWriteJson(root, processingMetadataPath, metadata);
   const outputInspection = inspectPng(processed.png);
@@ -95,6 +159,13 @@ async function processCandidateLocked({ generationId, alphaKey, tolerance, trim 
     outputPath: toPosixRelative(root, normalizedPath),
     outputSha256: metadata.outputSha256,
     outputInspection,
+    ...(asset.visualContractVersion === 2 ? {
+      visualContractVersion: 2,
+      technicalInspection: technicalAudit.technicalInspection
+    } : {}),
+    ...(result.productionRecipe ? {
+      productionRecipe: { ...result.productionRecipe, outputSha256 }
+    } : {}),
     metadataPath: toPosixRelative(root, resultMetadataPath),
     provenanceKey: processingKey,
     processedFromGenerationId: generationId,

@@ -121,19 +121,29 @@ export const atomicReplaceJson = (root, destination, value) => atomicReplaceFile
 async function isStaleLock(target) {
   const stat = await lstat(target);
   if (stat.isSymbolicLink() || !stat.isDirectory()) throw new Error('Concurrent writer lock path is unsafe');
-  const bootedAt = Date.now() - uptime() * 1000;
+  // Some managed/sandboxed hosts deny the native uptime syscall. Uptime is
+  // only an extra stale-lock signal; failure must not make a lock look stale
+  // or prevent all writers from performing the stronger owner/PID checks.
+  let bootedAt = null;
+  try {
+    const seconds = uptime();
+    if (Number.isFinite(seconds) && seconds >= 0) bootedAt = Date.now() - seconds * 1000;
+  } catch {
+    // Fail closed: do not reclaim a lock merely because boot time is unknown.
+  }
   let owner;
   try {
     owner = await readJson(path.join(target, 'owner.json'));
   } catch (error) {
-    if (error?.code === 'ENOENT' && (stat.mtimeMs < bootedAt || Date.now() - stat.mtimeMs > 30_000)) return true;
+    if (error?.code === 'ENOENT'
+      && ((bootedAt !== null && stat.mtimeMs < bootedAt) || Date.now() - stat.mtimeMs > 30_000)) return true;
     if ((error instanceof Error && error.message.startsWith('Malformed JSON:')) && Date.now() - stat.mtimeMs > 30_000) return true;
     return false;
   }
   if (!owner || !Number.isInteger(owner.pid) || owner.pid < 1 || typeof owner.acquiredAt !== 'string') return false;
   const acquiredAt = Date.parse(owner.acquiredAt);
   if (Number.isNaN(acquiredAt)) return false;
-  if (acquiredAt < bootedAt) return true;
+  if (bootedAt !== null && acquiredAt < bootedAt) return true;
   try {
     process.kill(owner.pid, 0);
     return false;

@@ -1,0 +1,805 @@
+{
+  "schemaVersion": 2,
+  "requiredSetId": "fable5-v2",
+  "waveId": "A",
+  "category": "prop",
+  "assetCount": 18,
+  "assets": [
+    {
+      "id": "prop.lamp",
+      "category": "prop",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Compact wrought-iron lantern on a short stone-and-iron pedestal",
+        "materials": [
+          "black wrought iron",
+          "amber lantern glass",
+          "short dressed-stone pedestal"
+        ],
+        "dominantColors": [
+          "black iron",
+          "cool gray stone"
+        ],
+        "accentColors": [
+          "small warm amber glass",
+          "pale metal rim"
+        ],
+        "shapeLanguage": "Compact three-quarter silhouette with one clear functional axis and restrained ornament. Defining contour: Amber glass has a restrained upper-left rim highlight",
+        "distinguishingFeatures": [
+          "Amber glass has a restrained upper-left rim highlight",
+          "A tight dark ellipse sits directly beneath the pedestal"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "prop.streetlight",
+            "reason": "Lamp is compact and pedestal-mounted; streetlight is tall"
+          }
+        ],
+        "composition": "One sprite only, centered, upright, fully visible, uncropped, with generous clear border on an exact conceptual 32 by 64 pixel grid.",
+        "groundContact": "A tight dark hard-pixel ellipse sits directly beneath the short stone-and-iron pedestal and nowhere else.",
+        "negativeConstraints": [
+          "No scene, street, wall, building, foliage, person, label, comparison variant, paper, checkerboard, or neighboring prop.",
+          "No blur, anti-aliasing, subpixel stroke, soft glow outside lantern pixels, or magenta within the lamp."
+        ],
+        "frameContent": [
+          {
+            "frameId": "primary",
+            "visualContent": "Compact wrought-iron lantern on a short stone-and-iron pedestal; one complete isolated primary sprite showing amber glass has a restrained upper-left rim highlight."
+          }
+        ]
+      }
+    },
+    {
+      "id": "prop.streetlight",
+      "category": "prop",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Tall crooked-neck streetlight on a bolted civic foot",
+        "materials": [
+          "blackened iron pole",
+          "faceted amber glass",
+          "bolted granite foot"
+        ],
+        "dominantColors": [
+          "charcoal iron",
+          "cool slate-gray base"
+        ],
+        "accentColors": [
+          "warm amber panes",
+          "rust-red bolt heads"
+        ],
+        "shapeLanguage": "Compact three-quarter silhouette with one clear functional axis and restrained ornament. Defining contour: Faceted amber lamp hangs from a shepherd hook",
+        "distinguishingFeatures": [
+          "Faceted amber lamp hangs from a shepherd hook",
+          "Four bolts and a narrow shadow fix the pivot"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "prop.lamp",
+            "reason": "Streetlight is tall and hanging; lamp is short and pedestal-mounted"
+          }
+        ],
+        "composition": "One fully visible prop only, centered and isolated with transparent border. Exact subject: Tall crooked-neck streetlight on a bolted civic foot",
+        "groundContact": "The granite foot and four iron bolts sit on one narrow street contact ellipse directly below the upright pole.",
+        "negativeConstraints": [
+          "Do not borrow prop.lamp's form: Streetlight is tall and hanging; lamp is short and pedestal-mounted",
+          "Do not omit or contradict this cue: Four bolts and a narrow shadow fix the pivot"
+        ],
+        "frameContent": [
+          {
+            "frameId": "primary",
+            "visualContent": "Tall crooked-neck streetlight on a bolted civic foot; one complete isolated primary sprite showing faceted amber lamp hangs from a shepherd hook."
+          }
+        ]
+      }
+    },
+    {
+      "id": "prop.signboard",
+      "category": "prop",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Blank oval facility sign on a short wall bracket",
+        "materials": [
+          "carved oak oval",
+          "black iron bracket",
+          "raised timber rim"
+        ],
+        "dominantColors": [
+          "dark oak brown",
+          "charcoal iron"
+        ],
+        "accentColors": [
+          "pale worn rim",
+          "small brass hinge"
+        ],
+        "shapeLanguage": "Compact three-quarter silhouette with one clear functional axis and restrained ornament. Defining contour: Raised timber rim leaves a clean DOM-safe center",
+        "distinguishingFeatures": [
+          "Raised timber rim leaves a clean DOM-safe center",
+          "Bracket curl points toward the associated doorway"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "prop.notice_board",
+            "reason": "Signboard is small and wall-mounted; notice board is freestanding"
+          }
+        ],
+        "composition": "One fully visible prop only, centered and isolated with transparent border. Exact subject: Blank oval facility sign on a short wall bracket",
+        "groundContact": "The iron bracket enters the associated wall at two visible bolts; the oval sign hangs from that bracket without a ground shadow.",
+        "negativeConstraints": [
+          "Do not borrow prop.notice_board's form: Signboard is small and wall-mounted; notice board is freestanding",
+          "Do not omit or contradict this cue: Bracket curl points toward the associated doorway"
+        ],
+        "frameContent": [
+          {
+            "frameId": "primary",
+            "visualContent": "Blank oval facility sign on a short wall bracket; one complete isolated primary sprite showing raised timber rim leaves a clean dom-safe center."
+          }
+        ]
+      }
+    },
+    {
+      "id": "prop.notice_board",
+      "category": "prop",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Roofed notice board with a broad blank cork face",
+        "materials": [
+          "cork posting face",
+          "oak frame",
+          "slate cap",
+          "two timber posts"
+        ],
+        "dominantColors": [
+          "warm cork brown",
+          "weathered oak"
+        ],
+        "accentColors": [
+          "aged brass corner pins",
+          "blue-gray slate edge"
+        ],
+        "shapeLanguage": "Compact three-quarter silhouette with one clear functional axis and restrained ornament. Defining contour: Two stout posts create the ground footprint",
+        "distinguishingFeatures": [
+          "Two stout posts create the ground footprint",
+          "Brass pins decorate only the frame corners"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "prop.signboard",
+            "reason": "Notice board is a large two-post panel; signboard is small"
+          }
+        ],
+        "composition": "One fully visible prop only, centered and isolated with transparent border. Exact subject: Roofed notice board with a broad blank cork face",
+        "groundContact": "Both timber posts enter separate compact soil contacts at the baseline, keeping the roofed cork face upright between them.",
+        "negativeConstraints": [
+          "Do not borrow prop.signboard's form: Notice board is a large two-post panel; signboard is small",
+          "Do not omit or contradict this cue: Brass pins decorate only the frame corners"
+        ],
+        "frameContent": [
+          {
+            "frameId": "primary",
+            "visualContent": "Roofed notice board with a broad blank cork face; one complete isolated primary sprite showing two stout posts create the ground footprint."
+          }
+        ]
+      }
+    },
+    {
+      "id": "prop.warning_stake",
+      "category": "prop",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Short red-capped stake with crossed warning cord",
+        "materials": [
+          "split cedar stake",
+          "crossed hemp cord",
+          "blank brass tag"
+        ],
+        "dominantColors": [
+          "weathered cedar brown",
+          "deep warning red cap"
+        ],
+        "accentColors": [
+          "aged brass tag",
+          "pale rope fibers"
+        ],
+        "shapeLanguage": "Compact three-quarter silhouette with one clear functional axis and restrained ornament. Defining contour: Split timber point leans toward the blocked edge",
+        "distinguishingFeatures": [
+          "Split timber point leans toward the blocked edge",
+          "A blank brass witness tag hangs beneath the cap"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "prop.lantern_warning",
+            "reason": "Stake is unlit timber; warning lantern is glowing metal"
+          }
+        ],
+        "composition": "One fully visible prop only, centered and isolated with transparent border. Exact subject: Short red-capped stake with crossed warning cord",
+        "groundContact": "The sharpened cedar point enters one small ground socket; crossed cord begins above that socket and leans toward the blocked edge.",
+        "negativeConstraints": [
+          "Do not borrow prop.lantern_warning's form: Stake is unlit timber; warning lantern is glowing metal",
+          "Do not omit or contradict this cue: A blank brass witness tag hangs beneath the cap"
+        ],
+        "frameContent": [
+          {
+            "frameId": "primary",
+            "visualContent": "Short red-capped stake with crossed warning cord; one complete isolated primary sprite showing split timber point leans toward the blocked edge."
+          }
+        ]
+      }
+    },
+    {
+      "id": "prop.barrel",
+      "category": "prop",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Squat salt-dark oak barrel bound by three iron hoops",
+        "materials": [
+          "salt-darkened oak staves",
+          "three black iron hoops"
+        ],
+        "dominantColors": [
+          "dark oak brown",
+          "charcoal iron"
+        ],
+        "accentColors": [
+          "pale chipped stave",
+          "rust-brown hoop edges"
+        ],
+        "shapeLanguage": "Compact three-quarter silhouette with one clear functional axis and restrained ornament. Defining contour: Top staves form an offset oval in three-quarter view",
+        "distinguishingFeatures": [
+          "Top staves form an offset oval in three-quarter view",
+          "One chipped lower stave breaks the round contour"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "prop.crate",
+            "reason": "Barrel is rounded and hooped; crate is angular and braced"
+          }
+        ],
+        "composition": "One fully visible prop only, centered and isolated with transparent border. Exact subject: Squat salt-dark oak barrel bound by three iron hoops",
+        "groundContact": "The lowest oak staves form a flattened oval contact on the ground; the chipped front stave still touches that ellipse.",
+        "negativeConstraints": [
+          "Do not borrow prop.crate's form: Barrel is rounded and hooped; crate is angular and braced",
+          "Do not omit or contradict this cue: One chipped lower stave breaks the round contour"
+        ],
+        "frameContent": [
+          {
+            "frameId": "primary",
+            "visualContent": "Squat salt-dark oak barrel bound by three iron hoops; one complete isolated primary sprite showing top staves form an offset oval in three-quarter view."
+          }
+        ]
+      }
+    },
+    {
+      "id": "prop.crate",
+      "category": "prop",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Square cargo crate with a diagonal front brace",
+        "materials": [
+          "rough pine planks",
+          "black iron corner straps",
+          "oak diagonal brace"
+        ],
+        "dominantColors": [
+          "ochre pine",
+          "dark iron"
+        ],
+        "accentColors": [
+          "pale lid edge",
+          "rust-red strap corners"
+        ],
+        "shapeLanguage": "Compact three-quarter silhouette with one clear functional axis and restrained ornament. Defining contour: Top lid sits proud on the upper-left side",
+        "distinguishingFeatures": [
+          "Top lid sits proud on the upper-left side",
+          "Iron corner straps frame an unlabelled plank face"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "prop.barrel",
+            "reason": "Crate is square and braced; barrel is round and hooped"
+          }
+        ],
+        "composition": "One fully visible prop only, centered and isolated with transparent border. Exact subject: Square cargo crate with a diagonal front brace",
+        "groundContact": "The square crate bottom rests across one tight rectangular contact shadow, with all four lower corners on the same baseline.",
+        "negativeConstraints": [
+          "Do not borrow prop.barrel's form: Crate is square and braced; barrel is round and hooped",
+          "Do not omit or contradict this cue: Iron corner straps frame an unlabelled plank face"
+        ],
+        "frameContent": [
+          {
+            "frameId": "primary",
+            "visualContent": "Square cargo crate with a diagonal front brace; one complete isolated primary sprite showing top lid sits proud on the upper-left side."
+          }
+        ]
+      }
+    },
+    {
+      "id": "prop.bench",
+      "category": "prop",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Public bench with slatted back and stone side feet",
+        "materials": [
+          "oak back slats",
+          "worn seat planks",
+          "two limestone side feet"
+        ],
+        "dominantColors": [
+          "weathered oak brown",
+          "cool limestone gray"
+        ],
+        "accentColors": [
+          "pale rubbed armrest",
+          "dark iron fasteners"
+        ],
+        "shapeLanguage": "Compact three-quarter silhouette with one clear functional axis and restrained ornament. Defining contour: One armrest is visibly worn lower",
+        "distinguishingFeatures": [
+          "One armrest is visibly worn lower",
+          "The seat projects forward as a clear sitting plane"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "prop.chair",
+            "reason": "Bench is a long shared seat; chair is a narrow single seat"
+          }
+        ],
+        "composition": "One fully visible prop only, centered and isolated with transparent border. Exact subject: Public bench with slatted back and stone side feet",
+        "groundContact": "Both limestone feet sit flush on the plaza baseline; the projecting wooden seat remains visibly supported between them.",
+        "negativeConstraints": [
+          "Do not borrow prop.chair's form: Bench is a long shared seat; chair is a narrow single seat",
+          "Do not omit or contradict this cue: The seat projects forward as a clear sitting plane"
+        ],
+        "frameContent": [
+          {
+            "frameId": "primary",
+            "visualContent": "Public bench with slatted back and stone side feet; one complete isolated primary sprite showing one armrest is visibly worn lower."
+          }
+        ]
+      }
+    },
+    {
+      "id": "prop.table",
+      "category": "prop",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Square tavern table with a thick plank top",
+        "materials": [
+          "thick oak tabletop",
+          "four squared oak legs",
+          "iron corner nails"
+        ],
+        "dominantColors": [
+          "warm oak brown",
+          "deep leg shadow"
+        ],
+        "accentColors": [
+          "pale worn edge",
+          "dark candle-ring stain"
+        ],
+        "shapeLanguage": "Compact three-quarter silhouette with one clear functional axis and restrained ornament. Defining contour: Four legs remain separately readable",
+        "distinguishingFeatures": [
+          "Four legs remain separately readable",
+          "One candle-ring stain adds use without another prop"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "prop.counter",
+            "reason": "Table is open on four sides; counter has a service front"
+          }
+        ],
+        "composition": "One fully visible prop only, centered and isolated with transparent border. Exact subject: Square tavern table with a thick plank top",
+        "groundContact": "All four legs terminate on the interior floor baseline beneath the square top, with no central floating shadow.",
+        "negativeConstraints": [
+          "Do not borrow prop.counter's form: Table is open on four sides; counter has a service front",
+          "Do not omit or contradict this cue: One candle-ring stain adds use without another prop"
+        ],
+        "frameContent": [
+          {
+            "frameId": "primary",
+            "visualContent": "Square tavern table with a thick plank top; one complete isolated primary sprite showing four legs remain separately readable."
+          }
+        ]
+      }
+    },
+    {
+      "id": "prop.chair",
+      "category": "prop",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Single ladder-back chair angled three-quarter south",
+        "materials": [
+          "oak ladder back",
+          "woven rush seat",
+          "four tapered legs"
+        ],
+        "dominantColors": [
+          "honey oak",
+          "straw-gold rush"
+        ],
+        "accentColors": [
+          "pale worn rung",
+          "cool brown leg shadows"
+        ],
+        "shapeLanguage": "Compact three-quarter silhouette with one clear functional axis and restrained ornament. Defining contour: Woven rush seat is a distinct warm rectangle",
+        "distinguishingFeatures": [
+          "Woven rush seat is a distinct warm rectangle",
+          "Rear legs extend beyond the seat baseline"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "prop.bench",
+            "reason": "Chair is a single seat; bench has long shared slats"
+          }
+        ],
+        "composition": "One fully visible prop only, centered and isolated with transparent border. Exact subject: Single ladder-back chair angled three-quarter south",
+        "groundContact": "Rear and front leg tips meet the floor baseline at four distinct points; the woven seat stays visibly above those supports.",
+        "negativeConstraints": [
+          "Do not borrow prop.bench's form: Chair is a single seat; bench has long shared slats",
+          "Do not omit or contradict this cue: Rear legs extend beyond the seat baseline"
+        ],
+        "frameContent": [
+          {
+            "frameId": "primary",
+            "visualContent": "Single ladder-back chair angled three-quarter south; one complete isolated primary sprite showing woven rush seat is a distinct warm rectangle."
+          }
+        ]
+      }
+    },
+    {
+      "id": "prop.counter",
+      "category": "prop",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "L-shaped service counter with paneled front",
+        "materials": [
+          "paneled oak front",
+          "worn oak service top",
+          "aged brass corner strip"
+        ],
+        "dominantColors": [
+          "deep walnut brown",
+          "warm oak top"
+        ],
+        "accentColors": [
+          "aged brass edge",
+          "pale rubbed interaction corner"
+        ],
+        "shapeLanguage": "Compact three-quarter silhouette with one clear functional axis and restrained ornament. Defining contour: The clerk side remains visually open",
+        "distinguishingFeatures": [
+          "The clerk side remains visually open",
+          "A brass corner strip marks the interaction end"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "prop.table",
+            "reason": "Counter has a solid public front; table is open on all sides"
+          }
+        ],
+        "composition": "One fully visible prop only, centered and isolated with transparent border. Exact subject: L-shaped service counter with paneled front",
+        "groundContact": "The solid public front meets the floor along an L-shaped baseline while the clerk-side opening remains free of contact pixels.",
+        "negativeConstraints": [
+          "Do not borrow prop.table's form: Counter has a solid public front; table is open on all sides",
+          "Do not omit or contradict this cue: A brass corner strip marks the interaction end"
+        ],
+        "frameContent": [
+          {
+            "frameId": "primary",
+            "visualContent": "L-shaped service counter with paneled front; one complete isolated primary sprite showing the clerk side remains visually open."
+          }
+        ]
+      }
+    },
+    {
+      "id": "prop.shelf",
+      "category": "prop",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Tall warehouse shelf with three uneven levels",
+        "materials": [
+          "rough oak uprights",
+          "three pine shelves",
+          "shape-only ceramic jars",
+          "folded wool"
+        ],
+        "dominantColors": [
+          "dark oak brown",
+          "muted pine tan"
+        ],
+        "accentColors": [
+          "cream ceramic slots",
+          "rust-red folded cloth"
+        ],
+        "shapeLanguage": "Compact three-quarter silhouette with one clear functional axis and restrained ornament. Defining contour: Shape-only jars parcels and cloth occupy visible slots",
+        "distinguishingFeatures": [
+          "Shape-only jars parcels and cloth occupy visible slots",
+          "A diagonal rear brace prevents a flat cabinet contour"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "prop.counter",
+            "reason": "Shelf is vertical storage; counter is waist-high service furniture"
+          }
+        ],
+        "composition": "One fully visible prop only, centered and isolated with transparent border. Exact subject: Tall warehouse shelf with three uneven levels",
+        "groundContact": "Both vertical uprights terminate on the warehouse floor baseline; all three shelf levels connect directly into those supports.",
+        "negativeConstraints": [
+          "Do not borrow prop.counter's form: Shelf is vertical storage; counter is waist-high service furniture",
+          "Do not omit or contradict this cue: A diagonal rear brace prevents a flat cabinet contour"
+        ],
+        "frameContent": [
+          {
+            "frameId": "primary",
+            "visualContent": "Tall warehouse shelf with three uneven levels; one complete isolated primary sprite showing shape-only jars parcels and cloth occupy visible slots."
+          }
+        ]
+      }
+    },
+    {
+      "id": "prop.desk_ledger",
+      "category": "prop",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Civic writing desk with open blank ledger and inkstand",
+        "materials": [
+          "oak writing desk",
+          "blank leather ledger",
+          "brass clasp",
+          "black inkstand"
+        ],
+        "dominantColors": [
+          "warm oak brown",
+          "oxblood leather"
+        ],
+        "accentColors": [
+          "aged brass corners",
+          "deep blue-black ink"
+        ],
+        "shapeLanguage": "Compact three-quarter silhouette with one clear functional axis and restrained ornament. Defining contour: Sloped writing surface faces the clerk",
+        "distinguishingFeatures": [
+          "Sloped writing surface faces the clerk",
+          "Leather corners and brass clasp remain text-free"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "prop.table",
+            "reason": "Ledger desk is sloped and official; table is flat and communal"
+          }
+        ],
+        "composition": "One fully visible prop only, centered and isolated with transparent border. Exact subject: Civic writing desk with open blank ledger and inkstand",
+        "groundContact": "Four desk feet meet the civic floor baseline; the sloped writing face and ledger remain centered above those supports.",
+        "negativeConstraints": [
+          "Do not borrow prop.table's form: Ledger desk is sloped and official; table is flat and communal",
+          "Do not omit or contradict this cue: Leather corners and brass clasp remain text-free"
+        ],
+        "frameContent": [
+          {
+            "frameId": "primary",
+            "visualContent": "Civic writing desk with open blank ledger and inkstand; one complete isolated primary sprite showing sloped writing surface faces the clerk."
+          }
+        ]
+      }
+    },
+    {
+      "id": "prop.bed",
+      "category": "prop",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Compact inn bed with rolled blanket and low footboard",
+        "materials": [
+          "oak bed frame",
+          "wool quilt",
+          "linen pillow",
+          "rolled blanket"
+        ],
+        "dominantColors": [
+          "dark oak brown",
+          "muted burgundy quilt"
+        ],
+        "accentColors": [
+          "cream linen pillow",
+          "dusty blue blanket fold"
+        ],
+        "shapeLanguage": "Compact three-quarter silhouette with one clear functional axis and restrained ornament. Defining contour: Pillow occupies the upper-left lit end",
+        "distinguishingFeatures": [
+          "Pillow occupies the upper-left lit end",
+          "A quilt fold makes sleep orientation clear"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "prop.bench",
+            "reason": "Bed has pillow and quilted length; bench has sitting slats"
+          }
+        ],
+        "composition": "One fully visible prop only, centered and isolated with transparent border. Exact subject: Compact inn bed with rolled blanket and low footboard",
+        "groundContact": "Four short bed feet meet the inn floor baseline; pillow and quilt remain contained inside the grounded rectangular frame.",
+        "negativeConstraints": [
+          "Do not borrow prop.bench's form: Bed has pillow and quilted length; bench has sitting slats",
+          "Do not omit or contradict this cue: A quilt fold makes sleep orientation clear"
+        ],
+        "frameContent": [
+          {
+            "frameId": "primary",
+            "visualContent": "Compact inn bed with rolled blanket and low footboard; one complete isolated primary sprite showing pillow occupies the upper-left lit end."
+          }
+        ]
+      }
+    },
+    {
+      "id": "prop.hearth",
+      "category": "prop",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Tall stone hearth with dark firebox and copper hood",
+        "materials": [
+          "dressed limestone blocks",
+          "dark iron firebox",
+          "copper hood",
+          "gray ash lip"
+        ],
+        "dominantColors": [
+          "warm stone gray",
+          "charcoal firebox"
+        ],
+        "accentColors": [
+          "aged copper hood",
+          "pale ash edge"
+        ],
+        "shapeLanguage": "Compact three-quarter silhouette with one clear functional axis and restrained ornament. Defining contour: Ash lip projects at the grounded front edge",
+        "distinguishingFeatures": [
+          "Ash lip projects at the grounded front edge",
+          "Side bricks catch warm light without animated flame"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "prop.lamp",
+            "reason": "Hearth is broad masonry; lamp is a compact metal light"
+          }
+        ],
+        "composition": "One fully visible prop only, centered and isolated with transparent border. Exact subject: Tall stone hearth with dark firebox and copper hood",
+        "groundContact": "The broad stone hearth base seats flush against the interior floor and wall line; the projecting ash lip touches the floor directly.",
+        "negativeConstraints": [
+          "Do not borrow prop.lamp's form: Hearth is broad masonry; lamp is a compact metal light",
+          "Do not omit or contradict this cue: Side bricks catch warm light without animated flame"
+        ],
+        "frameContent": [
+          {
+            "frameId": "primary",
+            "visualContent": "Tall stone hearth with dark firebox and copper hood; one complete isolated primary sprite showing ash lip projects at the grounded front edge."
+          }
+        ]
+      }
+    },
+    {
+      "id": "prop.training_dummy",
+      "category": "prop",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Wrapped straw dummy on a four-foot timber stand",
+        "materials": [
+          "bound straw torso",
+          "oak stand",
+          "hemp rope bands"
+        ],
+        "dominantColors": [
+          "golden straw",
+          "dark oak"
+        ],
+        "accentColors": [
+          "pale strike wear",
+          "tan rope"
+        ],
+        "shapeLanguage": "Compact three-quarter silhouette with one clear functional axis and restrained ornament. Defining contour: Two practice arms sit at unequal heights",
+        "distinguishingFeatures": [
+          "Two practice arms sit at unequal heights",
+          "Rope bands expose strike wear at torso center"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "prop.practice_target",
+            "reason": "Dummy has arms and volume; target is a flat round board"
+          }
+        ],
+        "composition": "One fully visible prop only, centered and isolated with transparent border. Exact subject: Wrapped straw dummy on a four-foot timber stand",
+        "groundContact": "Four oak feet contact the dojo floor in a stable cross, directly supporting the wrapped torso and unequal practice arms.",
+        "negativeConstraints": [
+          "Do not borrow prop.practice_target's form: Dummy has arms and volume; target is a flat round board",
+          "Do not omit or contradict this cue: Rope bands expose strike wear at torso center"
+        ],
+        "frameContent": [
+          {
+            "frameId": "primary",
+            "visualContent": "Wrapped straw dummy on a four-foot timber stand; one complete isolated primary sprite showing two practice arms sit at unequal heights."
+          }
+        ]
+      }
+    },
+    {
+      "id": "prop.practice_target",
+      "category": "prop",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Concentric practice target on a braced stand",
+        "materials": [
+          "woven straw rings",
+          "muted cloth bands",
+          "oak triangular stand"
+        ],
+        "dominantColors": [
+          "straw gold",
+          "deep indigo cloth"
+        ],
+        "accentColors": [
+          "brick-red inner ring",
+          "pale oak brace"
+        ],
+        "shapeLanguage": "Compact three-quarter silhouette with one clear functional axis and restrained ornament. Defining contour: Three muted straw-and-cloth rings avoid text",
+        "distinguishingFeatures": [
+          "Three muted straw-and-cloth rings avoid text",
+          "A triangular lower brace keeps the face upright"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "prop.training_dummy",
+            "reason": "Target is flat and round; dummy has a torso and arms"
+          }
+        ],
+        "composition": "One fully visible prop only, centered and isolated with transparent border. Exact subject: Concentric practice target on a braced stand",
+        "groundContact": "The triangular oak brace meets the dojo floor at three points, holding the circular target face upright above the baseline.",
+        "negativeConstraints": [
+          "Do not borrow prop.training_dummy's form: Target is flat and round; dummy has a torso and arms",
+          "Do not omit or contradict this cue: A triangular lower brace keeps the face upright"
+        ],
+        "frameContent": [
+          {
+            "frameId": "primary",
+            "visualContent": "Concentric practice target on a braced stand; one complete isolated primary sprite showing three muted straw-and-cloth rings avoid text."
+          }
+        ]
+      }
+    },
+    {
+      "id": "prop.lantern_warning",
+      "category": "prop",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Caged red warning lantern on a short hooked base",
+        "materials": [
+          "black iron cage",
+          "crimson glass",
+          "short hooked steel base"
+        ],
+        "dominantColors": [
+          "charcoal iron",
+          "deep crimson glass"
+        ],
+        "accentColors": [
+          "hard pale-red core",
+          "rust-red hook edge"
+        ],
+        "shapeLanguage": "Compact three-quarter silhouette with one clear functional axis and restrained ornament. Defining contour: Crimson glass has a hard core and dark iron guard",
+        "distinguishingFeatures": [
+          "Crimson glass has a hard core and dark iron guard",
+          "The hook leans toward the unresolved route edge"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "prop.warning_stake",
+            "reason": "Lantern emits red light; stake is unlit timber"
+          }
+        ],
+        "composition": "One fully visible prop only, centered and isolated with transparent border. Exact subject: Caged red warning lantern on a short hooked base",
+        "groundContact": "The short steel base rests on one compact route-edge contact; its hook leans toward the unresolved crossing while the red cage stays upright.",
+        "negativeConstraints": [
+          "Do not borrow prop.warning_stake's form: Lantern emits red light; stake is unlit timber",
+          "Do not omit or contradict this cue: The hook leans toward the unresolved route edge"
+        ],
+        "frameContent": [
+          {
+            "frameId": "primary",
+            "visualContent": "Caged red warning lantern on a short hooked base; one complete isolated primary sprite showing crimson glass has a hard core and dark iron guard."
+          }
+        ]
+      }
+    }
+  ]
+}

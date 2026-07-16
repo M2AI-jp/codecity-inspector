@@ -8,7 +8,7 @@ export function containedBy(root, candidate) {
 }
 
 export function validateAssetId(id) {
-  if (typeof id !== 'string' || !/^(character|building|field|object|ui|effect)\.[a-z0-9_]+(?:\.[a-z0-9_]+)*$/.test(id)) {
+  if (typeof id !== 'string' || !/^(character|building|field|object|ui|effect|terrain|overlay|structure|interior|prop)\.[a-z0-9_]+(?:\.[a-z0-9_]+)*$/.test(id)) {
     throw new Error('Invalid asset id');
   }
   return id;

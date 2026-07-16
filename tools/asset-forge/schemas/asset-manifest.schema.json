@@ -18,12 +18,17 @@
         ],
         "properties": {
           "assetId": { "type": "string", "minLength": 1 },
-          "category": { "enum": ["character", "building", "field", "object", "ui", "effect"] },
+          "category": {
+            "enum": [
+              "character", "building", "field", "object", "ui", "effect",
+              "terrain", "overlay", "structure", "interior", "prop"
+            ]
+          },
           "status": { "enum": ["missing", "pending", "approved", "rejected", "exported"] },
-          "approvedPath": { "type": "string", "pattern": "^generated/(characters|buildings|fields|objects|ui|effects)/approved/[a-z0-9_-]+\\.png$" },
+          "approvedPath": { "type": "string", "pattern": "^generated/(characters|buildings|fields|objects|ui|effects|terrains|overlays|structures|interiors|props)/approved/[a-z0-9_-]+\\.png$" },
           "pendingGenerationIds": { "type": "array", "items": { "type": "string" } },
           "rejectedGenerationIds": { "type": "array", "items": { "type": "string" } },
-          "exportPath": { "type": "string", "pattern": "^/assets/forge/v1/[a-z0-9_./-]+\\.png$" },
+          "exportPath": { "type": "string", "pattern": "^/assets/forge/v(1|3)/[a-z0-9_./-]+\\.png$" },
           "lastUpdated": { "type": ["string", "null"], "format": "date-time" }
         },
         "allOf": [

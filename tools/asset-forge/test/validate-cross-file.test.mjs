@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { cp, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import sharp from 'sharp';
@@ -13,8 +13,9 @@ import { runJob } from '../src/jobs/run-job.mjs';
 import { inspectPng } from '../src/png-core.mjs';
 import { productionRecipeProblem, validateRepository } from '../src/validate.mjs';
 
-async function fixtureRoot() {
+async function fixtureRoot(t) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'forge-validate-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
   await cp(path.join(FORGE_ROOT, 'data'), path.join(root, 'data'), { recursive: true });
   await cp(path.join(FORGE_ROOT, 'prompts'), path.join(root, 'prompts'), { recursive: true });
   await cp(path.join(FORGE_ROOT, 'references'), path.join(root, 'references'), { recursive: true });
@@ -23,16 +24,16 @@ async function fixtureRoot() {
   return root;
 }
 
-test('cross-file validation reports malformed JSON instead of crashing', async () => {
-  const root = await fixtureRoot();
+test('cross-file validation reports malformed JSON instead of crashing', async (t) => {
+  const root = await fixtureRoot(t);
   await writeFile(path.join(root, 'data', 'asset-definitions', 'characters.json'), '{broken');
   const result = await validateRepository({ root });
   assert.equal(result.ok, false);
   assert.ok(result.issues.some((issue) => issue.code === 'MALFORMED_JSON'));
 });
 
-test('cross-file validation reports duplicate asset IDs', async () => {
-  const root = await fixtureRoot();
+test('cross-file validation reports duplicate asset IDs', async (t) => {
+  const root = await fixtureRoot(t);
   const file = path.join(root, 'data', 'asset-definitions', 'characters.json');
   const catalog = JSON.parse(await readFile(file, 'utf8'));
   catalog.assets.push(structuredClone(catalog.assets[0]));
@@ -41,8 +42,8 @@ test('cross-file validation reports duplicate asset IDs', async () => {
   assert.ok(result.issues.some((issue) => issue.code === 'DUPLICATE_ID' && issue.id === catalog.assets[0].id));
 });
 
-test('cross-file validation reports undeclared references and unreported runtime gaps', async () => {
-  const root = await fixtureRoot();
+test('cross-file validation reports undeclared references and unreported runtime gaps', async (t) => {
+  const root = await fixtureRoot(t);
   const characterFile = path.join(root, 'data', 'asset-definitions', 'characters.json');
   const characters = JSON.parse(await readFile(characterFile, 'utf8'));
   characters.assets[0].defaultReferenceIds = ['missing_reference'];
@@ -56,8 +57,8 @@ test('cross-file validation reports undeclared references and unreported runtime
   assert.ok(result.issues.some((issue) => issue.code === 'UNREPORTED_RUNTIME_GAP' && issue.runtimeId === 'snow'));
 });
 
-test('cross-file validation reports unknown reference targets', async () => {
-  const root = await fixtureRoot();
+test('cross-file validation reports unknown reference targets', async (t) => {
+  const root = await fixtureRoot(t);
   const referencesFile = path.join(root, 'data', 'manifests', 'references.json');
   const references = JSON.parse(await readFile(referencesFile, 'utf8'));
   references.references[0].targetAssetIds = ['building.not_declared'];
@@ -67,8 +68,8 @@ test('cross-file validation reports unknown reference targets', async () => {
     && issue.targetAssetId === 'building.not_declared'));
 });
 
-test('cross-file validation rejects tampered approved reference-generation provenance', async () => {
-  const root = await fixtureRoot();
+test('cross-file validation rejects tampered approved reference-generation provenance', async (t) => {
+  const root = await fixtureRoot(t);
   const prompt = path.join(root, 'review', 'prompts', 'wave1c-character-basis', 'character_inspector_basis.txt');
   await writeFile(prompt, `${await readFile(prompt, 'utf8')}\ntampered`);
   const result = await validateRepository({ root });
@@ -77,8 +78,8 @@ test('cross-file validation rejects tampered approved reference-generation prove
     && /prompt snapshot hash/i.test(issue.message)));
 });
 
-test('cross-file validation rejects tampered pending reference-candidate provenance', async () => {
-  const root = await fixtureRoot();
+test('cross-file validation rejects tampered pending reference-candidate provenance', async (t) => {
+  const root = await fixtureRoot(t);
   const references = JSON.parse(await readFile(path.join(root, 'data', 'manifests', 'references.json'), 'utf8'));
   const candidate = references.references.find((entry) => entry.id === 'cutaway_interior_visual_reference');
   assert.equal(candidate.status, 'pending');
@@ -90,8 +91,8 @@ test('cross-file validation rejects tampered pending reference-candidate provena
     && /candidate prompt snapshot hash/i.test(issue.message)));
 });
 
-test('cross-file validation reports a required pending candidate without a production recipe', async () => {
-  const root = await fixtureRoot();
+test('cross-file validation reports a required pending candidate without a production recipe', async (t) => {
+  const root = await fixtureRoot(t);
   const generated = await runJob({ assetId: 'field.grass', provider: 'mock' }, {
     root,
     forgeRoot: root,
@@ -103,8 +104,8 @@ test('cross-file validation reports a required pending candidate without a produ
     && issue.message === 'required asset is missing its production recipe'));
 });
 
-test('cross-file validation reports a production recipe output-hash mismatch', async () => {
-  const root = await fixtureRoot();
+test('cross-file validation reports a production recipe output-hash mismatch', async (t) => {
+  const root = await fixtureRoot(t);
   const input = path.join(root, 'prepared.png');
   const prepared = await sharp({
     create: { width: 256, height: 256, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } }
@@ -189,8 +190,9 @@ test('cross-file validation reports a production recipe output-hash mismatch', a
     && issue.message === 'recipe source file hash/dimensions do not match'));
 });
 
-test('centered effect recipe persists an in-subject centerline baseline', async () => {
+test('centered effect recipe persists an in-subject centerline baseline', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'forge-centered-effect-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
   const outputRelative = 'generated/effects/pending/effect_water_ripple.png';
   const outputPath = path.join(root, outputRelative);
   const sourcePath = path.join(root, 'water-ripple-source.png');

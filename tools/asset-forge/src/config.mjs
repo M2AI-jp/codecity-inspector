@@ -2,10 +2,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const FORGE_ROOT = fileURLToPath(new URL('..', import.meta.url));
-export const AUTHORING_CATEGORIES = Object.freeze(['character', 'building', 'field', 'object', 'ui', 'effect']);
+export const AUTHORING_CATEGORIES = Object.freeze([
+  'character', 'building', 'field', 'object', 'ui', 'effect',
+  'terrain', 'overlay', 'structure', 'interior', 'prop'
+]);
 export const CATEGORY_DIRS = Object.freeze({
   character: 'characters', building: 'buildings', field: 'fields',
-  object: 'objects', ui: 'ui', effect: 'effects'
+  object: 'objects', ui: 'ui', effect: 'effects', terrain: 'terrains',
+  overlay: 'overlays', structure: 'structures', interior: 'interiors', prop: 'props'
 });
 export const PROVIDERS = Object.freeze(['mock', 'job-pack', 'manual-import', 'codex-subscription']);
 

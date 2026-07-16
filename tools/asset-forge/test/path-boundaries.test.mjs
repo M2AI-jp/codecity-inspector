@@ -1,13 +1,14 @@
 import assert from 'node:assert/strict';
-import { cp, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { FORGE_ROOT } from '../src/config.mjs';
 import { buildJob } from '../src/jobs/build-job.mjs';
 
-test('catalog prompt paths cannot escape the prompt root', async () => {
+test('catalog prompt paths cannot escape the prompt root', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'forge-prompt-boundary-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
   await cp(path.join(FORGE_ROOT, 'data'), path.join(root, 'data'), { recursive: true });
   await cp(path.join(FORGE_ROOT, 'prompts'), path.join(root, 'prompts'), { recursive: true });
   const catalogPath = path.join(root, 'data', 'asset-definitions', 'characters.json');

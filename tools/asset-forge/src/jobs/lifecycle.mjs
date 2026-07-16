@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import { FORGE_ROOT, pathsFor } from '../config.mjs';
+import { assertCanonicalInteractiveTerminal } from '../human-write-gate.mjs';
 import { atomicReplaceJson, atomicWriteFile, atomicWriteJson, readJson, withFileLock } from '../fs-safe.mjs';
 import { canonicalJson, hashFile, sha256 } from '../hashing.mjs';
 import { readExternalImage } from '../images/inspect-image.mjs';
@@ -21,6 +22,22 @@ import {
   productionRecipeProblem
 } from '../validate.mjs';
 import { findAsset } from './define-assets.mjs';
+
+const ISSUED_LEGACY_PROMOTION_PREVIEWS = new WeakMap();
+
+function assertLegacyV1PromotionCandidate(generation, definition, stage) {
+  const v2Markers = generation?.requiredSetId === 'fable5-v2'
+    || generation?.waveId === 'A'
+    || generation?.visualContractVersion === 2
+    || generation?.productionRecipesV2 !== undefined
+    || generation?.unitAssemblyV2 !== undefined
+    || definition?.requiredSetId === 'fable5-v2'
+    || definition?.waveId === 'A'
+    || definition?.visualContractVersion === 2;
+  if (v2Markers) {
+    throw new Error(`${stage} rejects Fable5 VisualAssetContract v2 / Wave A candidates; use the v3 bulk Wave A ceremony`);
+  }
+}
 
 function validateGenerationId(generationId) {
   if (typeof generationId !== 'string' || !/^[a-z0-9_]+$/.test(generationId)) throw new Error('Invalid generation id');
@@ -537,13 +554,14 @@ export function appendApprovalTransition(approvals, approvalRecord, supersession
   return next;
 }
 
-export async function promotionPreview({ generationId, supersedesGenerationId }, {
+async function promotionPreviewAtRoot({ generationId, supersedesGenerationId }, {
   root = FORGE_ROOT,
   forgeRoot = FORGE_ROOT
 } = {}) {
   const id = validateGenerationId(generationId);
   const current = await generationResult(root, id);
   const definition = await findAsset(current.assetId, { root: forgeRoot });
+  assertLegacyV1PromotionCandidate(current, definition, 'Legacy promotion preview');
   if (current.status === 'pending') {
     const pending = await checkedPending(root, current);
     await assertGenerationReferenceMetadata(definition, pending.result, { root: forgeRoot });
@@ -660,7 +678,33 @@ export async function promotionPreview({ generationId, supersedesGenerationId },
   };
 }
 
-export async function promoteCandidate({
+export async function promotionPreviewInternal(input, options = {}) {
+  return promotionPreviewAtRoot(input, options);
+}
+
+export async function promotionPreview(input) {
+  if (arguments.length !== 1 || !input || typeof input !== 'object' || Array.isArray(input)
+    || Object.keys(input).some((key) => !['generationId', 'supersedesGenerationId', 'note'].includes(key))) {
+    throw new Error('Legacy promotion public preview accepts only generationId, supersedesGenerationId, and note');
+  }
+  const note = String(input.note ?? '').trim();
+  if (!note) throw new Error('Legacy promotion public preview requires a non-empty note');
+  const core = await promotionPreviewAtRoot({
+    generationId: input.generationId,
+    supersedesGenerationId: input.supersedesGenerationId
+  }, { root: FORGE_ROOT, forgeRoot: FORGE_ROOT });
+  const plan = { ...core, note };
+  const planDigest = sha256(canonicalJson(plan));
+  const preview = {
+    ...plan,
+    planDigest,
+    confirmationPhrase: `APPROVE LEGACY PROMOTION ${planDigest}`
+  };
+  ISSUED_LEGACY_PROMOTION_PREVIEWS.set(preview, sha256(canonicalJson(preview)));
+  return preview;
+}
+
+export async function promoteCandidateInternal({
   generationId, reviewer, note, write, confirmed,
   expectedSourceSha256, expectedApprovedPath, supersedesGenerationId
 }, {
@@ -670,8 +714,8 @@ export async function promoteCandidate({
   hooks = {}
 } = {}) {
   validateGenerationId(generationId);
-  const preview = await promotionPreview({ generationId, supersedesGenerationId }, { root, forgeRoot });
-  if (!process.stdin.isTTY || !process.stdout.isTTY || reviewer !== 'human' || !write || !confirmed) {
+  const preview = await promotionPreviewAtRoot({ generationId, supersedesGenerationId }, { root, forgeRoot });
+  if (reviewer !== 'human' || !write || !confirmed) {
     throw new Error('Promotion requires an interactive human reviewer, --write, and explicit confirmation');
   }
   const approvalNote = String(note ?? '').trim();
@@ -686,6 +730,7 @@ export async function promoteCandidate({
   return withFileLock(root, paths.lifecycleLock, async () => {
     let current = await generationResult(root, generationId);
     const definition = await findAsset(current.assetId, { root: forgeRoot });
+    assertLegacyV1PromotionCandidate(current, definition, 'Legacy promotion write');
     await assertGenerationReferenceMetadata(definition, current, { root: forgeRoot });
     const pending = current.status === 'pending' ? await checkedPending(root, current) : null;
     await assertRecipeReadyForPromotion(root, current, forgeRoot, definition, pending?.sourceBytes);
@@ -836,6 +881,10 @@ export async function promoteCandidate({
     const resultValidation = validateWith('generation-result.schema.json', approved);
     if (!resultValidation.ok) throw new Error(`Invalid approval result: ${JSON.stringify(resultValidation.errors)}`);
 
+    // Recheck immediately before the first authoritative artifact write. This
+    // prevents a v2/A record from entering the legacy approved tree even if a
+    // caller races mutable state between preview and execution.
+    assertLegacyV1PromotionCandidate(current, definition, 'Legacy promotion commit');
     await writeFileOrVerify(root, approvedPath, pending.sourceBytes);
     if (await hashFile(approvedPath) !== journal.sourceSha256) throw new Error('Approved copy hash mismatch');
     if (approvedSourceSnapshot) {
@@ -874,5 +923,35 @@ export async function promoteCandidate({
       approvalRecord,
       ...(supersessionRecord ? { supersessionRecord } : {})
     };
+  });
+}
+
+export async function promoteCandidate(request) {
+  if (arguments.length !== 1 || !request || typeof request !== 'object' || Array.isArray(request)
+    || Object.keys(request).some((key) => !['preview', 'answer', 'write'].includes(key))) {
+    throw new Error('Legacy promotion public execution accepts only preview, answer, and write');
+  }
+  assertCanonicalInteractiveTerminal('Legacy promotion');
+  const { preview, answer, write } = request;
+  const issuedDigest = ISSUED_LEGACY_PROMOTION_PREVIEWS.get(preview);
+  if (!issuedDigest || issuedDigest !== sha256(canonicalJson(preview))) {
+    throw new Error('Legacy promotion requires the exact in-process preview issued by promotionPreview');
+  }
+  if (answer !== preview.confirmationPhrase) {
+    throw new Error('Legacy promotion confirmation did not exactly match the issued preview');
+  }
+  ISSUED_LEGACY_PROMOTION_PREVIEWS.delete(preview);
+  return promoteCandidateInternal({
+    generationId: preview.generationId,
+    reviewer: 'human',
+    note: preview.note,
+    write: write === true,
+    confirmed: true,
+    expectedSourceSha256: preview.sourceSha256,
+    expectedApprovedPath: preview.approvedPath,
+    ...(preview.supersedes ? { supersedesGenerationId: preview.supersedes.generationId } : {})
+  }, {
+    root: FORGE_ROOT,
+    forgeRoot: FORGE_ROOT
   });
 }
