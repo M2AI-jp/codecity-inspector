@@ -129,18 +129,22 @@ test('approved references, the pending cutaway reference, and the released 78 ca
   assert.equal(assets.assets.filter((asset) => required.some((definition) => definition.id === asset.assetId))
     .every((asset) => ['approved', 'exported'].includes(asset.status) && typeof asset.approvedPath === 'string'), true);
   const generations = JSON.parse(await readFile(path.join(FORGE_ROOT, 'data', 'local', 'generations.json'))).results;
-  assert.equal(generations.length, 78);
-  assert.equal(new Set(generations.map((generation) => generation.assetId)).size, 78);
-  assert.equal(generations.filter((generation) => generation.status === 'approved').length, 78);
-  assert.equal(generations.filter((generation) => generation.status === 'pending').length, 0);
-  assert.equal(generations.filter((generation) => generation.status === 'rejected').length, 0);
-  assert.equal(generations.every((generation) => generation.status === 'approved'
+  const releasedGenerationIds = new Set(approvals.approvals.map((approval) => approval.generationId));
+  const releasedGenerations = generations.filter((generation) => releasedGenerationIds.has(generation.id));
+  assert.equal(releasedGenerationIds.size, 78);
+  assert.equal(releasedGenerations.length, 78);
+  assert.equal(new Set(releasedGenerations.map((generation) => generation.assetId)).size, 78);
+  assert.deepEqual(
+    new Set(generations.filter((generation) => generation.status === 'approved').map((generation) => generation.id)),
+    releasedGenerationIds
+  );
+  assert.equal(releasedGenerations.every((generation) => generation.status === 'approved'
     && generation.productionRecipe?.sourceSnapshot
     && generation.productionRecipe.sourceSnapshot.sha256 === generation.productionRecipe.source.sha256
     && generation.productionRecipe.sourceSnapshot.width === generation.productionRecipe.source.width
     && generation.productionRecipe.sourceSnapshot.height === generation.productionRecipe.source.height), true);
-  const snow = generations.find((generation) => generation.assetId === 'field.snow' && generation.status === 'approved');
-  const sand = generations.find((generation) => generation.assetId === 'field.sand');
+  const snow = releasedGenerations.find((generation) => generation.assetId === 'field.snow');
+  const sand = releasedGenerations.find((generation) => generation.assetId === 'field.sand');
   assert.equal(snow?.productionRecipe.method, 'imagegen');
   assert.deepEqual(snow?.referenceImageIds, [
     'world_visual_master', 'intake_20260713_field_stairs_bridges_cliffs'
@@ -148,13 +152,13 @@ test('approved references, the pending cutaway reference, and the released 78 ca
   assert.equal(sand, undefined, 'the optional sand candidate is retired from the completion ledger');
   const approvedFiles = (await filesBelow(path.join(FORGE_ROOT, 'generated')))
     .filter((file) => file.includes(`${path.sep}approved${path.sep}`));
-  const expectedApprovedFiles = new Set(generations.flatMap((generation) => [
+  const expectedApprovedFiles = new Set(releasedGenerations.flatMap((generation) => [
     path.join(FORGE_ROOT, generation.outputPath),
     path.join(FORGE_ROOT, generation.metadataPath),
     path.join(FORGE_ROOT, generation.productionRecipe.sourceSnapshot.path)
   ]));
   assert.deepEqual(new Set(approvedFiles), expectedApprovedFiles);
-  for (const generation of generations) {
+  for (const generation of releasedGenerations) {
     assert.equal(
       sha256(await readFile(path.join(FORGE_ROOT, generation.productionRecipe.sourceSnapshot.path))),
       generation.productionRecipe.source.sha256

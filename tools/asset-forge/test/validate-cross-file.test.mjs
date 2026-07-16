@@ -104,6 +104,20 @@ test('cross-file validation reports a required pending candidate without a produ
     && issue.message === 'required asset is missing its production recipe'));
 });
 
+test('production recipe validation excludes only job-pack records from the image-candidate gate', async () => {
+  const definition = { required: true };
+  assert.equal(await productionRecipeProblem(FORGE_ROOT, {
+    status: 'job-pack'
+  }, { definition }), null);
+  for (const status of ['pending', 'approved', 'rejected']) {
+    assert.match(
+      await productionRecipeProblem(FORGE_ROOT, { status }, { definition }),
+      /^generation output integrity failed:/,
+      status
+    );
+  }
+});
+
 test('cross-file validation reports a production recipe output-hash mismatch', async (t) => {
   const root = await fixtureRoot(t);
   const input = path.join(root, 'prepared.png');

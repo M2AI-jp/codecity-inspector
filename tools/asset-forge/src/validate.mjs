@@ -402,6 +402,7 @@ export async function productionRecipeProblem(root, generation, {
   outputBytes,
   requirePersistentSourceSnapshot = Boolean(definition?.required)
 } = {}) {
+  if (generation.status === 'job-pack') return null;
   const recipe = generation.productionRecipe;
   let outputAudit = null;
   if (recipe || ['pending', 'approved', 'rejected'].includes(generation.status)) {
