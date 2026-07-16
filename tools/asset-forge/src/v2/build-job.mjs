@@ -115,6 +115,22 @@ function exactUnitPrompt(asset, unit, {
   generationMode,
   identityMasterPlan
 }) {
+  const generationInstruction = unit.sourceRequired
+    ? (generationMode === 'monolithic-atlas' && asset.category === 'character'
+        ? [
+            `This is one formal cell contract inside a single identity-bound 10-column x 4-row monolithic character atlas. Do not invoke this unit prompt by itself; the identity binding issued after the identity master supplies the sole atlas-level generation instruction and the importer produces the exact ${unit.targetRect.width}x${unit.targetRect.height} cell.`,
+            'Use exact flat #FF00FF as removable background inside this cell. No anti-aliasing, caption,',
+            'comparison panel, alternate pose, scene, or baked checkerboard.'
+          ]
+        : [
+            `Generate exactly one semantic unit, centered in a crop-safe ${unit.targetRect.width}:${unit.targetRect.height} aspect region of the provider-native raster; the importer produces the exact ${unit.targetRect.width}x${unit.targetRect.height} cell.`,
+            'Use exact flat #FF00FF as removable background. No anti-aliasing. No crop, caption, grid,',
+            'comparison panel, neighboring frame, alternate pose, scene, or baked checkerboard.'
+          ])
+    : [
+        'Do not generate source pixels for this cell. Its only legal output is zero RGBA.',
+        'No image generation call and no source file may be submitted for this transparent contract cell.'
+      ];
   return [
     '# Canonical Fable5 Wave A generation unit',
     '',
@@ -135,16 +151,9 @@ function exactUnitPrompt(asset, unit, {
       `Identity prompt SHA-256: ${identityMasterPlan.promptSha256}`
     ] : []),
     '',
-    unit.sourceRequired
-      ? `Generate exactly one semantic unit, centered in a crop-safe ${unit.targetRect.width}:${unit.targetRect.height} aspect region of the provider-native raster; the importer produces the exact ${unit.targetRect.width}x${unit.targetRect.height} cell.`
-      : 'Do not generate source pixels for this cell. Its only legal output is zero RGBA.',
+    generationInstruction[0],
     `Exact visual content: ${unit.visualContent}`,
-    ...(unit.sourceRequired ? [
-      'Use exact flat #FF00FF as removable background. No anti-aliasing. No crop, caption, grid,',
-      'comparison panel, neighboring frame, alternate pose, scene, or baked checkerboard.'
-    ] : [
-      'No image generation call and no source file may be submitted for this transparent contract cell.'
-    ]),
+    ...generationInstruction.slice(1),
     '',
     'Authorized reference bindings:',
     canonicalJson(boundReferences(referenceImages)).trimEnd(),
@@ -263,9 +272,6 @@ export async function buildWaveAJob({ assetId, seed = '', generationMode = 'per-
   }
   if (asset.defaultReferenceIds.includes('cutaway_interior_visual_reference')) {
     throw new Error(`Pending cutaway reference is forbidden in Wave A: ${assetId}`);
-  }
-  if (asset.category === 'character' && generationMode !== 'per-unit') {
-    throw new Error('Wave A characters require per-unit generation so all 40 prompts bind one issued identity master');
   }
   const promptText = await renderPrompt(asset, forgeRoot);
   const promptSha256 = sha256(promptText);

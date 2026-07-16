@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import sharp from 'sharp';
 import test from 'node:test';
+import { main } from '../src/cli.mjs';
 import { FORGE_ROOT } from '../src/config.mjs';
 import { canonicalJson, hashApprovedTree, hashTree, sha256 } from '../src/hashing.mjs';
 import { processCandidate } from '../src/jobs/process-candidate.mjs';
@@ -273,6 +274,52 @@ async function monolithicSourcesForJob(root, job, { scale = 2, prefix = 'atlas' 
   }));
 }
 
+async function monolithicCharacterSourcesForJob(root, job, {
+  scale = 2,
+  prefix = 'character-atlas'
+} = {}) {
+  const required = job.generationUnits.filter(({ sourceRequired }) => sourceRequired);
+  assert.equal(required.length, 40);
+  const padding = 8;
+  const output = job.artifactContracts[0].outputSize;
+  const width = output.width * scale + padding * 2;
+  const height = output.height * scale + padding * 2;
+  const composites = [];
+  for (const [index, unit] of required.entries()) {
+    const cellWidth = unit.targetRect.width * scale;
+    const cellHeight = unit.targetRect.height * scale;
+    const bodyWidth = (32 + (index % 8)) * scale;
+    const bodyHeight = (68 + (index % 11)) * scale;
+    const color = {
+      r: 40 + (index * 47) % 190,
+      g: 80 + (index * 71) % 150,
+      b: 20 + (index * 31) % 50,
+      alpha: 1
+    };
+    composites.push({
+      input: await sharp({
+        create: { width: bodyWidth, height: bodyHeight, channels: 4, background: color }
+      }).png().toBuffer(),
+      left: padding + unit.targetRect.x * scale + Math.floor((cellWidth - bodyWidth) / 2),
+      top: padding + unit.targetRect.y * scale + cellHeight - bodyHeight
+    });
+  }
+  const bytes = await sharp({
+    create: { width, height, channels: 4, background: '#ff00ffff' }
+  }).composite(composites).png({ adaptiveFiltering: false, palette: false }).toBuffer();
+  const sourceOriginal = await writeInput(root, `${prefix}.png`, bytes);
+  return required.map((unit) => ({
+    unitId: unit.unitId,
+    sourceOriginal,
+    cropRect: {
+      x: padding + unit.targetRect.x * scale,
+      y: padding + unit.targetRect.y * scale,
+      width: unit.targetRect.width * scale,
+      height: unit.targetRect.height * scale
+    }
+  }));
+}
+
 async function persistResultMutation(root, originalId, nextResult) {
   const manifestPath = path.join(root, 'data', 'local', 'generations.json');
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
@@ -311,9 +358,28 @@ test('Wave A job packs bind 109 definitions to 771 generation units and honest p
   });
   assert.equal(repeat.resumed, true);
   assert.deepEqual(repeat.result, first.result);
+  const characterPerUnit = await buildWaveAJob({ assetId: 'character.player' }, { forgeRoot: root });
+  assert.equal(characterPerUnit.job.generationMode, 'per-unit');
+  assert.equal(characterPerUnit.job.promptSha256, '6db80c1f42eb8a24092240029bc511148b0266924e5853d6da93face622598e4');
+  assert.equal(characterPerUnit.job.generationUnitSetSha256, 'aaf4d2a77560d33c585aeafa0441816a18609cb1a0d0e24c58086690f34a7bfc');
+  assert.equal(characterPerUnit.job.generationUnits[0].unitPromptSha256, '16e85ad4b4d47f4846e2c19f57f680f1f92fca3c0dd2749d14779ae54ed33b74');
+  assert.equal(characterPerUnit.job.generationUnits[39].unitPromptSha256, '5b4eaba1b07499ed9b01a2326ec6c66fee837d02bb4eb6a51a71fbca01dd80af');
+  const characterAtlas = await buildWaveAJob({
+    assetId: 'character.player', generationMode: 'monolithic-atlas'
+  }, { forgeRoot: root });
+  assert.equal(characterAtlas.job.generationMode, 'monolithic-atlas');
+  assert.notEqual(characterAtlas.job.id, characterPerUnit.job.id);
+  assert.notEqual(characterAtlas.job.provenanceKey, characterPerUnit.job.provenanceKey);
+  assert.notEqual(characterAtlas.job.generationUnitSetSha256, characterPerUnit.job.generationUnitSetSha256);
+  assert.match(characterAtlas.job.generationUnits[0].unitPromptText, /10-column x 4-row monolithic character atlas/);
+  assert.doesNotMatch(characterAtlas.job.generationUnits[0].unitPromptText, /Generate exactly one semantic unit/);
+  const help = await main(['help']);
+  assert.ok(help.commands.includes(
+    'make-job-v2 --asset <character-asset-id> --mode monolithic-atlas [--seed <seed>]'
+  ));
   await assert.rejects(
-    () => buildWaveAJob({ assetId: 'character.player', generationMode: 'monolithic-atlas' }, { forgeRoot: root }),
-    /characters require per-unit generation/
+    () => main(['make-job-v2', '--asset', 'character.player', '--mode', 'unsupported']),
+    /Unsupported Wave A generation mode/
   );
 });
 
@@ -709,6 +775,8 @@ test('character identity is prepared first, bound into 40 issued prompts, then i
     }
   }, { root, forgeRoot: root });
   assert.equal(bound.binding.units.length, 40);
+  assert.equal(Object.hasOwn(bound.binding, 'atlasExecution'), false);
+  assert.equal(new Set(bound.binding.units.map(({ executionPromptPath }) => executionPromptPath)).size, 40);
   assert.equal(new Set(bound.binding.units.map(({ consistencyInputSha256 }) => consistencyInputSha256)).size, 1);
   assert.equal(bound.binding.providerInvocationEvidence, 'unverified-no-provider-receipt');
   const verifiedBinding = await verifyWaveAIdentityBinding(bound.bindingPath, { root, forgeRoot: root });
@@ -731,6 +799,185 @@ test('character identity is prepared first, bound into 40 issued prompts, then i
   assert.equal((await processCandidate({ generationId: imported.result.id }, {
     root, forgeRoot: root
   })).status, 'audited-pending');
+});
+
+test('character monolithic atlas issues one identity-bound 10x4 prompt and replays 40 canonical crops', async (t) => {
+  const root = await fixtureRoot(t);
+  const pack = await makeWaveAJob({
+    assetId: 'character.player', generationMode: 'monolithic-atlas'
+  }, { root, forgeRoot: root });
+  const identity = await identitySource(root, 'atlas-identity.png');
+  const bound = await prepareWaveAIdentity({
+    assetId: 'character.player',
+    jobPackPath: pack.result.jobPackPath,
+    identityMasterSource: {
+      sourceOriginal: identity,
+      cropRect: { x: 0, y: 0, width: 384, height: 192 }
+    }
+  }, { root, forgeRoot: root });
+  assert.equal(bound.binding.generationMode, 'monolithic-atlas');
+  assert.deepEqual({
+    layout: bound.binding.atlasExecution.layout,
+    columns: bound.binding.atlasExecution.columns,
+    rows: bound.binding.atlasExecution.rows,
+    unitCount: bound.binding.atlasExecution.unitOrder.length
+  }, {
+    layout: 'character-row-major-directions-by-row-frames-by-column',
+    columns: 10,
+    rows: 4,
+    unitCount: 40
+  });
+  assert.deepEqual(
+    bound.binding.atlasExecution.unitOrder,
+    pack.job.generationUnits.map(({ unitId }) => unitId)
+  );
+  assert.equal(new Set(bound.binding.units.map(({ executionPromptPath }) => executionPromptPath)).size, 1);
+  assert.equal(new Set(bound.binding.units.map(({ executionPromptSha256 }) => executionPromptSha256)).size, 1);
+  const atlasPromptBytes = await readFile(path.join(
+    root,
+    bound.binding.atlasExecution.executionPromptPath
+  ));
+  assert.equal(sha256(atlasPromptBytes), bound.binding.atlasExecution.executionPromptSha256);
+  const atlasPrompt = atlasPromptBytes.toString('utf8');
+  assert.match(atlasPrompt, new RegExp(pack.job.id));
+  assert.match(atlasPrompt, new RegExp(pack.job.generationUnitSetSha256));
+  assert.match(atlasPrompt, new RegExp(bound.binding.identityMaster.consistencyInputSha256));
+  assert.match(atlasPrompt, /10 columns/);
+  assert.match(atlasPrompt, /4 rows/);
+  const atlasPromptAbsolute = path.join(root, bound.binding.atlasExecution.executionPromptPath);
+  await writeFile(atlasPromptAbsolute, Buffer.from('tampered atlas execution prompt'));
+  await assert.rejects(() => verifyWaveAIdentityBinding(bound.bindingPath, {
+    root, forgeRoot: root
+  }), /prompt mismatch/);
+  await writeFile(atlasPromptAbsolute, atlasPromptBytes);
+  await assert.doesNotReject(() => verifyWaveAIdentityBinding(bound.bindingPath, {
+    root, forgeRoot: root
+  }));
+
+  const unitSources = await monolithicCharacterSourcesForJob(root, pack.job, {
+    prefix: 'player-monolithic'
+  });
+  const imported = await importWaveACandidate({
+    assetId: 'character.player',
+    jobPackPath: pack.result.jobPackPath,
+    unitSources,
+    identityBindingPath: bound.bindingPath
+  }, { root, forgeRoot: root });
+  assert.equal(imported.status, 'pending');
+  assert.equal(imported.result.unitAssemblyV2.generationMode, 'monolithic-atlas');
+  assert.equal(imported.result.unitAssemblyV2.units.length, 40);
+  assert.equal(new Set(imported.result.unitAssemblyV2.units
+    .map(({ sourceSnapshot }) => sourceSnapshot.path)).size, 1);
+  assert.equal(new Set(imported.result.unitAssemblyV2.units
+    .map(({ sourceOriginal }) => sourceOriginal.sha256)).size, 1);
+  assert.equal(new Set(imported.result.unitAssemblyV2.units
+    .map(({ sourceOriginal }) => canonicalJson(sourceOriginal.cropRect))).size, 40);
+  assert.equal(new Set(imported.result.unitAssemblyV2.units
+    .map(({ outputCellSha256 }) => outputCellSha256)).size, 40);
+  assert.notEqual(
+    imported.result.unitAssemblyV2.units[0].sourceOriginal.sha256,
+    imported.result.unitAssemblyV2.identityMaster.sourceOriginal.sha256
+  );
+  assert.equal((await processCandidate({ generationId: imported.result.id }, {
+    root, forgeRoot: root
+  })).status, 'audited-pending');
+
+  const original = structuredClone(imported.result);
+  const forged = structuredClone(original);
+  [forged.unitAssemblyV2.units[0].sourceOriginal.cropRect,
+    forged.unitAssemblyV2.units[1].sourceOriginal.cropRect] = [
+    forged.unitAssemblyV2.units[1].sourceOriginal.cropRect,
+    forged.unitAssemblyV2.units[0].sourceOriginal.cropRect
+  ];
+  await persistResultMutation(root, original.id, forged);
+  await assert.rejects(
+    () => processCandidate({ generationId: original.id }, { root, forgeRoot: root }),
+    /canonical replay|canonical row-major/
+  );
+  await persistResultMutation(root, original.id, original);
+  assert.equal((await processCandidate({ generationId: original.id }, {
+    root, forgeRoot: root
+  })).status, 'audited-pending');
+});
+
+test('character atlas rejects retroactive sharing and malformed crop or source claims without writes', async (t) => {
+  const root = await fixtureRoot(t);
+  const perUnitPack = await makeWaveAJob({ assetId: 'character.player' }, {
+    root, forgeRoot: root
+  });
+  const monolithicPack = await makeWaveAJob({
+    assetId: 'character.player', generationMode: 'monolithic-atlas'
+  }, { root, forgeRoot: root });
+  assert.notEqual(perUnitPack.job.id, monolithicPack.job.id);
+  const identity = await identitySource(root, 'negative-atlas-identity.png');
+  const identityMasterSource = {
+    sourceOriginal: identity,
+    cropRect: { x: 0, y: 0, width: 384, height: 192 }
+  };
+  const perUnitBound = await prepareWaveAIdentity({
+    assetId: 'character.player',
+    jobPackPath: perUnitPack.result.jobPackPath,
+    identityMasterSource
+  }, { root, forgeRoot: root });
+  const monolithicBound = await prepareWaveAIdentity({
+    assetId: 'character.player',
+    jobPackPath: monolithicPack.result.jobPackPath,
+    identityMasterSource
+  }, { root, forgeRoot: root });
+  const valid = await monolithicCharacterSourcesForJob(root, monolithicPack.job, {
+    prefix: 'negative-player-monolithic'
+  });
+  const atlasBytes = await readFile(valid[0].sourceOriginal);
+  const mixedPath = await writeInput(root, 'negative-player-mixed-copy.png', atlasBytes);
+  const aliasBound = await prepareWaveAIdentity({
+    assetId: 'character.player',
+    jobPackPath: monolithicPack.result.jobPackPath,
+    identityMasterSource: {
+      sourceOriginal: valid[0].sourceOriginal,
+      cropRect: { x: 8, y: 8, width: 384, height: 192 }
+    }
+  }, { root, forgeRoot: root });
+
+  const swapped = structuredClone(valid);
+  [swapped[0].cropRect, swapped[1].cropRect] = [swapped[1].cropRect, swapped[0].cropRect];
+  const overlapping = structuredClone(valid);
+  overlapping[1].cropRect = { ...overlapping[0].cropRect, x: overlapping[0].cropRect.x + 1 };
+  const unequal = structuredClone(valid);
+  unequal[39].cropRect.width += 2;
+  unequal[39].cropRect.height += 4;
+  const mixed = structuredClone(valid);
+  mixed[39].sourceOriginal = mixedPath;
+  const extra = [...structuredClone(valid), {
+    unitId: 'unit_999_primary_extra',
+    sourceOriginal: valid[0].sourceOriginal,
+    cropRect: structuredClone(valid[0].cropRect)
+  }];
+  const cases = [
+    ['old per-unit shared source', valid, perUnitPack, perUnitBound.bindingPath, /unique primary source path and bytes/],
+    ['swapped crops', swapped, monolithicPack, monolithicBound.bindingPath, /canonical row-major/],
+    ['partially overlapping crops', overlapping, monolithicPack, monolithicBound.bindingPath, /must not overlap/],
+    ['unequal crop size', unequal, monolithicPack, monolithicBound.bindingPath, /equal-size cropRects/],
+    ['missing crop claim', valid.slice(0, 39), monolithicPack, monolithicBound.bindingPath, /coverage mismatch/],
+    ['extra crop claim', extra, monolithicPack, monolithicBound.bindingPath, /coverage mismatch/],
+    ['mixed source', mixed, monolithicPack, monolithicBound.bindingPath, /one shared source/],
+    ['identity source alias', valid, monolithicPack, aliasBound.bindingPath, /identity master cannot alias/]
+  ];
+  const ledgerPath = path.join(root, 'data', 'local', 'generations.json');
+  const pendingRoot = path.join(root, 'generated', 'characters', 'pending');
+  const approvedBefore = await hashApprovedTree(root);
+  const ledgerBefore = await readFile(ledgerPath);
+  const pendingBefore = await hashTree(pendingRoot);
+  for (const [label, unitSources, pack, identityBindingPath, pattern] of cases) {
+    await assert.rejects(() => importWaveACandidate({
+      assetId: 'character.player',
+      jobPackPath: pack.result.jobPackPath,
+      unitSources,
+      identityBindingPath
+    }, { root, forgeRoot: root }), pattern, label);
+    assert.deepEqual(await readFile(ledgerPath), ledgerBefore, `${label}: ledger changed`);
+    assert.equal(await hashTree(pendingRoot), pendingBefore, `${label}: pending tree changed`);
+    assert.equal(await hashApprovedTree(root), approvedBefore, `${label}: approved tree changed`);
+  }
 });
 
 test('monolithic atlas mode requires one source with exact unique crops and preserves semantic zero cells', async (t) => {

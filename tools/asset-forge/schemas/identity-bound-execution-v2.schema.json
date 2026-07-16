@@ -25,7 +25,7 @@
     "promptSha256": { "$ref": "#/definitions/sha256" },
     "referenceAuthorizationSha256": { "$ref": "#/definitions/sha256" },
     "generationUnitSetSha256": { "$ref": "#/definitions/sha256" },
-    "generationMode": { "const": "per-unit" },
+    "generationMode": { "enum": ["per-unit", "monolithic-atlas"] },
     "identityMaster": {
       "type": "object",
       "additionalProperties": false,
@@ -56,6 +56,28 @@
         "approvedAsset": { "const": false }
       }
     },
+    "atlasExecution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "layout", "columns", "rows", "unitOrder",
+        "executionPromptPath", "executionPromptSha256"
+      ],
+      "properties": {
+        "layout": { "const": "character-row-major-directions-by-row-frames-by-column" },
+        "columns": { "const": 10 },
+        "rows": { "const": 4 },
+        "unitOrder": {
+          "type": "array", "minItems": 40, "maxItems": 40, "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^unit_[a-z0-9_]+$" }
+        },
+        "executionPromptPath": {
+          "type": "string",
+          "pattern": "^generated/jobs/v2/fable5-v2/wave-a/[a-z0-9_-]+-job_v2_[a-f0-9]{20}/identity-bindings/identity_binding_[a-f0-9]{20}/execution-prompts/monolithic-atlas\\.md$"
+        },
+        "executionPromptSha256": { "$ref": "#/definitions/sha256" }
+      }
+    },
     "units": {
       "type": "array", "minItems": 40, "maxItems": 40,
       "items": {
@@ -69,7 +91,7 @@
           "baseUnitPromptSha256": { "$ref": "#/definitions/sha256" },
           "executionPromptPath": {
             "type": "string",
-            "pattern": "^generated/jobs/v2/fable5-v2/wave-a/[a-z0-9_-]+-job_v2_[a-f0-9]{20}/identity-bindings/identity_binding_[a-f0-9]{20}/execution-prompts/unit_[a-z0-9_]+\\.md$"
+            "pattern": "^generated/jobs/v2/fable5-v2/wave-a/[a-z0-9_-]+-job_v2_[a-f0-9]{20}/identity-bindings/identity_binding_[a-f0-9]{20}/execution-prompts/(?:unit_[a-z0-9_]+|monolithic-atlas)\\.md$"
           },
           "executionPromptSha256": { "$ref": "#/definitions/sha256" },
           "consistencyInputSha256": { "$ref": "#/definitions/sha256" },
@@ -81,6 +103,19 @@
     "providerInvocationEvidence": { "const": "unverified-no-provider-receipt" },
     "contentDigest": { "$ref": "#/definitions/sha256" }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "generationMode": { "const": "monolithic-atlas" } },
+        "required": ["generationMode"]
+      },
+      "then": {
+        "properties": { "atlasExecution": {} },
+        "required": ["atlasExecution"]
+      },
+      "else": { "properties": { "atlasExecution": false } }
+    }
+  ],
   "definitions": {
     "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
     "jobPackPath": {

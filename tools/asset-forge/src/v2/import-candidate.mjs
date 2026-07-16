@@ -31,6 +31,10 @@ const MAX_REFERENCE_BYTES = 25 * 1024 * 1024;
 const INPUT_KEYS = new Set(['unitId', 'sourceOriginal', 'cropRect']);
 const IDENTITY_INPUT_KEYS = new Set(['sourceOriginal', 'cropRect']);
 const IDENTITY_BINDING_PATH = /^generated\/jobs\/v2\/fable5-v2\/wave-a\/[a-z0-9_-]+-job_v2_[a-f0-9]{20}\/identity-bindings\/identity_binding_[a-f0-9]{20}\/unit-execution\.json$/;
+const CHARACTER_ATLAS_COLUMNS = 10;
+const CHARACTER_ATLAS_ROWS = 4;
+const CHARACTER_ATLAS_UNIT_COUNT = CHARACTER_ATLAS_COLUMNS * CHARACTER_ATLAS_ROWS;
+const CHARACTER_ATLAS_LAYOUT = 'character-row-major-directions-by-row-frames-by-column';
 const LEGACY_TRANSFORM_STEPS = Object.freeze([
   'crop', 'chroma-key-remove', 'nearest-downscale', 'hard-alpha'
 ]);
@@ -818,7 +822,96 @@ function sourceFormatExtension(format) {
   return format === 'jpeg' ? 'jpg' : format;
 }
 
-function validateSourceSharing(generationMode, records, identity) {
+function canonicalCharacterAtlasUnits(job) {
+  if (job.category !== 'character' || job.generationMode !== 'monolithic-atlas'
+    || job.generationUnits.length !== CHARACTER_ATLAS_UNIT_COUNT
+    || job.artifactContracts.length !== 1
+    || job.artifactContracts[0].role !== 'primary') {
+    throw new Error('Wave A character monolithic atlas requires one canonical 40-unit primary job');
+  }
+  const first = job.generationUnits[0];
+  const cellWidth = first.targetRect.width;
+  const cellHeight = first.targetRect.height;
+  const outputSize = job.artifactContracts[0].outputSize;
+  if (cellWidth !== 48 || cellHeight !== 96
+    || outputSize.width !== cellWidth * CHARACTER_ATLAS_COLUMNS
+    || outputSize.height !== cellHeight * CHARACTER_ATLAS_ROWS) {
+    throw new Error('Wave A character monolithic atlas requires the canonical 10-column x 4-row 48x96 layout');
+  }
+  for (const [index, unit] of job.generationUnits.entries()) {
+    const column = index % CHARACTER_ATLAS_COLUMNS;
+    const row = Math.floor(index / CHARACTER_ATLAS_COLUMNS);
+    const expectedRect = {
+      x: column * cellWidth,
+      y: row * cellHeight,
+      width: cellWidth,
+      height: cellHeight
+    };
+    if (unit.cellIndex !== index || canonicalJson(unit.targetRect) !== canonicalJson(expectedRect)
+      || !unit.sourceRequired || unit.expectation !== 'expected-nonempty') {
+      throw new Error(`Wave A character monolithic atlas unit ${unit.unitId} is not in canonical row-major order`);
+    }
+  }
+  return job.generationUnits;
+}
+
+function rectanglesOverlap(left, right) {
+  return left.x < right.x + right.width && right.x < left.x + left.width
+    && left.y < right.y + right.height && right.y < left.y + left.height;
+}
+
+function validateCharacterMonolithicCropLayout(job, records) {
+  const units = canonicalCharacterAtlasUnits(job);
+  if (records.length !== units.length) {
+    throw new Error('Wave A character monolithic atlas requires exactly 40 ordered crop claims');
+  }
+  const firstCrop = records[0]?.input?.cropRect;
+  if (!validRect(firstCrop)) {
+    throw new Error('Wave A character monolithic atlas requires one explicit cropRect per unit');
+  }
+  if (firstCrop.width * 96 !== firstCrop.height * 48) {
+    throw new Error('Wave A character monolithic atlas crops require the exact 48:96 cell aspect ratio');
+  }
+  for (const [index, record] of records.entries()) {
+    const crop = record.input?.cropRect;
+    if (!validRect(crop)) {
+      throw new Error(`Wave A character monolithic atlas ${units[index].unitId} is missing a valid cropRect`);
+    }
+    if (record.unit.unitId !== units[index].unitId) {
+      throw new Error('Wave A character monolithic atlas crop order does not match the formal unit order');
+    }
+    if (crop.width !== firstCrop.width || crop.height !== firstCrop.height) {
+      throw new Error('Wave A character monolithic atlas requires 40 equal-size cropRects');
+    }
+    if (crop.width * units[index].targetRect.height
+      !== crop.height * units[index].targetRect.width) {
+      throw new Error(`Wave A ${units[index].unitId} source/crop aspect ratio does not match targetRect`);
+    }
+  }
+  for (let left = 0; left < records.length; left += 1) {
+    for (let right = left + 1; right < records.length; right += 1) {
+      if (rectanglesOverlap(records[left].input.cropRect, records[right].input.cropRect)) {
+        throw new Error('Wave A character monolithic atlas cropRects must not overlap');
+      }
+    }
+  }
+  for (const [index, record] of records.entries()) {
+    const column = index % CHARACTER_ATLAS_COLUMNS;
+    const row = Math.floor(index / CHARACTER_ATLAS_COLUMNS);
+    const expected = {
+      x: firstCrop.x + column * firstCrop.width,
+      y: firstCrop.y + row * firstCrop.height,
+      width: firstCrop.width,
+      height: firstCrop.height
+    };
+    if (canonicalJson(record.input.cropRect) !== canonicalJson(expected)) {
+      throw new Error('Wave A character monolithic atlas cropRects must form one canonical row-major 10-column x 4-row grid');
+    }
+  }
+}
+
+function validateSourceSharing(job, records, identity) {
+  const { generationMode } = job;
   const realPaths = records.map(({ source }) => source.canonicalPath);
   const hashes = records.map(({ source }) => source.sha256);
   if (generationMode === 'per-unit') {
@@ -831,6 +924,7 @@ function validateSourceSharing(generationMode, records, identity) {
       || new Set(records.map(({ input }) => canonicalJson(input.cropRect))).size !== records.length) {
       throw new Error('Wave A monolithic-atlas mode requires one shared source and a unique cropRect for every unit');
     }
+    if (job.category === 'character') validateCharacterMonolithicCropLayout(job, records);
   }
   if (identity && (realPaths.includes(identity.source.canonicalPath)
     || hashes.includes(identity.source.sha256)
@@ -930,6 +1024,52 @@ function identityExecutionPrompt(job, unit, bindingContext) {
   ].join('\n');
 }
 
+function identityAtlasExecutionPrompt(job, bindingContext) {
+  const units = canonicalCharacterAtlasUnits(job).map((unit, index) => ({
+    index,
+    row: Math.floor(index / CHARACTER_ATLAS_COLUMNS),
+    column: index % CHARACTER_ATLAS_COLUMNS,
+    unitId: unit.unitId,
+    baseUnitPromptSha256: unit.unitPromptSha256,
+    direction: unit.direction,
+    frameId: unit.frameId,
+    semanticRole: unit.semanticRole,
+    targetRect: unit.targetRect,
+    visualContent: unit.visualContent
+  }));
+  return [
+    '# Issued identity-bound monolithic character atlas execution',
+    '',
+    `Canonical job ID: ${job.id}`,
+    `Canonical job provenance key: ${job.provenanceKey}`,
+    `Generation mode: ${job.generationMode}`,
+    `Canonical generation-unit set SHA-256: ${job.generationUnitSetSha256}`,
+    `Identity binding: ${bindingContext.bindingId}`,
+    `Identity plan: ${job.identityMasterPlan.planId}`,
+    `Canonical transformed identity PNG: ${bindingContext.transformedPath}`,
+    `Canonical transformed identity SHA-256: ${bindingContext.transformedSha256}`,
+    '',
+    'Generate exactly one provider-native raster containing one contiguous row-major grid of 10 columns',
+    'by 4 rows. Rows are front, back, left, right in that order. Columns are the ten canonical',
+    'animation frames in formal unit order. Every cell must have the same 1:2 aspect ratio and size.',
+    'Use exact flat #FF00FF throughout every cell background and around the full grid. Do not add gaps,',
+    'labels, captions, borders, checkerboards, alternate layouts, neighboring examples, or extra cells.',
+    'Supply the exact transformed identity PNG above together with the two authorized references. Preserve',
+    'identity, outfit, anatomy, palette, tool, direction, action, scale, and common foot baseline across all',
+    '40 cells. This is the sole generation instruction; do not invoke the individual cell contracts.',
+    '',
+    `Layout: ${CHARACTER_ATLAS_LAYOUT}`,
+    'Canonical 40-unit row-major layout:',
+    canonicalJson(units).trimEnd(),
+    '',
+    'The importer accepts exactly one shared source with 40 equal-size, nonoverlapping crop rectangles that',
+    'form this same contiguous 10-column x 4-row order. It replays every crop and rejects duplicate cells.',
+    'Asset Forge has no provider-signed invocation receipt and therefore does not claim cryptographic proof',
+    'that the provider received this prompt or the identity image.',
+    ''
+  ].join('\n');
+}
+
 function withoutContentDigest(record) {
   const copy = structuredClone(record);
   delete copy.contentDigest;
@@ -992,13 +1132,31 @@ function identityBindingPaths(root, verifiedPack, job, identity) {
 
 function identityBindingPlan(verifiedPack, identity, paths) {
   const { job } = verifiedPack;
+  const monolithicAtlas = job.generationMode === 'monolithic-atlas';
+  const atlasExecutionPromptPath = monolithicAtlas
+    ? `${paths.bindingRoot}/execution-prompts/monolithic-atlas.md`
+    : null;
+  const atlasExecutionPromptText = monolithicAtlas
+    ? identityAtlasExecutionPrompt(job, {
+        bindingId: paths.bindingId,
+        transformedPath: paths.transformedPath,
+        transformedSha256: identity.transformedSha256
+      })
+    : null;
+  const atlasExecutionPromptSha256 = atlasExecutionPromptText
+    ? sha256(atlasExecutionPromptText)
+    : null;
   const units = job.generationUnits.map((unit) => {
-    const executionPromptPath = `${paths.bindingRoot}/execution-prompts/${unit.unitId}.md`;
-    const executionPromptText = identityExecutionPrompt(job, unit, {
-      bindingId: paths.bindingId,
-      transformedPath: paths.transformedPath,
-      transformedSha256: identity.transformedSha256
-    });
+    const executionPromptPath = monolithicAtlas
+      ? atlasExecutionPromptPath
+      : `${paths.bindingRoot}/execution-prompts/${unit.unitId}.md`;
+    const executionPromptText = monolithicAtlas
+      ? atlasExecutionPromptText
+      : identityExecutionPrompt(job, unit, {
+          bindingId: paths.bindingId,
+          transformedPath: paths.transformedPath,
+          transformedSha256: identity.transformedSha256
+        });
     return {
       unitId: unit.unitId,
       baseUnitPromptSha256: unit.unitPromptSha256,
@@ -1024,6 +1182,16 @@ function identityBindingPlan(verifiedPack, identity, paths) {
     referenceAuthorizationSha256: job.referenceAuthorizationSha256,
     generationUnitSetSha256: job.generationUnitSetSha256,
     generationMode: job.generationMode,
+    ...(monolithicAtlas ? {
+      atlasExecution: {
+        layout: CHARACTER_ATLAS_LAYOUT,
+        columns: CHARACTER_ATLAS_COLUMNS,
+        rows: CHARACTER_ATLAS_ROWS,
+        unitOrder: job.generationUnits.map(({ unitId }) => unitId),
+        executionPromptPath: atlasExecutionPromptPath,
+        executionPromptSha256: atlasExecutionPromptSha256
+      }
+    } : {}),
     identityMaster: {
       planId: job.identityMasterPlan.planId,
       planPromptSha256: job.identityMasterPlan.promptSha256,
@@ -1094,9 +1262,9 @@ export async function prepareWaveAIdentityBinding({
   const verifiedPack = await verifyWaveAJobPack(jobPackPath, { root, forgeRoot });
   const { job } = verifiedPack;
   if (assetId !== job.assetId || job.category !== 'character'
-    || job.generationMode !== 'per-unit' || !job.identityMasterPlan
+    || !['per-unit', 'monolithic-atlas'].includes(job.generationMode) || !job.identityMasterPlan
     || job.generationUnits.length !== 40) {
-    throw new Error('Wave A identity binding requires the exact per-unit character job pack');
+    throw new Error('Wave A identity binding requires an exact 40-unit character job pack');
   }
   const identity = await readIdentityMaster(
     identityMasterSource,
@@ -1116,6 +1284,16 @@ export async function prepareWaveAIdentityBinding({
       throw new Error('Wave A character job pack changed before identity binding write');
     }
     const approvedBefore = await hashApprovedTree(root);
+    const executionPromptDestinations = [...new Map(units.map((unit) => [
+      unit.executionPromptPath,
+      {
+        path: resolveWithin(root, unit.executionPromptPath),
+        bytes: Buffer.from(unit.executionPromptText),
+        label: job.generationMode === 'monolithic-atlas'
+          ? 'identity-bound monolithic atlas execution prompt'
+          : `${unit.unitId} identity-bound execution prompt`
+      }
+    ])).values()];
     const destinations = [
       {
         path: resolveWithin(root, bindingPaths.sourcePath),
@@ -1127,11 +1305,7 @@ export async function prepareWaveAIdentityBinding({
         bytes: identity.transformedPng,
         label: 'identity transformed snapshot'
       },
-      ...units.map((unit) => ({
-        path: resolveWithin(root, unit.executionPromptPath),
-        bytes: Buffer.from(unit.executionPromptText),
-        label: `${unit.unitId} identity-bound execution prompt`
-      })),
+      ...executionPromptDestinations,
       {
         path: resolveWithin(root, bindingPaths.planPath),
         bytes: Buffer.from(canonicalJson(plan)),
@@ -1193,7 +1367,8 @@ export async function verifyWaveAIdentityBinding(bindingPath, {
   const verified = verifiedPack ?? await verifyWaveAJobPack(binding.jobPackPath, { root, forgeRoot });
   const { job } = verified;
   const effectiveSourceBudget = sourceBudget ?? createUniqueSourceBudget(job);
-  if (job.category !== 'character' || job.generationMode !== 'per-unit'
+  if (job.category !== 'character'
+    || !['per-unit', 'monolithic-atlas'].includes(job.generationMode)
     || job.generationUnits.length !== 40 || !job.identityMasterPlan) {
     throw new Error('Wave A identity binding is not attached to a canonical 40-unit character job');
   }
@@ -1514,7 +1689,7 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
     unitRecords.push({ unit: effectiveUnit, sourceRecord, raw: transformed.data, audit });
   }
 
-  validateSourceSharing(job.generationMode, sourceRecords, identityAuthority?.identity ?? null);
+  validateSourceSharing(job, sourceRecords, identityAuthority?.identity ?? null);
   const nonemptyHashes = unitRecords.filter(({ unit }) => unit.sourceRequired).map(({ raw }) => sha256(raw));
   if (new Set(nonemptyHashes).size !== nonemptyHashes.length) {
     throw new Error('Persisted expected-nonempty unit cells are byte-identical');
@@ -1840,7 +2015,7 @@ async function assembleUnits(job, unitSources, boundIdentity, cache, sourceBudge
       audit
     });
   }
-  validateSourceSharing(job.generationMode, sourceRecords, identity);
+  validateSourceSharing(job, sourceRecords, identity);
   const nonemptyHashes = sourceRecords.map(({ raw }) => sha256(raw));
   if (new Set(nonemptyHashes).size !== nonemptyHashes.length) {
     throw new Error('Wave A expected-nonempty generation units must not be byte-identical');
@@ -2181,6 +2356,12 @@ async function importWaveACandidateLocked({
     throw new Error('Wave A import identity does not match explicit fable5-v2/A job pack');
   }
   const coverage = exactSourceCoverage(job, unitSources);
+  if (job.category === 'character' && job.generationMode === 'monolithic-atlas') {
+    validateCharacterMonolithicCropLayout(job, coverage.required.map((unit, index) => ({
+      unit,
+      input: unitSources[index]
+    })));
+  }
   const { cache: sourceCache, sourceBudget } = await preflightUnitSources(job, unitSources);
   let identityAuthority = null;
   if (job.category === 'character') {

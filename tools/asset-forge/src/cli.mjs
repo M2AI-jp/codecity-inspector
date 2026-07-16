@@ -110,6 +110,7 @@ export async function main(argv = process.argv.slice(2)) {
       phase: 'Phase 0-C approval and provenance infrastructure; this does not generate or approve Wave A assets.',
       commands: [
         'make-job-v2 --asset <wave-a-asset-id> [--seed <seed>]',
+        'make-job-v2 --asset <character-asset-id> --mode monolithic-atlas [--seed <seed>]',
         'import-v2 --recipe review/import-requests/v2/<request>.json',
         'list-v2',
         'approve-wave-a --note <human-review-note>  (interactive TTY; one exact 109-asset bulk ceremony)',
@@ -160,9 +161,13 @@ export async function main(argv = process.argv.slice(2)) {
   }
   if (command === 'make-job') return writeJobPack(generationOptions({ ...options, provider: 'job-pack' }));
   if (command === 'make-job-v2') {
-    requireOnlyOptions(command, options, ['asset', 'seed']);
+    requireOnlyOptions(command, options, ['asset', 'seed', 'mode']);
     if (!options.asset) throw new Error('--asset is required');
-    return makeWaveAJob({ assetId: options.asset, seed: options.seed ?? '' });
+    return makeWaveAJob({
+      assetId: options.asset,
+      seed: options.seed ?? '',
+      generationMode: options.mode ?? 'per-unit'
+    });
   }
   if (command === 'import') return operatorImport(options);
   if (command === 'import-v2') {
