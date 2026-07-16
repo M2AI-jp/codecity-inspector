@@ -248,6 +248,9 @@ function expectedUnitPlan(job) {
     ...(job.providerKeyNormalizationPlan ? {
       providerKeyNormalizationPlan: job.providerKeyNormalizationPlan
     } : {}),
+    ...(job.characterAtlasLayoutPlan ? {
+      characterAtlasLayoutPlan: job.characterAtlasLayoutPlan
+    } : {}),
     identityMasterPlan: job.identityMasterPlan
   };
 }
@@ -302,7 +305,8 @@ export async function verifyWaveAJobPack(jobPackPath, {
     assetId: pack.assetId,
     seed: packedJob.seed,
     generationMode: packedJob.generationMode,
-    providerKeyNormalization: packedJob.providerKeyNormalizationPlan?.version ?? null
+    providerKeyNormalization: packedJob.providerKeyNormalizationPlan?.version ?? null,
+    characterAtlasLayout: packedJob.characterAtlasLayoutPlan?.version ?? null
   }, {
     forgeRoot,
     backgroundRemovalMethod: allowHistoricalTransformVersion
@@ -331,6 +335,8 @@ export async function verifyWaveAJobPack(jobPackPath, {
     || canonicalJson(pack.generationExpectations) !== canonicalJson(built.job.generationExpectations)
     || canonicalJson(pack.generationUnitIds)
       !== canonicalJson(built.job.generationUnits.map(({ unitId }) => unitId))
+    || canonicalJson(pack.characterAtlasLayoutPlan ?? null)
+      !== canonicalJson(built.job.characterAtlasLayoutPlan ?? null)
     || pack.identityMasterPlanId !== (built.job.identityMasterPlan?.planId ?? null)) {
     throw new Error('Wave A job-pack generation-unit plan mismatch');
   }
@@ -1206,7 +1212,24 @@ function identityAtlasExecutionPrompt(job, bindingContext) {
     targetRect: unit.targetRect,
     visualContent: unit.visualContent
   }));
+  const layoutPlan = job.characterAtlasLayoutPlan ?? null;
   return [
+    ...(layoutPlan ? [
+      '# Mandatory character atlas layout guidance',
+      '',
+      `Character atlas layout policy: ${layoutPlan.version}.`,
+      `Policy config SHA-256: ${layoutPlan.configSha256}.`,
+      'Overall content grid must be exactly 5:4 (width:height).',
+      'Use exactly ten columns and four rows.',
+      'Every cell must be portrait 1:2 (width:height), never square and never a square-cell contact sheet.',
+      'All 40 cells must be uniform, contiguous, and gapless; no gutters, padding bands, or uneven cells.',
+      'Keep each subject opaque bounding box at or below 80% of its cell width and 88% of its cell height.',
+      'Keep a continuous full outer margin of exact #FF00FF key background around the complete 10x4 grid.',
+      'Every frame in row 1 (front) must face the viewer directly, including all walk frames; profile and three-quarter turns are forbidden.',
+      'Every frame in row 2 (back) must face exactly away from the viewer, including all walk frames; profile and three-quarter turns are forbidden.',
+      'Every frame in row 3 stays left-facing and every frame in row 4 stays right-facing; never swap or turn those directions.',
+      ''
+    ] : []),
     '# Issued identity-bound monolithic character atlas execution',
     '',
     `Canonical job ID: ${job.id}`,
@@ -1365,6 +1388,9 @@ function identityBindingPlan(verifiedPack, identity, paths) {
     referenceAuthorizationSha256: job.referenceAuthorizationSha256,
     generationUnitSetSha256: job.generationUnitSetSha256,
     generationMode: job.generationMode,
+    ...(job.characterAtlasLayoutPlan ? {
+      characterAtlasLayoutPlan: structuredClone(job.characterAtlasLayoutPlan)
+    } : {}),
     ...(monolithicAtlas ? {
       atlasExecution: {
         layout: CHARACTER_ATLAS_LAYOUT,

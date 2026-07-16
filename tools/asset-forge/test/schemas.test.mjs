@@ -173,3 +173,24 @@ test('provider-key-normalize-v1 schema is opt-in only for character monolithic j
   unknownConfigField.providerKeyNormalizationPlan.radius = 13;
   assert.equal(validateWith('generation-job-v2.schema.json', unknownConfigField).ok, false);
 });
+
+test('character-atlas-layout-v1 schema is exact and opt-in only for character monolithic jobs', async () => {
+  const { job } = await buildWaveAJob({
+    assetId: 'character.player',
+    generationMode: 'monolithic-atlas',
+    characterAtlasLayout: 'character-atlas-layout-v1'
+  });
+  assert.equal(validateWith('generation-job-v2.schema.json', job).ok, true);
+  const wrongCategory = structuredClone(job);
+  wrongCategory.category = 'terrain';
+  assert.equal(validateWith('generation-job-v2.schema.json', wrongCategory).ok, false);
+  const wrongMode = structuredClone(job);
+  wrongMode.generationMode = 'per-unit';
+  assert.equal(validateWith('generation-job-v2.schema.json', wrongMode).ok, false);
+  const wrongConfigSha = structuredClone(job);
+  wrongConfigSha.characterAtlasLayoutPlan.configSha256 = '0'.repeat(64);
+  assert.equal(validateWith('generation-job-v2.schema.json', wrongConfigSha).ok, false);
+  const unknownConfigField = structuredClone(job);
+  unknownConfigField.characterAtlasLayoutPlan.directionStripMode = true;
+  assert.equal(validateWith('generation-job-v2.schema.json', unknownConfigField).ok, false);
+});

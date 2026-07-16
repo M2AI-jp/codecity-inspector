@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import sharp from 'sharp';
 import test from 'node:test';
-import { main } from '../src/cli.mjs';
+import { main, parseArgs } from '../src/cli.mjs';
 import { FORGE_ROOT } from '../src/config.mjs';
 import { canonicalJson, hashApprovedTree, hashTree, sha256 } from '../src/hashing.mjs';
 import { processCandidate } from '../src/jobs/process-candidate.mjs';
@@ -31,6 +31,10 @@ import {
   TERRAIN_COMPOSER_MASK_SET_SHA256,
   TERRAIN_COMPOSER_VERSION
 } from '../src/v2/compose-terrain-atlas.mjs';
+import {
+  CHARACTER_ATLAS_LAYOUT_CONFIG_SHA256,
+  CHARACTER_ATLAS_LAYOUT_VERSION
+} from '../src/v2/character-atlas-layout.mjs';
 import { verifyPendingGenerationForWaveApproval } from '../src/v3/provenance.mjs';
 
 const NOW = '2026-07-16T02:00:00.000Z';
@@ -415,6 +419,10 @@ test('Wave A job packs bind 109 definitions to 771 generation units and honest p
     assetId: 'character.player', generationMode: 'monolithic-atlas'
   }, { forgeRoot: root });
   assert.equal(characterAtlas.job.generationMode, 'monolithic-atlas');
+  assert.equal(Object.hasOwn(characterAtlas.job, 'characterAtlasLayoutPlan'), false);
+  assert.equal(characterAtlas.job.generationUnitSetSha256, '822f04e2e101dea2aae5485b5db7accc055e7ae24721874aef7e9c9281182924');
+  assert.equal(characterAtlas.job.generationUnits[0].unitPromptSha256, 'f6af2437c1a78c687fb1607f119ef7c1edc406e3ec520c1ab4d5604bd9e4b3e7');
+  assert.equal(characterAtlas.job.generationUnits[39].unitPromptSha256, '60eef89f35e72f2360659e983977cf12ecd35d774f64f2216e8ea49e567580cb');
   assert.notEqual(characterAtlas.job.id, characterPerUnit.job.id);
   assert.notEqual(characterAtlas.job.provenanceKey, characterPerUnit.job.provenanceKey);
   assert.notEqual(characterAtlas.job.generationUnitSetSha256, characterPerUnit.job.generationUnitSetSha256);
@@ -918,6 +926,9 @@ test('character monolithic atlas issues one identity-bound 10x4 prompt and repla
     }
   }, { root, forgeRoot: root });
   assert.equal(bound.binding.generationMode, 'monolithic-atlas');
+  assert.equal(Object.hasOwn(pack.job, 'characterAtlasLayoutPlan'), false);
+  assert.equal(Object.hasOwn(pack.pack, 'characterAtlasLayoutPlan'), false);
+  assert.equal(Object.hasOwn(bound.binding, 'characterAtlasLayoutPlan'), false);
   const legacyBindingKey = sha256(canonicalJson({
     jobProvenanceKey: pack.job.provenanceKey,
     identityPlanId: pack.job.identityMasterPlan.planId,
@@ -1015,6 +1026,146 @@ test('character monolithic atlas issues one identity-bound 10x4 prompt and repla
   assert.equal((await processCandidate({ generationId: original.id }, {
     root, forgeRoot: root
   })).status, 'audited-pending');
+});
+
+test('explicit character-atlas-layout-v1 binds exact portrait-grid guidance without changing 40 semantic units', async (t) => {
+  const root = await fixtureRoot(t);
+  const legacy = await buildWaveAJob({
+    assetId: 'character.player',
+    generationMode: 'monolithic-atlas',
+    seed: 'layout-guidance'
+  }, { forgeRoot: root });
+  const pack = await makeWaveAJob({
+    assetId: 'character.player',
+    generationMode: 'monolithic-atlas',
+    characterAtlasLayout: CHARACTER_ATLAS_LAYOUT_VERSION,
+    seed: 'layout-guidance'
+  }, { root, forgeRoot: root });
+  assert.notEqual(pack.job.id, legacy.job.id);
+  assert.deepEqual(pack.job.generationUnits, legacy.job.generationUnits);
+  assert.equal(pack.job.generationUnitSetSha256, legacy.job.generationUnitSetSha256);
+  assert.equal(pack.job.characterAtlasLayoutPlan.version, CHARACTER_ATLAS_LAYOUT_VERSION);
+  assert.equal(
+    pack.job.characterAtlasLayoutPlan.configSha256,
+    CHARACTER_ATLAS_LAYOUT_CONFIG_SHA256
+  );
+  assert.deepEqual(pack.pack.characterAtlasLayoutPlan, pack.job.characterAtlasLayoutPlan);
+  const unitPlan = JSON.parse(await readFile(path.join(root, pack.pack.members.unitPlan.path), 'utf8'));
+  assert.deepEqual(unitPlan.characterAtlasLayoutPlan, pack.job.characterAtlasLayoutPlan);
+  assert.equal(
+    (await verifyWaveAJobPack(pack.result.jobPackPath, { root, forgeRoot: root })).job.id,
+    pack.job.id
+  );
+
+  const identity = await identitySource(root, 'layout-guidance-identity.png');
+  const bound = await prepareWaveAIdentity({
+    assetId: 'character.player',
+    jobPackPath: pack.result.jobPackPath,
+    identityMasterSource: {
+      sourceOriginal: identity,
+      cropRect: { x: 0, y: 0, width: 384, height: 192 }
+    }
+  }, { root, forgeRoot: root });
+  assert.deepEqual(
+    bound.binding.characterAtlasLayoutPlan,
+    pack.job.characterAtlasLayoutPlan
+  );
+  const promptPath = path.join(root, bound.binding.atlasExecution.executionPromptPath);
+  const prompt = await readFile(promptPath, 'utf8');
+  assert.ok(prompt.startsWith('# Mandatory character atlas layout guidance\n'));
+  for (const required of [
+    'exactly 5:4 (width:height)',
+    'exactly ten columns and four rows',
+    'portrait 1:2 (width:height), never square',
+    'uniform, contiguous, and gapless',
+    'at or below 80% of its cell width and 88% of its cell height',
+    'continuous full outer margin of exact #FF00FF',
+    'row 1 (front) must face the viewer directly, including all walk frames',
+    'row 2 (back) must face exactly away from the viewer, including all walk frames',
+    'profile and three-quarter turns are forbidden',
+    'row 3 stays left-facing and every frame in row 4 stays right-facing'
+  ]) assert.match(prompt, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  const semanticLayout = pack.job.generationUnits.map((unit, index) => ({
+    index,
+    row: Math.floor(index / 10),
+    column: index % 10,
+    unitId: unit.unitId,
+    baseUnitPromptSha256: unit.unitPromptSha256,
+    direction: unit.direction,
+    frameId: unit.frameId,
+    semanticRole: unit.semanticRole,
+    targetRect: unit.targetRect,
+    visualContent: unit.visualContent
+  }));
+  assert.ok(prompt.includes(canonicalJson(semanticLayout).trimEnd()));
+  await assert.doesNotReject(() => verifyWaveAIdentityBinding(bound.bindingPath, {
+    root, forgeRoot: root
+  }));
+
+  const bindingBytes = await readFile(path.join(root, bound.bindingPath));
+  const missingBindingPlan = structuredClone(bound.binding);
+  delete missingBindingPlan.characterAtlasLayoutPlan;
+  delete missingBindingPlan.contentDigest;
+  missingBindingPlan.contentDigest = sha256(canonicalJson(missingBindingPlan));
+  await writeFile(path.join(root, bound.bindingPath), canonicalJson(missingBindingPlan));
+  await assert.rejects(() => verifyWaveAIdentityBinding(bound.bindingPath, {
+    root, forgeRoot: root
+  }), /canonical evidence/);
+  await writeFile(path.join(root, bound.bindingPath), bindingBytes);
+
+  const unitSources = await monolithicCharacterSourcesForJob(root, pack.job, {
+    prefix: 'layout-guidance-player'
+  });
+  const imported = await importWaveACandidate({
+    assetId: 'character.player',
+    jobPackPath: pack.result.jobPackPath,
+    unitSources,
+    identityBindingPath: bound.bindingPath
+  }, { root, forgeRoot: root });
+  assert.deepEqual(imported.result.unitAssemblyV2.units[0].transformSteps, [
+    'auto-border-key-detect', 'crop', 'soft-matte-despill', 'zero-hidden-rgb',
+    'nearest-downscale', 'hard-alpha-zero-hidden-rgb'
+  ]);
+  await assert.doesNotReject(() => verifyPersistedWaveAUnitAssembly(imported.result, {
+    root, forgeRoot: root
+  }));
+});
+
+test('character-atlas-layout-v1 rejects invalid scope and version before any job-pack write', async (t) => {
+  const root = await fixtureRoot(t);
+  assert.deepEqual(parseArgs([
+    'make-job-v2', '--asset', 'character.player', '--mode', 'monolithic-atlas',
+    '--character-atlas-layout', CHARACTER_ATLAS_LAYOUT_VERSION
+  ]), {
+    command: 'make-job-v2',
+    options: {
+      asset: 'character.player',
+      mode: 'monolithic-atlas',
+      characterAtlasLayout: CHARACTER_ATLAS_LAYOUT_VERSION
+    }
+  });
+  const generatedBefore = await hashTree(path.join(root, 'generated'));
+  const manifestBefore = await readFile(path.join(root, 'data', 'local', 'generations.json'));
+  for (const request of [
+    {
+      assetId: 'character.player', generationMode: 'per-unit',
+      characterAtlasLayout: CHARACTER_ATLAS_LAYOUT_VERSION
+    },
+    {
+      assetId: 'terrain.grass', generationMode: 'terrain-composed-atlas',
+      characterAtlasLayout: CHARACTER_ATLAS_LAYOUT_VERSION
+    },
+    {
+      assetId: 'character.player', generationMode: 'monolithic-atlas',
+      characterAtlasLayout: 'character-atlas-layout-v2'
+    }
+  ]) await assert.rejects(
+    () => writeWaveAJobPack(request, { root, forgeRoot: root }),
+    /only for Wave A character monolithic-atlas|Unsupported character atlas layout policy/
+  );
+  assert.equal(await hashTree(path.join(root, 'generated')), generatedBefore);
+  assert.ok((await readFile(path.join(root, 'data', 'local', 'generations.json')))
+    .equals(manifestBefore));
 });
 
 test('explicit provider-key-normalize-v1 preserves raw character PNGs and deep-replays identity plus atlas', async (t) => {

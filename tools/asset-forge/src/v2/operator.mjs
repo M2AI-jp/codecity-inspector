@@ -55,13 +55,16 @@ export async function makeWaveAJob({
   assetId,
   seed = '',
   generationMode = 'per-unit',
-  providerKeyNormalization = null
+  providerKeyNormalization = null,
+  characterAtlasLayout = null
 }, {
   root = FORGE_ROOT,
   forgeRoot = FORGE_ROOT
 } = {}) {
   const canonicalRoot = requireCanonicalRoot(root, forgeRoot);
-  return writeWaveAJobPack({ assetId, seed, generationMode, providerKeyNormalization }, {
+  return writeWaveAJobPack({
+    assetId, seed, generationMode, providerKeyNormalization, characterAtlasLayout
+  }, {
     root: canonicalRoot,
     forgeRoot: canonicalRoot
   });

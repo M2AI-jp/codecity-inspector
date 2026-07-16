@@ -15,6 +15,10 @@ import {
   PROVIDER_KEY_NORMALIZE_VERSION,
   providerKeyNormalizationPlanFor
 } from './provider-key-normalize.mjs';
+import {
+  CHARACTER_ATLAS_LAYOUT_VERSION,
+  characterAtlasLayoutPlanFor
+} from './character-atlas-layout.mjs';
 
 export const FABLE5_REQUIRED_SET_ID = 'fable5-v2';
 export const FABLE5_WAVE_A_ID = 'A';
@@ -340,7 +344,8 @@ export async function buildWaveAJob({
   assetId,
   seed = '',
   generationMode = 'per-unit',
-  providerKeyNormalization = null
+  providerKeyNormalization = null,
+  characterAtlasLayout = null
 }, {
   forgeRoot = FORGE_ROOT,
   backgroundRemovalMethod = CURRENT_BACKGROUND_REMOVAL_METHOD
@@ -354,6 +359,10 @@ export async function buildWaveAJob({
   if (providerKeyNormalization !== null
     && providerKeyNormalization !== PROVIDER_KEY_NORMALIZE_VERSION) {
     throw new Error(`Unsupported provider key normalization policy: ${providerKeyNormalization}`);
+  }
+  if (characterAtlasLayout !== null
+    && characterAtlasLayout !== CHARACTER_ATLAS_LAYOUT_VERSION) {
+    throw new Error(`Unsupported character atlas layout policy: ${characterAtlasLayout}`);
   }
   const { asset, references, warnings, authorization: effectiveAuthorization } =
     await resolveWaveAAssetReferences(assetId, { root: forgeRoot });
@@ -371,6 +380,9 @@ export async function buildWaveAJob({
     : null;
   const providerKeyNormalizationPlan = providerKeyNormalization
     ? providerKeyNormalizationPlanFor(asset, generationMode)
+    : null;
+  const characterAtlasLayoutPlan = characterAtlasLayout
+    ? characterAtlasLayoutPlanFor(asset, generationMode)
     : null;
   const promptText = await renderPrompt(asset, forgeRoot, {
     generationMode,
@@ -434,6 +446,7 @@ export async function buildWaveAJob({
     generationMode,
     ...(terrainCompositionPlan ? { terrainCompositionPlan } : {}),
     ...(providerKeyNormalizationPlan ? { providerKeyNormalizationPlan } : {}),
+    ...(characterAtlasLayoutPlan ? { characterAtlasLayoutPlan } : {}),
     generationUnitSetSha256: generation.unitSetSha256,
     generationExpectations: generation.expectations,
     identityMasterPlanSha256: identityMasterPlan
@@ -537,6 +550,7 @@ export async function buildWaveAJob({
     generationMode,
     ...(terrainCompositionPlan ? { terrainCompositionPlan } : {}),
     ...(providerKeyNormalizationPlan ? { providerKeyNormalizationPlan } : {}),
+    ...(characterAtlasLayoutPlan ? { characterAtlasLayoutPlan } : {}),
     generationUnits: generation.units,
     generationUnitSetSha256: generation.unitSetSha256,
     generationExpectations: generation.expectations,

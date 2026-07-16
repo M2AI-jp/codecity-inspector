@@ -26,6 +26,9 @@
     "referenceAuthorizationSha256": { "$ref": "#/definitions/sha256" },
     "generationUnitSetSha256": { "$ref": "#/definitions/sha256" },
     "generationMode": { "enum": ["per-unit", "monolithic-atlas"] },
+    "characterAtlasLayoutPlan": {
+      "$ref": "generation-job-v2.schema.json#/definitions/characterAtlasLayoutPlan"
+    },
     "identityMaster": {
       "type": "object",
       "additionalProperties": false,
@@ -127,6 +130,15 @@
           }
         },
         "required": ["identityMaster"]
+      },
+      "then": {
+        "properties": { "generationMode": { "const": "monolithic-atlas" } }
+      }
+    },
+    {
+      "if": {
+        "properties": { "characterAtlasLayoutPlan": {} },
+        "required": ["characterAtlasLayoutPlan"]
       },
       "then": {
         "properties": { "generationMode": { "const": "monolithic-atlas" } }

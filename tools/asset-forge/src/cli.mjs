@@ -111,6 +111,7 @@ export async function main(argv = process.argv.slice(2)) {
       commands: [
         'make-job-v2 --asset <wave-a-asset-id> [--seed <seed>]',
         'make-job-v2 --asset <character-asset-id> --mode monolithic-atlas [--seed <seed>]',
+        'make-job-v2 --asset <character-asset-id> --mode monolithic-atlas --character-atlas-layout character-atlas-layout-v1 [--seed <seed>]',
         'make-job-v2 --asset <character-asset-id> --mode monolithic-atlas --provider-key-normalization provider-key-normalize-v1 [--seed <seed>]',
         'make-job-v2 --asset <terrain-asset-id> --mode terrain-composed-atlas [--seed <seed>]',
         'import-v2 --recipe review/import-requests/v2/<request>.json',
@@ -163,13 +164,16 @@ export async function main(argv = process.argv.slice(2)) {
   }
   if (command === 'make-job') return writeJobPack(generationOptions({ ...options, provider: 'job-pack' }));
   if (command === 'make-job-v2') {
-    requireOnlyOptions(command, options, ['asset', 'seed', 'mode', 'providerKeyNormalization']);
+    requireOnlyOptions(command, options, [
+      'asset', 'seed', 'mode', 'providerKeyNormalization', 'characterAtlasLayout'
+    ]);
     if (!options.asset) throw new Error('--asset is required');
     return makeWaveAJob({
       assetId: options.asset,
       seed: options.seed ?? '',
       generationMode: options.mode ?? 'per-unit',
-      providerKeyNormalization: options.providerKeyNormalization ?? null
+      providerKeyNormalization: options.providerKeyNormalization ?? null,
+      characterAtlasLayout: options.characterAtlasLayout ?? null
     });
   }
   if (command === 'import') return operatorImport(options);

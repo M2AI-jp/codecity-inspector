@@ -36,6 +36,9 @@
         { "type": "string", "pattern": "^identity_[a-f0-9]{20}$" }
       ]
     },
+    "characterAtlasLayoutPlan": {
+      "$ref": "generation-job-v2.schema.json#/definitions/characterAtlasLayoutPlan"
+    },
     "members": {
       "type": "object",
       "additionalProperties": false,
@@ -124,6 +127,18 @@
         }
       },
       "else": { "properties": { "identityMasterPlanId": { "type": "null" } } }
+    },
+    {
+      "if": {
+        "properties": { "characterAtlasLayoutPlan": {} },
+        "required": ["characterAtlasLayoutPlan"]
+      },
+      "then": {
+        "properties": {
+          "category": { "const": "character" },
+          "generationMode": { "const": "monolithic-atlas" }
+        }
+      }
     }
   ],
   "definitions": {

@@ -74,7 +74,8 @@ export async function writeWaveAJobPack({
   assetId,
   seed = '',
   generationMode = 'per-unit',
-  providerKeyNormalization = null
+  providerKeyNormalization = null,
+  characterAtlasLayout = null
 }, {
   root = FORGE_ROOT,
   forgeRoot = FORGE_ROOT
@@ -88,7 +89,8 @@ export async function writeWaveAJobPack({
     assetId,
     seed,
     generationMode,
-    providerKeyNormalization
+    providerKeyNormalization,
+    characterAtlasLayout
   }, { forgeRoot });
   return withFileLock(root, pathsFor(root).requiredPromotionLock, () =>
     writeWaveAJobPackLocked(built, { root }));
@@ -136,6 +138,9 @@ async function writeWaveAJobPackLocked({
       ...(job.providerKeyNormalizationPlan ? {
         providerKeyNormalizationPlan: job.providerKeyNormalizationPlan
       } : {}),
+      ...(job.characterAtlasLayoutPlan ? {
+        characterAtlasLayoutPlan: job.characterAtlasLayoutPlan
+      } : {}),
       identityMasterPlan: job.identityMasterPlan
     })),
     authorization: Buffer.from(canonicalJson(authorization)),
@@ -172,6 +177,9 @@ async function writeWaveAJobPackLocked({
     generationExpectations: job.generationExpectations,
     generationUnitIds: job.generationUnits.map(({ unitId }) => unitId),
     identityMasterPlanId: job.identityMasterPlan?.planId ?? null,
+    ...(job.characterAtlasLayoutPlan ? {
+      characterAtlasLayoutPlan: job.characterAtlasLayoutPlan
+    } : {}),
     members: {
       job: { path: toPosixRelative(root, memberPaths.job), sha256: sha256(memberBytes.job) },
       prompt: { path: toPosixRelative(root, memberPaths.prompt), sha256: sha256(memberBytes.prompt) },
