@@ -427,7 +427,10 @@ export async function buildWaveAJob({
     ? terrainCompositionPlanFor(asset)
     : null;
   const providerKeyNormalizationPlan = providerKeyNormalization
-    ? providerKeyNormalizationPlanFor(asset, generationMode)
+    ? providerKeyNormalizationPlanFor(asset, generationMode, {
+        generationUnits: enumerateWaveAGenerationUnits(asset),
+        artifactContracts: artifactContractsFor(asset)
+      })
     : null;
   const characterAtlasLayoutPlan = characterAtlasLayout
     ? characterAtlasLayoutPlanFor(asset, generationMode)

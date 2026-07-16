@@ -153,7 +153,7 @@ test('generation lifecycle states reject contradictory fields', () => {
   assert.equal(validateWith('generation-result.schema.json', { ...pending, status: 'failed', error: 'failed' }).ok, false);
 });
 
-test('provider-key-normalize-v1 schema is opt-in only for character monolithic jobs', async () => {
+test('provider-key-normalize-v1 schema binds legacy character and exact single-unit scopes', async () => {
   const { job } = await buildWaveAJob({
     assetId: 'character.player',
     generationMode: 'monolithic-atlas',
@@ -172,6 +172,17 @@ test('provider-key-normalize-v1 schema is opt-in only for character monolithic j
   const unknownConfigField = structuredClone(job);
   unknownConfigField.providerKeyNormalizationPlan.radius = 13;
   assert.equal(validateWith('generation-job-v2.schema.json', unknownConfigField).ok, false);
+  const { job: singleUnit } = await buildWaveAJob({
+    assetId: 'prop.practice_target',
+    generationMode: 'per-unit',
+    providerKeyNormalization: 'provider-key-normalize-v1'
+  });
+  assert.equal(validateWith('generation-job-v2.schema.json', singleUnit).ok, true);
+  const wrongSingleSourceKinds = structuredClone(singleUnit);
+  wrongSingleSourceKinds.providerKeyNormalizationPlan.sourceKinds = [
+    'identity-master', 'monolithic-atlas'
+  ];
+  assert.equal(validateWith('generation-job-v2.schema.json', wrongSingleSourceKinds).ok, false);
 });
 
 test('character-atlas-layout-v1 schema is exact and opt-in only for character monolithic jobs', async () => {

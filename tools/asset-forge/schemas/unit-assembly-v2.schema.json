@@ -90,12 +90,7 @@
       ]
     },
     "terrainComposition": { "$ref": "#/definitions/terrainComposition" },
-    "providerKeyNormalization": {
-      "allOf": [
-        { "$ref": "#/definitions/providerKeyNormalization" },
-        { "type": "object", "properties": { "sourceKind": { "const": "monolithic-atlas" } } }
-      ]
-    },
+    "providerKeyNormalization": { "$ref": "#/definitions/providerKeyNormalization" },
     "units": {
       "type": "array", "minItems": 1, "maxItems": 100,
       "items": { "$ref": "#/definitions/unitResult" }
@@ -145,17 +140,54 @@
         "required": ["providerKeyNormalization"]
       },
       "then": {
-        "properties": {
-          "generationMode": { "const": "monolithic-atlas" },
-          "assemblyAlgorithm": {
-            "const": "provider-key-normalize-v1/auto-border-connected-fringe-soft-matte-nearest-hard-alpha/raw-copy-v1"
+        "allOf": [
+          {
+            "properties": {
+              "assemblyAlgorithm": {
+                "const": "provider-key-normalize-v1/auto-border-connected-fringe-soft-matte-nearest-hard-alpha/raw-copy-v1"
+              }
+            }
           },
-          "identityMaster": {
-            "type": "object",
-            "properties": { "providerKeyNormalization": {} },
-            "required": ["providerKeyNormalization"]
+          {
+            "oneOf": [
+              {
+                "properties": {
+                  "generationMode": { "const": "monolithic-atlas" },
+                  "providerKeyNormalization": {
+                    "type": "object",
+                    "properties": { "sourceKind": { "const": "monolithic-atlas" } }
+                  },
+                  "identityMaster": {
+                    "type": "object",
+                    "properties": { "providerKeyNormalization": {} },
+                    "required": ["providerKeyNormalization"]
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "generationMode": { "const": "per-unit" },
+                  "sourceRequiredCount": { "const": 1 },
+                  "providerKeyNormalization": {
+                    "type": "object",
+                    "properties": { "sourceKind": { "const": "single-unit" } }
+                  },
+                  "identityMaster": { "type": "null" },
+                  "units": { "type": "array", "minItems": 1, "maxItems": 1 },
+                  "artifacts": {
+                    "type": "array", "minItems": 1, "maxItems": 1,
+                    "items": [{
+                      "type": "object",
+                      "properties": { "role": { "const": "primary" } },
+                      "required": ["role"]
+                    }],
+                    "additionalItems": false
+                  }
+                }
+              }
+            ]
           }
-        }
+        ]
       },
       "else": {
         "properties": {
@@ -272,7 +304,7 @@
         "providerInvocationEvidence", "derivationSha256", "replayPassed"
       ],
       "properties": {
-        "sourceKind": { "enum": ["identity-master", "monolithic-atlas"] },
+        "sourceKind": { "enum": ["identity-master", "monolithic-atlas", "single-unit"] },
         "plan": { "$ref": "generation-job-v2.schema.json#/definitions/providerKeyNormalizationPlan" },
         "sourceOriginal": {
           "allOf": [

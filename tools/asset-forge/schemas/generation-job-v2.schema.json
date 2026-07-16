@@ -268,29 +268,73 @@
         "required": ["providerKeyNormalizationPlan"]
       },
       "then": {
-        "properties": {
-          "category": { "const": "character" },
-          "generationMode": { "const": "monolithic-atlas" },
-          "identityMasterPlan": {
-            "type": "object",
+        "allOf": [
+          {
             "properties": {
-              "providerKeyNormalizationPlan": { "$ref": "#/definitions/providerKeyNormalizationPlan" }
-            },
-            "required": ["providerKeyNormalizationPlan"]
-          },
-          "technicalGates": {
-            "type": "object",
-            "properties": {
-              "inputPolicy": {
+              "technicalGates": {
                 "type": "object",
                 "properties": {
-                  "providerKeyNormalization": { "$ref": "#/definitions/providerKeyNormalizationPlan" }
-                },
-                "required": ["providerKeyNormalization"]
+                  "inputPolicy": {
+                    "type": "object",
+                    "properties": {
+                      "providerKeyNormalization": { "$ref": "#/definitions/providerKeyNormalizationPlan" }
+                    },
+                    "required": ["providerKeyNormalization"]
+                  }
+                }
               }
             }
+          },
+          {
+            "oneOf": [
+              {
+                "properties": {
+                  "category": { "const": "character" },
+                  "generationMode": { "const": "monolithic-atlas" },
+                  "providerKeyNormalizationPlan": {
+                    "type": "object",
+                    "properties": {
+                      "sourceKinds": { "const": ["identity-master", "monolithic-atlas"] }
+                    }
+                  },
+                  "identityMasterPlan": {
+                    "type": "object",
+                    "properties": {
+                      "providerKeyNormalizationPlan": {
+                        "type": "object",
+                        "properties": {
+                          "sourceKinds": { "const": ["identity-master", "monolithic-atlas"] }
+                        }
+                      }
+                    },
+                    "required": ["providerKeyNormalizationPlan"]
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "category": { "enum": ["overlay", "structure", "interior", "prop", "ui", "effect"] },
+                  "generationMode": { "const": "per-unit" },
+                  "providerKeyNormalizationPlan": {
+                    "type": "object",
+                    "properties": { "sourceKinds": { "const": ["single-unit"] } }
+                  },
+                  "generationUnits": {
+                    "type": "array", "minItems": 1, "maxItems": 1,
+                    "items": [{
+                      "type": "object",
+                      "properties": {
+                        "sourceRequired": { "const": true }
+                      },
+                      "required": ["sourceRequired"]
+                    }],
+                    "additionalItems": false
+                  }
+                }
+              }
+            ]
           }
-        }
+        ]
       },
       "else": {
         "allOf": [
@@ -453,9 +497,10 @@
         "algorithm": { "const": "provider-key-normalize/outer-connected-exact-magenta-v1" },
         "configSha256": { "$ref": "#/definitions/sha256" },
         "sourceKinds": {
-          "type": "array", "minItems": 2, "maxItems": 2,
-          "items": [{ "const": "identity-master" }, { "const": "monolithic-atlas" }],
-          "additionalItems": false
+          "oneOf": [
+            { "const": ["identity-master", "monolithic-atlas"] },
+            { "const": ["single-unit"] }
+          ]
         },
         "sourceFormat": { "const": "png" },
         "providerInvocationEvidence": { "const": "unverified-no-provider-receipt" }

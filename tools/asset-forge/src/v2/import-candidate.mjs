@@ -37,7 +37,8 @@ import {
 } from './compose-terrain-atlas.mjs';
 import {
   PROVIDER_KEY_NORMALIZE_STEP,
-  normalizeProviderKey
+  normalizeProviderKey,
+  providerKeyNormalizationSourceKindForJob
 } from './provider-key-normalize.mjs';
 import {
   CHARACTER_DIRECTION_STRIP_COLUMNS,
@@ -98,9 +99,12 @@ function providerKeyNormalizationPlan(job) {
 async function normalizedProviderSource(job, source, sourceKind) {
   const plan = providerKeyNormalizationPlan(job);
   if (!plan) return null;
-  if (job.category !== 'character' || job.generationMode !== 'monolithic-atlas'
-    || !plan.sourceKinds.includes(sourceKind)) {
-    throw new Error('Provider-key normalization escaped its character monolithic-atlas source contract');
+  const primarySourceKind = providerKeyNormalizationSourceKindForJob(job);
+  const allowedSourceKinds = primarySourceKind === 'monolithic-atlas'
+    ? ['identity-master', 'monolithic-atlas']
+    : ['single-unit'];
+  if (!allowedSourceKinds.includes(sourceKind) || !plan.sourceKinds.includes(sourceKind)) {
+    throw new Error('Provider-key normalization escaped its exact source contract');
   }
   const normalized = await normalizeProviderKey(source.image, plan);
   return {
@@ -1001,6 +1005,13 @@ async function preflightTerrainInputs(job, terrainComposition) {
 
 function sourceFormatExtension(format) {
   return format === 'jpeg' ? 'jpg' : format;
+}
+
+function providerKeyNormalizedSnapshotPath(job, outputRoot, stem) {
+  const sourceKind = providerKeyNormalizationSourceKindForJob(job);
+  return sourceKind
+    ? path.join(outputRoot, 'sources', `${stem}-${sourceKind}.provider-key-normalized.png`)
+    : null;
 }
 
 function canonicalCharacterAtlasUnits(job) {
@@ -2111,13 +2122,13 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
     const evidence = result.unitAssemblyV2.providerKeyNormalization;
     if (!evidence || !evidence.normalizedSnapshot.path.startsWith(`${pendingRoot}/sources/`)
       || sourceCache.size !== 1) {
-      throw new Error('Persisted character atlas provider-key normalization evidence is missing or noncanonical');
+      throw new Error('Persisted provider-key normalization evidence is missing or noncanonical');
     }
     const source = [...sourceCache.values()][0];
     replayedProviderKeyNormalization = await normalizedProviderSource(
       job,
       { image: source.image, sha256: source.sha256, canonicalPath: source.absolute },
-      'monolithic-atlas'
+      providerKeyNormalizationSourceKindForJob(job)
     );
     requireCanonicalEqual(
       evidence,
@@ -2130,13 +2141,13 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
     const persistedNormalized = await readPersistedImage(
       root,
       evidence.normalizedSnapshot,
-      'monolithic atlas provider-key-normalized',
+      'provider-key-normalized',
       job
     );
     if (!persistedNormalized.image.buffer.equals(
       replayedProviderKeyNormalization.normalizedPng
     )) {
-      throw new Error('Persisted monolithic atlas provider-key-normalized PNG differs from replay');
+      throw new Error('Persisted provider-key-normalized PNG differs from replay');
     }
   } else if (result.unitAssemblyV2.providerKeyNormalization !== undefined) {
     throw new Error('Persisted legacy assembly cannot claim provider-key normalization');
@@ -2360,12 +2371,8 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
         )];
       }))
     : new Map();
-  const monolithicNormalizedPath = replayedProviderKeyNormalization
-    ? path.join(
-        outputRoot,
-        'sources',
-        `${stem}-monolithic-atlas.provider-key-normalized.png`
-      )
+  const providerNormalizedPath = replayedProviderKeyNormalization
+    ? providerKeyNormalizedSnapshotPath(job, outputRoot, stem)
     : null;
   const compositionInputPersistence = composedTerrain
     ? terrainInputPersistence(root, outputRoot, stem, assembled.terrainComposition)
@@ -2558,7 +2565,7 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
     ...(replayedProviderKeyNormalization ? {
       providerKeyNormalization: providerKeyNormalizationLedger(
         replayedProviderKeyNormalization,
-        toPosixRelative(root, monolithicNormalizedPath)
+        toPosixRelative(root, providerNormalizedPath)
       )
     } : {}),
     ...(composedTerrain ? {
@@ -2659,7 +2666,7 @@ async function assembleUnits(job, unitSources, boundIdentity, cache, sourceBudge
       providerKeyNormalization = await normalizedProviderSource(
         job,
         source,
-        'monolithic-atlas'
+        providerKeyNormalizationSourceKindForJob(job)
       );
     }
     const transformed = await canonicalUnitTransform(
@@ -2834,7 +2841,7 @@ async function replayAssembly(job, assembled) {
     replayProviderKeyNormalization = await normalizedProviderSource(
       job,
       firstSourceRecord.source,
-      'monolithic-atlas'
+      providerKeyNormalizationSourceKindForJob(job)
     );
     if (!assembled.providerKeyNormalization
       || !replayProviderKeyNormalization.normalizedPng.equals(
@@ -3350,12 +3357,8 @@ async function importWaveACandidateLocked({
         )];
       }))
     : new Map();
-  const monolithicNormalizedPath = assembled.providerKeyNormalization
-    ? path.join(
-        outputRoot,
-        'sources',
-        `${stem}-monolithic-atlas.provider-key-normalized.png`
-      )
+  const providerNormalizedPath = assembled.providerKeyNormalization
+    ? providerKeyNormalizedSnapshotPath(job, outputRoot, stem)
     : null;
   const unitPersistence = assembled.unitRecords.map((record) => {
     if (composedTerrain) {
@@ -3476,7 +3479,7 @@ async function importWaveACandidateLocked({
     ...(assembled.providerKeyNormalization ? {
       providerKeyNormalization: providerKeyNormalizationLedger(
         assembled.providerKeyNormalization,
-        toPosixRelative(root, monolithicNormalizedPath)
+        toPosixRelative(root, providerNormalizedPath)
       )
     } : {}),
     ...(terrainCompositionV2 ? { terrainComposition: terrainCompositionV2 } : {}),
@@ -3596,9 +3599,9 @@ async function importWaveACandidateLocked({
       }
     ]),
     ...(assembled.providerKeyNormalization ? [{
-      path: monolithicNormalizedPath,
+      path: providerNormalizedPath,
       bytes: assembled.providerKeyNormalization.normalizedPng,
-      label: 'monolithic atlas provider-key-normalized'
+      label: 'provider-key-normalized'
     }] : []),
     ...unitPersistence.filter((record) => composedTerrain && record.transformedPath).map((record) => ({
       path: record.transformedPath,

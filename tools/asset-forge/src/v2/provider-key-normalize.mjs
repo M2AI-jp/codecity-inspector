@@ -45,6 +45,38 @@ const CONFIG = Object.freeze({
 
 export const PROVIDER_KEY_NORMALIZE_CONFIG_SHA256 = sha256(canonicalJson(CONFIG));
 
+function normalizationPlan(sourceKinds) {
+  return {
+    schemaVersion: 1,
+    originKind: 'deterministic-derived',
+    version: PROVIDER_KEY_NORMALIZE_VERSION,
+    algorithm: PROVIDER_KEY_NORMALIZE_ALGORITHM,
+    configSha256: PROVIDER_KEY_NORMALIZE_CONFIG_SHA256,
+    sourceKinds,
+    sourceFormat: 'png',
+    providerInvocationEvidence: CONFIG.providerInvocationEvidence
+  };
+}
+
+function exactSingleUnitScope(asset, generationMode, generationUnits, artifactContracts) {
+  if (!asset || asset.category === 'character' || asset.category === 'building'
+    || asset.category === 'terrain' || generationMode !== 'per-unit'
+    || (asset.category === 'ui' && asset.sprites?.grid)
+    || !Array.isArray(generationUnits) || generationUnits.length !== 1
+    || generationUnits.filter(({ sourceRequired }) => sourceRequired).length !== 1
+    || !Array.isArray(artifactContracts) || artifactContracts.length !== 1) return false;
+  const unit = generationUnits[0];
+  const artifact = artifactContracts[0];
+  return unit.sourceRequired === true
+    && unit.expectation === 'expected-nonempty'
+    && unit.artifactRole === 'primary'
+    && artifact.role === 'primary'
+    && unit.targetRect?.x === 0
+    && unit.targetRect?.y === 0
+    && unit.targetRect?.width === artifact.outputSize?.width
+    && unit.targetRect?.height === artifact.outputSize?.height;
+}
+
 function colorDistance(left, right) {
   return Math.max(
     Math.abs(left[0] - right[0]),
@@ -203,38 +235,46 @@ function outsideMaskBytes(raw, mask) {
   return output;
 }
 
-export function providerKeyNormalizationPlanFor(asset, generationMode) {
-  if (asset?.category !== 'character' || generationMode !== 'monolithic-atlas') {
+export function providerKeyNormalizationPlanFor(asset, generationMode, {
+  generationUnits = null,
+  artifactContracts = null
+} = {}) {
+  if (asset?.category === 'character' && generationMode === 'monolithic-atlas') {
+    return normalizationPlan(['identity-master', 'monolithic-atlas']);
+  }
+  if (!exactSingleUnitScope(asset, generationMode, generationUnits, artifactContracts)) {
     throw new Error(
-      'provider-key-normalize-v1 is available only for character monolithic-atlas jobs'
+      'provider-key-normalize-v1 is available only for character monolithic-atlas jobs or exact single-unit non-character per-unit jobs'
     );
   }
-  return {
-    schemaVersion: 1,
-    originKind: 'deterministic-derived',
-    version: PROVIDER_KEY_NORMALIZE_VERSION,
-    algorithm: PROVIDER_KEY_NORMALIZE_ALGORITHM,
-    configSha256: PROVIDER_KEY_NORMALIZE_CONFIG_SHA256,
-    sourceKinds: ['identity-master', 'monolithic-atlas'],
-    sourceFormat: 'png',
-    providerInvocationEvidence: CONFIG.providerInvocationEvidence
-  };
+  return normalizationPlan(['single-unit']);
+}
+
+export function providerKeyNormalizationSourceKindForJob(job) {
+  const plan = job?.providerKeyNormalizationPlan;
+  if (!plan) return null;
+  if (job.category !== job.assetDefinition?.category) {
+    throw new Error('provider-key-normalize-v1 job category does not match its asset definition');
+  }
+  const expected = providerKeyNormalizationPlanFor(job.assetDefinition, job.generationMode, {
+    generationUnits: job.generationUnits,
+    artifactContracts: job.artifactContracts
+  });
+  if (canonicalJson(plan) !== canonicalJson(expected)) {
+    throw new Error('provider-key-normalize-v1 job plan escaped its exact source contract');
+  }
+  return job.category === 'character' ? 'monolithic-atlas' : 'single-unit';
 }
 
 export async function normalizeProviderKey(image, plan) {
+  const exactPlan = [
+    normalizationPlan(['identity-master', 'monolithic-atlas']),
+    normalizationPlan(['single-unit'])
+  ].some((candidate) => canonicalJson(plan) === canonicalJson(candidate));
   if (!image?.buffer || image.sourceFormat !== 'png' || !image.metadata
     || image.buffer.length < PNG_SIGNATURE.length
     || !image.buffer.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)
-    || canonicalJson(plan) !== canonicalJson({
-      schemaVersion: 1,
-      originKind: 'deterministic-derived',
-      version: PROVIDER_KEY_NORMALIZE_VERSION,
-      algorithm: PROVIDER_KEY_NORMALIZE_ALGORITHM,
-      configSha256: PROVIDER_KEY_NORMALIZE_CONFIG_SHA256,
-      sourceKinds: ['identity-master', 'monolithic-atlas'],
-      sourceFormat: 'png',
-      providerInvocationEvidence: CONFIG.providerInvocationEvidence
-    })) {
+    || !exactPlan) {
     throw new Error('provider-key-normalize-v1 requires its exact plan and a provider-original PNG');
   }
   const decoded = await sharp(image.buffer, { animated: false, failOn: 'error' })
@@ -265,6 +305,19 @@ export async function normalizeProviderKey(image, plan) {
   const connectedPixelCount = countMask(connected);
   const disconnectedEligiblePixelCount = eligiblePixelCount - connectedPixelCount;
   const pixelCount = decoded.info.width * decoded.info.height;
+  if (plan.sourceKinds.length === 1 && plan.sourceKinds[0] === 'single-unit') {
+    for (let index = 0; index < connected.length; index += 1) {
+      if (connected[index]) continue;
+      const offset = index * 4;
+      if (validRawKey([
+        decoded.data[offset], decoded.data[offset + 1], decoded.data[offset + 2]
+      ])) {
+        throw new Error(
+          'provider-key-normalize-v1 single-unit source contains disconnected or subject magenta'
+        );
+      }
+    }
+  }
   if (connectedPixelCount * 1000 < pixelCount * CONFIG.connectedPixelMinimumPermille
     || connectedPixelCount * 1000 > pixelCount * CONFIG.connectedPixelMaximumPermille) {
     throw new Error('provider-key-normalize-v1 connected key fraction is outside 100..900 permille');

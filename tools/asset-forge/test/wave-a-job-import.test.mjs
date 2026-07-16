@@ -99,9 +99,13 @@ async function fixtureRoot(t, { approvedAuthorization = true } = {}) {
   return root;
 }
 
-async function providerSource(width, height, color, { inset = 8, alpha = 1 } = {}) {
+async function providerSource(width, height, color, {
+  inset = 8,
+  alpha = 1,
+  background = '#ff00ffff'
+} = {}) {
   return sharp({
-    create: { width, height, channels: 4, background: '#ff00ffff' }
+    create: { width, height, channels: 4, background }
   }).composite([{
     input: await sharp({
       create: {
@@ -1493,6 +1497,94 @@ test('explicit provider-key-normalize-v1 preserves raw character PNGs and deep-r
     () => verifyPersistedWaveAUnitAssembly(evidenceTamper, { root, forgeRoot: root }),
     /normalization evidence/
   );
+});
+
+test('single-unit provider-key normalization preserves raw PNG and deep-replays pending/V3 evidence', async (t) => {
+  const root = await fixtureRoot(t);
+  const pack = await makeWaveAJob({
+    assetId: 'prop.practice_target',
+    generationMode: 'per-unit',
+    providerKeyNormalization: 'provider-key-normalize-v1',
+    seed: 'single-unit-normalized-key'
+  }, { root, forgeRoot: root });
+  assert.deepEqual(pack.job.providerKeyNormalizationPlan.sourceKinds, ['single-unit']);
+  assert.equal(pack.job.generationUnits.length, 1);
+  assert.equal(pack.job.generationUnits[0].sourceRequired, true);
+  assert.equal(pack.job.artifactContracts[0].role, 'primary');
+  const unit = pack.job.generationUnits[0];
+  const sourceBytes = await providerSource(
+    unit.targetRect.width * 2,
+    unit.targetRect.height * 2,
+    { r: 120, g: 90, b: 40 },
+    { inset: 16, background: '#fa07e6ff' }
+  );
+  const sourceOriginal = await writeInput(root, 'practice-target-shifted-key.png', sourceBytes);
+  const sourceAlias = path.join(root, 'operator-input', 'practice-target-shifted-key-alias.png');
+  await symlink(sourceOriginal, sourceAlias);
+  await assert.rejects(() => importWaveACandidate({
+    assetId: pack.job.assetId,
+    jobPackPath: pack.result.jobPackPath,
+    unitSources: [{ unitId: unit.unitId, sourceOriginal: sourceAlias }],
+    identityBindingPath: null
+  }, { root, forgeRoot: root }), /non-symlink file/);
+  const imported = await importWaveACandidate({
+    assetId: pack.job.assetId,
+    jobPackPath: pack.result.jobPackPath,
+    unitSources: [{ unitId: unit.unitId, sourceOriginal }],
+    identityBindingPath: null
+  }, { root, forgeRoot: root });
+  const assembly = imported.result.unitAssemblyV2;
+  assert.equal(assembly.providerKeyNormalization.sourceKind, 'single-unit');
+  assert.equal(
+    assembly.providerKeyNormalization.preBorder.detectedKeyExpectedDistance,
+    25
+  );
+  assert.equal(assembly.providerKeyNormalization.outsideMaskPreserved, true);
+  assert.deepEqual(assembly.units[0].transformSteps, [
+    'provider-key-normalize-v1', 'auto-border-key-detect', 'crop',
+    'soft-matte-despill', 'zero-hidden-rgb', 'nearest-downscale',
+    'hard-alpha-zero-hidden-rgb'
+  ]);
+  const rawPath = path.join(root, assembly.units[0].sourceSnapshot.path);
+  const normalizedPath = path.join(
+    root,
+    assembly.providerKeyNormalization.normalizedSnapshot.path
+  );
+  assert.ok((await readFile(rawPath)).equals(sourceBytes));
+  assert.notEqual(rawPath, normalizedPath);
+  assert.equal(
+    sha256(await readFile(normalizedPath)),
+    assembly.providerKeyNormalization.normalizedSnapshot.sha256
+  );
+  await assert.doesNotReject(() => verifyPersistedWaveAUnitAssembly(imported.result, {
+    root, forgeRoot: root
+  }));
+  await assert.doesNotReject(() => verifyPendingGenerationForWaveApproval({
+    assetId: pack.job.assetId,
+    generationId: imported.result.id
+  }, { root, forgeRoot: root }));
+});
+
+test('single-unit provider-key normalization rejects unsupported scopes before job-pack writes', async (t) => {
+  const root = await fixtureRoot(t);
+  const generatedBefore = await hashTree(path.join(root, 'generated'));
+  const ledgerBefore = await readFile(path.join(root, 'data', 'local', 'generations.json'));
+  for (const request of [
+    { assetId: 'character.player', generationMode: 'per-unit' },
+    { assetId: 'character.player', generationMode: CHARACTER_DIRECTION_STRIP_MODE },
+    { assetId: 'building.inn', generationMode: 'per-unit' },
+    { assetId: 'terrain.grass', generationMode: 'per-unit' },
+    { assetId: 'ui.footstep', generationMode: 'per-unit' },
+    { assetId: 'prop.lamp', generationMode: 'monolithic-atlas' }
+  ]) {
+    await assert.rejects(() => writeWaveAJobPack({
+      ...request,
+      providerKeyNormalization: 'provider-key-normalize-v1'
+    }, { root, forgeRoot: root }), /exact single-unit non-character per-unit/);
+  }
+  assert.equal(await hashTree(path.join(root, 'generated')), generatedBefore);
+  assert.ok((await readFile(path.join(root, 'data', 'local', 'generations.json')))
+    .equals(ledgerBefore));
 });
 
 test('provider-key normalization rejects unsafe, alpha, legacy, per-unit, and terrain use before candidate writes', async (t) => {

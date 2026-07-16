@@ -8,6 +8,15 @@ import {
 } from '../src/v2/provider-key-normalize.mjs';
 
 const PLAN = providerKeyNormalizationPlanFor({ category: 'character' }, 'monolithic-atlas');
+const SINGLE_PLAN = providerKeyNormalizationPlanFor({ category: 'prop' }, 'per-unit', {
+  generationUnits: [{
+    artifactRole: 'primary',
+    expectation: 'expected-nonempty',
+    sourceRequired: true,
+    targetRect: { x: 0, y: 0, width: 64, height: 96 }
+  }],
+  artifactContracts: [{ role: 'primary', outputSize: { width: 64, height: 96 } }]
+});
 
 async function pngFixture({
   width = 100,
@@ -39,12 +48,14 @@ function pixel(raw, width, x, y) {
   return [...raw.subarray((y * width + x) * 4, (y * width + x) * 4 + 4)];
 }
 
-test('provider-key-normalize-v1 is strict character monolithic opt-in with bound config', () => {
+test('provider-key-normalize-v1 keeps character plan exact and admits only exact single-unit scope', () => {
   assert.equal(
     PROVIDER_KEY_NORMALIZE_CONFIG_SHA256,
     '2c89f2fc52b643cdda6f0496210f6d03d8b3b8b7b5b3fe62d04567dd839f6d10'
   );
   assert.equal(PLAN.configSha256, PROVIDER_KEY_NORMALIZE_CONFIG_SHA256);
+  assert.deepEqual(SINGLE_PLAN.sourceKinds, ['single-unit']);
+  assert.equal(SINGLE_PLAN.configSha256, PROVIDER_KEY_NORMALIZE_CONFIG_SHA256);
   assert.throws(
     () => providerKeyNormalizationPlanFor({ category: 'character' }, 'per-unit'),
     /only for character monolithic-atlas/
@@ -52,6 +63,63 @@ test('provider-key-normalize-v1 is strict character monolithic opt-in with bound
   assert.throws(
     () => providerKeyNormalizationPlanFor({ category: 'terrain' }, 'monolithic-atlas'),
     /only for character monolithic-atlas/
+  );
+  for (const [asset, mode, generationUnits, artifactContracts] of [
+    [{ category: 'building' }, 'per-unit', [{ sourceRequired: true }], [{ role: 'primary' }]],
+    [{ category: 'terrain' }, 'per-unit', [{ sourceRequired: true }], [{ role: 'primary' }]],
+    [{ category: 'ui', sprites: { grid: { columns: 1, rows: 1 } } }, 'per-unit',
+      SINGLE_PLAN, [{ role: 'primary' }]],
+    [{ category: 'prop' }, 'monolithic-atlas', [{ sourceRequired: true }], [{ role: 'primary' }]],
+    [{ category: 'prop' }, 'per-unit', [{ sourceRequired: true }, { sourceRequired: true }],
+      [{ role: 'primary' }]]
+  ]) {
+    assert.throws(
+      () => providerKeyNormalizationPlanFor(asset, mode, { generationUnits, artifactContracts }),
+      /exact single-unit/
+    );
+  }
+});
+
+test('single-unit plan normalizes the three observed safe shifted keys', async () => {
+  for (const [key, distance] of [
+    [[250, 7, 230, 255], 25],
+    [[250, 3, 236, 255], 19],
+    [[244, 5, 231, 255], 24]
+  ]) {
+    const normalized = await normalizeProviderKey(await pngFixture({ key }), SINGLE_PLAN);
+    assert.equal(normalized.evidence.preBorder.detectedKeyExpectedDistance, distance);
+    assert.equal(normalized.evidence.postBorder.detectedKeyColor, '#FF00FF');
+  }
+});
+
+test('single-unit plan fails closed on disconnected/subject magenta, distance, and alpha', async () => {
+  for (const image of [
+    await pngFixture({
+      key: [250, 7, 230, 255],
+      mutate(raw, width) {
+        raw.set([250, 7, 230, 255], (50 * width + 50) * 4);
+      }
+    }),
+    await pngFixture({
+      key: [250, 7, 230, 255],
+      mutate(raw, width) {
+        raw.set([255, 0, 255, 255], (50 * width + 50) * 4);
+      }
+    })
+  ]) await assert.rejects(
+    normalizeProviderKey(image, SINGLE_PLAN),
+    /disconnected or subject magenta/
+  );
+  await assert.rejects(
+    normalizeProviderKey(await pngFixture({ key: [245, 6, 222, 255] }), SINGLE_PLAN),
+    /outside the safe magenta envelope/
+  );
+  await assert.rejects(
+    normalizeProviderKey(await pngFixture({
+      key: [250, 7, 230, 255],
+      mutate(raw) { raw[3] = 254; }
+    }), SINGLE_PLAN),
+    /alpha 255 for every/
   );
 });
 
