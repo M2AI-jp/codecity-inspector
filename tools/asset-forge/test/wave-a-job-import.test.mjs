@@ -242,7 +242,7 @@ async function sourcesForJob(root, job, { scale = 2, prefix = 'source', shared =
 
 async function identitySource(root, name = 'identity.png', colors = [
   '#b04040ff', '#4070b0ff', '#40a060ff', '#a08030ff'
-]) {
+], background = '#ff00ffff') {
   const width = 384;
   const height = 192;
   const cells = [];
@@ -256,7 +256,7 @@ async function identitySource(root, name = 'identity.png', colors = [
     });
   }
   const bytes = await sharp({
-    create: { width, height, channels: 4, background: '#ff00ffff' }
+    create: { width, height, channels: 4, background }
   }).composite(cells).png({ adaptiveFiltering: false, palette: false }).toBuffer();
   return writeInput(root, name, bytes);
 }
@@ -318,7 +318,8 @@ async function monolithicSourcesForJob(root, job, { scale = 2, prefix = 'atlas' 
 
 async function monolithicCharacterSourcesForJob(root, job, {
   scale = 2,
-  prefix = 'character-atlas'
+  prefix = 'character-atlas',
+  background = '#ff00ffff'
 } = {}) {
   const required = job.generationUnits.filter(({ sourceRequired }) => sourceRequired);
   assert.equal(required.length, 40);
@@ -347,7 +348,7 @@ async function monolithicCharacterSourcesForJob(root, job, {
     });
   }
   const bytes = await sharp({
-    create: { width, height, channels: 4, background: '#ff00ffff' }
+    create: { width, height, channels: 4, background }
   }).composite(composites).png({ adaptiveFiltering: false, palette: false }).toBuffer();
   const sourceOriginal = await writeInput(root, `${prefix}.png`, bytes);
   return required.map((unit) => ({
@@ -917,6 +918,21 @@ test('character monolithic atlas issues one identity-bound 10x4 prompt and repla
     }
   }, { root, forgeRoot: root });
   assert.equal(bound.binding.generationMode, 'monolithic-atlas');
+  const legacyBindingKey = sha256(canonicalJson({
+    jobProvenanceKey: pack.job.provenanceKey,
+    identityPlanId: pack.job.identityMasterPlan.planId,
+    identityPlanPromptSha256: pack.job.identityMasterPlan.promptSha256,
+    sourceOriginalSha256: bound.binding.identityMaster.sourceOriginal.sha256,
+    sourceOriginalFormat: bound.binding.identityMaster.sourceOriginal.format,
+    sourceOriginalSize: {
+      width: bound.binding.identityMaster.sourceOriginal.width,
+      height: bound.binding.identityMaster.sourceOriginal.height
+    },
+    cropRect: bound.binding.identityMaster.sourceOriginal.cropRect,
+    transformedSha256: bound.binding.identityMaster.transformedSnapshot.sha256,
+    directionCellSha256s: bound.binding.identityMaster.directionCellSha256s
+  }));
+  assert.equal(bound.binding.bindingId, `identity_binding_${legacyBindingKey.slice(0, 20)}`);
   assert.deepEqual({
     layout: bound.binding.atlasExecution.layout,
     columns: bound.binding.atlasExecution.columns,
@@ -999,6 +1015,194 @@ test('character monolithic atlas issues one identity-bound 10x4 prompt and repla
   assert.equal((await processCandidate({ generationId: original.id }, {
     root, forgeRoot: root
   })).status, 'audited-pending');
+});
+
+test('explicit provider-key-normalize-v1 preserves raw character PNGs and deep-replays identity plus atlas', async (t) => {
+  const root = await fixtureRoot(t);
+  const legacy = await buildWaveAJob({
+    assetId: 'character.player',
+    generationMode: 'monolithic-atlas',
+    seed: 'normalized-key'
+  }, { forgeRoot: root });
+  const pack = await makeWaveAJob({
+    assetId: 'character.player',
+    generationMode: 'monolithic-atlas',
+    providerKeyNormalization: 'provider-key-normalize-v1',
+    seed: 'normalized-key'
+  }, { root, forgeRoot: root });
+  assert.notEqual(pack.job.id, legacy.job.id);
+  assert.equal(pack.job.providerKeyNormalizationPlan.version, 'provider-key-normalize-v1');
+  assert.equal(
+    pack.job.identityMasterPlan.providerKeyNormalizationPlan.configSha256,
+    pack.job.providerKeyNormalizationPlan.configSha256
+  );
+  assert.equal(
+    (await verifyWaveAJobPack(pack.result.jobPackPath, { root, forgeRoot: root })).job.id,
+    pack.job.id
+  );
+
+  const shiftedKey = '#f506e2ff'; // safe envelope, Chebyshev distance 29 from #FF00FF
+  const identity = await identitySource(
+    root,
+    'normalized-identity.png',
+    ['#b04040ff', '#4070b0ff', '#40a060ff', '#a08030ff'],
+    shiftedKey
+  );
+  const identityBytes = await readFile(identity);
+  const bound = await prepareWaveAIdentity({
+    assetId: 'character.player',
+    jobPackPath: pack.result.jobPackPath,
+    identityMasterSource: {
+      sourceOriginal: identity,
+      cropRect: { x: 0, y: 0, width: 384, height: 192 }
+    }
+  }, { root, forgeRoot: root });
+  const identityEvidence = bound.binding.identityMaster.providerKeyNormalization;
+  assert.equal(identityEvidence.sourceKind, 'identity-master');
+  assert.equal(identityEvidence.preBorder.detectedKeyExpectedDistance, 29);
+  assert.equal(identityEvidence.postBorder.detectedKeyColor, '#FF00FF');
+  assert.ok((await readFile(path.join(root, bound.binding.identityMaster.sourceSnapshot.path)))
+    .equals(identityBytes));
+  assert.equal(
+    sha256(await readFile(path.join(root, identityEvidence.normalizedSnapshot.path))),
+    identityEvidence.normalizedSnapshot.sha256
+  );
+
+  const unitSources = await monolithicCharacterSourcesForJob(root, pack.job, {
+    prefix: 'normalized-player-atlas',
+    background: shiftedKey
+  });
+  const atlasBytes = await readFile(unitSources[0].sourceOriginal);
+  const imported = await importWaveACandidate({
+    assetId: 'character.player',
+    jobPackPath: pack.result.jobPackPath,
+    unitSources,
+    identityBindingPath: bound.bindingPath
+  }, { root, forgeRoot: root });
+  const atlasEvidence = imported.result.unitAssemblyV2.providerKeyNormalization;
+  assert.equal(atlasEvidence.sourceKind, 'monolithic-atlas');
+  assert.equal(atlasEvidence.preBorder.detectedKeyExpectedDistance, 29);
+  assert.equal(atlasEvidence.postBorder.detectedKeyColor, '#FF00FF');
+  const rawAtlasPath = imported.result.unitAssemblyV2.units[0].sourceSnapshot.path;
+  assert.ok((await readFile(path.join(root, rawAtlasPath))).equals(atlasBytes));
+  const normalizedAtlasPath = path.join(root, atlasEvidence.normalizedSnapshot.path);
+  const normalizedAtlasBytes = await readFile(normalizedAtlasPath);
+  assert.equal(sha256(normalizedAtlasBytes), atlasEvidence.normalizedSnapshot.sha256);
+  assert.equal(new Set(imported.result.unitAssemblyV2.units
+    .map(({ transformSteps }) => canonicalJson(transformSteps))).size, 1);
+  assert.equal(imported.result.unitAssemblyV2.units[0].transformSteps[0], 'provider-key-normalize-v1');
+  await assert.doesNotReject(() => verifyPersistedWaveAUnitAssembly(imported.result, {
+    root, forgeRoot: root
+  }));
+  await assert.doesNotReject(() => verifyPendingGenerationForWaveApproval({
+    assetId: 'character.player',
+    generationId: imported.result.id
+  }, { root, forgeRoot: root }));
+
+  await writeFile(normalizedAtlasPath, Buffer.from('tampered normalized atlas'));
+  await assert.rejects(
+    () => verifyPersistedWaveAUnitAssembly(imported.result, { root, forgeRoot: root }),
+    /provider-key-normalized|snapshot|image signature/
+  );
+  await writeFile(normalizedAtlasPath, normalizedAtlasBytes);
+  const evidenceTamper = structuredClone(imported.result);
+  evidenceTamper.unitAssemblyV2.providerKeyNormalization.eligibility.maskSha256 = '0'.repeat(64);
+  await assert.rejects(
+    () => verifyPersistedWaveAUnitAssembly(evidenceTamper, { root, forgeRoot: root }),
+    /normalization evidence/
+  );
+});
+
+test('provider-key normalization rejects unsafe, alpha, legacy, per-unit, and terrain use before candidate writes', async (t) => {
+  const root = await fixtureRoot(t);
+  const optInPack = await makeWaveAJob({
+    assetId: 'character.player',
+    generationMode: 'monolithic-atlas',
+    providerKeyNormalization: 'provider-key-normalize-v1',
+    seed: 'normalization-negative'
+  }, { root, forgeRoot: root });
+  const unsafeIdentity = await identitySource(
+    root,
+    'unsafe-normalized-identity.png',
+    undefined,
+    '#f506deff'
+  );
+  const generatedBeforeUnsafe = await hashTree(path.join(root, 'generated'));
+  await assert.rejects(() => prepareWaveAIdentity({
+    assetId: 'character.player',
+    jobPackPath: optInPack.result.jobPackPath,
+    identityMasterSource: {
+      sourceOriginal: unsafeIdentity,
+      cropRect: { x: 0, y: 0, width: 384, height: 192 }
+    }
+  }, { root, forgeRoot: root }), /safe magenta envelope/);
+  assert.equal(await hashTree(path.join(root, 'generated')), generatedBeforeUnsafe);
+
+  const opaqueIdentity = await identitySource(
+    root,
+    'alpha-source-base.png',
+    undefined,
+    '#f506e2ff'
+  );
+  const decoded = await sharp(await readFile(opaqueIdentity)).ensureAlpha().raw()
+    .toBuffer({ resolveWithObject: true });
+  decoded.data[3] = 254;
+  const alphaIdentity = await writeInput(
+    root,
+    'alpha-normalized-identity.png',
+    await sharp(decoded.data, {
+      raw: { width: decoded.info.width, height: decoded.info.height, channels: 4 }
+    }).png({ adaptiveFiltering: false, palette: false, compressionLevel: 9 }).toBuffer()
+  );
+  const generatedBeforeAlpha = await hashTree(path.join(root, 'generated'));
+  await assert.rejects(() => prepareWaveAIdentity({
+    assetId: 'character.player',
+    jobPackPath: optInPack.result.jobPackPath,
+    identityMasterSource: {
+      sourceOriginal: alphaIdentity,
+      cropRect: { x: 0, y: 0, width: 384, height: 192 }
+    }
+  }, { root, forgeRoot: root }), /alpha 255 for every/);
+  assert.equal(await hashTree(path.join(root, 'generated')), generatedBeforeAlpha);
+
+  const legacyPack = await makeWaveAJob({
+    assetId: 'character.player',
+    generationMode: 'monolithic-atlas',
+    seed: 'legacy-rejects-shift'
+  }, { root, forgeRoot: root });
+  const safeShiftIdentity = await identitySource(
+    root,
+    'legacy-shifted-identity.png',
+    undefined,
+    '#f506e2ff'
+  );
+  const generatedBeforeLegacy = await hashTree(path.join(root, 'generated'));
+  await assert.rejects(() => prepareWaveAIdentity({
+    assetId: 'character.player',
+    jobPackPath: legacyPack.result.jobPackPath,
+    identityMasterSource: {
+      sourceOriginal: safeShiftIdentity,
+      cropRect: { x: 0, y: 0, width: 384, height: 192 }
+    }
+  }, { root, forgeRoot: root }), /required #FF00FF|expected #FF00FF|detected key/);
+  assert.equal(await hashTree(path.join(root, 'generated')), generatedBeforeLegacy);
+
+  await assert.rejects(
+    () => buildWaveAJob({
+      assetId: 'character.player',
+      generationMode: 'per-unit',
+      providerKeyNormalization: 'provider-key-normalize-v1'
+    }, { forgeRoot: root }),
+    /only for character monolithic-atlas/
+  );
+  await assert.rejects(
+    () => buildWaveAJob({
+      assetId: 'terrain.grass',
+      generationMode: 'terrain-composed-atlas',
+      providerKeyNormalization: 'provider-key-normalize-v1'
+    }, { forgeRoot: root }),
+    /only for character monolithic-atlas/
+  );
 });
 
 test('character atlas rejects retroactive sharing and malformed crop or source claims without writes', async (t) => {

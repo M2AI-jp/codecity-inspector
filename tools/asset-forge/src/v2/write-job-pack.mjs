@@ -70,7 +70,12 @@ function resultForPack({ job, asset, packPath, metadataPath, warnings, createdAt
   };
 }
 
-export async function writeWaveAJobPack({ assetId, seed = '', generationMode = 'per-unit' }, {
+export async function writeWaveAJobPack({
+  assetId,
+  seed = '',
+  generationMode = 'per-unit',
+  providerKeyNormalization = null
+}, {
   root = FORGE_ROOT,
   forgeRoot = FORGE_ROOT
 } = {}) {
@@ -79,7 +84,12 @@ export async function writeWaveAJobPack({ assetId, seed = '', generationMode = '
   }
   // Resolve and validate every authorization/definition/prompt/reference input before
   // acquiring a write lock. A failed production gate therefore leaves no pack debris.
-  const built = await buildWaveAJob({ assetId, seed, generationMode }, { forgeRoot });
+  const built = await buildWaveAJob({
+    assetId,
+    seed,
+    generationMode,
+    providerKeyNormalization
+  }, { forgeRoot });
   return withFileLock(root, pathsFor(root).requiredPromotionLock, () =>
     writeWaveAJobPackLocked(built, { root }));
 }
@@ -122,6 +132,9 @@ async function writeWaveAJobPackLocked({
       generationUnits: job.generationUnits,
       ...(job.generationMode === 'terrain-composed-atlas' ? {
         terrainCompositionPlan: job.terrainCompositionPlan
+      } : {}),
+      ...(job.providerKeyNormalizationPlan ? {
+        providerKeyNormalizationPlan: job.providerKeyNormalizationPlan
       } : {}),
       identityMasterPlan: job.identityMasterPlan
     })),

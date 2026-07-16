@@ -207,6 +207,30 @@ test('v3 planning rejects arbitrary complete mock ledgers and caller-supplied ve
     /committed single Wave A bulk approval/
   );
 
+  const normalizedEvidenceStale = structuredClone(ledger);
+  const characterIndex = normalizedEvidenceStale.approvals
+    .findIndex(({ assetId }) => assetId === 'character.player');
+  const characterApproval = normalizedEvidenceStale.approvals[characterIndex];
+  normalizedEvidenceStale.approvals[characterIndex] = prepareBundleApproval({
+    assetId: characterApproval.assetId,
+    category: characterApproval.category,
+    definitionSha256: characterApproval.definitionSha256,
+    generationRecordDigest: sha256('provider-key-normalization-evidence-tamper'),
+    artifacts: characterApproval.artifacts,
+    reviewer: characterApproval.reviewer,
+    note: characterApproval.note,
+    approvedAt: characterApproval.approvedAt
+  });
+  await assert.rejects(
+    () => buildV3ExportPlan({
+      root,
+      forgeRoot: root,
+      ledger: normalizedEvidenceStale,
+      waveIds: ['A']
+    }),
+    /committed single Wave A bulk approval/
+  );
+
   const incomplete = structuredClone(ledger);
   incomplete.approvals = incomplete.approvals.filter(({ assetId }) => assetId !== 'character.player');
   await assert.rejects(

@@ -11,6 +11,10 @@ import {
   UNIT_EXPECTATIONS_V2
 } from './generation-units.mjs';
 import { terrainCompositionPlanFor } from './compose-terrain-atlas.mjs';
+import {
+  PROVIDER_KEY_NORMALIZE_VERSION,
+  providerKeyNormalizationPlanFor
+} from './provider-key-normalize.mjs';
 
 export const FABLE5_REQUIRED_SET_ID = 'fable5-v2';
 export const FABLE5_WAVE_A_ID = 'A';
@@ -61,7 +65,13 @@ function boundReferences(referenceImages) {
   return referenceImages.map(({ id, sha256: digest, role }) => ({ id, sha256: digest, role }));
 }
 
-function identityMasterPrompt(asset, definitionSha256, promptSha256, referenceImages) {
+function identityMasterPrompt(
+  asset,
+  definitionSha256,
+  promptSha256,
+  referenceImages,
+  providerKeyNormalizationPlan
+) {
   return [
     '# Canonical auxiliary character identity master',
     '',
@@ -75,6 +85,14 @@ function identityMasterPrompt(asset, definitionSha256, promptSha256, referenceIm
     'runtime cell, not an approved game asset, and not evidence that any of the 40 runtime cells exists.',
     'Keep outfit, anatomical left/right details, height, hands, role tool, material palette, and baseline',
     'identical across all four views. No labels, scene, soft shadow, or content outside the 2:1 crop.',
+    ...(providerKeyNormalizationPlan ? [
+      '',
+      `Explicit provider-key normalization policy: ${providerKeyNormalizationPlan.version}.`,
+      `Policy config SHA-256: ${providerKeyNormalizationPlan.configSha256}.`,
+      'Still request exact flat #FF00FF. If the provider returns a narrowly shifted fully opaque magenta key,',
+      'the importer may retain the exact provider-original PNG and deterministically derive a separate',
+      'full-size canonical PNG before the unchanged chroma-removal pipeline. No other repair is authorized.'
+    ] : []),
     '',
     'Authorized reference bindings:',
     canonicalJson(boundReferences(referenceImages)).trimEnd(),
@@ -85,13 +103,14 @@ function identityMasterPrompt(asset, definitionSha256, promptSha256, referenceIm
   ].join('\n');
 }
 
-function buildIdentityMasterPlan(asset, binding, referenceImages) {
+function buildIdentityMasterPlan(asset, binding, referenceImages, providerKeyNormalizationPlan) {
   if (asset.category !== 'character') return null;
   const promptText = identityMasterPrompt(
     asset,
     binding.definitionSha256,
     binding.promptSha256,
-    referenceImages
+    referenceImages,
+    providerKeyNormalizationPlan
   );
   const promptSha256 = sha256(promptText);
   return {
@@ -105,7 +124,8 @@ function buildIdentityMasterPlan(asset, binding, referenceImages) {
     directions: ['front', 'back', 'left', 'right'],
     promptText,
     promptSha256,
-    inputReferences: boundReferences(referenceImages)
+    inputReferences: boundReferences(referenceImages),
+    ...(providerKeyNormalizationPlan ? { providerKeyNormalizationPlan } : {})
   };
 }
 
@@ -115,7 +135,8 @@ function exactUnitPrompt(asset, unit, {
   referenceImages,
   generationMode,
   identityMasterPlan,
-  terrainCompositionPlan
+  terrainCompositionPlan,
+  providerKeyNormalizationPlan
 }) {
   const generationInstruction = unit.sourceRequired
     ? (generationMode === 'terrain-composed-atlas'
@@ -129,7 +150,11 @@ function exactUnitPrompt(asset, unit, {
         ? [
             `This is one formal cell contract inside a single identity-bound 10-column x 4-row monolithic character atlas. Do not invoke this unit prompt by itself; the identity binding issued after the identity master supplies the sole atlas-level generation instruction and the importer produces the exact ${unit.targetRect.width}x${unit.targetRect.height} cell.`,
             'Use exact flat #FF00FF as removable background inside this cell. No anti-aliasing, caption,',
-            'comparison panel, alternate pose, scene, or baked checkerboard.'
+            'comparison panel, alternate pose, scene, or baked checkerboard.',
+            ...(providerKeyNormalizationPlan ? [
+              `This job alone opts into ${providerKeyNormalizationPlan.version} (${providerKeyNormalizationPlan.configSha256}).`,
+              'The provider-original PNG remains immutable; only a separate deterministic full-size canonical PNG may replace the narrowly shifted outer-connected key with exact #FF00FF.'
+            ] : [])
           ]
         : [
             `Generate exactly one semantic unit, centered in a crop-safe ${unit.targetRect.width}:${unit.targetRect.height} aspect region of the provider-native raster; the importer produces the exact ${unit.targetRect.width}x${unit.targetRect.height} cell.`,
@@ -180,7 +205,8 @@ function bindGenerationUnits(
   referenceImages,
   generationMode,
   identityMasterPlan,
-  terrainCompositionPlan
+  terrainCompositionPlan,
+  providerKeyNormalizationPlan
 ) {
   const units = enumerateWaveAGenerationUnits(asset).map((unit) => {
     const unitPromptText = exactUnitPrompt(asset, unit, {
@@ -189,7 +215,8 @@ function bindGenerationUnits(
       referenceImages,
       generationMode,
       identityMasterPlan,
-      terrainCompositionPlan
+      terrainCompositionPlan,
+      providerKeyNormalizationPlan
     });
     return {
       ...unit,
@@ -212,7 +239,8 @@ function bindGenerationUnits(
 
 export function assetSpecificPrompt(asset, {
   generationMode = 'per-unit',
-  terrainCompositionPlan = null
+  terrainCompositionPlan = null,
+  providerKeyNormalizationPlan = null
 } = {}) {
   if (generationMode === 'terrain-composed-atlas') {
     if (!terrainCompositionPlan) {
@@ -256,6 +284,10 @@ export function assetSpecificPrompt(asset, {
     `Placement space: pixels=${asset.placementSpace.pixels}; tiles=${asset.placementSpace.tiles}`,
     `Pivot: (${asset.pivot.x}, ${asset.pivot.y}); baseline edge: ${asset.baseline.edgeY}`,
     'Generation background key: exact flat #FF00FF; import tolerance 0; hard-alpha threshold 127.',
+    ...(providerKeyNormalizationPlan ? [
+      `Explicit opt-in pre-transform: ${providerKeyNormalizationPlan.version}; config SHA-256 ${providerKeyNormalizationPlan.configSha256}.`,
+      'This does not relax the requested key. It preserves the provider-original PNG and creates a separately hashed deterministic full-size canonical PNG only after strict outer-connected key checks.'
+    ] : []),
     '',
     'The exact AssetDefinition below is authoritative. It includes the sheet/grid, placement, collision,',
     'occlusion, entrance, base/roof, technical inspection gates, constraints, review acceptance, and',
@@ -304,7 +336,12 @@ export function definitionBindingSha256(asset, promptSha256) {
   return definitionBindingSnapshot(asset, promptSha256).definitionSha256;
 }
 
-export async function buildWaveAJob({ assetId, seed = '', generationMode = 'per-unit' }, {
+export async function buildWaveAJob({
+  assetId,
+  seed = '',
+  generationMode = 'per-unit',
+  providerKeyNormalization = null
+}, {
   forgeRoot = FORGE_ROOT,
   backgroundRemovalMethod = CURRENT_BACKGROUND_REMOVAL_METHOD
 } = {}) {
@@ -313,6 +350,10 @@ export async function buildWaveAJob({ assetId, seed = '', generationMode = 'per-
   }
   if (!GENERATION_MODES_V2.includes(generationMode)) {
     throw new Error(`Unsupported Wave A generation mode: ${generationMode}`);
+  }
+  if (providerKeyNormalization !== null
+    && providerKeyNormalization !== PROVIDER_KEY_NORMALIZE_VERSION) {
+    throw new Error(`Unsupported provider key normalization policy: ${providerKeyNormalization}`);
   }
   const { asset, references, warnings, authorization: effectiveAuthorization } =
     await resolveWaveAAssetReferences(assetId, { root: forgeRoot });
@@ -328,9 +369,13 @@ export async function buildWaveAJob({ assetId, seed = '', generationMode = 'per-
   const terrainCompositionPlan = generationMode === 'terrain-composed-atlas'
     ? terrainCompositionPlanFor(asset)
     : null;
+  const providerKeyNormalizationPlan = providerKeyNormalization
+    ? providerKeyNormalizationPlanFor(asset, generationMode)
+    : null;
   const promptText = await renderPrompt(asset, forgeRoot, {
     generationMode,
-    terrainCompositionPlan
+    terrainCompositionPlan,
+    providerKeyNormalizationPlan
   });
   const promptSha256 = sha256(promptText);
   const binding = definitionBindingSnapshot(asset, promptSha256);
@@ -357,14 +402,20 @@ export async function buildWaveAJob({ assetId, seed = '', generationMode = 'per-
     throw new Error(`Wave A requires exactly one global-style and one primary-subject input: ${assetId}`);
   }
   const artifactContracts = artifactContractsFor(asset);
-  const identityMasterPlan = buildIdentityMasterPlan(asset, binding, referenceImages);
+  const identityMasterPlan = buildIdentityMasterPlan(
+    asset,
+    binding,
+    referenceImages,
+    providerKeyNormalizationPlan
+  );
   const generation = bindGenerationUnits(
     asset,
     binding,
     referenceImages,
     generationMode,
     identityMasterPlan,
-    terrainCompositionPlan
+    terrainCompositionPlan,
+    providerKeyNormalizationPlan
   );
   const stableProvenance = {
     requiredSetId: FABLE5_REQUIRED_SET_ID,
@@ -382,6 +433,7 @@ export async function buildWaveAJob({ assetId, seed = '', generationMode = 'per-
     artifactContracts,
     generationMode,
     ...(terrainCompositionPlan ? { terrainCompositionPlan } : {}),
+    ...(providerKeyNormalizationPlan ? { providerKeyNormalizationPlan } : {}),
     generationUnitSetSha256: generation.unitSetSha256,
     generationExpectations: generation.expectations,
     identityMasterPlanSha256: identityMasterPlan
@@ -454,7 +506,10 @@ export async function buildWaveAJob({ assetId, seed = '', generationMode = 'per-
         hardAlphaThreshold: 127,
         hiddenRgbPolicy: 'zero',
         transparentUnitPolicy: 'zero-rgba',
-        assemblyKernel: 'raw-copy'
+        assemblyKernel: 'raw-copy',
+        ...(providerKeyNormalizationPlan ? {
+          providerKeyNormalization: providerKeyNormalizationPlan
+        } : {})
       }
     }
   };
@@ -481,6 +536,7 @@ export async function buildWaveAJob({ assetId, seed = '', generationMode = 'per-
     artifactContracts,
     generationMode,
     ...(terrainCompositionPlan ? { terrainCompositionPlan } : {}),
+    ...(providerKeyNormalizationPlan ? { providerKeyNormalizationPlan } : {}),
     generationUnits: generation.units,
     generationUnitSetSha256: generation.unitSetSha256,
     generationExpectations: generation.expectations,

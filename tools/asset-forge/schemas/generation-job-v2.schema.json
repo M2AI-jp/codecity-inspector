@@ -91,6 +91,7 @@
     },
     "generationMode": { "enum": ["per-unit", "monolithic-atlas", "terrain-composed-atlas"] },
     "terrainCompositionPlan": { "$ref": "#/definitions/terrainCompositionPlan" },
+    "providerKeyNormalizationPlan": { "$ref": "#/definitions/providerKeyNormalizationPlan" },
     "generationUnits": {
       "type": "array",
       "minItems": 1,
@@ -139,7 +140,8 @@
             "assemblyKernel": {
               "enum": ["raw-copy", "terrain-composed-atlas/shared-seam-blob16-v1"]
             },
-            "terrainMaterialInputs": { "$ref": "#/definitions/terrainMaterialInputs" }
+            "terrainMaterialInputs": { "$ref": "#/definitions/terrainMaterialInputs" },
+            "providerKeyNormalization": { "$ref": "#/definitions/providerKeyNormalizationPlan" }
           }
         }
       }
@@ -257,10 +259,94 @@
           }
         ]
       }
+    },
+    {
+      "if": {
+        "properties": { "providerKeyNormalizationPlan": {} },
+        "required": ["providerKeyNormalizationPlan"]
+      },
+      "then": {
+        "properties": {
+          "category": { "const": "character" },
+          "generationMode": { "const": "monolithic-atlas" },
+          "identityMasterPlan": {
+            "type": "object",
+            "properties": {
+              "providerKeyNormalizationPlan": { "$ref": "#/definitions/providerKeyNormalizationPlan" }
+            },
+            "required": ["providerKeyNormalizationPlan"]
+          },
+          "technicalGates": {
+            "type": "object",
+            "properties": {
+              "inputPolicy": {
+                "type": "object",
+                "properties": {
+                  "providerKeyNormalization": { "$ref": "#/definitions/providerKeyNormalizationPlan" }
+                },
+                "required": ["providerKeyNormalization"]
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "allOf": [
+          {
+            "properties": {
+              "identityMasterPlan": {
+                "not": {
+                  "type": "object",
+                  "properties": { "providerKeyNormalizationPlan": {} },
+                  "required": ["providerKeyNormalizationPlan"]
+                }
+              }
+            }
+          },
+          {
+            "properties": {
+              "technicalGates": {
+                "type": "object",
+                "properties": {
+                  "inputPolicy": {
+                    "not": {
+                      "type": "object",
+                      "properties": { "providerKeyNormalization": {} },
+                      "required": ["providerKeyNormalization"]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
     }
   ],
   "definitions": {
     "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "providerKeyNormalizationPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion", "originKind", "version", "algorithm", "configSha256",
+        "sourceKinds", "sourceFormat", "providerInvocationEvidence"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "originKind": { "const": "deterministic-derived" },
+        "version": { "const": "provider-key-normalize-v1" },
+        "algorithm": { "const": "provider-key-normalize/outer-connected-exact-magenta-v1" },
+        "configSha256": { "$ref": "#/definitions/sha256" },
+        "sourceKinds": {
+          "type": "array", "minItems": 2, "maxItems": 2,
+          "items": [{ "const": "identity-master" }, { "const": "monolithic-atlas" }],
+          "additionalItems": false
+        },
+        "sourceFormat": { "const": "png" },
+        "providerInvocationEvidence": { "const": "unverified-no-provider-receipt" }
+      }
+    },
     "terrainCompositionPlan": {
       "type": "object",
       "additionalProperties": false,

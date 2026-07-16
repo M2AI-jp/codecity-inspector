@@ -51,12 +51,17 @@ export async function readWaveAImportRequest(requestPath, {
   return request;
 }
 
-export async function makeWaveAJob({ assetId, seed = '', generationMode = 'per-unit' }, {
+export async function makeWaveAJob({
+  assetId,
+  seed = '',
+  generationMode = 'per-unit',
+  providerKeyNormalization = null
+}, {
   root = FORGE_ROOT,
   forgeRoot = FORGE_ROOT
 } = {}) {
   const canonicalRoot = requireCanonicalRoot(root, forgeRoot);
-  return writeWaveAJobPack({ assetId, seed, generationMode }, {
+  return writeWaveAJobPack({ assetId, seed, generationMode, providerKeyNormalization }, {
     root: canonicalRoot,
     forgeRoot: canonicalRoot
   });

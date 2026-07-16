@@ -584,6 +584,16 @@ test('one ledger append is the authority for all 109 bundles and rejects orphan 
   const tampered = structuredClone(committed);
   tampered.waveApprovals[0].assets[0].cellAudit.cells[0].alphaPixelCount += 1;
   assert.equal(inspectBundleLedger(tampered).ok, false);
+
+  const normalizedEvidenceTamper = structuredClone(committed);
+  const character = normalizedEvidenceTamper.waveApprovals[0].assets
+    .find(({ assetId }) => assetId === 'character.player');
+  character.pendingGenerationRecordDigest = sha256('provider-key-normalization-evidence-tamper');
+  assert.equal(
+    inspectBundleLedger(normalizedEvidenceTamper).ok,
+    false,
+    'raw/normalized provenance changes must invalidate the one bulk Wave A authority'
+  );
 });
 
 test('legacy disposition pins exact A45/B20/retire13 mapping and rejects a recomputed Wave B redirect', async (t) => {

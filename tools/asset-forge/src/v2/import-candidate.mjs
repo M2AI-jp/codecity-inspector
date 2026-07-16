@@ -35,6 +35,10 @@ import {
   terrainDerivationSha256,
   terrainCompositionPlanFor
 } from './compose-terrain-atlas.mjs';
+import {
+  PROVIDER_KEY_NORMALIZE_STEP,
+  normalizeProviderKey
+} from './provider-key-normalize.mjs';
 
 const MAX_JSON_BYTES = 2 * 1024 * 1024;
 const MAX_REFERENCE_BYTES = 25 * 1024 * 1024;
@@ -60,6 +64,10 @@ const AUTO_BORDER_TRANSFORM_STEPS = Object.freeze([
   'nearest-downscale',
   'hard-alpha-zero-hidden-rgb'
 ]);
+const PROVIDER_KEY_NORMALIZE_TRANSFORM_STEPS = Object.freeze([
+  PROVIDER_KEY_NORMALIZE_STEP,
+  ...AUTO_BORDER_TRANSFORM_STEPS
+]);
 const LEGACY_ASSEMBLY_ALGORITHM = 'crop-key-nearest-hard-alpha/raw-copy-v2';
 const AUTO_BORDER_ASSEMBLY_ALGORITHMS = Object.freeze({
   'auto-border-soft-matte-v1': 'auto-border-crop-soft-matte-nearest-hard-alpha/raw-copy-v3',
@@ -68,18 +76,71 @@ const AUTO_BORDER_ASSEMBLY_ALGORITHMS = Object.freeze({
   'auto-border-soft-matte-v3':
     'auto-border-connected-fringe-soft-matte-nearest-hard-alpha/raw-copy-v5'
 });
+const PROVIDER_KEY_NORMALIZE_ASSEMBLY_ALGORITHM =
+  'provider-key-normalize-v1/auto-border-connected-fringe-soft-matte-nearest-hard-alpha/raw-copy-v1';
 const ISSUED_SOURCE_BUDGETS = new WeakSet();
 
 function canonicalBackgroundRemoval(job) {
   return job.technicalGates.inputPolicy.canonicalBackgroundRemoval ?? null;
 }
 
+function providerKeyNormalizationPlan(job) {
+  return job.providerKeyNormalizationPlan ?? null;
+}
+
+async function normalizedProviderSource(job, source, sourceKind) {
+  const plan = providerKeyNormalizationPlan(job);
+  if (!plan) return null;
+  if (job.category !== 'character' || job.generationMode !== 'monolithic-atlas'
+    || !plan.sourceKinds.includes(sourceKind)) {
+    throw new Error('Provider-key normalization escaped its character monolithic-atlas source contract');
+  }
+  const normalized = await normalizeProviderKey(source.image, plan);
+  return {
+    sourceKind,
+    plan: structuredClone(plan),
+    ...normalized,
+    image: {
+      buffer: normalized.normalizedPng,
+      sourceFormat: 'png',
+      metadata: {
+        width: source.image.metadata.width,
+        height: source.image.metadata.height
+      }
+    }
+  };
+}
+
+function providerKeyNormalizationLedger(normalization, normalizedPath) {
+  if (!normalization) return null;
+  return {
+    sourceKind: normalization.sourceKind,
+    plan: structuredClone(normalization.plan),
+    sourceOriginal: structuredClone(normalization.evidence.sourceOriginal),
+    normalizedSnapshot: {
+      path: normalizedPath,
+      ...structuredClone(normalization.evidence.normalized)
+    },
+    preBorder: structuredClone(normalization.evidence.preBorder),
+    eligibility: structuredClone(normalization.evidence.eligibility),
+    outsideMaskBeforeRgbaSha256: normalization.evidence.outsideMaskBeforeRgbaSha256,
+    outsideMaskAfterRgbaSha256: normalization.evidence.outsideMaskAfterRgbaSha256,
+    outsideMaskPreserved: normalization.evidence.outsideMaskPreserved,
+    postBorder: structuredClone(normalization.evidence.postBorder),
+    providerInvocationEvidence: normalization.evidence.providerInvocationEvidence,
+    derivationSha256: normalization.evidence.derivationSha256,
+    replayPassed: true
+  };
+}
+
 function transformStepsFor(job) {
+  if (providerKeyNormalizationPlan(job)) return PROVIDER_KEY_NORMALIZE_TRANSFORM_STEPS;
   return canonicalBackgroundRemoval(job) ? AUTO_BORDER_TRANSFORM_STEPS : LEGACY_TRANSFORM_STEPS;
 }
 
 function assemblyAlgorithmFor(job) {
   if (job.generationMode === 'terrain-composed-atlas') return TERRAIN_COMPOSER_ALGORITHM;
+  if (providerKeyNormalizationPlan(job)) return PROVIDER_KEY_NORMALIZE_ASSEMBLY_ALGORITHM;
   const method = canonicalBackgroundRemoval(job)?.method;
   return method ? AUTO_BORDER_ASSEMBLY_ALGORITHMS[method] : LEGACY_ASSEMBLY_ALGORITHM;
 }
@@ -184,6 +245,9 @@ function expectedUnitPlan(job) {
     ...(job.generationMode === 'terrain-composed-atlas' ? {
       terrainCompositionPlan: job.terrainCompositionPlan
     } : {}),
+    ...(job.providerKeyNormalizationPlan ? {
+      providerKeyNormalizationPlan: job.providerKeyNormalizationPlan
+    } : {}),
     identityMasterPlan: job.identityMasterPlan
   };
 }
@@ -237,7 +301,8 @@ export async function verifyWaveAJobPack(jobPackPath, {
   const built = await buildWaveAJob({
     assetId: pack.assetId,
     seed: packedJob.seed,
-    generationMode: packedJob.generationMode
+    generationMode: packedJob.generationMode,
+    providerKeyNormalization: packedJob.providerKeyNormalizationPlan?.version ?? null
   }, {
     forgeRoot,
     backgroundRemovalMethod: allowHistoricalTransformVersion
@@ -1060,8 +1125,13 @@ async function readIdentityMaster(identityMasterSource, job, cache, sourceBudget
     !== effectiveCrop.height * plan.outputSize.width) {
     throw new Error('Wave A identity master cropRect must have the exact 2:1 target aspect ratio');
   }
+  const providerKeyNormalization = await normalizedProviderSource(
+    job,
+    source,
+    'identity-master'
+  );
   const transformed = await canonicalUnitTransform(
-    image,
+    providerKeyNormalization?.image ?? image,
     effectiveCrop,
     plan.outputSize,
     canonicalBackgroundRemoval(job)
@@ -1093,6 +1163,7 @@ async function readIdentityMaster(identityMasterSource, job, cache, sourceBudget
   return {
     input: identityMasterSource,
     source,
+    providerKeyNormalization,
     effectiveCrop,
     raw: transformed.data,
     transformedPng,
@@ -1152,6 +1223,11 @@ function identityAtlasExecutionPrompt(job, bindingContext) {
     'animation frames in formal unit order. Every cell must have the same 1:2 aspect ratio and size.',
     'Use exact flat #FF00FF throughout every cell background and around the full grid. Do not add gaps,',
     'labels, captions, borders, checkerboards, alternate layouts, neighboring examples, or extra cells.',
+    ...(providerKeyNormalizationPlan(job) ? [
+      `This exact job opts into ${providerKeyNormalizationPlan(job).version}; config SHA-256 ${providerKeyNormalizationPlan(job).configSha256}.`,
+      'The requested key remains exact #FF00FF. A narrowly shifted fully opaque provider key may only be',
+      'handled by preserving the provider-original PNG and deriving a separately hashed full-size canonical PNG.'
+    ] : []),
     'Supply the exact transformed identity PNG above together with the two authorized references. Preserve',
     'identity, outfit, anatomy, palette, tool, direction, action, scale, and common foot baseline across all',
     '40 cells. This is the sole generation instruction; do not invoke the individual cell contracts.',
@@ -1207,6 +1283,12 @@ function identityBindingKey(job, identity) {
       height: identity.source.image.metadata.height
     },
     cropRect: identity.effectiveCrop,
+    ...(identity.providerKeyNormalization ? {
+      providerKeyNormalizationDerivationSha256:
+        identity.providerKeyNormalization.evidence.derivationSha256,
+      providerKeyNormalizedSha256:
+        identity.providerKeyNormalization.evidence.normalized.sha256
+    } : {}),
     transformedSha256: identity.transformedSha256,
     directionCellSha256s: identity.cellHashes
   }));
@@ -1223,6 +1305,9 @@ function identityBindingPaths(root, verifiedPack, job, identity) {
     bindingId,
     bindingRoot,
     sourcePath: `${bindingRoot}/identity-master.source-original.${sourceExtension}`,
+    ...(identity.providerKeyNormalization ? {
+      normalizedPath: `${bindingRoot}/identity-master.provider-key-normalized.png`
+    } : {}),
     transformedPath: `${bindingRoot}/identity-master.png`,
     planPath: `${bindingRoot}/unit-execution.json`
   };
@@ -1308,6 +1393,12 @@ function identityBindingPlan(verifiedPack, identity, paths) {
         width: identity.source.image.metadata.width,
         height: identity.source.image.metadata.height
       },
+      ...(identity.providerKeyNormalization ? {
+        providerKeyNormalization: providerKeyNormalizationLedger(
+          identity.providerKeyNormalization,
+          paths.normalizedPath
+        )
+      } : {}),
       transformedSnapshot: {
         path: paths.transformedPath,
         sha256: identity.transformedSha256,
@@ -1398,6 +1489,11 @@ export async function prepareWaveAIdentityBinding({
         bytes: identity.source.image.buffer,
         label: 'identity source-original'
       },
+      ...(identity.providerKeyNormalization ? [{
+        path: resolveWithin(root, bindingPaths.normalizedPath),
+        bytes: identity.providerKeyNormalization.normalizedPng,
+        label: 'identity provider-key-normalized snapshot'
+      }] : []),
       {
         path: resolveWithin(root, bindingPaths.transformedPath),
         bytes: identity.transformedPng,
@@ -1497,13 +1593,40 @@ export async function verifyWaveAIdentityBinding(bindingPath, {
     height: source.image.metadata.height,
     cropRect: binding.identityMaster.sourceOriginal.cropRect
   }, 'identity source record');
+  const providerKeyNormalization = await normalizedProviderSource(
+    job,
+    { image: source.image, sha256: source.sha256, canonicalPath: source.absolute },
+    'identity-master'
+  );
+  if (providerKeyNormalization) {
+    const expectedNormalization = providerKeyNormalizationLedger(
+      providerKeyNormalization,
+      binding.identityMaster.providerKeyNormalization?.normalizedSnapshot.path
+    );
+    requireCanonicalEqual(
+      binding.identityMaster.providerKeyNormalization,
+      expectedNormalization,
+      'identity provider-key normalization evidence'
+    );
+    const persistedNormalized = await readPersistedImage(
+      root,
+      binding.identityMaster.providerKeyNormalization.normalizedSnapshot,
+      'identity provider-key-normalized',
+      job
+    );
+    if (!persistedNormalized.image.buffer.equals(providerKeyNormalization.normalizedPng)) {
+      throw new Error('Wave A identity provider-key-normalized PNG is not the byte-identical replay');
+    }
+  } else if (binding.identityMaster.providerKeyNormalization !== undefined) {
+    throw new Error('Wave A legacy identity binding cannot claim provider-key normalization');
+  }
   const identityCrop = binding.identityMaster.sourceOriginal.cropRect;
   if (identityCrop.width * job.identityMasterPlan.outputSize.height
     !== identityCrop.height * job.identityMasterPlan.outputSize.width) {
     throw new Error('Wave A identity binding crop must keep the exact 2:1 target aspect ratio');
   }
   const transformedRaw = await canonicalUnitTransform(
-    source.image,
+    providerKeyNormalization?.image ?? source.image,
     identityCrop,
     job.identityMasterPlan.outputSize,
     canonicalBackgroundRemoval(job)
@@ -1547,6 +1670,7 @@ export async function verifyWaveAIdentityBinding(bindingPath, {
   if (new Set(cellHashes).size !== 4) throw new Error('Wave A identity direction cells are not distinct');
   const identity = {
     source: { canonicalPath: source.absolute, image: source.image, sha256: source.sha256 },
+    providerKeyNormalization,
     effectiveCrop: structuredClone(binding.identityMaster.sourceOriginal.cropRect),
     raw: transformedRaw.data,
     transformedPng,
@@ -1558,6 +1682,9 @@ export async function verifyWaveAIdentityBinding(bindingPath, {
   const derivedPaths = identityBindingPaths(root, verified, job, identity);
   if (binding.bindingId !== derivedPaths.bindingId || bindingPath !== derivedPaths.planPath
     || binding.identityMaster.sourceSnapshot.path !== derivedPaths.sourcePath
+    || (providerKeyNormalization
+      && binding.identityMaster.providerKeyNormalization.normalizedSnapshot.path
+        !== derivedPaths.normalizedPath)
     || binding.identityMaster.transformedSnapshot.path !== derivedPaths.transformedPath) {
     throw new Error('Wave A identity binding paths are not canonical content-addressed paths');
   }
@@ -1738,6 +1865,42 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
     throw new Error('Persisted non-character assembly contains identity evidence');
   }
 
+  let replayedProviderKeyNormalization = null;
+  if (providerKeyNormalizationPlan(job)) {
+    const evidence = result.unitAssemblyV2.providerKeyNormalization;
+    if (!evidence || !evidence.normalizedSnapshot.path.startsWith(`${pendingRoot}/sources/`)
+      || sourceCache.size !== 1) {
+      throw new Error('Persisted character atlas provider-key normalization evidence is missing or noncanonical');
+    }
+    const source = [...sourceCache.values()][0];
+    replayedProviderKeyNormalization = await normalizedProviderSource(
+      job,
+      { image: source.image, sha256: source.sha256, canonicalPath: source.absolute },
+      'monolithic-atlas'
+    );
+    requireCanonicalEqual(
+      evidence,
+      providerKeyNormalizationLedger(
+        replayedProviderKeyNormalization,
+        evidence.normalizedSnapshot.path
+      ),
+      'persisted monolithic atlas provider-key normalization evidence'
+    );
+    const persistedNormalized = await readPersistedImage(
+      root,
+      evidence.normalizedSnapshot,
+      'monolithic atlas provider-key-normalized',
+      job
+    );
+    if (!persistedNormalized.image.buffer.equals(
+      replayedProviderKeyNormalization.normalizedPng
+    )) {
+      throw new Error('Persisted monolithic atlas provider-key-normalized PNG differs from replay');
+    }
+  } else if (result.unitAssemblyV2.providerKeyNormalization !== undefined) {
+    throw new Error('Persisted legacy assembly cannot claim provider-key normalization');
+  }
+
   const executionById = new Map((identityAuthority?.executionUnits ?? []).map((unit) => [unit.unitId, unit]));
   for (const [index, unit] of job.generationUnits.entries()) {
     const ledger = result.unitAssemblyV2.units[index];
@@ -1837,10 +2000,15 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
       || crop.width * unit.targetRect.height !== crop.height * unit.targetRect.width) {
       throw new Error(`Wave A ${unit.unitId} persisted crop has the wrong target aspect ratio`);
     }
-    const transformed = await canonicalUnitTransform(source.image, crop, {
+    const transformed = await canonicalUnitTransform(
+      replayedProviderKeyNormalization?.image ?? source.image,
+      crop,
+      {
       width: unit.targetRect.width,
       height: unit.targetRect.height
-    }, canonicalBackgroundRemoval(job));
+      },
+      canonicalBackgroundRemoval(job)
+    );
     if (canonicalBackgroundRemoval(job)) {
       requireCanonicalEqual(
         ledger.transformEvidence,
@@ -1918,6 +2086,9 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
     identity: identityAuthority?.identity ?? null,
     unitRecords,
     artifactRecords,
+    ...(replayedProviderKeyNormalization ? {
+      providerKeyNormalization: replayedProviderKeyNormalization
+    } : {}),
     ...(replayedTerrain ? { terrainComposition: replayedTerrain.terrainComposition } : {})
   };
   await replayAssembly(job, assembled);
@@ -1936,6 +2107,13 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
         outputRoot,
         'sources',
         `${stem}-monolithic-atlas.source-original.${sourceFormatExtension(sourceRecords[0].source.image.sourceFormat)}`
+      )
+    : null;
+  const monolithicNormalizedPath = replayedProviderKeyNormalization
+    ? path.join(
+        outputRoot,
+        'sources',
+        `${stem}-monolithic-atlas.provider-key-normalized.png`
       )
     : null;
   const compositionInputPersistence = composedTerrain
@@ -2087,6 +2265,11 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
     inputReferences: structuredClone(job.identityMasterPlan.inputReferences),
     sourceOriginal: structuredClone(identityAuthority.binding.identityMaster.sourceOriginal),
     sourceSnapshot: structuredClone(identityAuthority.binding.identityMaster.sourceSnapshot),
+    ...(identityAuthority.binding.identityMaster.providerKeyNormalization ? {
+      providerKeyNormalization: structuredClone(
+        identityAuthority.binding.identityMaster.providerKeyNormalization
+      )
+    } : {}),
     transformedSnapshot: structuredClone(identityAuthority.binding.identityMaster.transformedSnapshot),
     transformSteps: [...transformStepsFor(job)],
     ...(canonicalBackgroundRemoval(job) ? {
@@ -2121,6 +2304,12 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
     expectations: structuredClone(job.generationExpectations),
     sourceRequiredCount: job.generationUnits.filter(({ sourceRequired }) => sourceRequired).length,
     identityMaster: expectedIdentityLedger,
+    ...(replayedProviderKeyNormalization ? {
+      providerKeyNormalization: providerKeyNormalizationLedger(
+        replayedProviderKeyNormalization,
+        toPosixRelative(root, monolithicNormalizedPath)
+      )
+    } : {}),
     ...(composedTerrain ? {
       terrainComposition: terrainCompositionLedger(
         assembled.terrainComposition,
@@ -2193,6 +2382,7 @@ async function assembleUnits(job, unitSources, boundIdentity, cache, sourceBudge
     throw new Error('Non-character Wave A jobs forbid identity binding evidence');
   }
   const sourceRecords = [];
+  let providerKeyNormalization = null;
   for (const unit of job.generationUnits.filter(({ sourceRequired }) => sourceRequired)) {
     const input = sourceById.get(unit.unitId);
     const source = await cachedExternalSource(
@@ -2214,8 +2404,15 @@ async function assembleUnits(job, unitSources, boundIdentity, cache, sourceBudge
     if (effectiveCrop.width * targetSize.height !== effectiveCrop.height * targetSize.width) {
       throw new Error(`Wave A ${unit.unitId} source/crop aspect ratio does not match targetRect`);
     }
+    if (providerKeyNormalizationPlan(job) && !providerKeyNormalization) {
+      providerKeyNormalization = await normalizedProviderSource(
+        job,
+        source,
+        'monolithic-atlas'
+      );
+    }
     const transformed = await canonicalUnitTransform(
-      source.image,
+      providerKeyNormalization?.image ?? source.image,
       effectiveCrop,
       targetSize,
       canonicalBackgroundRemoval(job)
@@ -2233,6 +2430,17 @@ async function assembleUnits(job, unitSources, boundIdentity, cache, sourceBudge
     });
   }
   validateSourceSharing(job, sourceRecords, identity);
+  if (providerKeyNormalization && identity) {
+    const identityHashes = new Set([
+      identity.source.sha256,
+      identity.transformedSha256,
+      identity.providerKeyNormalization?.evidence.normalized.sha256
+    ].filter(Boolean));
+    if (identityHashes.has(sourceRecords[0].source.sha256)
+      || identityHashes.has(providerKeyNormalization.evidence.normalized.sha256)) {
+      throw new Error('Wave A identity and monolithic atlas normalization evidence must not alias');
+    }
+  }
   const nonemptyHashes = sourceRecords.map(({ raw }) => sha256(raw));
   if (new Set(nonemptyHashes).size !== nonemptyHashes.length) {
     throw new Error('Wave A expected-nonempty generation units must not be byte-identical');
@@ -2262,7 +2470,12 @@ async function assembleUnits(job, unitSources, boundIdentity, cache, sourceBudge
       png: await encodeRawPng(raw, contract.outputSize.width, contract.outputSize.height)
     });
   }
-  return { identity, unitRecords, artifactRecords };
+  return {
+    identity,
+    unitRecords,
+    artifactRecords,
+    ...(providerKeyNormalization ? { providerKeyNormalization } : {})
+  };
 }
 
 async function assembleComposedTerrain(job, inputs) {
@@ -2323,8 +2536,22 @@ async function replayAssembly(job, assembled) {
     return;
   }
   if (assembled.identity) {
+    const replayIdentityNormalization = await normalizedProviderSource(
+      job,
+      assembled.identity.source,
+      'identity-master'
+    );
+    if (Boolean(replayIdentityNormalization) !== Boolean(assembled.identity.providerKeyNormalization)
+      || (replayIdentityNormalization
+        && (!replayIdentityNormalization.normalizedPng.equals(
+          assembled.identity.providerKeyNormalization.normalizedPng
+        )
+        || canonicalJson(replayIdentityNormalization.evidence)
+          !== canonicalJson(assembled.identity.providerKeyNormalization.evidence)))) {
+      throw new Error('Wave A identity provider-key normalization replay differs');
+    }
     const replayIdentity = await canonicalUnitTransform(
-      assembled.identity.source.image,
+      replayIdentityNormalization?.image ?? assembled.identity.source.image,
       assembled.identity.effectiveCrop,
       job.identityMasterPlan.outputSize,
       canonicalBackgroundRemoval(job)
@@ -2350,11 +2577,30 @@ async function replayAssembly(job, assembled) {
     contract.role,
     Buffer.alloc(contract.outputSize.width * contract.outputSize.height * 4)
   ]));
+  let replayProviderKeyNormalization = null;
+  const firstSourceRecord = assembled.unitRecords.find(({ sourceRecord }) => sourceRecord)?.sourceRecord;
+  if (providerKeyNormalizationPlan(job)) {
+    replayProviderKeyNormalization = await normalizedProviderSource(
+      job,
+      firstSourceRecord.source,
+      'monolithic-atlas'
+    );
+    if (!assembled.providerKeyNormalization
+      || !replayProviderKeyNormalization.normalizedPng.equals(
+        assembled.providerKeyNormalization.normalizedPng
+      )
+      || canonicalJson(replayProviderKeyNormalization.evidence)
+        !== canonicalJson(assembled.providerKeyNormalization.evidence)) {
+      throw new Error('Wave A monolithic atlas provider-key normalization replay differs');
+    }
+  } else if (assembled.providerKeyNormalization) {
+    throw new Error('Wave A legacy assembly cannot claim provider-key normalization');
+  }
   for (const record of assembled.unitRecords) {
     const { unit, sourceRecord } = record;
     const replay = sourceRecord
       ? await canonicalUnitTransform(
-          sourceRecord.source.image,
+          replayProviderKeyNormalization?.image ?? sourceRecord.source.image,
           sourceRecord.effectiveCrop,
           { width: unit.targetRect.width, height: unit.targetRect.height },
           canonicalBackgroundRemoval(job)
@@ -2570,8 +2816,24 @@ function importProvenance(job, assembled) {
     generationMode: job.generationMode,
     generationUnitSetSha256: job.generationUnitSetSha256,
     identityMasterSourceSha256: assembled.identity?.source.sha256 ?? null,
+    ...(assembled.identity?.providerKeyNormalization ? {
+      identityMasterProviderKeyNormalizedSha256:
+        assembled.identity.providerKeyNormalization.evidence.normalized.sha256,
+      identityMasterProviderKeyNormalizationDerivationSha256:
+        assembled.identity.providerKeyNormalization.evidence.derivationSha256
+    } : {}),
     identityMasterTransformedSha256: assembled.identity?.transformedSha256 ?? null,
     identityMasterCropRect: assembled.identity?.effectiveCrop ?? null,
+    ...(assembled.providerKeyNormalization ? {
+      providerKeyNormalization: {
+        sourceOriginalSha256: assembled.providerKeyNormalization.evidence.sourceOriginal.sha256,
+        normalizedSha256: assembled.providerKeyNormalization.evidence.normalized.sha256,
+        normalizedDecodedRgbaSha256:
+          assembled.providerKeyNormalization.evidence.normalized.decodedRgbaSha256,
+        maskSha256: assembled.providerKeyNormalization.evidence.eligibility.maskSha256,
+        derivationSha256: assembled.providerKeyNormalization.evidence.derivationSha256
+      }
+    } : {}),
     ...(assembled.terrainComposition ? {
       terrainComposition: {
         descriptor: assembled.terrainComposition.descriptor,
@@ -2819,6 +3081,13 @@ async function importWaveACandidateLocked({
         )}`
       )
     : null;
+  const monolithicNormalizedPath = assembled.providerKeyNormalization
+    ? path.join(
+        outputRoot,
+        'sources',
+        `${stem}-monolithic-atlas.provider-key-normalized.png`
+      )
+    : null;
   const unitPersistence = assembled.unitRecords.map((record) => {
     if (composedTerrain) {
       const transformedPath = record.unit.sourceRequired
@@ -2846,6 +3115,12 @@ async function importWaveACandidateLocked({
   const identityPersistence = assembled.identity ? {
     ...assembled.identity,
     sourceOriginalPath: resolveWithin(root, identityAuthority.binding.identityMaster.sourceSnapshot.path),
+    ...(identityAuthority.binding.identityMaster.providerKeyNormalization ? {
+      providerKeyNormalizedPath: resolveWithin(
+        root,
+        identityAuthority.binding.identityMaster.providerKeyNormalization.normalizedSnapshot.path
+      )
+    } : {}),
     transformedPath: resolveWithin(root, identityAuthority.binding.identityMaster.transformedSnapshot.path)
   } : null;
   const compositionInputPersistence = composedTerrain
@@ -2902,6 +3177,12 @@ async function importWaveACandidateLocked({
         width: identityPersistence.source.image.metadata.width,
         height: identityPersistence.source.image.metadata.height
       },
+      ...(identityPersistence.providerKeyNormalization ? {
+        providerKeyNormalization: providerKeyNormalizationLedger(
+          identityPersistence.providerKeyNormalization,
+          toPosixRelative(root, identityPersistence.providerKeyNormalizedPath)
+        )
+      } : {}),
       transformedSnapshot: {
         path: toPosixRelative(root, identityPersistence.transformedPath),
         sha256: identityPersistence.transformedSha256,
@@ -2923,6 +3204,12 @@ async function importWaveACandidateLocked({
       issuanceSequence: identityAuthority.binding.issuanceSequence,
       providerInvocationEvidence: identityAuthority.binding.providerInvocationEvidence
     } : null,
+    ...(assembled.providerKeyNormalization ? {
+      providerKeyNormalization: providerKeyNormalizationLedger(
+        assembled.providerKeyNormalization,
+        toPosixRelative(root, monolithicNormalizedPath)
+      )
+    } : {}),
     ...(terrainCompositionV2 ? { terrainComposition: terrainCompositionV2 } : {}),
     units: unitPersistence.map((record) => ({
       unitId: record.unit.unitId,
@@ -3039,6 +3326,11 @@ async function importWaveACandidateLocked({
         label: `${record.unit.unitId} transformed unit`
       }
     ]),
+    ...(assembled.providerKeyNormalization ? [{
+      path: monolithicNormalizedPath,
+      bytes: assembled.providerKeyNormalization.normalizedPng,
+      label: 'monolithic atlas provider-key-normalized'
+    }] : []),
     ...unitPersistence.filter((record) => composedTerrain && record.transformedPath).map((record) => ({
       path: record.transformedPath,
       bytes: transformedBytes.get(record.unit.unitId),

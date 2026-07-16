@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { compiledSchemaNames, validateWith } from '../src/schemas.mjs';
 import { validateRepository } from '../src/validate.mjs';
+import { buildWaveAJob } from '../src/v2/build-job.mjs';
 
 test('all tracked schemas compile under strict draft-07 Ajv', () => {
   assert.equal(compiledSchemaNames.includes('approval-manifest.schema.json'), true);
@@ -150,4 +151,25 @@ test('generation lifecycle states reject contradictory fields', () => {
     }
   }).ok, false);
   assert.equal(validateWith('generation-result.schema.json', { ...pending, status: 'failed', error: 'failed' }).ok, false);
+});
+
+test('provider-key-normalize-v1 schema is opt-in only for character monolithic jobs', async () => {
+  const { job } = await buildWaveAJob({
+    assetId: 'character.player',
+    generationMode: 'monolithic-atlas',
+    providerKeyNormalization: 'provider-key-normalize-v1'
+  });
+  assert.equal(validateWith('generation-job-v2.schema.json', job).ok, true);
+  const wrongCategory = structuredClone(job);
+  wrongCategory.category = 'terrain';
+  assert.equal(validateWith('generation-job-v2.schema.json', wrongCategory).ok, false);
+  const missingAuthority = structuredClone(job);
+  delete missingAuthority.providerKeyNormalizationPlan;
+  assert.equal(validateWith('generation-job-v2.schema.json', missingAuthority).ok, false);
+  const missingIdentityBinding = structuredClone(job);
+  delete missingIdentityBinding.identityMasterPlan.providerKeyNormalizationPlan;
+  assert.equal(validateWith('generation-job-v2.schema.json', missingIdentityBinding).ok, false);
+  const unknownConfigField = structuredClone(job);
+  unknownConfigField.providerKeyNormalizationPlan.radius = 13;
+  assert.equal(validateWith('generation-job-v2.schema.json', unknownConfigField).ok, false);
 });
