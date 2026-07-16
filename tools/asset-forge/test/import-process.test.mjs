@@ -6,6 +6,7 @@ import sharp from 'sharp';
 import test, { after } from 'node:test';
 import { FORGE_ROOT } from '../src/config.mjs';
 import { hashApprovedTree, sha256 } from '../src/hashing.mjs';
+import { readExternalImage } from '../src/images/inspect-image.mjs';
 import { processImageBuffer, extractGridFrames } from '../src/images/process-image.mjs';
 import { buildJob } from '../src/jobs/build-job.mjs';
 import { importCandidate } from '../src/jobs/manual-import.mjs';
@@ -27,6 +28,19 @@ async function mkdtemp(prefix) {
 }
 after(async () => {
   await Promise.all([...TEMP_ROOTS].map((root) => rm(root, { recursive: true, force: true })));
+});
+
+test('external image reader returns exact file-byte backing without maximum-size over-allocation', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'forge-exact-reader-'));
+  const input = path.join(root, 'exact.png');
+  const bytes = createMockPng({ assetId: 'exact', outputContract: { width: 17, height: 19 } });
+  await writeFile(input, bytes);
+  const image = await readExternalImage(input);
+  assert.deepEqual(image.buffer, bytes);
+  assert.equal(image.buffer.byteOffset, 0);
+  assert.equal(image.buffer.byteLength, bytes.length);
+  assert.equal(image.buffer.buffer.byteLength, bytes.length);
+  assert.equal(sha256(image.buffer), sha256(bytes));
 });
 
 test('manual import decodes by signature, preserves source, normalizes PNG, and stays pending', async () => {

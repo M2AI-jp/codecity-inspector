@@ -5,13 +5,24 @@ import path from 'node:path';
 import sharp from 'sharp';
 import test from 'node:test';
 import { FORGE_ROOT } from '../src/config.mjs';
-import { sha256 } from '../src/hashing.mjs';
+import { canonicalJson, sha256 } from '../src/hashing.mjs';
 import { buildJob } from '../src/jobs/build-job.mjs';
-import { materializeProductionSourceSnapshot } from '../src/jobs/lifecycle.mjs';
+import {
+  materializeProductionSourceSnapshot,
+  migrateRejectedCandidateJournal,
+  rejectCandidate
+} from '../src/jobs/lifecycle.mjs';
 import { importCandidate } from '../src/jobs/manual-import.mjs';
+import { processCandidate } from '../src/jobs/process-candidate.mjs';
 import { runJob } from '../src/jobs/run-job.mjs';
 import { inspectPng } from '../src/png-core.mjs';
-import { productionRecipeProblem, validateRepository } from '../src/validate.mjs';
+import { importWaveACandidate } from '../src/v2/import-candidate.mjs';
+import { makeWaveAJob } from '../src/v2/operator.mjs';
+import {
+  productionRecipeProblem,
+  rejectionResultFromPending,
+  validateRepository
+} from '../src/validate.mjs';
 
 async function fixtureRoot(t) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'forge-validate-'));
@@ -21,6 +32,37 @@ async function fixtureRoot(t) {
   await cp(path.join(FORGE_ROOT, 'references'), path.join(root, 'references'), { recursive: true });
   await cp(path.join(FORGE_ROOT, 'review', 'prompts'), path.join(root, 'review', 'prompts'), { recursive: true });
   await cp(path.join(FORGE_ROOT, 'review', 'decisions'), path.join(root, 'review', 'decisions'), { recursive: true });
+  return root;
+}
+
+async function explicitWaveARoot(t) {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'forge-validate-wave-a-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  for (const relative of ['data', 'references', 'prompts', 'review']) {
+    await cp(path.join(FORGE_ROOT, relative), path.join(root, relative), { recursive: true });
+  }
+  const assetManifestPath = path.join(root, 'data', 'manifests', 'assets.json');
+  const assetManifest = JSON.parse(await readFile(assetManifestPath, 'utf8'));
+  assetManifest.assets = assetManifest.assets.map((entry) => ({
+    assetId: entry.assetId,
+    category: entry.category,
+    status: 'missing',
+    pendingGenerationIds: [],
+    rejectedGenerationIds: [],
+    lastUpdated: null
+  }));
+  await writeFile(assetManifestPath, canonicalJson(assetManifest));
+  await writeFile(path.join(root, 'data', 'manifests', 'approvals.json'), canonicalJson({
+    schemaVersion: 1,
+    approvals: [],
+    supersessions: []
+  }));
+  await mkdir(path.join(root, 'data', 'local'), { recursive: true });
+  await writeFile(path.join(root, 'data', 'local', 'generations.json'), canonicalJson({
+    schemaVersion: 1,
+    tracked: false,
+    results: []
+  }));
   return root;
 }
 
@@ -116,6 +158,157 @@ test('production recipe validation excludes only job-pack records from the image
       status
     );
   }
+});
+
+test('explicit Wave A keeps pending deep replay, rejected validation, and the non-explicit process gate', async (t) => {
+  const root = await explicitWaveARoot(t);
+  const packed = await makeWaveAJob({ assetId: 'prop.lamp' }, { root, forgeRoot: root });
+  const source = await sharp({
+    create: { width: 64, height: 128, channels: 4, background: '#fb03f9ff' }
+  }).composite([{
+    input: await sharp({
+      create: { width: 32, height: 96, channels: 4, background: '#405060ff' }
+    }).png().toBuffer(),
+    left: 16,
+    top: 16
+  }]).png({ adaptiveFiltering: false, palette: false }).toBuffer();
+  const sourceOriginal = path.join(root, 'operator-input', 'prop-lamp.png');
+  await mkdir(path.dirname(sourceOriginal), { recursive: true });
+  await writeFile(sourceOriginal, source);
+  const imported = await importWaveACandidate({
+    assetId: 'prop.lamp',
+    jobPackPath: packed.result.jobPackPath,
+    unitSources: [{ unitId: packed.job.generationUnits[0].unitId, sourceOriginal }],
+    identityBindingPath: null
+  }, { root, forgeRoot: root });
+  assert.equal((await processCandidate({ generationId: imported.result.id }, {
+    root, forgeRoot: root
+  })).status, 'audited-pending');
+  assert.equal(await productionRecipeProblem(root, imported.result, {
+    forgeRoot: root,
+    definition: packed.job.assetDefinition
+  }), null);
+
+  const tampered = structuredClone(imported.result);
+  tampered.unitAssemblyV2.units[0].transformEvidence.detectedKeyColor = '#FA03F9';
+  assert.match(await productionRecipeProblem(root, tampered, {
+    forgeRoot: root,
+    definition: packed.job.assetDefinition
+  }), /^Wave A unit assembly integrity failed:/);
+
+  const nonExplicitV2 = structuredClone(imported.result);
+  delete nonExplicitV2.requiredSetId;
+  delete nonExplicitV2.waveId;
+  assert.equal(await productionRecipeProblem(root, nonExplicitV2, {
+    forgeRoot: root,
+    definition: packed.job.assetDefinition
+  }), 'generation output integrity failed: v2 generation has not passed the required process technical-gate step');
+
+  const ledgerPath = path.join(root, 'data', 'local', 'generations.json');
+  const legacyLedger = JSON.parse(await readFile(ledgerPath, 'utf8'));
+  const legacyResult = legacyLedger.results.find(({ id }) => id === imported.result.id);
+  legacyResult.unitAssemblyV2.assemblyAlgorithm =
+    'auto-border-crop-soft-matte-nearest-hard-alpha/raw-copy-v3';
+  legacyResult.unitAssemblyV2.units[0].transformEvidence.policy.method =
+    'auto-border-soft-matte-v1';
+  assert.match(await productionRecipeProblem(root, legacyResult, {
+    forgeRoot: root,
+    definition: packed.job.assetDefinition
+  }), /^Wave A unit assembly integrity failed:/);
+
+  const rejected = await rejectCandidate({
+    generationId: imported.result.id,
+    reason: 'fixture rejection after visual review'
+  }, {
+    root,
+    now: () => '2026-07-16T03:00:00.000Z'
+  });
+  assert.equal(rejected.status, 'rejected');
+  assert.equal(await productionRecipeProblem(root, rejected.result, {
+    forgeRoot: root,
+    definition: packed.job.assetDefinition
+  }), null);
+
+  const journalPath = path.join(root, 'data', 'local', 'lifecycle', `${rejected.result.id}.json`);
+  let journal = JSON.parse(await readFile(journalPath));
+  const snapshotPath = path.join(root, journal.pendingRecordPath);
+  const legacyJournal = structuredClone(journal);
+  legacyJournal.schemaVersion = 1;
+  delete legacyJournal.pendingRecordPath;
+  delete legacyJournal.pendingRecordSha256;
+  await writeFile(journalPath, canonicalJson(legacyJournal));
+  await rm(snapshotPath, { force: true });
+  assert.match(await productionRecipeProblem(root, rejected.result, {
+    forgeRoot: root,
+    definition: packed.job.assetDefinition
+  }), /^Wave A rejected transition integrity failed:/);
+  const migrated = await migrateRejectedCandidateJournal({
+    generationId: rejected.result.id
+  }, { root, forgeRoot: root });
+  assert.equal(migrated.status, 'rejection-journal-v2');
+  journal = JSON.parse(await readFile(journalPath));
+  assert.equal(journal.schemaVersion, 2);
+  assert.equal(await productionRecipeProblem(root, rejected.result, {
+    forgeRoot: root,
+    definition: packed.job.assetDefinition
+  }), null);
+
+  const baselineLedger = await readFile(ledgerPath);
+  const baselineMetadata = await readFile(path.join(root, rejected.result.metadataPath));
+  const baselineJournal = await readFile(journalPath);
+  const baselineSnapshot = await readFile(path.join(root, journal.pendingRecordPath));
+  const writeRejected = async (value) => {
+    const ledger = JSON.parse(baselineLedger);
+    ledger.results = ledger.results.map((entry) => entry.id === value.id ? value : entry);
+    await writeFile(ledgerPath, canonicalJson(ledger));
+    await writeFile(path.join(root, value.metadataPath), canonicalJson(value));
+  };
+  const restore = async () => {
+    await writeFile(ledgerPath, baselineLedger);
+    await writeFile(path.join(root, rejected.result.metadataPath), baselineMetadata);
+    await writeFile(journalPath, baselineJournal);
+    await writeFile(path.join(root, journal.pendingRecordPath), baselineSnapshot);
+  };
+  for (const mutate of [
+    (value) => { value.unitAssemblyV2.units[0].outputCellSha256 = 'f'.repeat(64); },
+    (value) => { value.unitAssemblyV2.units[0].transformEvidence.detectedKeyColor = '#FA03F9'; }
+  ]) {
+    const forged = structuredClone(rejected.result);
+    mutate(forged);
+    await writeRejected(forged);
+    assert.match(await productionRecipeProblem(root, forged, {
+      forgeRoot: root,
+      definition: packed.job.assetDefinition
+    }), /^Wave A rejected transition integrity failed:/);
+    await restore();
+  }
+
+  const forgedJournal = JSON.parse(baselineJournal);
+  forgedJournal.pendingRecordSha256 = '0'.repeat(64);
+  await writeFile(journalPath, canonicalJson(forgedJournal));
+  assert.match(await productionRecipeProblem(root, rejected.result, {
+    forgeRoot: root,
+    definition: packed.job.assetDefinition
+  }), /pending-record snapshot digest mismatch/);
+  await restore();
+
+  const coordinatedPending = JSON.parse(baselineSnapshot);
+  coordinatedPending.unitAssemblyV2.units[0].outputCellSha256 = 'e'.repeat(64);
+  const coordinatedSnapshotBytes = Buffer.from(canonicalJson(coordinatedPending));
+  const coordinatedJournal = JSON.parse(baselineJournal);
+  coordinatedJournal.pendingRecordSha256 = sha256(coordinatedSnapshotBytes);
+  const coordinatedRejected = rejectionResultFromPending(coordinatedPending, coordinatedJournal);
+  await writeFile(path.join(root, coordinatedJournal.pendingRecordPath), coordinatedSnapshotBytes);
+  await writeFile(journalPath, canonicalJson(coordinatedJournal));
+  await writeRejected(coordinatedRejected);
+  assert.match(await productionRecipeProblem(root, coordinatedRejected, {
+    forgeRoot: root,
+    definition: packed.job.assetDefinition
+  }), /^Wave A rejected transition integrity failed: Wave A .*output cell hash mismatch/);
+  await restore();
+
+  const repository = await validateRepository({ root });
+  assert.equal(repository.ok, true, JSON.stringify(repository.issues, null, 2));
 });
 
 test('cross-file validation reports a production recipe output-hash mismatch', async (t) => {

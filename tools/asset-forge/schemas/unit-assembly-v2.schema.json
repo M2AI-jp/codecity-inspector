@@ -24,7 +24,17 @@
     "identityMasterPlanSha256": {
       "oneOf": [{ "type": "null" }, { "$ref": "#/definitions/sha256" }]
     },
-    "assemblyAlgorithm": { "const": "crop-key-nearest-hard-alpha/raw-copy-v2" },
+    "assemblyAlgorithm": {
+      "enum": [
+        "crop-key-nearest-hard-alpha/raw-copy-v2",
+        "auto-border-crop-soft-matte-nearest-hard-alpha/raw-copy-v3",
+        "auto-border-connected-fringe-soft-matte-nearest-hard-alpha/raw-copy-v4",
+        "auto-border-connected-fringe-soft-matte-nearest-hard-alpha/raw-copy-v5"
+      ]
+    },
+    "sourceLimits": {
+      "$ref": "generation-job-v2.schema.json#/definitions/sourceLimits"
+    },
     "generationMode": { "enum": ["per-unit", "monolithic-atlas"] },
     "generationUnitSetSha256": { "$ref": "#/definitions/sha256" },
     "expectations": { "$ref": "#/definitions/expectations" },
@@ -49,13 +59,9 @@
             "sourceSnapshot": { "$ref": "#/definitions/snapshot" },
             "transformedSnapshot": { "$ref": "#/definitions/snapshot" },
             "transformSteps": {
-              "type": "array", "minItems": 4, "maxItems": 4,
-              "items": [
-                { "const": "crop" }, { "const": "chroma-key-remove" },
-                { "const": "nearest-downscale" }, { "const": "hard-alpha" }
-              ],
-              "additionalItems": false
+              "$ref": "#/definitions/sourceTransformSteps"
             },
+            "transformEvidence": { "$ref": "#/definitions/transformEvidence" },
             "consistencyInputSha256": { "$ref": "#/definitions/sha256" },
             "directionCellSha256s": {
               "type": "array", "minItems": 4, "maxItems": 4, "uniqueItems": true,
@@ -160,6 +166,50 @@
         "opaqueMagentaPixels": { "const": 0 }
       }
     },
+    "sourceTransformSteps": {
+      "oneOf": [
+        {
+          "type": "array", "minItems": 4, "maxItems": 4,
+          "items": [
+            { "const": "crop" }, { "const": "chroma-key-remove" },
+            { "const": "nearest-downscale" }, { "const": "hard-alpha" }
+          ],
+          "additionalItems": false
+        },
+        {
+          "type": "array", "minItems": 6, "maxItems": 6,
+          "items": [
+            { "const": "auto-border-key-detect" }, { "const": "crop" },
+            { "const": "soft-matte-despill" }, { "const": "zero-hidden-rgb" },
+            { "const": "nearest-downscale" },
+            { "const": "hard-alpha-zero-hidden-rgb" }
+          ],
+          "additionalItems": false
+        }
+      ]
+    },
+    "transformEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy", "detectedKeyColor", "detectedKeyExpectedDistance",
+        "borderBand", "borderSampleStride", "borderSampleCount",
+        "borderSampleSha256", "borderInlierCount", "borderInlierPermille"
+      ],
+      "properties": {
+        "policy": {
+          "$ref": "generation-job-v2.schema.json#/definitions/canonicalBackgroundRemovalPolicy"
+        },
+        "detectedKeyColor": { "type": "string", "pattern": "^#[A-F0-9]{6}$" },
+        "detectedKeyExpectedDistance": { "type": "integer", "minimum": 0, "maximum": 255 },
+        "borderBand": { "type": "integer", "minimum": 1, "maximum": 6 },
+        "borderSampleStride": { "type": "integer", "minimum": 1, "maximum": 32 },
+        "borderSampleCount": { "type": "integer", "minimum": 4, "maximum": 100000 },
+        "borderSampleSha256": { "$ref": "#/definitions/sha256" },
+        "borderInlierCount": { "type": "integer", "minimum": 0, "maximum": 100000 },
+        "borderInlierPermille": { "type": "integer", "minimum": 0, "maximum": 1000 }
+      }
+    },
     "unitResult": {
       "type": "object", "additionalProperties": false,
       "required": [
@@ -185,10 +235,16 @@
         "sourceSnapshot": { "oneOf": [{ "type": "null" }, { "$ref": "#/definitions/snapshot" }] },
         "transformedSnapshot": { "oneOf": [{ "type": "null" }, { "$ref": "#/definitions/snapshot" }] },
         "transformSteps": {
-          "type": "array", "minItems": 0, "maxItems": 4,
-          "items": {
-            "enum": ["crop", "chroma-key-remove", "nearest-downscale", "hard-alpha"]
-          }
+          "oneOf": [
+            { "type": "array", "maxItems": 0 },
+            { "$ref": "#/definitions/sourceTransformSteps" }
+          ]
+        },
+        "transformEvidence": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/definitions/transformEvidence" }
+          ]
         },
         "outputCellSha256": { "$ref": "#/definitions/sha256" },
         "pixelAudit": { "$ref": "#/definitions/pixelAudit" }

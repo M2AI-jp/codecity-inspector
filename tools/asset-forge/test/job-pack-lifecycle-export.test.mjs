@@ -192,6 +192,18 @@ test('reject copies a pending candidate without changing approved state; promote
   const rejected = await rejectCandidate({ generationId: generated.result.id, reason: 'fixture rejection' }, { root });
   assert.equal(rejected.status, 'rejected');
   assert.match(rejected.result.outputPath, /^generated\/ui\/rejected\//);
+  const journal = JSON.parse(await readFile(path.join(
+    root,
+    'data',
+    'local',
+    'lifecycle',
+    `${generated.result.id}.json`
+  )));
+  assert.equal(journal.schemaVersion, 2);
+  assert.equal(journal.status, 'complete');
+  const pendingSnapshot = await readFile(path.join(root, journal.pendingRecordPath));
+  assert.equal(sha256(pendingSnapshot), journal.pendingRecordSha256);
+  assert.deepEqual(JSON.parse(pendingSnapshot), generated.result);
   const resumed = await rejectCandidate({ generationId: generated.result.id, reason: 'fixture rejection' }, { root });
   assert.equal(resumed.resumed, true);
   await assert.rejects(

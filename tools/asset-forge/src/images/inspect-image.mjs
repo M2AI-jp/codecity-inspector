@@ -30,14 +30,17 @@ export async function readExternalImage(filePath, { limits = IMAGE_LIMITS } = {}
       || opened.mtimeNs !== before.mtimeNs || opened.ctimeNs !== before.ctimeNs) {
       throw new Error('Source changed while it was being opened');
     }
-    const bounded = Buffer.allocUnsafe(limits.maxInputBytes + 1);
+    const exactSize = Number(opened.size);
+    const bounded = Buffer.allocUnsafeSlow(exactSize);
     let offset = 0;
-    while (offset < bounded.length) {
+    while (offset < exactSize) {
       const { bytesRead } = await handle.read(bounded, offset, bounded.length - offset, null);
-      if (bytesRead === 0) break;
+      if (bytesRead === 0) throw new Error('Source changed while it was being read');
       offset += bytesRead;
     }
-    if (offset > limits.maxInputBytes) throw new Error('Image input byte limit exceeded while reading');
+    const growthProbe = Buffer.allocUnsafeSlow(1);
+    const { bytesRead: extraBytes } = await handle.read(growthProbe, 0, 1, null);
+    if (extraBytes !== 0) throw new Error('Source changed while it was being read');
     const after = await handle.stat({ bigint: true });
     if (after.size !== BigInt(offset) || after.dev !== opened.dev || after.ino !== opened.ino
       || after.mtimeNs !== opened.mtimeNs || after.ctimeNs !== opened.ctimeNs) {

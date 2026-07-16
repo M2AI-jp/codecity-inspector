@@ -13,6 +13,7 @@ import {
   importWaveACandidate,
   prepareWaveAIdentityBinding,
   verifyPersistedWaveAUnitAssembly,
+  verifyWaveATransformReplay,
   verifyWaveAIdentityBinding,
   verifyWaveAJobPack
 } from '../src/v2/import-candidate.mjs';
@@ -104,6 +105,38 @@ async function writeInput(root, name, bytes) {
   return target;
 }
 
+async function writeLargeUniquePngs(root, count, {
+  prefix,
+  relativeDirectory = 'operator-input'
+}) {
+  const records = [];
+  for (let index = 0; index < count; index += 1) {
+    const marker = await sharp({
+      create: {
+        width: 4,
+        height: 4,
+        channels: 4,
+        background: { r: 20 + index, g: 80, b: 40, alpha: 1 }
+      }
+    }).png().toBuffer();
+    const bytes = await sharp({
+      create: { width: 2048, height: 2048, channels: 4, background: '#ff00ffff' }
+    }).composite([{ input: marker, left: 1022, top: 1022 }])
+      .png({ adaptiveFiltering: false, palette: false })
+      .toBuffer();
+    const absolute = path.join(root, relativeDirectory, `${prefix}-${index}.png`);
+    await mkdir(path.dirname(absolute), { recursive: true });
+    await writeFile(absolute, bytes);
+    records.push({
+      absolute,
+      relative: path.relative(root, absolute).split(path.sep).join('/'),
+      bytes,
+      sha256: sha256(bytes)
+    });
+  }
+  return records;
+}
+
 async function sourcesForJob(root, job, { scale = 2, prefix = 'source', shared = false } = {}) {
   const required = job.generationUnits.filter(({ sourceRequired }) => sourceRequired);
   if (shared) {
@@ -130,8 +163,8 @@ async function sourcesForJob(root, job, { scale = 2, prefix = 'source', shared =
   for (const [index, unit] of required.entries()) {
     const color = {
       r: 40 + (index * 47) % 190,
-      g: 50 + (index * 71) % 180,
-      b: 60 + (index * 97) % 170
+      g: 80 + (index * 71) % 150,
+      b: 20 + (index * 31) % 50
     };
     const sourceWidth = unit.targetRect.width * scale;
     const sourceHeight = unit.targetRect.height * scale;
@@ -154,7 +187,7 @@ async function sourcesForJob(root, job, { scale = 2, prefix = 'source', shared =
           sourceWidth,
           sourceHeight,
           color,
-          { inset: Math.max(2, scale * 2) }
+          { inset: Math.max(8, scale * 4) }
         );
     records.push({
       unitId: unit.unitId,
@@ -187,8 +220,9 @@ async function identitySource(root, name = 'identity.png', colors = [
 
 async function monolithicSourcesForJob(root, job, { scale = 2, prefix = 'atlas' } = {}) {
   const required = job.generationUnits.filter(({ sourceRequired }) => sourceRequired);
-  const width = job.artifactContracts[0].outputSize.width * scale;
-  const height = job.artifactContracts[0].outputSize.height * scale;
+  const padding = 8;
+  const width = job.artifactContracts[0].outputSize.width * scale + padding * 2;
+  const height = job.artifactContracts[0].outputSize.height * scale + padding * 2;
   const composites = [];
   for (const [index, unit] of required.entries()) {
     const cellWidth = unit.targetRect.width * scale;
@@ -202,8 +236,8 @@ async function monolithicSourcesForJob(root, job, { scale = 2, prefix = 'atlas' 
           background: { r: 62, g: 110, b: 58, alpha: 1 }
         }
       }).png().toBuffer(),
-      left: unit.targetRect.x * scale,
-      top: unit.targetRect.y * scale
+      left: padding + unit.targetRect.x * scale,
+      top: padding + unit.targetRect.y * scale
     });
     composites.push({
       input: await sharp({
@@ -213,14 +247,14 @@ async function monolithicSourcesForJob(root, job, { scale = 2, prefix = 'atlas' 
           channels: 4,
           background: {
             r: 20 + (index * 37) % 220,
-            g: 30 + (index * 61) % 210,
-            b: 40 + (index * 89) % 200,
+            g: 80 + (index * 61) % 150,
+            b: 10 + (index * 19) % 60,
             alpha: 1
           }
         }
       }).png().toBuffer(),
-      left: unit.targetRect.x * scale + Math.floor((cellWidth - 8 * scale) / 2),
-      top: unit.targetRect.y * scale + Math.floor((cellHeight - 8 * scale) / 2)
+      left: padding + unit.targetRect.x * scale + Math.floor((cellWidth - 8 * scale) / 2),
+      top: padding + unit.targetRect.y * scale + Math.floor((cellHeight - 8 * scale) / 2)
     });
   }
   const bytes = await sharp({
@@ -231,8 +265,8 @@ async function monolithicSourcesForJob(root, job, { scale = 2, prefix = 'atlas' 
     unitId: unit.unitId,
     sourceOriginal,
     cropRect: {
-      x: unit.targetRect.x * scale,
-      y: unit.targetRect.y * scale,
+      x: padding + unit.targetRect.x * scale,
+      y: padding + unit.targetRect.y * scale,
       width: unit.targetRect.width * scale,
       height: unit.targetRect.height * scale
     }
@@ -258,6 +292,19 @@ test('Wave A job packs bind 109 definitions to 771 generation units and honest p
   assert.match(first.job.generationUnits[0].unitPromptText, /provider-native raster/);
   assert.match(first.job.generationUnits[0].unitPromptText, /one semantic unit/);
   assert.doesNotMatch(first.job.generationUnits[0].unitPromptText, /Generate an exact 32x64 image/);
+  assert.equal(first.job.promptSha256, 'fb6e1fdd0d701f15d218ed71809e2cb8b6cb3461be717a58986ba254119bbd9a');
+  assert.equal(first.job.generationUnits[0].unitPromptSha256, 'febe039d66e3844caec6357d5120ccd0cc59e04d0e19e96949aa73b23a93a488');
+  assert.equal(first.job.generationUnitSetSha256, 'f2c3ffc4384b2ac557ba86be2d842b90ae3dde5573b3d0ad7668247ee0685cc7');
+  assert.equal(first.job.technicalGates.inputPolicy.chromaKeyTolerance, 0);
+  assert.equal(
+    first.job.technicalGates.inputPolicy.canonicalBackgroundRemoval.method,
+    'auto-border-soft-matte-v3'
+  );
+  assert.deepEqual(first.job.technicalGates.inputPolicy.sourceLimits, {
+    maxSourcePixels: 4_194_304,
+    maxUniqueSourcePixels: 67_108_864,
+    maxUniqueSourceBytes: 209_715_200
+  });
   assert.equal((await verifyWaveAJobPack(first.result.jobPackPath, { root, forgeRoot: root })).job.id, first.job.id);
   const repeat = await writeWaveAJobPack({ assetId: 'prop.lamp', seed: 'stable' }, {
     root, forgeRoot: root
@@ -268,6 +315,325 @@ test('Wave A job packs bind 109 definitions to 771 generation units and honest p
     () => buildWaveAJob({ assetId: 'character.player', generationMode: 'monolithic-atlas' }, { forgeRoot: root }),
     /characters require per-unit generation/
   );
+});
+
+test('legacy exact-key replay keeps tolerance zero and does not treat near-magenta as transparent', async () => {
+  const sourceRaw = Buffer.from([
+    255, 0, 255, 255,
+    251, 3, 249, 255,
+    1, 2, 3, 255,
+    9, 8, 7, 100
+  ]);
+  const sourceBytes = await sharp(sourceRaw, {
+    raw: { width: 2, height: 2, channels: 4 }
+  }).png({ adaptiveFiltering: false, palette: false }).toBuffer();
+  const expectedRaw = Buffer.from([
+    0, 0, 0, 0,
+    251, 3, 249, 255,
+    1, 2, 3, 255,
+    0, 0, 0, 0
+  ]);
+  const artifactBytes = await sharp(expectedRaw, {
+    raw: { width: 2, height: 2, channels: 4 }
+  }).png({ adaptiveFiltering: false, palette: false }).toBuffer();
+  await assert.doesNotReject(() => verifyWaveATransformReplay(
+    { buffer: sourceBytes, sourceFormat: 'png' },
+    { buffer: artifactBytes },
+    {
+      transformSteps: ['crop', 'chroma-key-remove', 'nearest-downscale', 'hard-alpha'],
+      cropRect: { x: 0, y: 0, width: 2, height: 2 },
+      chromaKey: { keyColor: '#FF00FF', tolerance: 0 },
+      alphaThreshold: 127
+    },
+    { width: 2, height: 2 }
+  ));
+});
+
+test('v3 auto-border matte removes only four-neighbor-connected key fringe and preserves isolated purple', async (t) => {
+  const root = await fixtureRoot(t);
+  const pack = await makeWaveAJob({ assetId: 'prop.lamp' }, { root, forgeRoot: root });
+  const width = 32;
+  const height = 64;
+  const raw = Buffer.alloc(width * height * 4);
+  for (let offset = 0; offset < raw.length; offset += 4) {
+    raw[offset] = 251;
+    raw[offset + 1] = 3;
+    raw[offset + 2] = 249;
+    raw[offset + 3] = 255;
+  }
+  for (let y = 12; y < 56; y += 1) {
+    for (let x = 8; x < 24; x += 1) {
+      const offset = (y * width + x) * 4;
+      raw[offset] = 40;
+      raw[offset + 1] = 90;
+      raw[offset + 2] = 120;
+      raw[offset + 3] = 255;
+    }
+  }
+  for (let y = 20; y < 28; y += 1) {
+    const fringeOffset = (y * width + 7) * 4;
+    raw[fringeOffset] = 205;
+    raw[fringeOffset + 1] = 50;
+    raw[fringeOffset + 2] = 203;
+    raw[fringeOffset + 3] = 255;
+  }
+  for (let y = 30; y < 34; y += 1) {
+    for (let x = 14; x < 18; x += 1) {
+      const purpleOffset = (y * width + x) * 4;
+      raw[purpleOffset] = 128;
+      raw[purpleOffset + 1] = 0;
+      raw[purpleOffset + 2] = 128;
+      raw[purpleOffset + 3] = 255;
+    }
+  }
+  const disconnectedNearKeyOffset = (36 * width + 13) * 4;
+  raw[disconnectedNearKeyOffset] = 216;
+  raw[disconnectedNearKeyOffset + 1] = 4;
+  raw[disconnectedNearKeyOffset + 2] = 196;
+  raw[disconnectedNearKeyOffset + 3] = 255;
+  const isolatedExactNearKeyOffset = (36 * width + 18) * 4;
+  raw[isolatedExactNearKeyOffset] = 240;
+  raw[isolatedExactNearKeyOffset + 1] = 3;
+  raw[isolatedExactNearKeyOffset + 2] = 238;
+  raw[isolatedExactNearKeyOffset + 3] = 255;
+  const connectedExactNearKeyOffset = (24 * width + 7) * 4;
+  raw[connectedExactNearKeyOffset] = 240;
+  raw[connectedExactNearKeyOffset + 1] = 3;
+  raw[connectedExactNearKeyOffset + 2] = 238;
+  raw[connectedExactNearKeyOffset + 3] = 255;
+  const sourceBytes = await sharp(raw, {
+    raw: { width, height, channels: 4 }
+  }).png({ adaptiveFiltering: false, palette: false }).toBuffer();
+  for (let offset = 0; offset < raw.length; offset += 4) {
+    assert.notDeepEqual([...raw.subarray(offset, offset + 3)], [255, 0, 255]);
+  }
+  const sourceOriginal = await writeInput(root, 'near-magenta-lamp.png', sourceBytes);
+  const imported = await importWaveACandidate({
+    assetId: 'prop.lamp',
+    jobPackPath: pack.result.jobPackPath,
+    unitSources: [{ unitId: pack.job.generationUnits[0].unitId, sourceOriginal }],
+    identityBindingPath: null
+  }, { root, forgeRoot: root });
+  const unit = imported.result.unitAssemblyV2.units[0];
+  assert.equal(
+    imported.result.unitAssemblyV2.assemblyAlgorithm,
+    'auto-border-connected-fringe-soft-matte-nearest-hard-alpha/raw-copy-v5'
+  );
+  assert.deepEqual(
+    imported.result.unitAssemblyV2.sourceLimits,
+    pack.job.technicalGates.inputPolicy.sourceLimits
+  );
+  assert.equal(unit.transformEvidence.detectedKeyColor, '#FB03F9');
+  assert.equal(unit.transformEvidence.detectedKeyExpectedDistance, 6);
+  assert.equal(unit.transformEvidence.borderInlierPermille, 1000);
+  assert.deepEqual(unit.transformSteps, [
+    'auto-border-key-detect', 'crop', 'soft-matte-despill',
+    'zero-hidden-rgb', 'nearest-downscale', 'hard-alpha-zero-hidden-rgb'
+  ]);
+  const persistedRawBytes = await readFile(path.join(root, unit.sourceSnapshot.path));
+  assert.deepEqual(persistedRawBytes, sourceBytes);
+  assert.equal(unit.sourceSnapshot.sha256, sha256(sourceBytes));
+  const transformedBytes = await readFile(path.join(root, unit.transformedSnapshot.path));
+  const transformed = await sharp(transformedBytes).ensureAlpha().raw().toBuffer();
+  assert.deepEqual([...transformed.subarray(0, 4)], [0, 0, 0, 0]);
+  assert.deepEqual(
+    [...transformed.subarray(connectedExactNearKeyOffset, connectedExactNearKeyOffset + 4)],
+    [0, 0, 0, 0]
+  );
+  for (let y = 30; y < 34; y += 1) {
+    for (let x = 14; x < 18; x += 1) {
+      const purpleOffset = (y * width + x) * 4;
+      assert.deepEqual(
+        [...transformed.subarray(purpleOffset, purpleOffset + 4)],
+        [128, 0, 128, 255]
+      );
+    }
+  }
+  assert.deepEqual(
+    [...transformed.subarray(disconnectedNearKeyOffset, disconnectedNearKeyOffset + 4)],
+    [216, 4, 196, 255]
+  );
+  assert.deepEqual(
+    [...transformed.subarray(isolatedExactNearKeyOffset, isolatedExactNearKeyOffset + 4)],
+    [240, 3, 238, 255]
+  );
+  for (let offset = 0; offset < transformed.length; offset += 4) {
+    assert.ok(transformed[offset + 3] === 0 || transformed[offset + 3] === 255);
+    if (transformed[offset + 3] === 0) {
+      assert.deepEqual([...transformed.subarray(offset, offset + 3)], [0, 0, 0]);
+    }
+  }
+  assert.equal((await processCandidate({ generationId: imported.result.id }, {
+    root, forgeRoot: root
+  })).status, 'audited-pending');
+});
+
+test('auto-border policy rejects wrong and non-uniform provider borders before pending writes', async (t) => {
+  const root = await fixtureRoot(t);
+  const pack = await makeWaveAJob({ assetId: 'prop.lamp' }, { root, forgeRoot: root });
+  const ledgerCountBefore = (await readLocalGenerationManifest(root)).results.length;
+  const width = 32;
+  const height = 64;
+  const wrongBytes = await sharp({
+    create: { width, height, channels: 4, background: '#0060ffff' }
+  }).png({ adaptiveFiltering: false, palette: false }).toBuffer();
+  const mixedRaw = Buffer.alloc(width * height * 4);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const offset = (y * width + x) * 4;
+      const color = x < Math.ceil(width * 0.6) ? [251, 3, 249] : [0, 255, 0];
+      mixedRaw[offset] = color[0];
+      mixedRaw[offset + 1] = color[1];
+      mixedRaw[offset + 2] = color[2];
+      mixedRaw[offset + 3] = 255;
+    }
+  }
+  const mixedBytes = await sharp(mixedRaw, {
+    raw: { width, height, channels: 4 }
+  }).png({ adaptiveFiltering: false, palette: false }).toBuffer();
+  const cases = [
+    [await writeInput(root, 'wrong-border.png', wrongBytes), /not close enough/],
+    [await writeInput(root, 'mixed-border.png', mixedBytes), /non-uniform source border/]
+  ];
+  for (const [sourceOriginal, pattern] of cases) {
+    await assert.rejects(() => importWaveACandidate({
+      assetId: 'prop.lamp',
+      jobPackPath: pack.result.jobPackPath,
+      unitSources: [{ unitId: pack.job.generationUnits[0].unitId, sourceOriginal }],
+      identityBindingPath: null
+    }, { root, forgeRoot: root }), pattern);
+  }
+  assert.equal((await readLocalGenerationManifest(root)).results.length, ledgerCountBefore);
+});
+
+test('Wave A source pixel budgets reject single and aggregate oversized input before pending writes', async (t) => {
+  const root = await fixtureRoot(t);
+  const lamp = await makeWaveAJob({ assetId: 'prop.lamp' }, { root, forgeRoot: root });
+  const grass = await makeWaveAJob({ assetId: 'terrain.grass' }, { root, forgeRoot: root });
+  const ledgerPath = path.join(root, 'data', 'local', 'generations.json');
+  const ledgerBefore = await readFile(ledgerPath);
+  const lampPending = path.join(root, 'generated', 'props', 'pending');
+  const grassPending = path.join(root, 'generated', 'terrains', 'pending');
+  const lampTreeBefore = await hashTree(lampPending);
+  const grassTreeBefore = await hashTree(grassPending);
+
+  const oversized = await writeInput(root, 'oversized-single.png', await sharp({
+    create: { width: 2049, height: 2048, channels: 4, background: '#ff00ffff' }
+  }).png({ adaptiveFiltering: false, palette: false }).toBuffer());
+  await assert.rejects(() => importWaveACandidate({
+    assetId: 'prop.lamp',
+    jobPackPath: lamp.result.jobPackPath,
+    unitSources: [{ unitId: lamp.job.generationUnits[0].unitId, sourceOriginal: oversized }],
+    identityBindingPath: null
+  }, { root, forgeRoot: root }), /pixel|limit/i);
+
+  const required = grass.job.generationUnits.filter(({ sourceRequired }) => sourceRequired);
+  const unique = await writeLargeUniquePngs(root, 17, { prefix: 'aggregate' });
+  const aggregateSources = required.map((unit, index) => ({
+    unitId: unit.unitId,
+    sourceOriginal: index < unique.length
+      ? unique[index].absolute
+      : path.join(root, 'operator-input', 'must-not-be-read-invalid.png')
+  }));
+  await assert.rejects(() => importWaveACandidate({
+    assetId: 'terrain.grass',
+    jobPackPath: grass.result.jobPackPath,
+    unitSources: aggregateSources,
+    identityBindingPath: null
+  }, { root, forgeRoot: root }), /aggregate unique source pixel limit exceeded/);
+
+  assert.deepEqual(await readFile(ledgerPath), ledgerBefore);
+  assert.equal(await hashTree(lampPending), lampTreeBefore);
+  assert.equal(await hashTree(grassPending), grassTreeBefore);
+});
+
+test('persisted replay stops on the 17th unique source budget crossing before an invalid 18th snapshot', async (t) => {
+  const root = await fixtureRoot(t);
+  const pack = await makeWaveAJob({
+    assetId: 'terrain.grass',
+    generationMode: 'monolithic-atlas'
+  }, { root, forgeRoot: root });
+  const unitSources = await monolithicSourcesForJob(root, pack.job, { prefix: 'replay-base' });
+  const imported = await importWaveACandidate({
+    assetId: 'terrain.grass',
+    jobPackPath: pack.result.jobPackPath,
+    unitSources,
+    identityBindingPath: null
+  }, { root, forgeRoot: root });
+  const large = await writeLargeUniquePngs(root, 17, {
+    prefix: 'replay-budget',
+    relativeDirectory: 'generated/terrains/pending/sources/rolling-budget'
+  });
+  const forged = structuredClone(imported.result);
+  const sourceLedgers = forged.unitAssemblyV2.units.filter(({ sourceRequired }) => sourceRequired);
+  for (let index = 0; index < 17; index += 1) {
+    sourceLedgers[index].sourceSnapshot = {
+      path: large[index].relative,
+      sha256: large[index].sha256,
+      format: 'png',
+      width: 2048,
+      height: 2048
+    };
+  }
+  sourceLedgers[17].sourceSnapshot = {
+    path: 'generated/terrains/pending/sources/rolling-budget/must-not-be-read-invalid.png',
+    sha256: '0'.repeat(64),
+    format: 'png',
+    width: 2048,
+    height: 2048
+  };
+  const ledgerPath = path.join(root, 'data', 'local', 'generations.json');
+  const ledgerBefore = await readFile(ledgerPath);
+  const pendingRoot = path.join(root, 'generated', 'terrains', 'pending');
+  const pendingBefore = await hashTree(pendingRoot);
+  await assert.rejects(
+    () => verifyPersistedWaveAUnitAssembly(forged, { root, forgeRoot: root }),
+    /aggregate unique source pixel limit exceeded/
+  );
+  assert.deepEqual(await readFile(ledgerPath), ledgerBefore);
+  assert.equal(await hashTree(pendingRoot), pendingBefore);
+});
+
+test('identity source joins the same rolling budget before transform or pending writes', async (t) => {
+  const root = await fixtureRoot(t);
+  const pack = await makeWaveAJob({ assetId: 'character.player' }, { root, forgeRoot: root });
+  const identity = await identitySource(root, 'rolling-budget-identity.png');
+  const bound = await prepareWaveAIdentity({
+    assetId: 'character.player',
+    jobPackPath: pack.result.jobPackPath,
+    identityMasterSource: {
+      sourceOriginal: identity,
+      cropRect: { x: 0, y: 0, width: 384, height: 192 }
+    }
+  }, { root, forgeRoot: root });
+  const large = await writeLargeUniquePngs(root, 16, { prefix: 'identity-budget' });
+  const required = pack.job.generationUnits.filter(({ sourceRequired }) => sourceRequired);
+  const duplicatePaths = [];
+  for (let index = 0; index < required.length - large.length; index += 1) {
+    duplicatePaths.push(await writeInput(
+      root,
+      `identity-budget-duplicate-${index}.png`,
+      large[large.length - 1].bytes
+    ));
+  }
+  const unitSources = required.map((unit, index) => ({
+    unitId: unit.unitId,
+    sourceOriginal: index < large.length
+      ? large[index].absolute
+      : duplicatePaths[index - large.length]
+  }));
+  const ledgerPath = path.join(root, 'data', 'local', 'generations.json');
+  const ledgerBefore = await readFile(ledgerPath);
+  const pendingRoot = path.join(root, 'generated', 'characters', 'pending');
+  const pendingBefore = await hashTree(pendingRoot);
+  await assert.rejects(() => importWaveACandidate({
+    assetId: 'character.player',
+    jobPackPath: pack.result.jobPackPath,
+    unitSources,
+    identityBindingPath: bound.bindingPath
+  }, { root, forgeRoot: root }), /aggregate unique source pixel limit exceeded: identity source/);
+  assert.deepEqual(await readFile(ledgerPath), ledgerBefore);
+  assert.equal(await hashTree(pendingRoot), pendingBefore);
 });
 
 test('non-character per-unit import transforms a provider-native source, persists evidence, and stays pending', async (t) => {
@@ -520,6 +886,18 @@ test('deep process audit rejects coordinated ledger+metadata truth and unit prov
     }],
     ['unit prompt hash changed', (value) => {
       value.unitAssemblyV2.units[0].unitPromptSha256 = '0'.repeat(64);
+    }],
+    ['transform policy changed', (value) => {
+      value.unitAssemblyV2.units[0].transformEvidence.policy.transparentDistance = 13;
+    }],
+    ['detected border key changed', (value) => {
+      value.unitAssemblyV2.units[0].transformEvidence.detectedKeyColor = '#FA03F9';
+    }],
+    ['border sample digest removed', (value) => {
+      delete value.unitAssemblyV2.units[0].transformEvidence.borderSampleSha256;
+    }],
+    ['source budget evidence changed', (value) => {
+      value.unitAssemblyV2.sourceLimits.maxSourcePixels -= 1;
     }],
     ['artifact role changed', (value) => {
       value.unitAssemblyV2.units[0].artifactRole = 'base';

@@ -9,11 +9,18 @@ import {
   auditVisualAssetV2,
   visualContractV2Problems
 } from './images/visual-contract-v2.mjs';
-import { assertExistingFileWithin, assertExistingPendingCandidate, assertExistingStateFile } from './paths.mjs';
+import {
+  assertExistingFileWithin,
+  assertExistingPendingCandidate,
+  assertExistingStateFile,
+  assetFileStem,
+  categoryDirectory
+} from './paths.mjs';
 import { inspectPng } from './png-core.mjs';
 import { validateWith } from './schemas.mjs';
 import { outputContractFor } from './jobs/build-job.mjs';
 import { readWaveADefinitions } from './v2/definition-builder.mjs';
+import { verifyPersistedWaveAUnitAssembly } from './v2/import-candidate.mjs';
 import { inspectWaveAReferenceAuthorization } from './v2/reference-authorization.mjs';
 import { assertBundleLedger } from './v3/bundle-ledger.mjs';
 import { readBundleLedger } from './v3/persistence.mjs';
@@ -52,6 +59,145 @@ function sameValues(left, right) {
   return Array.isArray(left) && Array.isArray(right)
     && left.length === right.length
     && left.every((value, index) => value === right[index]);
+}
+
+export function isExplicitWaveAAssembly(generation) {
+  return generation?.requiredSetId === 'fable5-v2'
+    && generation.waveId === 'A'
+    && generation.visualContractVersion === 2
+    && generation.unitAssemblyV2 != null;
+}
+
+const REJECTION_OBSERVED = 'Candidate was copied to rejected state with the same SHA-256.';
+const REJECTION_UNKNOWN = 'whether a future candidate will be suitable';
+const REJECTION_JOURNAL_V2_KEYS = Object.freeze([
+  'schemaVersion',
+  'kind',
+  'generationId',
+  'assetId',
+  'category',
+  'sourcePath',
+  'sourceSha256',
+  'destinationPath',
+  'reason',
+  'transitionAt',
+  'pendingRecordPath',
+  'pendingRecordSha256',
+  'status'
+]);
+
+function hasExactKeys(value, keys) {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    && Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
+}
+
+export function rejectionSourceFromPending(pending) {
+  if (typeof pending?.outputPath === 'string' && /^[a-f0-9]{64}$/.test(pending.outputSha256)) {
+    return { path: pending.outputPath, sha256: pending.outputSha256 };
+  }
+  const primary = pending?.outputArtifacts?.[0];
+  if (primary && ['primary', 'base'].includes(primary.role)
+    && typeof primary.path === 'string' && /^[a-f0-9]{64}$/.test(primary.sha256)) {
+    return { path: primary.path, sha256: primary.sha256 };
+  }
+  throw new Error('Pending candidate has no canonical primary output');
+}
+
+export function validateRejectionJournalV2(journal, generationId, {
+  requireComplete = false
+} = {}) {
+  if (!hasExactKeys(journal, REJECTION_JOURNAL_V2_KEYS)
+    || journal.schemaVersion !== 2 || journal.kind !== 'reject'
+    || journal.generationId !== generationId
+    || (requireComplete ? journal.status !== 'complete' : !['preparing', 'complete'].includes(journal.status))
+    || typeof journal.assetId !== 'string' || typeof journal.category !== 'string'
+    || typeof journal.sourcePath !== 'string' || !/^[a-f0-9]{64}$/.test(journal.sourceSha256)
+    || typeof journal.destinationPath !== 'string'
+    || typeof journal.reason !== 'string' || !journal.reason.trim()
+    || Number.isNaN(Date.parse(journal.transitionAt))
+    || !/^[a-f0-9]{64}$/.test(journal.pendingRecordSha256)) {
+    throw new Error('Invalid v2 rejection lifecycle journal');
+  }
+  const stateDir = categoryDirectory(journal.category);
+  if (!new RegExp(`^(generated|processed)/${stateDir}/pending/[a-z0-9_.-]+\\.png$`).test(journal.sourcePath)) {
+    throw new Error('Invalid v2 rejection lifecycle journal source');
+  }
+  const expectedDestination =
+    `generated/${stateDir}/rejected/${assetFileStem(journal.assetId)}-${generationId}.png`;
+  if (journal.destinationPath !== expectedDestination
+    || journal.pendingRecordPath !== `data/local/lifecycle/${generationId}.pending.json`) {
+    throw new Error('Invalid v2 rejection lifecycle journal destination or pending snapshot');
+  }
+  return journal;
+}
+
+export function rejectionResultFromPending(pending, journal) {
+  validateRejectionJournalV2(journal, pending?.id);
+  if (pending.status !== 'pending' || pending.id !== journal.generationId
+    || pending.assetId !== journal.assetId || pending.category !== journal.category) {
+    throw new Error('Rejection journal does not identify its pending record');
+  }
+  const source = rejectionSourceFromPending(pending);
+  if (source.path !== journal.sourcePath || source.sha256 !== journal.sourceSha256) {
+    throw new Error('Rejection journal does not bind the pending primary output');
+  }
+  return {
+    ...pending,
+    status: 'rejected',
+    outputPath: journal.destinationPath,
+    outputSha256: journal.sourceSha256,
+    metadataPath: journal.destinationPath.replace(/\.png$/, '.json'),
+    rejection: { reason: journal.reason, rejectedAt: journal.transitionAt },
+    inspection: {
+      ...pending.inspection,
+      observed: [...pending.inspection.observed, REJECTION_OBSERVED],
+      unknown: [...new Set([...pending.inspection.unknown, REJECTION_UNKNOWN])]
+    }
+  };
+}
+
+async function rejectedWaveATransitionProblem(root, generation, forgeRoot) {
+  try {
+    const journalPath = `data/local/lifecycle/${generation.id}.json`;
+    const journalBytes = await readFile(await assertExistingFileWithin(root, journalPath));
+    const journal = JSON.parse(journalBytes);
+    validateRejectionJournalV2(journal, generation.id, { requireComplete: true });
+    if (!journalBytes.equals(Buffer.from(canonicalJson(journal)))) {
+      throw new Error('rejection lifecycle journal is not canonical JSON');
+    }
+    const pendingBytes = await readFile(
+      await assertExistingFileWithin(root, journal.pendingRecordPath)
+    );
+    if (sha256(pendingBytes) !== journal.pendingRecordSha256) {
+      throw new Error('rejection pending-record snapshot digest mismatch');
+    }
+    const pending = JSON.parse(pendingBytes);
+    if (!pendingBytes.equals(Buffer.from(canonicalJson(pending)))) {
+      throw new Error('rejection pending-record snapshot is not canonical JSON');
+    }
+    const pendingValidation = validateWith('generation-result.schema.json', pending);
+    if (!pendingValidation.ok || !isExplicitWaveAAssembly(pending) || pending.status !== 'pending') {
+      throw new Error('rejection pending-record snapshot is not an explicit pending Wave A result');
+    }
+    const expected = rejectionResultFromPending(pending, journal);
+    if (canonicalJson(generation) !== canonicalJson(expected)) {
+      throw new Error('rejected result is not the exact journaled pending-to-rejected transition');
+    }
+    const metadataBytes = await readFile(
+      await assertExistingFileWithin(root, generation.metadataPath)
+    );
+    if (!metadataBytes.equals(Buffer.from(canonicalJson(generation)))) {
+      throw new Error('rejected metadata bytes differ from the generation ledger');
+    }
+    await verifyPersistedWaveAUnitAssembly(pending, {
+      root,
+      forgeRoot,
+      allowHistoricalTransformVersion: true
+    });
+    return null;
+  } catch (error) {
+    return `Wave A rejected transition integrity failed: ${error.message}`;
+  }
 }
 
 export function inspectApprovalTopology(approvalManifest, assetManifest) {
@@ -359,7 +505,9 @@ export async function inspectGenerationOutput(root, generation, {
           }
           auditedArtifacts.push({ role: artifact.role, bytes: artifactBytes });
         }
-        if (generation.outputPath !== artifacts[0].path || generation.outputSha256 !== artifacts[0].sha256) {
+        const rejectedWaveA = generation.status === 'rejected' && isExplicitWaveAAssembly(generation);
+        if ((!rejectedWaveA && generation.outputPath !== artifacts[0].path)
+          || generation.outputSha256 !== artifacts[0].sha256) {
           throw new Error('v2 layered building primary pointer must identify its base artifact');
         }
         const bundleAudit = await auditBuildingBundleV2(auditedArtifacts, definition, {
@@ -369,7 +517,8 @@ export async function inspectGenerationOutput(root, generation, {
       } else {
         const contractAudit = await auditVisualAssetV2(bytes, definition, { verifyResize: false });
         if (!contractAudit.ok) throw new Error(`v2 technical gates failed: ${contractAudit.problems.join('; ')}`);
-        if (!generation.processedFromGenerationId || !generation.technicalInspection) {
+        if (!generation.technicalInspection || (!isExplicitWaveAAssembly(generation)
+          && !generation.processedFromGenerationId)) {
           throw new Error('v2 generation has not passed the required process technical-gate step');
         }
         const recorded = generation.technicalInspection;
@@ -403,11 +552,22 @@ export async function productionRecipeProblem(root, generation, {
   requirePersistentSourceSnapshot = Boolean(definition?.required)
 } = {}) {
   if (generation.status === 'job-pack') return null;
+  if (isExplicitWaveAAssembly(generation) && generation.status === 'pending') {
+    try {
+      await verifyPersistedWaveAUnitAssembly(generation, { root, forgeRoot });
+      return null;
+    } catch (error) {
+      return `Wave A unit assembly integrity failed: ${error.message}`;
+    }
+  }
   const recipe = generation.productionRecipe;
   let outputAudit = null;
   if (recipe || ['pending', 'approved', 'rejected'].includes(generation.status)) {
     outputAudit = await inspectGenerationOutput(root, generation, { definition, outputBytes });
     if (outputAudit.problem) return outputAudit.problem;
+  }
+  if (isExplicitWaveAAssembly(generation) && generation.status === 'rejected') {
+    return rejectedWaveATransitionProblem(root, generation, forgeRoot);
   }
   if (!recipe) return definition?.required ? 'required asset is missing its production recipe' : null;
   if (requirePersistentSourceSnapshot && !recipe.sourceSnapshot) {

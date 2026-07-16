@@ -13,6 +13,19 @@ import {
 
 export const FABLE5_REQUIRED_SET_ID = 'fable5-v2';
 export const FABLE5_WAVE_A_ID = 'A';
+export const CURRENT_BACKGROUND_REMOVAL_METHOD = 'auto-border-soft-matte-v3';
+export const WAVE_A_SOURCE_LIMITS = Object.freeze({
+  maxSourcePixels: 4_194_304,
+  maxUniqueSourcePixels: 67_108_864,
+  maxUniqueSourceBytes: 209_715_200
+});
+
+const HISTORICAL_BACKGROUND_REMOVAL_METHODS = new Set([
+  null,
+  'auto-border-soft-matte-v1',
+  'auto-border-soft-matte-v2',
+  CURRENT_BACKGROUND_REMOVAL_METHOD
+]);
 
 function extensionFor(reference) {
   const extension = path.extname(reference.absolutePath).slice(1).toLowerCase();
@@ -234,8 +247,12 @@ export function definitionBindingSha256(asset, promptSha256) {
 }
 
 export async function buildWaveAJob({ assetId, seed = '', generationMode = 'per-unit' }, {
-  forgeRoot = FORGE_ROOT
+  forgeRoot = FORGE_ROOT,
+  backgroundRemovalMethod = CURRENT_BACKGROUND_REMOVAL_METHOD
 } = {}) {
+  if (!HISTORICAL_BACKGROUND_REMOVAL_METHODS.has(backgroundRemovalMethod)) {
+    throw new Error(`Unsupported Wave A background-removal method: ${backgroundRemovalMethod}`);
+  }
   if (!GENERATION_MODES_V2.includes(generationMode)) {
     throw new Error(`Unsupported Wave A generation mode: ${generationMode}`);
   }
@@ -315,6 +332,36 @@ export async function buildWaveAJob({ assetId, seed = '', generationMode = 'per-
         expectedGenerator: 'codex-imagegen-built-in',
         chromaKeyColor: '#FF00FF',
         chromaKeyTolerance: 0,
+        ...(backgroundRemovalMethod ? {
+          canonicalBackgroundRemoval: {
+          method: backgroundRemovalMethod,
+          expectedKeyColor: '#FF00FF',
+          colorDistance: 'chebyshev-rgb',
+          borderMode: 'source-border',
+          borderBandMax: 6,
+          borderSampleStrideDivisor: 256,
+          rounding: 'nearest-ties-to-even',
+          expectedKeyMaxDistance: 16,
+          borderInlierDistance: 12,
+          minimumBorderInlierPermille: 750,
+          keyLikeDistance: 32,
+          transparentDistance: 12,
+          opaqueDistance: 220,
+          keyDominanceThreshold: 16,
+          spillChannelDelta: 16,
+          spillChannelMinimum: 128,
+          alphaNoiseFloor: 8,
+          despill: true,
+          despillOpaqueFloor: 252,
+          despillAnchorOffset: 1,
+          hiddenRgbPolicy: 'zero',
+          resizeKernel: 'nearest',
+          hardAlphaThreshold: 127
+          },
+          ...(backgroundRemovalMethod === CURRENT_BACKGROUND_REMOVAL_METHOD ? {
+            sourceLimits: structuredClone(WAVE_A_SOURCE_LIMITS)
+          } : {})
+        } : {}),
         hardAlphaThreshold: 127,
         hiddenRgbPolicy: 'zero',
         transparentUnitPolicy: 'zero-rgba',

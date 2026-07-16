@@ -19,8 +19,13 @@ import { validateWith } from '../schemas.mjs';
 import {
   inspectApprovalTopology,
   inspectHistoricalApprovedArtifact,
-  productionRecipeProblem
+  isExplicitWaveAAssembly,
+  productionRecipeProblem,
+  rejectionResultFromPending,
+  rejectionSourceFromPending,
+  validateRejectionJournalV2
 } from '../validate.mjs';
+import { verifyPersistedWaveAUnitAssembly } from '../v2/import-candidate.mjs';
 import { findAsset } from './define-assets.mjs';
 
 const ISSUED_LEGACY_PROMOTION_PREVIEWS = new WeakMap();
@@ -50,6 +55,9 @@ function hasExactKeys(value, keys) {
 }
 
 function validateJournal(journal, generationId, kind) {
+  if (kind === 'reject' && journal?.schemaVersion === 2) {
+    return validateRejectionJournalV2(journal, generationId);
+  }
   const keys = kind === 'reject'
     ? ['schemaVersion', 'kind', 'generationId', 'assetId', 'category', 'sourcePath', 'sourceSha256', 'destinationPath', 'reason', 'transitionAt', 'status']
     : [
@@ -91,11 +99,12 @@ async function generationResult(root, generationId) {
 }
 
 async function checkedPending(root, result) {
-  if (result.status !== 'pending' || !result.outputPath || !result.outputSha256) throw new Error('Only a pending candidate can transition');
-  const sourcePath = await assertExistingPendingCandidate(root, result.category, result.outputPath);
+  if (result.status !== 'pending') throw new Error('Only a pending candidate can transition');
+  const source = rejectionSourceFromPending(result);
+  const sourcePath = await assertExistingPendingCandidate(root, result.category, source.path);
   const sourceBytes = await readFile(sourcePath);
   const sourceSha256 = sha256(sourceBytes);
-  if (sourceSha256 !== result.outputSha256) throw new Error('Candidate hash mismatch');
+  if (sourceSha256 !== source.sha256) throw new Error('Candidate hash mismatch');
   return { result, sourcePath, sourceBytes, sourceSha256 };
 }
 
@@ -206,6 +215,18 @@ async function writeJsonOrVerify(root, destination, value) {
   return writeFileOrVerify(root, destination, Buffer.from(canonicalJson(value)));
 }
 
+async function readCanonicalGenerationRecord(root, relativePath, label) {
+  const absolute = await assertExistingFileWithin(root, relativePath);
+  const bytes = await readFile(absolute);
+  const value = JSON.parse(bytes);
+  if (!bytes.equals(Buffer.from(canonicalJson(value)))) {
+    throw new Error(`${label} is not canonical JSON`);
+  }
+  const validation = validateWith('generation-result.schema.json', value);
+  if (!validation.ok) throw new Error(`${label} is not a valid generation result`);
+  return { absolute, bytes, value };
+}
+
 async function lifecycleJournal(root, generationId, initial) {
   const journalPath = path.join(pathsFor(root).local, 'lifecycle', `${validateGenerationId(generationId)}.json`);
   const existing = await readJson(journalPath, { allowMissing: true, fallback: null });
@@ -224,6 +245,7 @@ async function completeJournal(root, journalPath, journal) {
 
 export async function rejectCandidate({ generationId, reason }, {
   root = FORGE_ROOT,
+  forgeRoot = root,
   now = () => new Date().toISOString()
 } = {}) {
   validateGenerationId(generationId);
@@ -233,23 +255,67 @@ export async function rejectCandidate({ generationId, reason }, {
   return withFileLock(root, paths.lifecycleLock, async () => {
     let current = await generationResult(root, generationId);
     const initialPending = current.status === 'pending' ? await checkedPending(root, current) : null;
+    if (initialPending && isExplicitWaveAAssembly(current)) {
+      await verifyPersistedWaveAUnitAssembly(current, {
+        root,
+        forgeRoot,
+        allowHistoricalTransformVersion: true
+      });
+    }
+    const pendingRecordPath = `data/local/lifecycle/${generationId}.pending.json`;
+    const pendingRecordBytes = initialPending ? Buffer.from(canonicalJson(current)) : null;
+    if (initialPending) {
+      await writeFileOrVerify(
+        root,
+        path.join(root, ...pendingRecordPath.split('/')),
+        pendingRecordBytes
+      );
+    }
+    const source = initialPending ? rejectionSourceFromPending(current) : {
+      path: current.outputPath,
+      sha256: current.outputSha256
+    };
     const initial = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       kind: 'reject',
       generationId,
       assetId: current.assetId,
       category: current.category,
-      sourcePath: current.outputPath,
-      sourceSha256: current.outputSha256,
+      sourcePath: source.path,
+      sourceSha256: source.sha256,
       destinationPath: `generated/${categoryDirectory(current.category)}/rejected/${assetFileStem(current.assetId)}-${generationId}.png`,
       reason: rejectionReason,
       transitionAt: now(),
+      pendingRecordPath,
+      pendingRecordSha256: pendingRecordBytes ? sha256(pendingRecordBytes) : '0'.repeat(64),
       status: 'preparing'
     };
     const { journalPath, journal } = await lifecycleJournal(root, generationId, initial);
+    if (journal.schemaVersion !== 2) {
+      throw new Error('Legacy rejection journal must be upgraded with migrateRejectedCandidateJournal');
+    }
     if (journal.reason !== rejectionReason) throw new Error('Reject retry must use the original reason');
+    const pendingSnapshot = await readCanonicalGenerationRecord(
+      root,
+      journal.pendingRecordPath,
+      'Rejection pending-record snapshot'
+    );
+    if (sha256(pendingSnapshot.bytes) !== journal.pendingRecordSha256
+      || pendingSnapshot.value.id !== generationId || pendingSnapshot.value.status !== 'pending') {
+      throw new Error('Rejection pending-record snapshot does not match its lifecycle journal');
+    }
     if (current.status === 'rejected') {
-      if (current.outputPath !== journal.destinationPath || current.outputSha256 !== journal.sourceSha256) throw new Error('Rejected result conflicts with lifecycle journal');
+      const expected = rejectionResultFromPending(pendingSnapshot.value, journal);
+      if (!isDeepStrictEqual(current, expected)) {
+        throw new Error('Rejected result conflicts with lifecycle journal and pending snapshot');
+      }
+      if (isExplicitWaveAAssembly(pendingSnapshot.value)) {
+        await verifyPersistedWaveAUnitAssembly(pendingSnapshot.value, {
+          root,
+          forgeRoot,
+          allowHistoricalTransformVersion: true
+        });
+      }
       await completeJournal(root, journalPath, journal);
       return { status: 'rejected', result: current, resumed: true };
     }
@@ -259,19 +325,10 @@ export async function rejectCandidate({ generationId, reason }, {
     }
     const destination = path.join(root, ...journal.destinationPath.split('/'));
     const metadataPath = destination.replace(/\.png$/, '.json');
-    const rejected = {
-      ...current,
-      status: 'rejected',
-      outputPath: journal.destinationPath,
-      outputSha256: journal.sourceSha256,
-      metadataPath: toPosixRelative(root, metadataPath),
-      rejection: { reason: journal.reason, rejectedAt: journal.transitionAt },
-      inspection: {
-        ...current.inspection,
-        observed: [...current.inspection.observed, 'Candidate was copied to rejected state with the same SHA-256.'],
-        unknown: [...new Set([...current.inspection.unknown, 'whether a future candidate will be suitable'])]
-      }
-    };
+    const rejected = rejectionResultFromPending(current, journal);
+    if (rejected.metadataPath !== toPosixRelative(root, metadataPath)) {
+      throw new Error('Canonical rejected metadata path mismatch');
+    }
     const validation = validateWith('generation-result.schema.json', rejected);
     if (!validation.ok) throw new Error(`Invalid rejection result: ${JSON.stringify(validation.errors)}`);
     await writeFileOrVerify(root, destination, initialPending.sourceBytes);
@@ -285,6 +342,97 @@ export async function rejectCandidate({ generationId, reason }, {
     });
     await completeJournal(root, journalPath, journal);
     return { status: 'rejected', result: current };
+  });
+}
+
+export async function migrateRejectedCandidateJournal({ generationId }, {
+  root = FORGE_ROOT,
+  forgeRoot = root
+} = {}) {
+  validateGenerationId(generationId);
+  const paths = pathsFor(root);
+  return withFileLock(root, paths.lifecycleLock, async () => {
+    const current = await generationResult(root, generationId);
+    if (current.status !== 'rejected') {
+      throw new Error('Rejection journal migration requires an existing rejected candidate');
+    }
+    const journalPath = path.join(paths.local, 'lifecycle', `${generationId}.json`);
+    const rawJournal = await readJson(journalPath, { allowMissing: false });
+    if (rawJournal.schemaVersion === 2) {
+      const journal = validateRejectionJournalV2(rawJournal, generationId);
+      const snapshot = await readCanonicalGenerationRecord(
+        root,
+        journal.pendingRecordPath,
+        'Rejection pending-record snapshot'
+      );
+      if (sha256(snapshot.bytes) !== journal.pendingRecordSha256
+        || !isDeepStrictEqual(current, rejectionResultFromPending(snapshot.value, journal))) {
+        throw new Error('Existing v2 rejection journal does not reproduce the rejected candidate');
+      }
+      if (isExplicitWaveAAssembly(snapshot.value)) {
+        await verifyPersistedWaveAUnitAssembly(snapshot.value, {
+          root,
+          forgeRoot,
+          allowHistoricalTransformVersion: true
+        });
+      }
+      await completeJournal(root, journalPath, journal);
+      return { status: 'rejection-journal-v2', result: current, resumed: true };
+    }
+
+    const legacy = validateJournal(rawJournal, generationId, 'reject');
+    const sourceMetadataPath = legacy.sourcePath.replace(/\.png$/, '.json');
+    const pending = await readCanonicalGenerationRecord(
+      root,
+      sourceMetadataPath,
+      'Legacy rejection pending metadata'
+    );
+    if (pending.value.id !== generationId || pending.value.status !== 'pending') {
+      throw new Error('Legacy rejection source metadata is not the original pending record');
+    }
+    const source = rejectionSourceFromPending(pending.value);
+    if (source.path !== legacy.sourcePath || source.sha256 !== legacy.sourceSha256) {
+      throw new Error('Legacy rejection journal does not bind its pending record');
+    }
+    if (isExplicitWaveAAssembly(pending.value)) {
+      await verifyPersistedWaveAUnitAssembly(pending.value, {
+        root,
+        forgeRoot,
+        allowHistoricalTransformVersion: true
+      });
+    }
+    const pendingRecordPath = `data/local/lifecycle/${generationId}.pending.json`;
+    const upgraded = validateRejectionJournalV2({
+      ...legacy,
+      schemaVersion: 2,
+      pendingRecordPath,
+      pendingRecordSha256: sha256(pending.bytes)
+    }, generationId, { requireComplete: true });
+    if (!isDeepStrictEqual(current, rejectionResultFromPending(pending.value, upgraded))) {
+      throw new Error('Legacy pending record and journal do not reproduce the rejected candidate');
+    }
+    const rejectedMetadata = await readCanonicalGenerationRecord(
+      root,
+      current.metadataPath,
+      'Rejected generation metadata'
+    );
+    if (!isDeepStrictEqual(rejectedMetadata.value, current)) {
+      throw new Error('Rejected generation metadata differs from the local generation ledger');
+    }
+    await writeFileOrVerify(
+      root,
+      path.join(root, ...pendingRecordPath.split('/')),
+      pending.bytes
+    );
+    await atomicReplaceJson(root, journalPath, upgraded);
+    const problem = await productionRecipeProblem(root, current, { forgeRoot });
+    if (problem) throw new Error(`Migrated rejection integrity failed: ${problem}`);
+    return {
+      status: 'rejection-journal-v2',
+      result: current,
+      resumed: false,
+      journal: upgraded
+    };
   });
 }
 

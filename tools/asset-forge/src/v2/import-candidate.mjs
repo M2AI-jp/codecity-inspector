@@ -1,7 +1,7 @@
 import { readFile, realpath, rm } from 'node:fs/promises';
 import path from 'node:path';
 import sharp from 'sharp';
-import { FORGE_ROOT, pathsFor } from '../config.mjs';
+import { FORGE_ROOT, IMAGE_LIMITS, pathsFor } from '../config.mjs';
 import { atomicWriteFile, withFileLock } from '../fs-safe.mjs';
 import { canonicalJson, hashApprovedTree, hashFile, sha256 } from '../hashing.mjs';
 import { readExternalImage } from '../images/inspect-image.mjs';
@@ -20,13 +20,97 @@ import {
 } from '../paths.mjs';
 import { inspectPng } from '../png-core.mjs';
 import { validateWith } from '../schemas.mjs';
-import { buildWaveAJob } from './build-job.mjs';
+import {
+  buildWaveAJob,
+  CURRENT_BACKGROUND_REMOVAL_METHOD,
+  WAVE_A_SOURCE_LIMITS
+} from './build-job.mjs';
 
 const MAX_JSON_BYTES = 2 * 1024 * 1024;
 const MAX_REFERENCE_BYTES = 25 * 1024 * 1024;
 const INPUT_KEYS = new Set(['unitId', 'sourceOriginal', 'cropRect']);
 const IDENTITY_INPUT_KEYS = new Set(['sourceOriginal', 'cropRect']);
 const IDENTITY_BINDING_PATH = /^generated\/jobs\/v2\/fable5-v2\/wave-a\/[a-z0-9_-]+-job_v2_[a-f0-9]{20}\/identity-bindings\/identity_binding_[a-f0-9]{20}\/unit-execution\.json$/;
+const LEGACY_TRANSFORM_STEPS = Object.freeze([
+  'crop', 'chroma-key-remove', 'nearest-downscale', 'hard-alpha'
+]);
+const AUTO_BORDER_TRANSFORM_STEPS = Object.freeze([
+  'auto-border-key-detect',
+  'crop',
+  'soft-matte-despill',
+  'zero-hidden-rgb',
+  'nearest-downscale',
+  'hard-alpha-zero-hidden-rgb'
+]);
+const LEGACY_ASSEMBLY_ALGORITHM = 'crop-key-nearest-hard-alpha/raw-copy-v2';
+const AUTO_BORDER_ASSEMBLY_ALGORITHMS = Object.freeze({
+  'auto-border-soft-matte-v1': 'auto-border-crop-soft-matte-nearest-hard-alpha/raw-copy-v3',
+  'auto-border-soft-matte-v2':
+    'auto-border-connected-fringe-soft-matte-nearest-hard-alpha/raw-copy-v4',
+  'auto-border-soft-matte-v3':
+    'auto-border-connected-fringe-soft-matte-nearest-hard-alpha/raw-copy-v5'
+});
+const ISSUED_SOURCE_BUDGETS = new WeakSet();
+
+function canonicalBackgroundRemoval(job) {
+  return job.technicalGates.inputPolicy.canonicalBackgroundRemoval ?? null;
+}
+
+function transformStepsFor(job) {
+  return canonicalBackgroundRemoval(job) ? AUTO_BORDER_TRANSFORM_STEPS : LEGACY_TRANSFORM_STEPS;
+}
+
+function assemblyAlgorithmFor(job) {
+  const method = canonicalBackgroundRemoval(job)?.method;
+  return method ? AUTO_BORDER_ASSEMBLY_ALGORITHMS[method] : LEGACY_ASSEMBLY_ALGORITHM;
+}
+
+function sourceLimitsFor(job) {
+  return job?.technicalGates?.inputPolicy?.sourceLimits ?? WAVE_A_SOURCE_LIMITS;
+}
+
+function sourceImageLimits(job) {
+  return {
+    ...IMAGE_LIMITS,
+    maxInputPixels: sourceLimitsFor(job).maxSourcePixels
+  };
+}
+
+function createUniqueSourceBudget(job) {
+  const sourceBudget = {
+    limits: Object.freeze({ ...sourceLimitsFor(job) }),
+    uniqueBytes: 0,
+    uniquePixels: 0,
+    imagesBySha256: new Map()
+  };
+  ISSUED_SOURCE_BUDGETS.add(sourceBudget);
+  return sourceBudget;
+}
+
+function retainUniqueSourceImage(sourceBudget, image, digest, label) {
+  if (!ISSUED_SOURCE_BUDGETS.has(sourceBudget) || !/^[a-f0-9]{64}$/.test(digest)) {
+    throw new Error('Wave A source budget received invalid source evidence');
+  }
+  const sameDigest = sourceBudget.imagesBySha256.get(digest) ?? [];
+  const identical = sameDigest.find((retained) => retained.buffer.equals(image.buffer));
+  if (identical) return identical;
+
+  const nextBytes = sourceBudget.uniqueBytes + image.buffer.length;
+  const nextPixels = sourceBudget.uniquePixels
+    + image.metadata.width * image.metadata.height;
+  if (nextBytes > sourceBudget.limits.maxUniqueSourceBytes) {
+    throw new Error(`Wave A aggregate unique source byte limit exceeded: ${label}`);
+  }
+  if (nextPixels > sourceBudget.limits.maxUniqueSourcePixels) {
+    throw new Error(`Wave A aggregate unique source pixel limit exceeded: ${label}`);
+  }
+
+  sameDigest.push(image);
+  sourceBudget.imagesBySha256.set(digest, sameDigest);
+  sourceBudget.uniqueBytes = nextBytes;
+  sourceBudget.uniquePixels = nextPixels;
+  return image;
+}
 
 async function readBoundedWithin(root, relativePath, maximum = MAX_JSON_BYTES) {
   const absolute = await assertExistingFileWithin(root, relativePath);
@@ -84,7 +168,8 @@ function expectedUnitPlan(job) {
 
 export async function verifyWaveAJobPack(jobPackPath, {
   root = FORGE_ROOT,
-  forgeRoot = FORGE_ROOT
+  forgeRoot = FORGE_ROOT,
+  allowHistoricalTransformVersion = false
 } = {}) {
   if (path.resolve(root) !== path.resolve(forgeRoot)) {
     throw new Error('Wave A verification requires one canonical Forge root');
@@ -121,11 +206,20 @@ export async function verifyWaveAJobPack(jobPackPath, {
     || packedJob.category !== pack.category) {
     throw new Error('Wave A pack and packed job identity mismatch');
   }
+  const packedMethod = packedJob.technicalGates.inputPolicy.canonicalBackgroundRemoval?.method ?? null;
+  if (!allowHistoricalTransformVersion && packedMethod !== CURRENT_BACKGROUND_REMOVAL_METHOD) {
+    throw new Error('Wave A job pack is stale relative to the current background-removal method');
+  }
   const built = await buildWaveAJob({
     assetId: pack.assetId,
     seed: packedJob.seed,
     generationMode: packedJob.generationMode
-  }, { forgeRoot });
+  }, {
+    forgeRoot,
+    backgroundRemovalMethod: allowHistoricalTransformVersion
+      ? packedMethod
+      : CURRENT_BACKGROUND_REMOVAL_METHOD
+  });
   if (canonicalJson(packedJob) !== canonicalJson(built.job)) {
     throw new Error('Wave A job pack is stale relative to the current approved hash-bound job');
   }
@@ -221,6 +315,266 @@ function chromaKeyRaw(current, keyColor = '#FF00FF', tolerance = 0) {
   return { data, info: { ...current.info } };
 }
 
+function colorDistance(left, right) {
+  return Math.max(
+    Math.abs(left[0] - right[0]),
+    Math.abs(left[1] - right[1]),
+    Math.abs(left[2] - right[2])
+  );
+}
+
+function roundHalfEven(value) {
+  const lower = Math.floor(value);
+  const fraction = value - lower;
+  if (fraction < 0.5) return lower;
+  if (fraction > 0.5) return lower + 1;
+  return lower % 2 === 0 ? lower : lower + 1;
+}
+
+function clampChannel(value) {
+  return Math.max(0, Math.min(255, roundHalfEven(value)));
+}
+
+function channelMedian(samples, channel) {
+  const values = [];
+  for (let offset = channel; offset < samples.length; offset += 3) values.push(samples[offset]);
+  values.sort((left, right) => left - right);
+  const midpoint = Math.floor(values.length / 2);
+  return values.length % 2 === 1
+    ? values[midpoint]
+    : roundHalfEven((values[midpoint - 1] + values[midpoint]) / 2);
+}
+
+function colorHex(color) {
+  return `#${color.map((channel) => channel.toString(16).padStart(2, '0')).join('').toUpperCase()}`;
+}
+
+function sampleBorderKey(current, policy) {
+  const { width, height, channels } = current.info;
+  const borderBand = Math.max(1, Math.min(width, height, policy.borderBandMax));
+  const borderSampleStride = Math.max(
+    1,
+    Math.floor(Math.min(width, height) / policy.borderSampleStrideDivisor)
+  );
+  const samples = [];
+  const append = (x, y) => {
+    const offset = (y * width + x) * channels;
+    samples.push(current.data[offset], current.data[offset + 1], current.data[offset + 2]);
+  };
+  for (let x = 0; x < width; x += borderSampleStride) {
+    for (let y = 0; y < borderBand; y += 1) {
+      append(x, y);
+      append(x, height - 1 - y);
+    }
+  }
+  for (let y = 0; y < height; y += borderSampleStride) {
+    for (let x = 0; x < borderBand; x += 1) {
+      append(x, y);
+      append(width - 1 - x, y);
+    }
+  }
+  const sampleBytes = Buffer.from(samples);
+  const detectedKey = [0, 1, 2].map((channel) => channelMedian(sampleBytes, channel));
+  const expectedKey = parseHexColor(policy.expectedKeyColor);
+  const detectedKeyExpectedDistance = colorDistance(detectedKey, expectedKey);
+  let borderInlierCount = 0;
+  for (let offset = 0; offset < sampleBytes.length; offset += 3) {
+    if (colorDistance([
+      sampleBytes[offset], sampleBytes[offset + 1], sampleBytes[offset + 2]
+    ], detectedKey) <= policy.borderInlierDistance) borderInlierCount += 1;
+  }
+  const borderSampleCount = sampleBytes.length / 3;
+  const borderInlierPermille = Math.floor(borderInlierCount * 1000 / borderSampleCount);
+  if (detectedKeyExpectedDistance > policy.expectedKeyMaxDistance) {
+    throw new Error(
+      `Wave A auto-border key ${colorHex(detectedKey)} is not close enough to required ${policy.expectedKeyColor}`
+    );
+  }
+  if (borderInlierCount * 1000
+    < borderSampleCount * policy.minimumBorderInlierPermille) {
+    throw new Error('Wave A auto-border key sampling rejected a non-uniform source border');
+  }
+  return {
+    detectedKey,
+    evidence: {
+      policy: structuredClone(policy),
+      detectedKeyColor: colorHex(detectedKey),
+      detectedKeyExpectedDistance,
+      borderBand,
+      borderSampleStride,
+      borderSampleCount,
+      borderSampleSha256: sha256(sampleBytes),
+      borderInlierCount,
+      borderInlierPermille
+    }
+  };
+}
+
+function spillChannels(key, policy) {
+  const keyMaximum = Math.max(...key);
+  if (keyMaximum < policy.spillChannelMinimum) return [];
+  return key
+    .map((value, index) => ({ value, index }))
+    .filter(({ value }) => value >= keyMaximum - policy.spillChannelDelta
+      && value >= policy.spillChannelMinimum)
+    .map(({ index }) => index);
+}
+
+function keyChannelDominance(rgb, key, policy) {
+  const spill = spillChannels(key, policy);
+  if (spill.length === 0) return 0;
+  const nonSpill = [0, 1, 2].filter((index) => !spill.includes(index));
+  const keyStrength = spill.length > 1
+    ? Math.min(...spill.map((index) => rgb[index]))
+    : rgb[spill[0]];
+  const nonKeyStrength = nonSpill.length > 0
+    ? Math.max(...nonSpill.map((index) => rgb[index]))
+    : 0;
+  return keyStrength - nonKeyStrength;
+}
+
+function dominanceAlpha(rgb, key, policy) {
+  const spill = spillChannels(key, policy);
+  if (spill.length === 0) return 255;
+  const nonSpill = [0, 1, 2].filter((index) => !spill.includes(index));
+  const keyStrength = spill.length > 1
+    ? Math.min(...spill.map((index) => rgb[index]))
+    : rgb[spill[0]];
+  const nonKeyStrength = nonSpill.length > 0
+    ? Math.max(...nonSpill.map((index) => rgb[index]))
+    : 0;
+  const dominance = keyStrength - nonKeyStrength;
+  if (dominance <= 0) return 255;
+  const denominator = Math.max(1, Math.max(...key) - nonKeyStrength);
+  return clampChannel((1 - Math.min(1, dominance / denominator)) * 255);
+}
+
+function softAlpha(distance, policy) {
+  if (distance <= policy.transparentDistance) return 0;
+  if (distance >= policy.opaqueDistance) return 255;
+  const ratio = (distance - policy.transparentDistance)
+    / (policy.opaqueDistance - policy.transparentDistance);
+  const smooth = ratio * ratio * (3 - 2 * ratio);
+  return clampChannel(255 * smooth);
+}
+
+function despillPixel(data, offset, key, outputAlpha, policy) {
+  if (!policy.despill || outputAlpha >= policy.despillOpaqueFloor) return;
+  const spill = spillChannels(key, policy);
+  if (spill.length === 0) return;
+  const nonSpill = [0, 1, 2].filter((index) => !spill.includes(index));
+  if (nonSpill.length === 0) return;
+  const anchor = Math.max(...nonSpill.map((index) => data[offset + index]));
+  const cap = Math.max(0, anchor - policy.despillAnchorOffset);
+  for (const index of spill) {
+    if (data[offset + index] > cap) data[offset + index] = cap;
+  }
+}
+
+function borderConnectedKeyFringe(current, key, policy, { diagonal }) {
+  const { width, height, channels } = current.info;
+  const pixelCount = width * height;
+  const eligible = new Uint8Array(pixelCount);
+  const connected = new Uint8Array(pixelCount);
+  const queue = new Uint32Array(pixelCount);
+  const fringeDistance = Math.min(policy.opaqueDistance, policy.keyLikeDistance * 3);
+  for (let index = 0; index < pixelCount; index += 1) {
+    const offset = index * channels;
+    const rgb = [current.data[offset], current.data[offset + 1], current.data[offset + 2]];
+    const distance = colorDistance(rgb, key);
+    eligible[index] = Number(distance <= policy.keyLikeDistance
+      || (distance <= fringeDistance
+        && keyChannelDominance(rgb, key, policy) >= policy.keyDominanceThreshold));
+  }
+
+  let head = 0;
+  let tail = 0;
+  const appendBorderKey = (index) => {
+    if (connected[index]) return;
+    const offset = index * channels;
+    const distance = colorDistance([
+      current.data[offset], current.data[offset + 1], current.data[offset + 2]
+    ], key);
+    if (distance > policy.keyLikeDistance) return;
+    connected[index] = 1;
+    queue[tail] = index;
+    tail += 1;
+  };
+  for (let x = 0; x < width; x += 1) {
+    appendBorderKey(x);
+    appendBorderKey((height - 1) * width + x);
+  }
+  for (let y = 1; y < height - 1; y += 1) {
+    appendBorderKey(y * width);
+    appendBorderKey(y * width + width - 1);
+  }
+
+  const appendEligible = (index) => {
+    if (!eligible[index] || connected[index]) return;
+    connected[index] = 1;
+    queue[tail] = index;
+    tail += 1;
+  };
+  while (head < tail) {
+    const index = queue[head];
+    head += 1;
+    const x = index % width;
+    const y = Math.floor(index / width);
+    appendEligible(y * width + Math.max(0, x - 1));
+    appendEligible(y * width + Math.min(width - 1, x + 1));
+    appendEligible(Math.max(0, y - 1) * width + x);
+    appendEligible(Math.min(height - 1, y + 1) * width + x);
+    if (diagonal) {
+      appendEligible(Math.max(0, y - 1) * width + Math.max(0, x - 1));
+      appendEligible(Math.max(0, y - 1) * width + Math.min(width - 1, x + 1));
+      appendEligible(Math.min(height - 1, y + 1) * width + Math.max(0, x - 1));
+      appendEligible(Math.min(height - 1, y + 1) * width + Math.min(width - 1, x + 1));
+    }
+  }
+  return connected;
+}
+
+function autoBorderSoftMatteRaw(current, policy, { detectedKey, evidence }) {
+  const data = Buffer.from(current.data);
+  const connectedFringe = policy.method === 'auto-border-soft-matte-v1'
+    ? null
+    : borderConnectedKeyFringe(current, detectedKey, policy, {
+        diagonal: policy.method === 'auto-border-soft-matte-v2'
+      });
+  let pixelIndex = 0;
+  for (let offset = 0; offset < data.length; offset += current.info.channels) {
+    const rgb = [data[offset], data[offset + 1], data[offset + 2]];
+    const distance = colorDistance(rgb, detectedKey);
+    const dominance = keyChannelDominance(rgb, detectedKey, policy);
+    const keyLike = policy.method === 'auto-border-soft-matte-v1'
+      ? distance <= policy.keyLikeDistance || dominance >= policy.keyDominanceThreshold
+      : policy.method === 'auto-border-soft-matte-v2'
+        ? distance <= policy.keyLikeDistance || (connectedFringe[pixelIndex] === 1
+          && dominance >= policy.keyDominanceThreshold)
+        : connectedFringe[pixelIndex] === 1;
+    let outputAlpha = keyLike
+      ? Math.min(softAlpha(distance, policy), dominanceAlpha(rgb, detectedKey, policy))
+      : 255;
+    outputAlpha = roundHalfEven(outputAlpha * (data[offset + 3] / 255));
+    if (outputAlpha > 0 && outputAlpha <= policy.alphaNoiseFloor) outputAlpha = 0;
+    if (keyLike) despillPixel(data, offset, detectedKey, outputAlpha, policy);
+    data[offset + 3] = outputAlpha;
+    pixelIndex += 1;
+  }
+  return { data, info: { ...current.info }, transformEvidence: evidence };
+}
+
+function zeroHiddenRgbRaw(current) {
+  const data = Buffer.from(current.data);
+  for (let offset = 0; offset < data.length; offset += current.info.channels) {
+    if (data[offset + 3] !== 0) continue;
+    data[offset] = 0;
+    data[offset + 1] = 0;
+    data[offset + 2] = 0;
+  }
+  return { data, info: { ...current.info } };
+}
+
 async function resizeNearestRaw(current, outputSize) {
   if (current.info.width < outputSize.width || current.info.height < outputSize.height) {
     throw new Error('Wave A canonical transform would enlarge source-original pixels');
@@ -253,13 +607,24 @@ function hardAlphaAndZeroRaw(current, threshold = 127) {
   return { data, info: { ...current.info } };
 }
 
-async function canonicalUnitTransform(sourceOriginal, cropRect, outputSize) {
+async function canonicalUnitTransform(sourceOriginal, cropRect, outputSize, backgroundRemoval = null) {
   let current = await decodedRgba(sourceOriginal.buffer);
+  const sampledKey = backgroundRemoval ? sampleBorderKey(current, backgroundRemoval) : null;
   if (cropRect) current = cropRaw(current, cropRect);
-  current = chromaKeyRaw(current, '#FF00FF', 0);
+  let transformEvidence = null;
+  if (backgroundRemoval) {
+    const matte = autoBorderSoftMatteRaw(current, backgroundRemoval, sampledKey);
+    transformEvidence = matte.transformEvidence;
+    current = zeroHiddenRgbRaw(matte);
+  } else {
+    current = chromaKeyRaw(current, '#FF00FF', 0);
+  }
   current = await resizeNearestRaw(current, outputSize);
-  current = hardAlphaAndZeroRaw(current, 127);
-  return current;
+  current = hardAlphaAndZeroRaw(
+    current,
+    backgroundRemoval?.hardAlphaThreshold ?? 127
+  );
+  return { ...current, transformEvidence };
 }
 
 async function encodeRawPng(raw, width, height) {
@@ -408,7 +773,7 @@ function exactSourceCoverage(job, unitSources) {
   return { required, missing, duplicates, extra };
 }
 
-async function cachedExternalSource(sourcePath, cache) {
+async function cachedExternalSource(sourcePath, cache, job, sourceBudget) {
   let canonicalPathBefore;
   try {
     canonicalPathBefore = await realpath(sourcePath);
@@ -416,22 +781,37 @@ async function cachedExternalSource(sourcePath, cache) {
     throw new Error(`Wave A source-original could not be resolved: ${sourcePath}`, { cause: error });
   }
   const requestedPath = path.resolve(sourcePath);
-  let image = cache.get(requestedPath);
-  if (!image) {
+  let source = cache.get(requestedPath);
+  if (!source) {
     // Read the caller's exact requested path so the safe reader's lstat/O_NOFOLLOW
     // checks cannot be bypassed by handing it a pre-resolved symlink target.
-    image = await readExternalImage(sourcePath);
-    cache.set(requestedPath, image);
+    let image = await readExternalImage(sourcePath, { limits: sourceImageLimits(job) });
+    const digest = sha256(image.buffer);
+    image = retainUniqueSourceImage(sourceBudget, image, digest, sourcePath);
+    source = {
+      canonicalPath: canonicalPathBefore,
+      image,
+      sha256: digest
+    };
+    cache.set(requestedPath, source);
   }
   const canonicalPathAfter = await realpath(sourcePath);
   if (canonicalPathAfter !== canonicalPathBefore) {
     throw new Error('Wave A source path changed while resolving alias identity');
   }
-  return {
-    canonicalPath: canonicalPathAfter,
-    image,
-    sha256: sha256(image.buffer)
-  };
+  if (source.canonicalPath !== canonicalPathAfter) {
+    throw new Error('Wave A cached source path changed while resolving alias identity');
+  }
+  return source;
+}
+
+async function preflightUnitSources(job, unitSources) {
+  const cache = new Map();
+  const sourceBudget = createUniqueSourceBudget(job);
+  for (const input of unitSources) {
+    await cachedExternalSource(input.sourceOriginal, cache, job, sourceBudget);
+  }
+  return { cache, sourceBudget };
 }
 
 function sourceFormatExtension(format) {
@@ -459,13 +839,18 @@ function validateSourceSharing(generationMode, records, identity) {
   }
 }
 
-async function readIdentityMaster(identityMasterSource, job, cache) {
+async function readIdentityMaster(identityMasterSource, job, cache, sourceBudget) {
   if (!job.identityMasterPlan) {
     if (identityMasterSource !== null) throw new Error('Non-character Wave A jobs forbid identityMasterSource');
     return null;
   }
   if (!identityMasterSource) throw new Error('Character Wave A jobs require identityMasterSource');
-  const source = await cachedExternalSource(identityMasterSource.sourceOriginal, cache);
+  const source = await cachedExternalSource(
+    identityMasterSource.sourceOriginal,
+    cache,
+    job,
+    sourceBudget
+  );
   const { image } = source;
   const plan = job.identityMasterPlan;
   if (!identityMasterSource.cropRect
@@ -483,7 +868,12 @@ async function readIdentityMaster(identityMasterSource, job, cache) {
     !== effectiveCrop.height * plan.outputSize.width) {
     throw new Error('Wave A identity master cropRect must have the exact 2:1 target aspect ratio');
   }
-  const transformed = await canonicalUnitTransform(image, effectiveCrop, plan.outputSize);
+  const transformed = await canonicalUnitTransform(
+    image,
+    effectiveCrop,
+    plan.outputSize,
+    canonicalBackgroundRemoval(job)
+  );
   const transformedPng = await encodeRawPng(
     transformed.data,
     plan.outputSize.width,
@@ -515,6 +905,7 @@ async function readIdentityMaster(identityMasterSource, job, cache) {
     raw: transformed.data,
     transformedPng,
     transformedSha256: sha256(transformedPng),
+    transformEvidence: transformed.transformEvidence,
     audit,
     cellHashes
   };
@@ -551,14 +942,17 @@ function requireCanonicalEqual(actual, expected, label) {
   }
 }
 
-async function readPersistedImage(root, snapshot, label) {
+async function readPersistedImage(root, snapshot, label, job = null, sourceBudget = null) {
   const absolute = resolveWithin(root, snapshot.path);
   await assertNoSymlinkPath(root, absolute);
-  const image = await readExternalImage(absolute);
+  let image = await readExternalImage(absolute, { limits: sourceImageLimits(job) });
   const digest = sha256(image.buffer);
   if (digest !== snapshot.sha256 || image.sourceFormat !== snapshot.format
     || image.metadata.width !== snapshot.width || image.metadata.height !== snapshot.height) {
     throw new Error(`Wave A ${label} snapshot hash/format/dimensions mismatch`);
+  }
+  if (sourceBudget) {
+    image = retainUniqueSourceImage(sourceBudget, image, digest, label);
   }
   return { absolute, image, sha256: digest };
 }
@@ -655,7 +1049,10 @@ function identityBindingPlan(verifiedPack, identity, paths) {
         width: job.identityMasterPlan.outputSize.width,
         height: job.identityMasterPlan.outputSize.height
       },
-      transformSteps: ['crop', 'chroma-key-remove', 'nearest-downscale', 'hard-alpha'],
+      transformSteps: [...transformStepsFor(job)],
+      ...(canonicalBackgroundRemoval(job) ? {
+        transformEvidence: structuredClone(identity.transformEvidence)
+      } : {}),
       consistencyInputSha256: identity.transformedSha256,
       directionCellSha256s: identity.cellHashes,
       auxiliary: true,
@@ -701,7 +1098,12 @@ export async function prepareWaveAIdentityBinding({
     || job.generationUnits.length !== 40) {
     throw new Error('Wave A identity binding requires the exact per-unit character job pack');
   }
-  const identity = await readIdentityMaster(identityMasterSource, job, new Map());
+  const identity = await readIdentityMaster(
+    identityMasterSource,
+    job,
+    new Map(),
+    createUniqueSourceBudget(job)
+  );
   const bindingPaths = identityBindingPaths(root, verifiedPack, job, identity);
   const { plan, units } = identityBindingPlan(verifiedPack, identity, bindingPaths);
   const validation = validateWith('identity-bound-execution-v2.schema.json', plan);
@@ -773,7 +1175,8 @@ export async function prepareWaveAIdentityBinding({
 export async function verifyWaveAIdentityBinding(bindingPath, {
   root = FORGE_ROOT,
   forgeRoot = FORGE_ROOT,
-  verifiedPack = null
+  verifiedPack = null,
+  sourceBudget = null
 } = {}) {
   if (typeof bindingPath !== 'string' || !IDENTITY_BINDING_PATH.test(bindingPath)) {
     throw new Error('Wave A character import requires an issued identity-bound unit execution plan');
@@ -789,6 +1192,7 @@ export async function verifyWaveAIdentityBinding(bindingPath, {
   }
   const verified = verifiedPack ?? await verifyWaveAJobPack(binding.jobPackPath, { root, forgeRoot });
   const { job } = verified;
+  const effectiveSourceBudget = sourceBudget ?? createUniqueSourceBudget(job);
   if (job.category !== 'character' || job.generationMode !== 'per-unit'
     || job.generationUnits.length !== 40 || !job.identityMasterPlan) {
     throw new Error('Wave A identity binding is not attached to a canonical 40-unit character job');
@@ -806,7 +1210,13 @@ export async function verifyWaveAIdentityBinding(bindingPath, {
     generationMode: job.generationMode
   };
   requireCanonicalEqual(Object.fromEntries(Object.keys(expectedBindings).map((key) => [key, binding[key]])), expectedBindings, 'identity binding job authority');
-  const source = await readPersistedImage(root, binding.identityMaster.sourceSnapshot, 'identity source');
+  const source = await readPersistedImage(
+    root,
+    binding.identityMaster.sourceSnapshot,
+    'identity source',
+    job,
+    effectiveSourceBudget
+  );
   requireCanonicalEqual(binding.identityMaster.sourceOriginal, {
     sha256: source.sha256,
     format: source.image.sourceFormat,
@@ -822,16 +1232,29 @@ export async function verifyWaveAIdentityBinding(bindingPath, {
   const transformedRaw = await canonicalUnitTransform(
     source.image,
     identityCrop,
-    job.identityMasterPlan.outputSize
+    job.identityMasterPlan.outputSize,
+    canonicalBackgroundRemoval(job)
   );
+  if (canonicalBackgroundRemoval(job)) {
+    requireCanonicalEqual(
+      binding.identityMaster.transformEvidence,
+      transformedRaw.transformEvidence,
+      'identity transform evidence'
+    );
+  }
   const transformedPng = await encodeRawPng(
     transformedRaw.data,
     job.identityMasterPlan.outputSize.width,
     job.identityMasterPlan.outputSize.height
   );
-  const transformed = await readPersistedImage(root, binding.identityMaster.transformedSnapshot, 'identity transformed');
+  const transformed = await readPersistedImage(
+    root,
+    binding.identityMaster.transformedSnapshot,
+    'identity transformed',
+    job
+  );
   if (!transformed.image.buffer.equals(transformedPng)) {
-    throw new Error('Wave A identity transformed snapshot is not the byte-identical four-step replay');
+    throw new Error('Wave A identity transformed snapshot is not the byte-identical canonical replay');
   }
   const audit = pixelAudit(transformedRaw.data);
   if (audit.visiblePixels === 0 || audit.transparentPixels === 0
@@ -855,6 +1278,7 @@ export async function verifyWaveAIdentityBinding(bindingPath, {
     raw: transformedRaw.data,
     transformedPng,
     transformedSha256: sha256(transformedPng),
+    transformEvidence: transformedRaw.transformEvidence,
     audit,
     cellHashes
   };
@@ -887,7 +1311,8 @@ export async function verifyWaveAIdentityBinding(bindingPath, {
 
 export async function verifyPersistedWaveAUnitAssembly(result, {
   root = FORGE_ROOT,
-  forgeRoot = FORGE_ROOT
+  forgeRoot = FORGE_ROOT,
+  allowHistoricalTransformVersion = false
 } = {}) {
   if (path.resolve(root) !== path.resolve(forgeRoot)) {
     throw new Error('Wave A persisted assembly verification requires one canonical Forge root');
@@ -906,7 +1331,11 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
   if (!assemblyValidation.ok) {
     throw new Error(`Invalid persisted Wave A unit assembly: ${JSON.stringify(assemblyValidation.errors)}`);
   }
-  const verifiedPack = await verifyWaveAJobPack(result.sourceJobPackPathV2, { root, forgeRoot });
+  const verifiedPack = await verifyWaveAJobPack(result.sourceJobPackPathV2, {
+    root,
+    forgeRoot,
+    allowHistoricalTransformVersion
+  });
   const { asset, job } = verifiedPack;
   const expectedResultAuthority = {
     assetId: job.assetId,
@@ -921,6 +1350,33 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
   };
   requireCanonicalEqual(Object.fromEntries(Object.keys(expectedResultAuthority).map((key) => [key, result[key]])), expectedResultAuthority, 'persisted result authority');
 
+  const sourceCache = new Map();
+  const sourceBudget = createUniqueSourceBudget(job);
+  const transformedCache = new Map();
+  const sourceRecords = [];
+  const unitRecords = [];
+  const pendingRoot = `generated/${categoryDirectory(asset.category)}/pending`;
+  if (result.unitAssemblyV2.units.length !== job.generationUnits.length) {
+    throw new Error('Persisted unit ledger length does not match the canonical job');
+  }
+  for (const [index, unit] of job.generationUnits.entries()) {
+    if (!unit.sourceRequired) continue;
+    const ledger = result.unitAssemblyV2.units[index];
+    if (!ledger?.sourceSnapshot
+      || !ledger.sourceSnapshot.path.startsWith(`${pendingRoot}/sources/`)) {
+      throw new Error(`Wave A ${unit.unitId} source snapshot path is not pending evidence`);
+    }
+    if (!sourceCache.has(ledger.sourceSnapshot.path)) {
+      sourceCache.set(ledger.sourceSnapshot.path, await readPersistedImage(
+        root,
+        ledger.sourceSnapshot,
+        `${unit.unitId} source-original`,
+        job,
+        sourceBudget
+      ));
+    }
+  }
+
   let identityAuthority = null;
   if (job.category === 'character') {
     if (!result.unitAssemblyV2.identityMaster) {
@@ -928,7 +1384,12 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
     }
     identityAuthority = await verifyWaveAIdentityBinding(
       result.unitAssemblyV2.identityMaster.unitExecutionPlanPath,
-      { root, forgeRoot }
+      {
+        root,
+        forgeRoot,
+        verifiedPack,
+        sourceBudget
+      }
     );
     if (identityAuthority.bindingSha256
       !== result.unitAssemblyV2.identityMaster.unitExecutionPlanSha256
@@ -940,14 +1401,6 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
   }
 
   const executionById = new Map((identityAuthority?.executionUnits ?? []).map((unit) => [unit.unitId, unit]));
-  const sourceCache = new Map();
-  const transformedCache = new Map();
-  const sourceRecords = [];
-  const unitRecords = [];
-  const pendingRoot = `generated/${categoryDirectory(asset.category)}/pending`;
-  if (result.unitAssemblyV2.units.length !== job.generationUnits.length) {
-    throw new Error('Persisted unit ledger length does not match the canonical job');
-  }
   for (const [index, unit] of job.generationUnits.entries()) {
     const ledger = result.unitAssemblyV2.units[index];
     const execution = executionById.get(unit.unitId) ?? null;
@@ -988,19 +1441,14 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
       || !ledger.transformedSnapshot.path.startsWith(`${pendingRoot}/unit-cells/`)) {
       throw new Error(`Wave A ${unit.unitId} source/transformed snapshot path is not pending evidence`);
     }
-    let source = sourceCache.get(ledger.sourceSnapshot.path);
-    if (!source) {
-      source = await readPersistedImage(root, ledger.sourceSnapshot, `${unit.unitId} source-original`);
-      sourceCache.set(ledger.sourceSnapshot.path, source);
-    } else {
-      requireCanonicalEqual(ledger.sourceSnapshot, {
-        path: ledger.sourceSnapshot.path,
-        sha256: source.sha256,
-        format: source.image.sourceFormat,
-        width: source.image.metadata.width,
-        height: source.image.metadata.height
-      }, `${unit.unitId} shared source snapshot`);
-    }
+    const source = sourceCache.get(ledger.sourceSnapshot.path);
+    requireCanonicalEqual(ledger.sourceSnapshot, {
+      path: ledger.sourceSnapshot.path,
+      sha256: source.sha256,
+      format: source.image.sourceFormat,
+      width: source.image.metadata.width,
+      height: source.image.metadata.height
+    }, `${unit.unitId} shared source snapshot`);
     requireCanonicalEqual(ledger.sourceOriginal, {
       sha256: source.sha256,
       format: source.image.sourceFormat,
@@ -1016,7 +1464,14 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
     const transformed = await canonicalUnitTransform(source.image, crop, {
       width: unit.targetRect.width,
       height: unit.targetRect.height
-    });
+    }, canonicalBackgroundRemoval(job));
+    if (canonicalBackgroundRemoval(job)) {
+      requireCanonicalEqual(
+        ledger.transformEvidence,
+        transformed.transformEvidence,
+        `${unit.unitId} transform evidence`
+      );
+    }
     const transformedPng = await encodeRawPng(
       transformed.data,
       unit.targetRect.width,
@@ -1024,15 +1479,22 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
     );
     let persistedTransform = transformedCache.get(ledger.transformedSnapshot.path);
     if (!persistedTransform) {
-      persistedTransform = await readPersistedImage(root, ledger.transformedSnapshot, `${unit.unitId} transformed`);
+      persistedTransform = await readPersistedImage(
+        root,
+        ledger.transformedSnapshot,
+        `${unit.unitId} transformed`,
+        job
+      );
       transformedCache.set(ledger.transformedSnapshot.path, persistedTransform);
     }
     if (!persistedTransform.image.buffer.equals(transformedPng)) {
-      throw new Error(`Wave A ${unit.unitId} transformed snapshot is not the byte-identical four-step replay`);
+      throw new Error(`Wave A ${unit.unitId} transformed snapshot is not the byte-identical canonical replay`);
     }
-    requireCanonicalEqual(ledger.transformSteps, [
-      'crop', 'chroma-key-remove', 'nearest-downscale', 'hard-alpha'
-    ], `${unit.unitId} transform steps`);
+    requireCanonicalEqual(
+      ledger.transformSteps,
+      [...transformStepsFor(job)],
+      `${unit.unitId} transform steps`
+    );
     const audit = pixelAudit(transformed.data);
     requireCleanNonemptyUnit(unit, audit);
     if (ledger.outputCellSha256 !== sha256(transformed.data)) {
@@ -1045,7 +1507,8 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
         image: source.image,
         sha256: source.sha256
       },
-      effectiveCrop: structuredClone(crop)
+      effectiveCrop: structuredClone(crop),
+      transformEvidence: transformed.transformEvidence
     };
     sourceRecords.push({ unit: effectiveUnit, source: sourceRecord.source, input: { cropRect: crop } });
     unitRecords.push({ unit: effectiveUnit, sourceRecord, raw: transformed.data, audit });
@@ -1146,8 +1609,13 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
         height: record.unit.targetRect.height
       } : null,
       transformSteps: record.sourceRecord
-        ? ['crop', 'chroma-key-remove', 'nearest-downscale', 'hard-alpha']
+        ? [...transformStepsFor(job)]
         : [],
+      ...(canonicalBackgroundRemoval(job) ? {
+        transformEvidence: record.sourceRecord
+          ? structuredClone(record.sourceRecord.transformEvidence)
+          : null
+      } : {}),
       outputCellSha256: sha256(record.raw),
       pixelAudit: record.audit
     };
@@ -1185,7 +1653,7 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
       format: 'png',
       width: artifact.contract.outputSize.width,
       height: artifact.contract.outputSize.height
-    }, `${artifact.contract.role} final artifact`);
+    }, `${artifact.contract.role} final artifact`, job);
     if (!persistedArtifact.image.buffer.equals(artifact.png)) {
       throw new Error(`Wave A ${artifact.contract.role} final atlas is not byte-identical reconstruction`);
     }
@@ -1195,7 +1663,7 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
       format: 'png',
       width: artifact.contract.outputSize.width,
       height: artifact.contract.outputSize.height
-    }, `${artifact.contract.role} assembly source`);
+    }, `${artifact.contract.role} assembly source`, job);
     if (!assemblySource.image.buffer.equals(artifact.png)) {
       throw new Error(`Wave A ${artifact.contract.role} assembly-source compatibility snapshot differs`);
     }
@@ -1235,7 +1703,10 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
     sourceOriginal: structuredClone(identityAuthority.binding.identityMaster.sourceOriginal),
     sourceSnapshot: structuredClone(identityAuthority.binding.identityMaster.sourceSnapshot),
     transformedSnapshot: structuredClone(identityAuthority.binding.identityMaster.transformedSnapshot),
-    transformSteps: ['crop', 'chroma-key-remove', 'nearest-downscale', 'hard-alpha'],
+    transformSteps: [...transformStepsFor(job)],
+    ...(canonicalBackgroundRemoval(job) ? {
+      transformEvidence: structuredClone(identityAuthority.identity.transformEvidence)
+    } : {}),
     consistencyInputSha256: identityAuthority.identity.transformedSha256,
     directionCellSha256s: identityAuthority.identity.cellHashes,
     auxiliary: true,
@@ -1256,7 +1727,10 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
     identityMasterPlanSha256: job.identityMasterPlan
       ? sha256(canonicalJson(job.identityMasterPlan))
       : null,
-    assemblyAlgorithm: 'crop-key-nearest-hard-alpha/raw-copy-v2',
+    assemblyAlgorithm: assemblyAlgorithmFor(job),
+    ...(job.technicalGates.inputPolicy.sourceLimits ? {
+      sourceLimits: structuredClone(job.technicalGates.inputPolicy.sourceLimits)
+    } : {}),
     generationMode: job.generationMode,
     generationUnitSetSha256: job.generationUnitSetSha256,
     expectations: structuredClone(job.generationExpectations),
@@ -1317,9 +1791,8 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
   };
 }
 
-async function assembleUnits(job, unitSources, boundIdentity) {
+async function assembleUnits(job, unitSources, boundIdentity, cache, sourceBudget) {
   const sourceById = new Map(unitSources.map((source) => [source.unitId, source]));
-  const cache = new Map();
   const identity = boundIdentity;
   if (job.identityMasterPlan && !identity) {
     throw new Error('Wave A character units require a previously issued identity binding');
@@ -1330,7 +1803,12 @@ async function assembleUnits(job, unitSources, boundIdentity) {
   const sourceRecords = [];
   for (const unit of job.generationUnits.filter(({ sourceRequired }) => sourceRequired)) {
     const input = sourceById.get(unit.unitId);
-    const source = await cachedExternalSource(input.sourceOriginal, cache);
+    const source = await cachedExternalSource(
+      input.sourceOriginal,
+      cache,
+      job,
+      sourceBudget
+    );
     const targetSize = {
       width: unit.targetRect.width,
       height: unit.targetRect.height
@@ -1344,10 +1822,23 @@ async function assembleUnits(job, unitSources, boundIdentity) {
     if (effectiveCrop.width * targetSize.height !== effectiveCrop.height * targetSize.width) {
       throw new Error(`Wave A ${unit.unitId} source/crop aspect ratio does not match targetRect`);
     }
-    const transformed = await canonicalUnitTransform(source.image, effectiveCrop, targetSize);
+    const transformed = await canonicalUnitTransform(
+      source.image,
+      effectiveCrop,
+      targetSize,
+      canonicalBackgroundRemoval(job)
+    );
     const audit = pixelAudit(transformed.data);
     requireCleanNonemptyUnit(unit, audit);
-    sourceRecords.push({ unit, input, effectiveCrop, source, raw: transformed.data, audit });
+    sourceRecords.push({
+      unit,
+      input,
+      effectiveCrop,
+      source,
+      raw: transformed.data,
+      transformEvidence: transformed.transformEvidence,
+      audit
+    });
   }
   validateSourceSharing(job.generationMode, sourceRecords, identity);
   const nonemptyHashes = sourceRecords.map(({ raw }) => sha256(raw));
@@ -1387,7 +1878,8 @@ async function replayAssembly(job, assembled) {
     const replayIdentity = await canonicalUnitTransform(
       assembled.identity.source.image,
       assembled.identity.effectiveCrop,
-      job.identityMasterPlan.outputSize
+      job.identityMasterPlan.outputSize,
+      canonicalBackgroundRemoval(job)
     );
     const replayIdentityPng = await encodeRawPng(
       replayIdentity.data,
@@ -1397,6 +1889,13 @@ async function replayAssembly(job, assembled) {
     if (!replayIdentity.data.equals(assembled.identity.raw)
       || !replayIdentityPng.equals(assembled.identity.transformedPng)) {
       throw new Error('Wave A identity master replay differs from the canonical consistency input');
+    }
+    if (canonicalBackgroundRemoval(job)) {
+      requireCanonicalEqual(
+        replayIdentity.transformEvidence,
+        assembled.identity.transformEvidence,
+        'identity replay transform evidence'
+      );
     }
   }
   const replayByRole = new Map(job.artifactContracts.map((contract) => [
@@ -1409,11 +1908,19 @@ async function replayAssembly(job, assembled) {
       ? await canonicalUnitTransform(
           sourceRecord.source.image,
           sourceRecord.effectiveCrop,
-          { width: unit.targetRect.width, height: unit.targetRect.height }
+          { width: unit.targetRect.width, height: unit.targetRect.height },
+          canonicalBackgroundRemoval(job)
         )
       : { data: Buffer.alloc(unit.targetRect.width * unit.targetRect.height * 4) };
     if (!replay.data.equals(record.raw)) {
       throw new Error(`Wave A replay differs for ${unit.unitId}`);
+    }
+    if (sourceRecord && canonicalBackgroundRemoval(job)) {
+      requireCanonicalEqual(
+        replay.transformEvidence,
+        sourceRecord.transformEvidence,
+        `${unit.unitId} replay transform evidence`
+      );
     }
     const contract = job.artifactContracts.find(({ role }) => role === unit.artifactRole);
     copyCell(replayByRole.get(unit.artifactRole), contract.outputSize, unit.targetRect, replay.data);
@@ -1673,13 +2180,18 @@ async function importWaveACandidateLocked({
   if (assetId !== asset.id || job.requiredSetId !== 'fable5-v2' || job.waveId !== 'A') {
     throw new Error('Wave A import identity does not match explicit fable5-v2/A job pack');
   }
+  const coverage = exactSourceCoverage(job, unitSources);
+  const { cache: sourceCache, sourceBudget } = await preflightUnitSources(job, unitSources);
   let identityAuthority = null;
   if (job.category === 'character') {
     if (!identityBindingPath) {
       throw new Error('Wave A character import rejects atomic identity afterthoughts; issue an identity binding first');
     }
     identityAuthority = await verifyWaveAIdentityBinding(identityBindingPath, {
-      root, forgeRoot, verifiedPack
+      root,
+      forgeRoot,
+      verifiedPack,
+      sourceBudget
     });
     if (identityAuthority.binding.jobPackPath !== jobPackPath) {
       throw new Error('Wave A identity binding belongs to a different job pack');
@@ -1687,8 +2199,13 @@ async function importWaveACandidateLocked({
   } else if (identityBindingPath !== null) {
     throw new Error('Non-character Wave A jobs forbid identityBindingPath');
   }
-  const coverage = exactSourceCoverage(job, unitSources);
-  const assembled = await assembleUnits(job, unitSources, identityAuthority?.identity ?? null);
+  const assembled = await assembleUnits(
+    job,
+    unitSources,
+    identityAuthority?.identity ?? null,
+    sourceCache,
+    sourceBudget
+  );
   if (identityAuthority) {
     const executionById = new Map(identityAuthority.executionUnits.map((unit) => [unit.unitId, unit]));
     for (const record of assembled.unitRecords) {
@@ -1774,7 +2291,10 @@ async function importWaveACandidateLocked({
     identityMasterPlanSha256: job.identityMasterPlan
       ? sha256(canonicalJson(job.identityMasterPlan))
       : null,
-    assemblyAlgorithm: 'crop-key-nearest-hard-alpha/raw-copy-v2',
+    assemblyAlgorithm: assemblyAlgorithmFor(job),
+    ...(job.technicalGates.inputPolicy.sourceLimits ? {
+      sourceLimits: structuredClone(job.technicalGates.inputPolicy.sourceLimits)
+    } : {}),
     generationMode: job.generationMode,
     generationUnitSetSha256: job.generationUnitSetSha256,
     expectations: structuredClone(job.generationExpectations),
@@ -1804,7 +2324,10 @@ async function importWaveACandidateLocked({
         width: job.identityMasterPlan.outputSize.width,
         height: job.identityMasterPlan.outputSize.height
       },
-      transformSteps: ['crop', 'chroma-key-remove', 'nearest-downscale', 'hard-alpha'],
+      transformSteps: [...transformStepsFor(job)],
+      ...(canonicalBackgroundRemoval(job) ? {
+        transformEvidence: structuredClone(identityPersistence.transformEvidence)
+      } : {}),
       consistencyInputSha256: identityPersistence.transformedSha256,
       directionCellSha256s: identityPersistence.cellHashes,
       auxiliary: true,
@@ -1850,8 +2373,13 @@ async function importWaveACandidateLocked({
         height: record.unit.targetRect.height
       } : null,
       transformSteps: record.sourceRecord
-        ? ['crop', 'chroma-key-remove', 'nearest-downscale', 'hard-alpha']
+        ? [...transformStepsFor(job)]
         : [],
+      ...(canonicalBackgroundRemoval(job) ? {
+        transformEvidence: record.sourceRecord
+          ? structuredClone(record.sourceRecord.transformEvidence)
+          : null
+      } : {}),
       outputCellSha256: sha256(record.raw),
       pixelAudit: record.audit
     })),

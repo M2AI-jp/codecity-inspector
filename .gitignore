@@ -16,3 +16,4 @@ tools/asset-forge/generated/jobs/
 tools/asset-forge/generated/*/pending/
 tools/asset-forge/generated/*/rejected/
 tools/asset-forge/processed/
+tools/asset-forge/review/import-requests/

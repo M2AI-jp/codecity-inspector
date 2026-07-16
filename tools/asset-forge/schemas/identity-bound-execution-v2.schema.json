@@ -42,7 +42,10 @@
         "sourceOriginal": { "$ref": "#/definitions/sourceRecord" },
         "sourceSnapshot": { "$ref": "#/definitions/snapshot" },
         "transformedSnapshot": { "$ref": "#/definitions/snapshot" },
-        "transformSteps": { "$ref": "#/definitions/fourSteps" },
+        "transformSteps": { "$ref": "#/definitions/sourceTransformSteps" },
+        "transformEvidence": {
+          "$ref": "unit-assembly-v2.schema.json#/definitions/transformEvidence"
+        },
         "consistencyInputSha256": { "$ref": "#/definitions/sha256" },
         "directionCellSha256s": {
           "type": "array", "minItems": 4, "maxItems": 4, "uniqueItems": true,
@@ -129,13 +132,27 @@
       "type": "array", "minItems": 2, "maxItems": 2,
       "items": { "$ref": "#/definitions/reference" }
     },
-    "fourSteps": {
-      "type": "array", "minItems": 4, "maxItems": 4,
-      "items": [
-        { "const": "crop" }, { "const": "chroma-key-remove" },
-        { "const": "nearest-downscale" }, { "const": "hard-alpha" }
-      ],
-      "additionalItems": false
+    "sourceTransformSteps": {
+      "oneOf": [
+        {
+          "type": "array", "minItems": 4, "maxItems": 4,
+          "items": [
+            { "const": "crop" }, { "const": "chroma-key-remove" },
+            { "const": "nearest-downscale" }, { "const": "hard-alpha" }
+          ],
+          "additionalItems": false
+        },
+        {
+          "type": "array", "minItems": 6, "maxItems": 6,
+          "items": [
+            { "const": "auto-border-key-detect" }, { "const": "crop" },
+            { "const": "soft-matte-despill" }, { "const": "zero-hidden-rgb" },
+            { "const": "nearest-downscale" },
+            { "const": "hard-alpha-zero-hidden-rgb" }
+          ],
+          "additionalItems": false
+        }
+      ]
     }
   }
 }

@@ -53,14 +53,14 @@ async function pendingWaveAFixture(t, assetId = 'prop.lamp') {
     }).composite([{
       input: await sharp({
         create: {
-          width: width - 8,
-          height: height - 8,
+          width: width - 16,
+          height: height - 16,
           channels: 4,
           background: color
         }
       }).png().toBuffer(),
-      left: 4,
-      top: 4
+      left: 8,
+      top: 8
     }]).png({ adaptiveFiltering: false, palette: false }).toBuffer();
     const sourcePath = path.join(root, 'operator-input', `${assetId.replace(/\W/g, '_')}-${index}.png`);
     await mkdir(path.dirname(sourcePath), { recursive: true });
@@ -113,6 +113,9 @@ test('v3 pending approval and re-export both require byte-replayed persisted uni
   const index = originalLedger.results.findIndex(({ id }) => id === imported.result.id);
   const mutations = [
     ['unitAssemblyV2', (result) => { result.unitAssemblyV2.units[0].pixelAudit.visiblePixels += 1; }],
+    ['transformEvidence', (result) => {
+      result.unitAssemblyV2.units[0].transformEvidence.detectedKeyColor = '#FE00FE';
+    }],
     ['inspection', (result) => { result.inspection.observed.push('fabricated observation'); }],
     ['warnings', (result) => { result.warnings.push('fabricated warning'); }],
     ['dryRun', (result) => { result.dryRun = true; }],

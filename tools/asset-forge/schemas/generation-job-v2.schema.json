@@ -128,6 +128,10 @@
             "expectedGenerator": { "const": "codex-imagegen-built-in" },
             "chromaKeyColor": { "const": "#FF00FF" },
             "chromaKeyTolerance": { "const": 0 },
+            "canonicalBackgroundRemoval": {
+              "$ref": "#/definitions/canonicalBackgroundRemovalPolicy"
+            },
+            "sourceLimits": { "$ref": "#/definitions/sourceLimits" },
             "hardAlphaThreshold": { "const": 127 },
             "hiddenRgbPolicy": { "const": "zero" },
             "transparentUnitPolicy": { "const": "zero-rgba" },
@@ -214,6 +218,60 @@
   ],
   "definitions": {
     "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "canonicalBackgroundRemovalPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method", "expectedKeyColor", "colorDistance", "borderMode",
+        "borderBandMax", "borderSampleStrideDivisor", "rounding",
+        "expectedKeyMaxDistance", "borderInlierDistance", "minimumBorderInlierPermille",
+        "keyLikeDistance", "transparentDistance", "opaqueDistance",
+        "keyDominanceThreshold", "spillChannelDelta", "spillChannelMinimum",
+        "alphaNoiseFloor", "despill", "despillOpaqueFloor", "despillAnchorOffset",
+        "hiddenRgbPolicy", "resizeKernel", "hardAlphaThreshold"
+      ],
+      "properties": {
+        "method": {
+          "enum": [
+            "auto-border-soft-matte-v1",
+            "auto-border-soft-matte-v2",
+            "auto-border-soft-matte-v3"
+          ]
+        },
+        "expectedKeyColor": { "const": "#FF00FF" },
+        "colorDistance": { "const": "chebyshev-rgb" },
+        "borderMode": { "const": "source-border" },
+        "borderBandMax": { "const": 6 },
+        "borderSampleStrideDivisor": { "const": 256 },
+        "rounding": { "const": "nearest-ties-to-even" },
+        "expectedKeyMaxDistance": { "const": 16 },
+        "borderInlierDistance": { "const": 12 },
+        "minimumBorderInlierPermille": { "const": 750 },
+        "keyLikeDistance": { "const": 32 },
+        "transparentDistance": { "const": 12 },
+        "opaqueDistance": { "const": 220 },
+        "keyDominanceThreshold": { "const": 16 },
+        "spillChannelDelta": { "const": 16 },
+        "spillChannelMinimum": { "const": 128 },
+        "alphaNoiseFloor": { "const": 8 },
+        "despill": { "const": true },
+        "despillOpaqueFloor": { "const": 252 },
+        "despillAnchorOffset": { "const": 1 },
+        "hiddenRgbPolicy": { "const": "zero" },
+        "resizeKernel": { "const": "nearest" },
+        "hardAlphaThreshold": { "const": 127 }
+      }
+    },
+    "sourceLimits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maxSourcePixels", "maxUniqueSourcePixels", "maxUniqueSourceBytes"],
+      "properties": {
+        "maxSourcePixels": { "const": 4194304 },
+        "maxUniqueSourcePixels": { "const": 67108864 },
+        "maxUniqueSourceBytes": { "const": 209715200 }
+      }
+    },
     "expectations": {
       "type": "object",
       "additionalProperties": false,
