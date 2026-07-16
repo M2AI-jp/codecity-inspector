@@ -29,13 +29,14 @@
         "crop-key-nearest-hard-alpha/raw-copy-v2",
         "auto-border-crop-soft-matte-nearest-hard-alpha/raw-copy-v3",
         "auto-border-connected-fringe-soft-matte-nearest-hard-alpha/raw-copy-v4",
-        "auto-border-connected-fringe-soft-matte-nearest-hard-alpha/raw-copy-v5"
+        "auto-border-connected-fringe-soft-matte-nearest-hard-alpha/raw-copy-v5",
+        "terrain-composed-atlas/shared-seam-blob16-v1"
       ]
     },
     "sourceLimits": {
       "$ref": "generation-job-v2.schema.json#/definitions/sourceLimits"
     },
-    "generationMode": { "enum": ["per-unit", "monolithic-atlas"] },
+    "generationMode": { "enum": ["per-unit", "monolithic-atlas", "terrain-composed-atlas"] },
     "generationUnitSetSha256": { "$ref": "#/definitions/sha256" },
     "expectations": { "$ref": "#/definitions/expectations" },
     "sourceRequiredCount": { "type": "integer", "minimum": 1, "maximum": 100 },
@@ -81,6 +82,7 @@
         }
       ]
     },
+    "terrainComposition": { "$ref": "#/definitions/terrainComposition" },
     "units": {
       "type": "array", "minItems": 1, "maxItems": 100,
       "items": { "$ref": "#/definitions/unitResult" }
@@ -106,6 +108,24 @@
     "replayPassed": { "const": true },
     "finalCellAuditPassed": { "const": true }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "generationMode": { "const": "terrain-composed-atlas" } },
+        "required": ["generationMode"]
+      },
+      "then": {
+        "properties": { "terrainComposition": { "$ref": "#/definitions/terrainComposition" } },
+        "required": ["terrainComposition"]
+      },
+      "else": {
+        "not": {
+          "properties": { "terrainComposition": {} },
+          "required": ["terrainComposition"]
+        }
+      }
+    }
+  ],
   "definitions": {
     "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
     "expectations": {
@@ -210,6 +230,132 @@
         "borderInlierPermille": { "type": "integer", "minimum": 0, "maximum": 1000 }
       }
     },
+    "terrainComposition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "originKind", "composerVersion", "algorithm", "configSha256", "maskSetSha256",
+        "seamBand", "inputs", "inputSetSha256", "unitDerivations",
+        "unitDerivationSetSha256", "atlasRawSha256", "derivationSha256", "outputArtifacts",
+        "outputArtifactSetSha256", "replayPassed"
+      ],
+      "properties": {
+        "originKind": { "const": "deterministic-derived" },
+        "composerVersion": { "const": "terrain-composed-atlas-v1" },
+        "algorithm": { "const": "terrain-composed-atlas/shared-seam-blob16-v1" },
+        "configSha256": { "$ref": "#/definitions/sha256" },
+        "maskSetSha256": { "$ref": "#/definitions/sha256" },
+        "seamBand": { "const": 4 },
+        "inputs": {
+          "type": "array", "minItems": 1, "maxItems": 6,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": [
+              "role", "originKind", "providerInvocationEvidence",
+              "sourceOriginal", "sourceSnapshot", "normalizedCellSha256"
+            ],
+            "properties": {
+              "role": {
+                "enum": [
+                  "base-0", "base-1", "base-2",
+                  "water-motion-0", "water-motion-1", "water-motion-2"
+                ]
+              },
+              "originKind": { "const": "provider-original" },
+              "providerInvocationEvidence": { "const": "unverified-no-provider-receipt" },
+              "sourceOriginal": { "$ref": "#/definitions/sourceRecord" },
+              "sourceSnapshot": {
+                "allOf": [
+                  { "$ref": "#/definitions/snapshot" },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "path": {
+                        "type": "string",
+                        "pattern": "^generated/terrains/pending/sources/[a-z0-9_-]+\\.provider-original\\.(png|jpg|webp)$"
+                      }
+                    }
+                  }
+                ]
+              },
+              "normalizedCellSha256": { "$ref": "#/definitions/sha256" }
+            }
+          }
+        },
+        "inputSetSha256": { "$ref": "#/definitions/sha256" },
+        "unitDerivations": {
+          "type": "array", "minItems": 25, "maxItems": 25,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": [
+              "unitId", "sourceRoles", "sourceSha256s", "operations", "shift",
+              "maskId", "outputCellSha256"
+            ],
+            "properties": {
+              "unitId": { "type": "string", "pattern": "^unit_[a-z0-9_]+$" },
+              "sourceRoles": {
+                "type": "array", "minItems": 0, "maxItems": 1, "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "base-0", "base-1", "base-2",
+                    "water-motion-0", "water-motion-1", "water-motion-2"
+                  ]
+                }
+              },
+              "sourceSha256s": {
+                "type": "array", "minItems": 0, "maxItems": 1, "uniqueItems": true,
+                "items": { "$ref": "#/definitions/sha256" }
+              },
+              "operations": {
+                "type": "array", "minItems": 1, "maxItems": 6, "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "crop", "nearest-downscale", "toroidal-shift", "shared-seam-band",
+                    "canonical-blob-mask",
+                    "hard-alpha-zero-hidden-rgb", "semantic-zero-rgba", "reserved-zero-rgba"
+                  ]
+                }
+              },
+              "shift": {
+                "type": "object", "additionalProperties": false,
+                "required": ["x", "y"],
+                "properties": {
+                  "x": { "type": "integer", "minimum": 0, "maximum": 63 },
+                  "y": { "type": "integer", "minimum": 0, "maximum": 63 }
+                }
+              },
+              "maskId": {
+                "oneOf": [
+                  { "type": "null" },
+                  { "type": "string", "pattern": "^blob-(?:[0-9]|1[0-5])$" }
+                ]
+              },
+              "outputCellSha256": { "$ref": "#/definitions/sha256" }
+            }
+          }
+        },
+        "unitDerivationSetSha256": { "$ref": "#/definitions/sha256" },
+        "atlasRawSha256": { "$ref": "#/definitions/sha256" },
+        "derivationSha256": { "$ref": "#/definitions/sha256" },
+        "outputArtifacts": {
+          "type": "array", "minItems": 1, "maxItems": 1,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["role", "originKind", "path", "sha256", "width", "height"],
+            "properties": {
+              "role": { "const": "primary" },
+              "originKind": { "const": "deterministic-derived" },
+              "path": { "type": "string", "pattern": "^generated/terrains/pending/[a-z0-9_-]+\\.png$" },
+              "sha256": { "$ref": "#/definitions/sha256" },
+              "width": { "const": 320 },
+              "height": { "const": 320 }
+            }
+          }
+        },
+        "outputArtifactSetSha256": { "$ref": "#/definitions/sha256" },
+        "replayPassed": { "const": true }
+      }
+    },
     "unitResult": {
       "type": "object", "additionalProperties": false,
       "required": [
@@ -237,7 +383,12 @@
         "transformSteps": {
           "oneOf": [
             { "type": "array", "maxItems": 0 },
-            { "$ref": "#/definitions/sourceTransformSteps" }
+            { "$ref": "#/definitions/sourceTransformSteps" },
+            {
+              "type": "array", "minItems": 1, "maxItems": 1,
+              "items": [{ "const": "deterministic-terrain-compose-v1" }],
+              "additionalItems": false
+            }
           ]
         },
         "transformEvidence": {

@@ -25,6 +25,13 @@ import {
   readWaveAImportRequest
 } from '../src/v2/operator.mjs';
 import { writeWaveAJobPack } from '../src/v2/write-job-pack.mjs';
+import {
+  TERRAIN_COMPOSER_ALGORITHM,
+  TERRAIN_COMPOSER_CONFIG_SHA256,
+  TERRAIN_COMPOSER_MASK_SET_SHA256,
+  TERRAIN_COMPOSER_VERSION
+} from '../src/v2/compose-terrain-atlas.mjs';
+import { verifyPendingGenerationForWaveApproval } from '../src/v3/provenance.mjs';
 
 const NOW = '2026-07-16T02:00:00.000Z';
 
@@ -104,6 +111,41 @@ async function writeInput(root, name, bytes) {
   await mkdir(path.dirname(target), { recursive: true });
   await writeFile(target, bytes);
   return target;
+}
+
+async function terrainCompositionRequest(root, job, {
+  name = 'terrain-material.png',
+  width = 128,
+  height = 128
+} = {}) {
+  const actualWidth = width;
+  const raw = Buffer.alloc(actualWidth * height * 4);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < actualWidth; x += 1) {
+      const offset = (y * actualWidth + x) * 4;
+      raw[offset] = 25 + ((x * 5 + y * 3) % 150);
+      raw[offset + 1] = 45 + ((x * 2 + y * 7) % 140);
+      raw[offset + 2] = 15 + ((x * 11 + y * 5) % 100);
+      raw[offset + 3] = 255;
+    }
+  }
+  const bytes = await sharp(raw, { raw: { width: actualWidth, height, channels: 4 } })
+    .png({ adaptiveFiltering: false, palette: false, compressionLevel: 9 })
+    .toBuffer();
+  const sourceOriginal = await writeInput(root, name, bytes);
+  const inputs = [{
+    role: 'base-0',
+    sourceOriginal,
+    cropRect: { x: 0, y: 0, width, height }
+  }];
+  return {
+    originKind: 'deterministic-derived',
+    composerVersion: TERRAIN_COMPOSER_VERSION,
+    algorithm: TERRAIN_COMPOSER_ALGORITHM,
+    configSha256: TERRAIN_COMPOSER_CONFIG_SHA256,
+    maskSetSha256: TERRAIN_COMPOSER_MASK_SET_SHA256,
+    inputs
+  };
 }
 
 async function writeLargeUniquePngs(root, count, {
@@ -342,6 +384,10 @@ test('Wave A job packs bind 109 definitions to 771 generation units and honest p
   assert.equal(first.job.promptSha256, 'fb6e1fdd0d701f15d218ed71809e2cb8b6cb3461be717a58986ba254119bbd9a');
   assert.equal(first.job.generationUnits[0].unitPromptSha256, 'febe039d66e3844caec6357d5120ccd0cc59e04d0e19e96949aa73b23a93a488');
   assert.equal(first.job.generationUnitSetSha256, 'f2c3ffc4384b2ac557ba86be2d842b90ae3dde5573b3d0ad7668247ee0685cc7');
+  assert.equal(
+    first.pack.members.unitPlan.sha256,
+    '44a0b43a8f2ffa8112a714e76621d18b33e7488b019672ac4aa20b19143db5f7'
+  );
   assert.equal(first.job.technicalGates.inputPolicy.chromaKeyTolerance, 0);
   assert.equal(
     first.job.technicalGates.inputPolicy.canonicalBackgroundRemoval.method,
@@ -373,10 +419,65 @@ test('Wave A job packs bind 109 definitions to 771 generation units and honest p
   assert.notEqual(characterAtlas.job.generationUnitSetSha256, characterPerUnit.job.generationUnitSetSha256);
   assert.match(characterAtlas.job.generationUnits[0].unitPromptText, /10-column x 4-row monolithic character atlas/);
   assert.doesNotMatch(characterAtlas.job.generationUnits[0].unitPromptText, /Generate exactly one semantic unit/);
+  const terrainPerUnit = await buildWaveAJob({ assetId: 'terrain.grass' }, { forgeRoot: root });
+  const terrainComposed = await buildWaveAJob({
+    assetId: 'terrain.grass', generationMode: 'terrain-composed-atlas'
+  }, { forgeRoot: root });
+  assert.notEqual(terrainComposed.job.id, terrainPerUnit.job.id);
+  assert.notEqual(terrainComposed.job.generationUnitSetSha256, terrainPerUnit.job.generationUnitSetSha256);
+  assert.equal(terrainComposed.job.terrainCompositionPlan.configSha256, TERRAIN_COMPOSER_CONFIG_SHA256);
+  assert.match(terrainComposed.job.promptText, /one material crop image for the requested input role/);
+  assert.match(terrainComposed.job.promptText, /Accepted provider source formats: PNG, JPEG, or WebP/);
+  assert.doesNotMatch(terrainComposed.job.promptText, /Generation background key:/);
+  assert.deepEqual(terrainComposed.job.technicalGates.inputPolicy, {
+    format: 'png-jpeg-webp',
+    nativeOutputSize: false,
+    resizeKernel: 'nearest',
+    allowEnlargement: false,
+    allowImportMutation: false,
+    expectedGenerator: 'codex-imagegen-built-in',
+    chromaKeyColor: null,
+    chromaKeyTolerance: null,
+    sourceLimits: {
+      maxSourcePixels: 4_194_304,
+      maxUniqueSourcePixels: 67_108_864,
+      maxUniqueSourceBytes: 209_715_200
+    },
+    hardAlphaThreshold: null,
+    hiddenRgbPolicy: 'not-applicable-fully-opaque-input',
+    transparentUnitPolicy: 'zero-rgba',
+    assemblyKernel: TERRAIN_COMPOSER_ALGORITHM,
+    terrainMaterialInputs: {
+      acceptedFormats: ['png', 'jpeg', 'webp'],
+      cropShape: 'square',
+      minimumCropSize: 64,
+      sourceAlpha: 'fully-opaque',
+      forbiddenOpaqueRgb: '#FF00FF',
+      outputOrigin: 'deterministic-derived',
+      providerInvocationEvidence: 'unverified-no-provider-receipt'
+    }
+  });
+  assert.match(terrainComposed.job.generationUnits[0].unitPromptText, /deterministic-derived output/);
+  assert.doesNotMatch(terrainComposed.job.generationUnits[0].unitPromptText, /Generate exactly one semantic unit/);
   const help = await main(['help']);
   assert.ok(help.commands.includes(
     'make-job-v2 --asset <character-asset-id> --mode monolithic-atlas [--seed <seed>]'
   ));
+  assert.ok(help.commands.includes(
+    'make-job-v2 --asset <terrain-asset-id> --mode terrain-composed-atlas [--seed <seed>]'
+  ));
+  await assert.rejects(
+    () => buildWaveAJob({
+      assetId: 'character.player', generationMode: 'terrain-composed-atlas'
+    }, { forgeRoot: root }),
+    /available only for Wave A terrain/
+  );
+  await assert.rejects(
+    () => buildWaveAJob({
+      assetId: 'terrain.cliff', generationMode: 'terrain-composed-atlas'
+    }, { forgeRoot: root }),
+    /excludes terrain\.cliff until directional face inputs are defined/
+  );
   await assert.rejects(
     () => main(['make-job-v2', '--asset', 'character.player', '--mode', 'unsupported']),
     /Unsupported Wave A generation mode/
@@ -1033,6 +1134,176 @@ test('monolithic atlas mode requires one source with exact unique crops and pres
   assert.equal((await processCandidate({ generationId: original.id }, {
     root, forgeRoot: root
   })).status, 'audited-pending');
+});
+
+test('terrain-composed-atlas persists provider originals separately and deep-replays every derived cell', async (t) => {
+  const root = await fixtureRoot(t);
+  const pack = await makeWaveAJob({
+    assetId: 'terrain.grass', generationMode: 'terrain-composed-atlas', seed: 'compose-v1'
+  }, { root, forgeRoot: root });
+  const unitPlan = JSON.parse(await readFile(
+    path.join(root, pack.pack.members.unitPlan.path),
+    'utf8'
+  ));
+  assert.deepEqual(unitPlan.terrainCompositionPlan, pack.job.terrainCompositionPlan);
+  const terrainComposition = await terrainCompositionRequest(root, pack.job);
+  const request = {
+    schemaVersion: 2,
+    requiredSetId: 'fable5-v2',
+    waveId: 'A',
+    assetId: 'terrain.grass',
+    jobPackPath: pack.result.jobPackPath,
+    terrainComposition,
+    identityBindingPath: null
+  };
+  const requestPath = 'review/import-requests/v2/terrain-grass-compose.json';
+  await mkdir(path.join(root, path.dirname(requestPath)), { recursive: true });
+  await writeFile(path.join(root, requestPath), canonicalJson(request));
+  assert.deepEqual(await readWaveAImportRequest(requestPath, { root }), request);
+  const approvedBefore = await hashApprovedTree(root);
+  const imported = await importWaveARequest({ requestPath }, { root, forgeRoot: root });
+  assert.equal(imported.approvedTreeSha256Before, approvedBefore);
+  assert.equal(imported.approvedTreeSha256After, approvedBefore);
+  const result = imported.result;
+  assert.equal(result.unitAssemblyV2.generationMode, 'terrain-composed-atlas');
+  assert.equal(result.unitAssemblyV2.assemblyAlgorithm, TERRAIN_COMPOSER_ALGORITHM);
+  assert.equal(result.unitAssemblyV2.terrainComposition.originKind, 'deterministic-derived');
+  assert.equal(result.unitAssemblyV2.terrainComposition.configSha256, TERRAIN_COMPOSER_CONFIG_SHA256);
+  assert.equal(result.unitAssemblyV2.terrainComposition.maskSetSha256, TERRAIN_COMPOSER_MASK_SET_SHA256);
+  assert.equal(result.unitAssemblyV2.terrainComposition.inputs.length, 1);
+  assert.equal(result.unitAssemblyV2.terrainComposition.inputs[0].originKind, 'provider-original');
+  assert.equal(
+    result.unitAssemblyV2.terrainComposition.inputs[0].providerInvocationEvidence,
+    'unverified-no-provider-receipt'
+  );
+  assert.match(
+    result.unitAssemblyV2.terrainComposition.inputs[0].sourceSnapshot.path,
+    /\.provider-original\.png$/
+  );
+  assert.equal(result.productionRecipesV2[0].method, 'terrain-composition');
+  assert.equal(result.productionRecipesV2[0].generator, 'codecity-terrain-composer-v1');
+  assert.equal(result.productionRecipesV2[0].sourceOriginal.originKind, 'deterministic-derived');
+  assert.deepEqual(
+    result.productionRecipesV2[0].sourceOriginal.derivedFromSha256s,
+    [result.unitAssemblyV2.terrainComposition.inputs[0].sourceSnapshot.sha256]
+  );
+  assert.equal(
+    result.productionRecipesV2[0].sourceOriginal.derivationSha256,
+    result.unitAssemblyV2.terrainComposition.derivationSha256
+  );
+  const nonempty = result.unitAssemblyV2.units.filter(({ sourceRequired }) => sourceRequired);
+  assert.equal(nonempty.length, 18);
+  assert.ok(nonempty.every((unit) => unit.sourceOriginal === null
+    && unit.sourceSnapshot === null
+    && unit.transformedSnapshot
+    && canonicalJson(unit.transformSteps) === canonicalJson(['deterministic-terrain-compose-v1'])));
+  assert.ok(result.unitAssemblyV2.units.filter(({ sourceRequired }) => !sourceRequired)
+    .every((unit) => unit.sourceOriginal === null && unit.sourceSnapshot === null
+      && unit.transformedSnapshot === null && unit.transformSteps.length === 0));
+  assert.equal((await verifyPersistedWaveAUnitAssembly(result, {
+    root, forgeRoot: root
+  })).generationId, result.id);
+  assert.equal((await verifyPendingGenerationForWaveApproval({
+    assetId: result.assetId,
+    generationId: result.id
+  }, { root, forgeRoot: root })).generation.id, result.id);
+  assert.equal((await processCandidate({ generationId: result.id }, {
+    root, forgeRoot: root
+  })).status, 'audited-pending');
+
+  const original = structuredClone(result);
+  const mutations = [
+    (value) => { value.unitAssemblyV2.terrainComposition.configSha256 = 'f'.repeat(64); },
+    (value) => { value.unitAssemblyV2.terrainComposition.unitDerivations[4].outputCellSha256 = 'e'.repeat(64); },
+    (value) => { value.productionRecipesV2[0].sourceOriginal.originKind = 'provider-original'; },
+    (value) => { value.productionRecipesV2[0].sourceOriginal.derivationSha256 = 'd'.repeat(64); },
+    (value) => {
+      value.unitAssemblyV2.terrainComposition.inputs[0].providerInvocationEvidence = 'claimed';
+    }
+  ];
+  for (const mutate of mutations) {
+    const forged = structuredClone(original);
+    mutate(forged);
+    await persistResultMutation(root, original.id, forged);
+    await assert.rejects(
+      () => processCandidate({ generationId: original.id }, { root, forgeRoot: root })
+    );
+    await assert.rejects(
+      () => verifyPendingGenerationForWaveApproval({
+        assetId: original.assetId,
+        generationId: original.id
+      }, { root, forgeRoot: root })
+    );
+    await persistResultMutation(root, original.id, original);
+  }
+  const providerPath = path.join(
+    root,
+    original.unitAssemblyV2.terrainComposition.inputs[0].sourceSnapshot.path
+  );
+  const providerBytes = await readFile(providerPath);
+  const damaged = Buffer.from(providerBytes);
+  damaged[Math.floor(damaged.length / 2)] ^= 1;
+  await writeFile(providerPath, damaged);
+  await assert.rejects(
+    () => processCandidate({ generationId: original.id }, { root, forgeRoot: root })
+  );
+  await assert.rejects(
+    () => verifyPendingGenerationForWaveApproval({
+      assetId: original.assetId,
+      generationId: original.id
+    }, { root, forgeRoot: root })
+  );
+  await writeFile(providerPath, providerBytes);
+  assert.equal((await processCandidate({ generationId: original.id }, {
+    root, forgeRoot: root
+  })).status, 'audited-pending');
+  assert.equal((await verifyPendingGenerationForWaveApproval({
+    assetId: original.assetId,
+    generationId: original.id
+  }, { root, forgeRoot: root })).generation.id, original.id);
+  assert.equal(await hashApprovedTree(root), approvedBefore);
+});
+
+test('terrain composition invalid overlap and config drift fail before ledger, pending, or approved writes', async (t) => {
+  const root = await fixtureRoot(t);
+  const pack = await makeWaveAJob({
+    assetId: 'terrain.grass', generationMode: 'terrain-composed-atlas', seed: 'no-write'
+  }, { root, forgeRoot: root });
+  const terrainComposition = await terrainCompositionRequest(root, pack.job, {
+    name: 'overlap-material.png', width: 128, height: 128
+  });
+  terrainComposition.inputs.push({
+    role: 'base-1',
+    sourceOriginal: terrainComposition.inputs[0].sourceOriginal,
+    cropRect: { x: 0, y: 0, width: 128, height: 128 }
+  });
+  const ledgerPath = path.join(root, 'data', 'local', 'generations.json');
+  const pendingRoot = path.join(root, 'generated', 'terrains', 'pending');
+  const ledgerBefore = await readFile(ledgerPath);
+  const pendingBefore = await hashTree(pendingRoot);
+  const approvedBefore = await hashApprovedTree(root);
+  await assert.rejects(() => importWaveACandidate({
+    assetId: 'terrain.grass',
+    jobPackPath: pack.result.jobPackPath,
+    terrainComposition,
+    identityBindingPath: null
+  }, { root, forgeRoot: root }), /must not overlap/);
+  assert.deepEqual(await readFile(ledgerPath), ledgerBefore);
+  assert.equal(await hashTree(pendingRoot), pendingBefore);
+  assert.equal(await hashApprovedTree(root), approvedBefore);
+
+  const drifted = structuredClone(terrainComposition);
+  drifted.inputs.pop();
+  drifted.configSha256 = 'd'.repeat(64);
+  await assert.rejects(() => importWaveACandidate({
+    assetId: 'terrain.grass',
+    jobPackPath: pack.result.jobPackPath,
+    terrainComposition: drifted,
+    identityBindingPath: null
+  }, { root, forgeRoot: root }), /incomplete or drifted/);
+  assert.deepEqual(await readFile(ledgerPath), ledgerBefore);
+  assert.equal(await hashTree(pendingRoot), pendingBefore);
+  assert.equal(await hashApprovedTree(root), approvedBefore);
 });
 
 test('coverage, order, source alias, aspect, and caller leaf symlink failures write no pending result', async (t) => {

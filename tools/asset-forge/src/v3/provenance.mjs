@@ -203,6 +203,24 @@ async function verifyProduction(root, generation, definition, expectedReferences
     || recipes.some((recipe, index) => recipe?.role !== expectedRoles[index])) {
     throw new Error('V3 bundle requires one exact v2 production recipe per ordered artifact');
   }
+  const composedTerrain = generation.unitAssemblyV2?.generationMode === 'terrain-composed-atlas';
+  if (composedTerrain) {
+    const terrainComposition = generation.unitAssemblyV2.terrainComposition;
+    const rawInputs = terrainComposition?.inputs ?? [];
+    const expectedSourceHashes = [...new Set(rawInputs.map((input) => input.sourceSnapshot?.sha256))];
+    if (generation.category !== 'terrain' || rawInputs.length < 1
+      || rawInputs.some((input) => input.originKind !== 'provider-original'
+        || input.providerInvocationEvidence !== 'unverified-no-provider-receipt')
+      || recipes.some((recipe) => recipe.method !== 'terrain-composition'
+        || recipe.generator !== 'codecity-terrain-composer-v1'
+        || recipe.sourceOriginal?.originKind !== 'deterministic-derived'
+        || !isDeepStrictEqual(recipe.sourceOriginal?.derivedFromSha256s, expectedSourceHashes)
+        || recipe.sourceOriginal?.derivationSha256 !== terrainComposition?.derivationSha256)) {
+      throw new Error('V3 terrain composition recipe does not preserve derived origin and provider-original inputs');
+    }
+  } else if (recipes.some((recipe) => recipe.method === 'terrain-composition')) {
+    throw new Error('V3 non-composed generation falsely claims terrain composition provenance');
+  }
   const auditGeneration = definition.category === 'building' && !generation.outputPath
     ? {
         ...generation,

@@ -23,7 +23,7 @@
     },
     "sourceRequired": { "type": "boolean" },
     "visualContent": { "type": "string", "minLength": 24 },
-    "generationMode": { "enum": ["per-unit", "monolithic-atlas"] },
+    "generationMode": { "enum": ["per-unit", "monolithic-atlas", "terrain-composed-atlas"] },
     "unitPromptText": { "type": "string", "minLength": 128 },
     "unitPromptSha256": { "$ref": "#/definitions/sha256" },
     "inputReferences": {

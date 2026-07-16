@@ -569,14 +569,74 @@
             "properties": { "method": { "const": "imagegen" } },
             "required": ["method"]
           },
-          "then": { "properties": { "generator": { "const": "codex-imagegen-built-in" } } },
-          "else": { "properties": { "generator": { "const": "codecity-unit-assembler-v2" } } }
+          "then": {
+            "properties": {
+              "generator": { "const": "codex-imagegen-built-in" },
+              "sourceOriginal": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "pattern": "^generated/(characters|buildings|terrains|overlays|structures|interiors|props|ui|effects)/pending/sources/[a-z0-9_-]+\\.source-original\\.(png|jpg|webp)$"
+                  },
+                  "originKind": false,
+                  "derivedFromSha256s": false,
+                  "derivationSha256": false
+                }
+              }
+            }
+          },
+          "else": {
+            "if": {
+              "properties": { "method": { "const": "terrain-composition" } },
+              "required": ["method"]
+            },
+            "then": {
+              "properties": {
+                "generator": { "const": "codecity-terrain-composer-v1" },
+                "sourceOriginal": {
+                  "type": "object",
+                  "properties": {
+                    "originKind": { "const": "deterministic-derived" },
+                    "derivedFromSha256s": {
+                      "type": "array", "minItems": 1, "maxItems": 6,
+                      "uniqueItems": true,
+                      "items": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+                    },
+                    "derivationSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+                  },
+                  "required": ["originKind", "derivedFromSha256s", "derivationSha256"]
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "generator": { "const": "codecity-unit-assembler-v2" },
+                "sourceOriginal": {
+                  "type": "object",
+                  "properties": {
+                    "path": {
+                      "type": "string",
+                      "pattern": "^generated/(characters|buildings|terrains|overlays|structures|interiors|props|ui|effects)/pending/sources/[a-z0-9_-]+\\.source-original\\.(png|jpg|webp)$"
+                    },
+                    "originKind": false,
+                    "derivedFromSha256s": false,
+                    "derivationSha256": false
+                  }
+                }
+              }
+            }
+          }
         }
       ],
       "properties": {
         "role": { "enum": ["primary", "base", "roof"] },
-        "method": { "enum": ["imagegen", "unit-assembly"] },
-        "generator": { "enum": ["codex-imagegen-built-in", "codecity-unit-assembler-v2"] },
+        "method": { "enum": ["imagegen", "unit-assembly", "terrain-composition"] },
+        "generator": {
+          "enum": [
+            "codex-imagegen-built-in", "codecity-unit-assembler-v2", "codecity-terrain-composer-v1"
+          ]
+        },
         "toolMode": { "const": "built-in" },
         "transformSteps": {
           "type": "array",
@@ -638,12 +698,19 @@
           "properties": {
             "path": {
               "type": "string",
-              "pattern": "^generated/(characters|buildings|terrains|overlays|structures|interiors|props|ui|effects)/pending/sources/[a-z0-9_-]+\\.source-original\\.(png|jpg|webp)$"
+              "pattern": "^generated/(characters|buildings|terrains|overlays|structures|interiors|props|ui|effects)/pending/sources/[a-z0-9_-]+\\.(?:source-original\\.(?:png|jpg|webp)|derived-composition\\.png)$"
             },
             "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
             "format": { "enum": ["png", "jpeg", "webp"] },
             "width": { "type": "integer", "minimum": 1 },
-            "height": { "type": "integer", "minimum": 1 }
+            "height": { "type": "integer", "minimum": 1 },
+            "originKind": { "const": "deterministic-derived" },
+            "derivedFromSha256s": {
+              "type": "array", "minItems": 1, "maxItems": 6,
+              "uniqueItems": true,
+              "items": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+            },
+            "derivationSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
           }
         },
         "artifact": {

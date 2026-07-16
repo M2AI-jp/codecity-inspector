@@ -111,6 +111,7 @@ export async function main(argv = process.argv.slice(2)) {
       commands: [
         'make-job-v2 --asset <wave-a-asset-id> [--seed <seed>]',
         'make-job-v2 --asset <character-asset-id> --mode monolithic-atlas [--seed <seed>]',
+        'make-job-v2 --asset <terrain-asset-id> --mode terrain-composed-atlas [--seed <seed>]',
         'import-v2 --recipe review/import-requests/v2/<request>.json',
         'list-v2',
         'approve-wave-a --note <human-review-note>  (interactive TTY; one exact 109-asset bulk ceremony)',

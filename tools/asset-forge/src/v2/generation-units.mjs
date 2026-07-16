@@ -1,6 +1,10 @@
 import { canonicalJson, sha256 } from '../hashing.mjs';
 
-export const GENERATION_MODES_V2 = Object.freeze(['per-unit', 'monolithic-atlas']);
+export const GENERATION_MODES_V2 = Object.freeze([
+  'per-unit',
+  'monolithic-atlas',
+  'terrain-composed-atlas'
+]);
 export const UNIT_EXPECTATIONS_V2 = Object.freeze([
   'expected-nonempty',
   'semantic-transparent',

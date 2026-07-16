@@ -10,6 +10,7 @@ import {
   GENERATION_MODES_V2,
   UNIT_EXPECTATIONS_V2
 } from './generation-units.mjs';
+import { terrainCompositionPlanFor } from './compose-terrain-atlas.mjs';
 
 export const FABLE5_REQUIRED_SET_ID = 'fable5-v2';
 export const FABLE5_WAVE_A_ID = 'A';
@@ -113,10 +114,18 @@ function exactUnitPrompt(asset, unit, {
   promptSha256,
   referenceImages,
   generationMode,
-  identityMasterPlan
+  identityMasterPlan,
+  terrainCompositionPlan
 }) {
   const generationInstruction = unit.sourceRequired
-    ? (generationMode === 'monolithic-atlas' && asset.category === 'character'
+    ? (generationMode === 'terrain-composed-atlas'
+        ? [
+            'Do not generate this semantic cell as a standalone provider image. It is a deterministic-derived output of the terrain composer from an explicit ordered set of fully opaque provider-original material crops.',
+            `Input contract: ${terrainCompositionPlan.baseInputs.minimum}..${terrainCompositionPlan.baseInputs.maximum} base crop(s) and ${terrainCompositionPlan.waterMotionInputs.minimum}..${terrainCompositionPlan.waterMotionInputs.maximum} water-motion crop(s). terrain.cliff is excluded until a directional face-input contract exists.`,
+            `Composer: ${terrainCompositionPlan.composerVersion}; config SHA-256: ${terrainCompositionPlan.configSha256}; canonical mask-set SHA-256: ${terrainCompositionPlan.maskSetSha256}.`,
+            'Generate only the provider-original material inputs declared by the composition request. The importer performs downscale-only nearest normalization, shared seam-band construction, canonical masking, hard alpha, hidden-RGB zeroing, and byte-replay.'
+          ]
+        : generationMode === 'monolithic-atlas' && asset.category === 'character'
         ? [
             `This is one formal cell contract inside a single identity-bound 10-column x 4-row monolithic character atlas. Do not invoke this unit prompt by itself; the identity binding issued after the identity master supplies the sole atlas-level generation instruction and the importer produces the exact ${unit.targetRect.width}x${unit.targetRect.height} cell.`,
             'Use exact flat #FF00FF as removable background inside this cell. No anti-aliasing, caption,',
@@ -165,14 +174,22 @@ function exactUnitPrompt(asset, unit, {
   ].join('\n');
 }
 
-function bindGenerationUnits(asset, binding, referenceImages, generationMode, identityMasterPlan) {
+function bindGenerationUnits(
+  asset,
+  binding,
+  referenceImages,
+  generationMode,
+  identityMasterPlan,
+  terrainCompositionPlan
+) {
   const units = enumerateWaveAGenerationUnits(asset).map((unit) => {
     const unitPromptText = exactUnitPrompt(asset, unit, {
       definitionSha256: binding.definitionSha256,
       promptSha256: binding.promptSha256,
       referenceImages,
       generationMode,
-      identityMasterPlan
+      identityMasterPlan,
+      terrainCompositionPlan
     });
     return {
       ...unit,
@@ -193,7 +210,39 @@ function bindGenerationUnits(asset, binding, referenceImages, generationMode, id
   };
 }
 
-export function assetSpecificPrompt(asset) {
+export function assetSpecificPrompt(asset, {
+  generationMode = 'per-unit',
+  terrainCompositionPlan = null
+} = {}) {
+  if (generationMode === 'terrain-composed-atlas') {
+    if (!terrainCompositionPlan) {
+      throw new Error('Terrain-composed prompt requires its deterministic composition plan');
+    }
+    return [
+      '# Exact Fable5 Wave A terrain material-input instruction',
+      '',
+      `Required set: ${FABLE5_REQUIRED_SET_ID}`,
+      `Wave: ${FABLE5_WAVE_A_ID}`,
+      `Asset ID: ${asset.id}`,
+      `Display name: ${asset.displayName}`,
+      `Game meaning: ${asset.gameMeaning}`,
+      `Final runtime artifact (do not generate directly): ${asset.outputSize.width}x${asset.outputSize.height} PNG`,
+      'Provider deliverable: one material crop image for the requested input role, not a 5x5 atlas, contact sheet, transition mask, or transparent cutout.',
+      'Accepted provider source formats: PNG, JPEG, or WebP. The selected crop must be square, at least 64x64 pixels, fully opaque at every source pixel, and contain no exact #FF00FF pixel.',
+      'Do not add transparency, alpha padding, a magenta key, labels, borders, mockup framing, characters, props, or lighting gradients across the material.',
+      `Input roles: base ${terrainCompositionPlan.baseInputs.minimum}..${terrainCompositionPlan.baseInputs.maximum}; water motion ${terrainCompositionPlan.waterMotionInputs.minimum}..${terrainCompositionPlan.waterMotionInputs.maximum}. terrain.cliff is excluded until a directional face-input contract exists.`,
+      `Composer: ${terrainCompositionPlan.composerVersion}; config SHA-256: ${terrainCompositionPlan.configSha256}; mask-set SHA-256: ${terrainCompositionPlan.maskSetSha256}.`,
+      `Scale class: ${asset.scaleClass}`,
+      `Placement space: pixels=${asset.placementSpace.pixels}; tiles=${asset.placementSpace.tiles}`,
+      '',
+      'The earlier terrain-autotile brief and exact AssetDefinition below describe the final visual and gameplay contract. For this job mode they do not authorize provider generation of the final sheet. The importer alone performs nearest downscale, shared-seam construction, canonical masking, transparent-cell zeroing, hard alpha, atlas assembly, and byte replay.',
+      '',
+      '```json',
+      canonicalJson(asset).trimEnd(),
+      '```',
+      ''
+    ].join('\n');
+  }
   return [
     '# Exact Fable5 Wave A asset instruction',
     '',
@@ -220,7 +269,7 @@ export function assetSpecificPrompt(asset) {
   ].join('\n');
 }
 
-async function renderPrompt(asset, forgeRoot) {
+async function renderPrompt(asset, forgeRoot, promptOptions = {}) {
   const promptRoot = pathsFor(forgeRoot).prompts;
   const parts = [];
   for (const relativePath of asset.promptFiles) {
@@ -233,7 +282,7 @@ async function renderPrompt(asset, forgeRoot) {
     );
     parts.push(`<!-- source: ${relativePath} -->\n${await readFile(absolutePath, 'utf8')}`.trimEnd());
   }
-  parts.push(assetSpecificPrompt(asset).trimEnd());
+  parts.push(assetSpecificPrompt(asset, promptOptions).trimEnd());
   return `${parts.join('\n\n')}\n`;
 }
 
@@ -273,7 +322,16 @@ export async function buildWaveAJob({ assetId, seed = '', generationMode = 'per-
   if (asset.defaultReferenceIds.includes('cutaway_interior_visual_reference')) {
     throw new Error(`Pending cutaway reference is forbidden in Wave A: ${assetId}`);
   }
-  const promptText = await renderPrompt(asset, forgeRoot);
+  if (generationMode === 'terrain-composed-atlas' && asset.category !== 'terrain') {
+    throw new Error('terrain-composed-atlas mode is available only for Wave A terrain assets');
+  }
+  const terrainCompositionPlan = generationMode === 'terrain-composed-atlas'
+    ? terrainCompositionPlanFor(asset)
+    : null;
+  const promptText = await renderPrompt(asset, forgeRoot, {
+    generationMode,
+    terrainCompositionPlan
+  });
   const promptSha256 = sha256(promptText);
   const binding = definitionBindingSnapshot(asset, promptSha256);
   const referenceAuthorizationSha256 = sha256(canonicalJson(effectiveAuthorization));
@@ -305,7 +363,8 @@ export async function buildWaveAJob({ assetId, seed = '', generationMode = 'per-
     binding,
     referenceImages,
     generationMode,
-    identityMasterPlan
+    identityMasterPlan,
+    terrainCompositionPlan
   );
   const stableProvenance = {
     requiredSetId: FABLE5_REQUIRED_SET_ID,
@@ -322,6 +381,7 @@ export async function buildWaveAJob({ assetId, seed = '', generationMode = 'per-
     referenceImages,
     artifactContracts,
     generationMode,
+    ...(terrainCompositionPlan ? { terrainCompositionPlan } : {}),
     generationUnitSetSha256: generation.unitSetSha256,
     generationExpectations: generation.expectations,
     identityMasterPlanSha256: identityMasterPlan
@@ -329,7 +389,30 @@ export async function buildWaveAJob({ assetId, seed = '', generationMode = 'per-
       : null,
     technicalGates: {
       inspectionGates: asset.inspectionGates,
-      inputPolicy: {
+      inputPolicy: terrainCompositionPlan ? {
+        format: 'png-jpeg-webp',
+        nativeOutputSize: false,
+        resizeKernel: 'nearest',
+        allowEnlargement: false,
+        allowImportMutation: false,
+        expectedGenerator: 'codex-imagegen-built-in',
+        chromaKeyColor: null,
+        chromaKeyTolerance: null,
+        sourceLimits: structuredClone(WAVE_A_SOURCE_LIMITS),
+        hardAlphaThreshold: null,
+        hiddenRgbPolicy: 'not-applicable-fully-opaque-input',
+        transparentUnitPolicy: 'zero-rgba',
+        assemblyKernel: terrainCompositionPlan.algorithm,
+        terrainMaterialInputs: {
+          acceptedFormats: ['png', 'jpeg', 'webp'],
+          cropShape: 'square',
+          minimumCropSize: terrainCompositionPlan.tileSize,
+          sourceAlpha: 'fully-opaque',
+          forbiddenOpaqueRgb: '#FF00FF',
+          outputOrigin: 'deterministic-derived',
+          providerInvocationEvidence: 'unverified-no-provider-receipt'
+        }
+      } : {
         format: 'png',
         nativeOutputSize: true,
         resizeKernel: 'nearest',
@@ -397,6 +480,7 @@ export async function buildWaveAJob({ assetId, seed = '', generationMode = 'per-
     referenceImages,
     artifactContracts,
     generationMode,
+    ...(terrainCompositionPlan ? { terrainCompositionPlan } : {}),
     generationUnits: generation.units,
     generationUnitSetSha256: generation.unitSetSha256,
     generationExpectations: generation.expectations,

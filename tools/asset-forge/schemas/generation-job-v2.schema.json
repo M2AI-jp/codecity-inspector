@@ -89,7 +89,8 @@
         }
       ]
     },
-    "generationMode": { "enum": ["per-unit", "monolithic-atlas"] },
+    "generationMode": { "enum": ["per-unit", "monolithic-atlas", "terrain-composed-atlas"] },
+    "terrainCompositionPlan": { "$ref": "#/definitions/terrainCompositionPlan" },
     "generationUnits": {
       "type": "array",
       "minItems": 1,
@@ -120,22 +121,25 @@
             "hiddenRgbPolicy", "transparentUnitPolicy", "assemblyKernel"
           ],
           "properties": {
-            "format": { "const": "png" },
-            "nativeOutputSize": { "const": true },
+            "format": { "enum": ["png", "png-jpeg-webp"] },
+            "nativeOutputSize": { "type": "boolean" },
             "resizeKernel": { "const": "nearest" },
             "allowEnlargement": { "const": false },
             "allowImportMutation": { "const": false },
             "expectedGenerator": { "const": "codex-imagegen-built-in" },
-            "chromaKeyColor": { "const": "#FF00FF" },
-            "chromaKeyTolerance": { "const": 0 },
+            "chromaKeyColor": { "oneOf": [{ "const": "#FF00FF" }, { "type": "null" }] },
+            "chromaKeyTolerance": { "oneOf": [{ "const": 0 }, { "type": "null" }] },
             "canonicalBackgroundRemoval": {
               "$ref": "#/definitions/canonicalBackgroundRemovalPolicy"
             },
             "sourceLimits": { "$ref": "#/definitions/sourceLimits" },
-            "hardAlphaThreshold": { "const": 127 },
-            "hiddenRgbPolicy": { "const": "zero" },
+            "hardAlphaThreshold": { "oneOf": [{ "const": 127 }, { "type": "null" }] },
+            "hiddenRgbPolicy": { "enum": ["zero", "not-applicable-fully-opaque-input"] },
             "transparentUnitPolicy": { "const": "zero-rgba" },
-            "assemblyKernel": { "const": "raw-copy" }
+            "assemblyKernel": {
+              "enum": ["raw-copy", "terrain-composed-atlas/shared-seam-blob16-v1"]
+            },
+            "terrainMaterialInputs": { "$ref": "#/definitions/terrainMaterialInputs" }
           }
         }
       }
@@ -214,10 +218,152 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": { "generationMode": { "const": "terrain-composed-atlas" } },
+        "required": ["generationMode"]
+      },
+      "then": {
+        "properties": {
+          "category": { "const": "terrain" },
+          "terrainCompositionPlan": { "$ref": "#/definitions/terrainCompositionPlan" },
+          "technicalGates": {
+            "type": "object",
+            "properties": {
+              "inputPolicy": { "$ref": "#/definitions/terrainInputPolicyOverlay" }
+            }
+          }
+        },
+        "required": ["terrainCompositionPlan"]
+      },
+      "else": {
+        "allOf": [
+          {
+            "not": {
+              "properties": { "terrainCompositionPlan": {} },
+              "required": ["terrainCompositionPlan"]
+            }
+          },
+          {
+            "properties": {
+              "technicalGates": {
+                "type": "object",
+                "properties": {
+                  "inputPolicy": { "$ref": "#/definitions/legacyInputPolicyOverlay" }
+                }
+              }
+            }
+          }
+        ]
+      }
     }
   ],
   "definitions": {
     "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "terrainCompositionPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion", "originKind", "composerVersion", "algorithm",
+        "configSha256", "maskSetSha256", "tileSize", "seamBand",
+        "baseInputs", "waterMotionInputs"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "originKind": { "const": "deterministic-derived" },
+        "composerVersion": { "const": "terrain-composed-atlas-v1" },
+        "algorithm": { "const": "terrain-composed-atlas/shared-seam-blob16-v1" },
+        "configSha256": { "$ref": "#/definitions/sha256" },
+        "maskSetSha256": { "$ref": "#/definitions/sha256" },
+        "tileSize": { "const": 64 },
+        "seamBand": { "const": 4 },
+        "baseInputs": {
+          "type": "object", "additionalProperties": false,
+          "required": ["minimum", "maximum", "roles"],
+          "properties": {
+            "minimum": { "const": 1 }, "maximum": { "const": 3 },
+            "roles": {
+              "type": "array", "minItems": 3, "maxItems": 3,
+              "items": [{ "const": "base-0" }, { "const": "base-1" }, { "const": "base-2" }],
+              "additionalItems": false
+            }
+          }
+        },
+        "waterMotionInputs": {
+          "type": "object", "additionalProperties": false,
+          "required": ["minimum", "maximum", "roles"],
+          "properties": {
+            "minimum": { "const": 0 },
+            "maximum": { "enum": [0, 3] },
+            "roles": {
+              "oneOf": [
+                { "type": "array", "maxItems": 0 },
+                {
+                  "type": "array", "minItems": 3, "maxItems": 3,
+                  "items": [
+                    { "const": "water-motion-0" },
+                    { "const": "water-motion-1" },
+                    { "const": "water-motion-2" }
+                  ],
+                  "additionalItems": false
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "terrainMaterialInputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "acceptedFormats", "cropShape", "minimumCropSize", "sourceAlpha",
+        "forbiddenOpaqueRgb", "outputOrigin", "providerInvocationEvidence"
+      ],
+      "properties": {
+        "acceptedFormats": {
+          "type": "array", "minItems": 3, "maxItems": 3,
+          "items": [{ "const": "png" }, { "const": "jpeg" }, { "const": "webp" }],
+          "additionalItems": false
+        },
+        "cropShape": { "const": "square" },
+        "minimumCropSize": { "const": 64 },
+        "sourceAlpha": { "const": "fully-opaque" },
+        "forbiddenOpaqueRgb": { "const": "#FF00FF" },
+        "outputOrigin": { "const": "deterministic-derived" },
+        "providerInvocationEvidence": { "const": "unverified-no-provider-receipt" }
+      }
+    },
+    "terrainInputPolicyOverlay": {
+      "type": "object",
+      "required": ["sourceLimits", "terrainMaterialInputs"],
+      "properties": {
+        "format": { "const": "png-jpeg-webp" },
+        "nativeOutputSize": { "const": false },
+        "chromaKeyColor": { "type": "null" },
+        "chromaKeyTolerance": { "type": "null" },
+        "canonicalBackgroundRemoval": false,
+        "sourceLimits": { "$ref": "#/definitions/sourceLimits" },
+        "hardAlphaThreshold": { "type": "null" },
+        "hiddenRgbPolicy": { "const": "not-applicable-fully-opaque-input" },
+        "assemblyKernel": { "const": "terrain-composed-atlas/shared-seam-blob16-v1" },
+        "terrainMaterialInputs": { "$ref": "#/definitions/terrainMaterialInputs" }
+      }
+    },
+    "legacyInputPolicyOverlay": {
+      "type": "object",
+      "properties": {
+        "format": { "const": "png" },
+        "nativeOutputSize": { "const": true },
+        "chromaKeyColor": { "const": "#FF00FF" },
+        "chromaKeyTolerance": { "const": 0 },
+        "hardAlphaThreshold": { "const": 127 },
+        "hiddenRgbPolicy": { "const": "zero" },
+        "assemblyKernel": { "const": "raw-copy" },
+        "terrainMaterialInputs": false
+      }
+    },
     "canonicalBackgroundRemovalPolicy": {
       "type": "object",
       "additionalProperties": false,

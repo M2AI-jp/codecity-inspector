@@ -6,7 +6,7 @@
   "additionalProperties": false,
   "required": [
     "schemaVersion", "requiredSetId", "waveId", "assetId", "jobPackPath",
-    "unitSources", "identityBindingPath"
+    "identityBindingPath"
   ],
   "properties": {
     "schemaVersion": { "const": 2 },
@@ -35,6 +35,37 @@
         }
       }
     },
+    "terrainComposition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "originKind", "composerVersion", "algorithm", "configSha256", "maskSetSha256", "inputs"
+      ],
+      "properties": {
+        "originKind": { "const": "deterministic-derived" },
+        "composerVersion": { "const": "terrain-composed-atlas-v1" },
+        "algorithm": { "const": "terrain-composed-atlas/shared-seam-blob16-v1" },
+        "configSha256": { "$ref": "#/definitions/sha256" },
+        "maskSetSha256": { "$ref": "#/definitions/sha256" },
+        "inputs": {
+          "type": "array", "minItems": 1, "maxItems": 6,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["role", "sourceOriginal", "cropRect"],
+            "properties": {
+              "role": {
+                "enum": [
+                  "base-0", "base-1", "base-2",
+                  "water-motion-0", "water-motion-1", "water-motion-2"
+                ]
+              },
+              "sourceOriginal": { "$ref": "#/definitions/absolutePath" },
+              "cropRect": { "$ref": "#/definitions/rect" }
+            }
+          }
+        }
+      }
+    },
     "identityBindingPath": {
       "oneOf": [
         { "type": "null" },
@@ -42,7 +73,25 @@
       ]
     }
   },
+  "oneOf": [
+    {
+      "required": ["unitSources"],
+      "properties": {
+        "unitSources": {},
+        "terrainComposition": false
+      }
+    },
+    {
+      "required": ["terrainComposition"],
+      "properties": {
+        "terrainComposition": {},
+        "identityBindingPath": { "type": "null" },
+        "unitSources": false
+      }
+    }
+  ],
   "definitions": {
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
     "absolutePath": {
       "type": "string",
       "minLength": 2,

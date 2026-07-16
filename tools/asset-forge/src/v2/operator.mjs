@@ -89,7 +89,8 @@ export async function importWaveARequest({ requestPath }, {
   return importWaveACandidate({
     assetId: request.assetId,
     jobPackPath: request.jobPackPath,
-    unitSources: request.unitSources,
+    ...(request.unitSources ? { unitSources: request.unitSources } : {}),
+    terrainComposition: request.terrainComposition ?? null,
     identityBindingPath: request.identityBindingPath
   }, {
     root: canonicalRoot,

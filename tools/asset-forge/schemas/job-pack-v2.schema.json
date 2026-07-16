@@ -23,7 +23,7 @@
     "category": {
       "enum": ["character", "building", "terrain", "overlay", "structure", "interior", "prop", "ui", "effect"]
     },
-    "generationMode": { "enum": ["per-unit", "monolithic-atlas"] },
+    "generationMode": { "enum": ["per-unit", "monolithic-atlas", "terrain-composed-atlas"] },
     "generationUnitSetSha256": { "$ref": "#/definitions/sha256" },
     "generationExpectations": { "$ref": "#/definitions/expectations" },
     "generationUnitIds": {

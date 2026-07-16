@@ -120,6 +120,9 @@ async function writeWaveAJobPackLocked({
       generationUnitSetSha256: job.generationUnitSetSha256,
       generationExpectations: job.generationExpectations,
       generationUnits: job.generationUnits,
+      ...(job.generationMode === 'terrain-composed-atlas' ? {
+        terrainCompositionPlan: job.terrainCompositionPlan
+      } : {}),
       identityMasterPlan: job.identityMasterPlan
     })),
     authorization: Buffer.from(canonicalJson(authorization)),

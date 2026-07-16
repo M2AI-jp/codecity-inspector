@@ -25,11 +25,25 @@ import {
   CURRENT_BACKGROUND_REMOVAL_METHOD,
   WAVE_A_SOURCE_LIMITS
 } from './build-job.mjs';
+import {
+  composeTerrainAtlas,
+  TERRAIN_COMPOSER_ALGORITHM,
+  TERRAIN_COMPOSER_CONFIG_SHA256,
+  TERRAIN_COMPOSER_MASK_SET_SHA256,
+  TERRAIN_COMPOSER_UNIT_STEP,
+  TERRAIN_COMPOSER_VERSION,
+  terrainDerivationSha256,
+  terrainCompositionPlanFor
+} from './compose-terrain-atlas.mjs';
 
 const MAX_JSON_BYTES = 2 * 1024 * 1024;
 const MAX_REFERENCE_BYTES = 25 * 1024 * 1024;
 const INPUT_KEYS = new Set(['unitId', 'sourceOriginal', 'cropRect']);
 const IDENTITY_INPUT_KEYS = new Set(['sourceOriginal', 'cropRect']);
+const TERRAIN_COMPOSITION_KEYS = new Set([
+  'originKind', 'composerVersion', 'algorithm', 'configSha256', 'maskSetSha256', 'inputs'
+]);
+const TERRAIN_COMPOSITION_INPUT_KEYS = new Set(['role', 'sourceOriginal', 'cropRect']);
 const IDENTITY_BINDING_PATH = /^generated\/jobs\/v2\/fable5-v2\/wave-a\/[a-z0-9_-]+-job_v2_[a-f0-9]{20}\/identity-bindings\/identity_binding_[a-f0-9]{20}\/unit-execution\.json$/;
 const CHARACTER_ATLAS_COLUMNS = 10;
 const CHARACTER_ATLAS_ROWS = 4;
@@ -65,6 +79,7 @@ function transformStepsFor(job) {
 }
 
 function assemblyAlgorithmFor(job) {
+  if (job.generationMode === 'terrain-composed-atlas') return TERRAIN_COMPOSER_ALGORITHM;
   const method = canonicalBackgroundRemoval(job)?.method;
   return method ? AUTO_BORDER_ASSEMBLY_ALGORITHMS[method] : LEGACY_ASSEMBLY_ALGORITHM;
 }
@@ -166,6 +181,9 @@ function expectedUnitPlan(job) {
     generationUnitSetSha256: job.generationUnitSetSha256,
     generationExpectations: job.generationExpectations,
     generationUnits: job.generationUnits,
+    ...(job.generationMode === 'terrain-composed-atlas' ? {
+      terrainCompositionPlan: job.terrainCompositionPlan
+    } : {}),
     identityMasterPlan: job.identityMasterPlan
   };
 }
@@ -211,7 +229,9 @@ export async function verifyWaveAJobPack(jobPackPath, {
     throw new Error('Wave A pack and packed job identity mismatch');
   }
   const packedMethod = packedJob.technicalGates.inputPolicy.canonicalBackgroundRemoval?.method ?? null;
-  if (!allowHistoricalTransformVersion && packedMethod !== CURRENT_BACKGROUND_REMOVAL_METHOD) {
+  if (packedJob.generationMode !== 'terrain-composed-atlas'
+    && !allowHistoricalTransformVersion
+    && packedMethod !== CURRENT_BACKGROUND_REMOVAL_METHOD) {
     throw new Error('Wave A job pack is stale relative to the current background-removal method');
   }
   const built = await buildWaveAJob({
@@ -740,18 +760,53 @@ function validRect(rect) {
     && rect.x >= 0 && rect.y >= 0 && rect.width > 0 && rect.height > 0;
 }
 
-function validateCallerInputs(unitSources, identityBindingPath) {
-  if (!Array.isArray(unitSources) || unitSources.length === 0 || unitSources.length > 100) {
-    throw new Error('Wave A import requires 1..100 ordered unitSources');
+function validateCallerInputs(unitSources, identityBindingPath, terrainComposition = null) {
+  const hasUnitSources = unitSources !== undefined;
+  const hasTerrainComposition = terrainComposition !== null && terrainComposition !== undefined;
+  if (hasUnitSources === hasTerrainComposition) {
+    throw new Error('Wave A import requires exactly one of unitSources or terrainComposition');
   }
-  for (const source of unitSources) {
-    if (!source || typeof source !== 'object' || Array.isArray(source)
-      || Object.keys(source).some((key) => !INPUT_KEYS.has(key))
-      || typeof source.unitId !== 'string'
-      || typeof source.sourceOriginal !== 'string'
-      || !path.isAbsolute(source.sourceOriginal)
-      || (source.cropRect !== undefined && !validRect(source.cropRect))) {
-      throw new Error('Wave A unit source may declare only unitId, absolute sourceOriginal, and valid cropRect');
+  if (hasUnitSources) {
+    if (!Array.isArray(unitSources) || unitSources.length === 0 || unitSources.length > 100) {
+      throw new Error('Wave A import requires 1..100 ordered unitSources');
+    }
+    for (const source of unitSources) {
+      if (!source || typeof source !== 'object' || Array.isArray(source)
+        || Object.keys(source).some((key) => !INPUT_KEYS.has(key))
+        || typeof source.unitId !== 'string'
+        || typeof source.sourceOriginal !== 'string'
+        || !path.isAbsolute(source.sourceOriginal)
+        || (source.cropRect !== undefined && !validRect(source.cropRect))) {
+        throw new Error('Wave A unit source may declare only unitId, absolute sourceOriginal, and valid cropRect');
+      }
+    }
+  } else {
+    if (!terrainComposition || typeof terrainComposition !== 'object'
+      || Array.isArray(terrainComposition)
+      || Object.keys(terrainComposition).some((key) => !TERRAIN_COMPOSITION_KEYS.has(key))
+      || Object.keys(terrainComposition).length !== TERRAIN_COMPOSITION_KEYS.size
+      || terrainComposition.originKind !== 'deterministic-derived'
+      || terrainComposition.composerVersion !== TERRAIN_COMPOSER_VERSION
+      || terrainComposition.algorithm !== TERRAIN_COMPOSER_ALGORITHM
+      || terrainComposition.configSha256 !== TERRAIN_COMPOSER_CONFIG_SHA256
+      || terrainComposition.maskSetSha256 !== TERRAIN_COMPOSER_MASK_SET_SHA256
+      || !Array.isArray(terrainComposition.inputs)
+      || terrainComposition.inputs.length < 1 || terrainComposition.inputs.length > 6) {
+      throw new Error('Wave A terrain composition declaration is incomplete or drifted');
+    }
+    for (const input of terrainComposition.inputs) {
+      if (!input || typeof input !== 'object' || Array.isArray(input)
+        || Object.keys(input).some((key) => !TERRAIN_COMPOSITION_INPUT_KEYS.has(key))
+        || Object.keys(input).length !== TERRAIN_COMPOSITION_INPUT_KEYS.size
+        || typeof input.role !== 'string'
+        || typeof input.sourceOriginal !== 'string'
+        || !path.isAbsolute(input.sourceOriginal)
+        || !validRect(input.cropRect)) {
+        throw new Error('Terrain composition input may declare only role, absolute sourceOriginal, and cropRect');
+      }
+    }
+    if (identityBindingPath !== null) {
+      throw new Error('Terrain composition forbids identityBindingPath');
     }
   }
   if (identityBindingPath !== null
@@ -816,6 +871,49 @@ async function preflightUnitSources(job, unitSources) {
     await cachedExternalSource(input.sourceOriginal, cache, job, sourceBudget);
   }
   return { cache, sourceBudget };
+}
+
+function requireTerrainCompositionRequest(job, terrainComposition) {
+  if (job.generationMode !== 'terrain-composed-atlas' || job.category !== 'terrain'
+    || !terrainComposition) {
+    throw new Error('Terrain composition requires a new explicit terrain-composed-atlas job');
+  }
+  const currentPlan = terrainCompositionPlanFor(job.assetDefinition);
+  requireCanonicalEqual(job.terrainCompositionPlan, currentPlan, 'terrain composition job plan');
+  const expectedRequestAuthority = {
+    originKind: currentPlan.originKind,
+    composerVersion: currentPlan.composerVersion,
+    algorithm: currentPlan.algorithm,
+    configSha256: currentPlan.configSha256,
+    maskSetSha256: currentPlan.maskSetSha256
+  };
+  requireCanonicalEqual(
+    Object.fromEntries(Object.keys(expectedRequestAuthority).map((key) => [key, terrainComposition[key]])),
+    expectedRequestAuthority,
+    'terrain composition request authority'
+  );
+}
+
+async function preflightTerrainInputs(job, terrainComposition) {
+  requireTerrainCompositionRequest(job, terrainComposition);
+  const cache = new Map();
+  const sourceBudget = createUniqueSourceBudget(job);
+  const inputs = [];
+  for (const input of terrainComposition.inputs) {
+    const source = await cachedExternalSource(
+      input.sourceOriginal,
+      cache,
+      job,
+      sourceBudget
+    );
+    inputs.push({
+      role: input.role,
+      requestedPath: path.resolve(input.sourceOriginal),
+      cropRect: structuredClone(input.cropRect),
+      source
+    });
+  }
+  return { cache, sourceBudget, inputs };
 }
 
 function sourceFormatExtension(format) {
@@ -1531,24 +1629,89 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
   const sourceRecords = [];
   const unitRecords = [];
   const pendingRoot = `generated/${categoryDirectory(asset.category)}/pending`;
+  const composedTerrain = job.generationMode === 'terrain-composed-atlas';
   if (result.unitAssemblyV2.units.length !== job.generationUnits.length) {
     throw new Error('Persisted unit ledger length does not match the canonical job');
   }
-  for (const [index, unit] of job.generationUnits.entries()) {
-    if (!unit.sourceRequired) continue;
-    const ledger = result.unitAssemblyV2.units[index];
-    if (!ledger?.sourceSnapshot
-      || !ledger.sourceSnapshot.path.startsWith(`${pendingRoot}/sources/`)) {
-      throw new Error(`Wave A ${unit.unitId} source snapshot path is not pending evidence`);
+  let replayedTerrain = null;
+  if (composedTerrain) {
+    const evidence = result.unitAssemblyV2.terrainComposition;
+    if (!evidence) throw new Error('Persisted terrain composition evidence is missing');
+    const plan = terrainCompositionPlanFor(job.assetDefinition);
+    requireCanonicalEqual(job.terrainCompositionPlan, plan, 'persisted terrain composition job plan');
+    requireCanonicalEqual(
+      Object.fromEntries([
+        'originKind', 'composerVersion', 'algorithm', 'configSha256', 'maskSetSha256', 'seamBand'
+      ].map((key) => [key, evidence[key]])),
+      {
+        originKind: plan.originKind,
+        composerVersion: plan.composerVersion,
+        algorithm: plan.algorithm,
+        configSha256: plan.configSha256,
+        maskSetSha256: plan.maskSetSha256,
+        seamBand: plan.seamBand
+      },
+      'persisted terrain composition authority'
+    );
+    const inputs = [];
+    for (const input of evidence.inputs) {
+      if (!input.sourceSnapshot.path.startsWith(`${pendingRoot}/sources/`)) {
+        throw new Error(`Terrain composition ${input.role} provider-original path is not pending evidence`);
+      }
+      let source = sourceCache.get(input.sourceSnapshot.path);
+      if (!source) {
+        source = await readPersistedImage(
+          root,
+          input.sourceSnapshot,
+          `${input.role} provider-original`,
+          job,
+          sourceBudget
+        );
+        sourceCache.set(input.sourceSnapshot.path, source);
+      }
+      requireCanonicalEqual(input.sourceOriginal, {
+        sha256: source.sha256,
+        format: source.image.sourceFormat,
+        width: source.image.metadata.width,
+        height: source.image.metadata.height,
+        cropRect: input.sourceOriginal.cropRect
+      }, `${input.role} provider-original record`);
+      requireCanonicalEqual(input.sourceSnapshot, {
+        path: input.sourceSnapshot.path,
+        sha256: source.sha256,
+        format: source.image.sourceFormat,
+        width: source.image.metadata.width,
+        height: source.image.metadata.height
+      }, `${input.role} provider-original snapshot`);
+      inputs.push({
+        role: input.role,
+        requestedPath: source.absolute,
+        cropRect: structuredClone(input.sourceOriginal.cropRect),
+        source: {
+          canonicalPath: source.absolute,
+          image: source.image,
+          sha256: source.sha256
+        }
+      });
     }
-    if (!sourceCache.has(ledger.sourceSnapshot.path)) {
-      sourceCache.set(ledger.sourceSnapshot.path, await readPersistedImage(
-        root,
-        ledger.sourceSnapshot,
-        `${unit.unitId} source-original`,
-        job,
-        sourceBudget
-      ));
+    replayedTerrain = await assembleComposedTerrain(job, inputs);
+  } else {
+    for (const [index, unit] of job.generationUnits.entries()) {
+      if (!unit.sourceRequired) continue;
+      const ledger = result.unitAssemblyV2.units[index];
+      if (!ledger?.sourceSnapshot
+        || !ledger.sourceSnapshot.path.startsWith(`${pendingRoot}/sources/`)) {
+        throw new Error(`Wave A ${unit.unitId} source snapshot path is not pending evidence`);
+      }
+      if (!sourceCache.has(ledger.sourceSnapshot.path)) {
+        sourceCache.set(ledger.sourceSnapshot.path, await readPersistedImage(
+          root,
+          ledger.sourceSnapshot,
+          `${unit.unitId} source-original`,
+          job,
+          sourceBudget
+        ));
+      }
     }
   }
 
@@ -1596,6 +1759,44 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
     };
     requireCanonicalEqual(Object.fromEntries(Object.keys(expectedCore).map((key) => [key, ledger[key]])), expectedCore, `${unit.unitId} canonical binding`);
     const effectiveUnit = { ...unit, effectiveUnitPromptSha256: expectedPromptSha256 };
+    if (composedTerrain) {
+      const replayRecord = replayedTerrain.unitRecords[index];
+      if (ledger.sourceOriginal !== null || ledger.sourceSnapshot !== null
+        || (unit.sourceRequired
+          ? (!ledger.transformedSnapshot
+            || !ledger.transformedSnapshot.path.startsWith(`${pendingRoot}/unit-cells/`)
+            || canonicalJson(ledger.transformSteps) !== canonicalJson([TERRAIN_COMPOSER_UNIT_STEP]))
+          : (ledger.transformedSnapshot !== null || ledger.transformSteps.length !== 0))) {
+        throw new Error(`Wave A ${unit.unitId} deterministic-derived source claims are invalid`);
+      }
+      if (unit.sourceRequired) {
+        const transformedPng = await encodeRawPng(
+          replayRecord.raw,
+          unit.targetRect.width,
+          unit.targetRect.height
+        );
+        const persistedTransform = await readPersistedImage(
+          root,
+          ledger.transformedSnapshot,
+          `${unit.unitId} deterministic-derived`,
+          job
+        );
+        if (!persistedTransform.image.buffer.equals(transformedPng)) {
+          throw new Error(`Wave A ${unit.unitId} deterministic-derived snapshot differs from raw replay`);
+        }
+      }
+      if (ledger.outputCellSha256 !== sha256(replayRecord.raw)) {
+        throw new Error(`Wave A ${unit.unitId} deterministic-derived cell hash mismatch`);
+      }
+      requireCanonicalEqual(ledger.pixelAudit, replayRecord.audit, `${unit.unitId} derived pixel audit`);
+      requireCanonicalEqual(
+        result.unitAssemblyV2.terrainComposition.unitDerivations[index],
+        replayRecord.derivation,
+        `${unit.unitId} terrain derivation`
+      );
+      unitRecords.push({ ...replayRecord, unit: effectiveUnit });
+      continue;
+    }
     if (!unit.sourceRequired) {
       if (ledger.sourceOriginal !== null || ledger.sourceSnapshot !== null
         || ledger.transformedSnapshot !== null || ledger.transformSteps.length !== 0) {
@@ -1689,7 +1890,9 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
     unitRecords.push({ unit: effectiveUnit, sourceRecord, raw: transformed.data, audit });
   }
 
-  validateSourceSharing(job, sourceRecords, identityAuthority?.identity ?? null);
+  if (!composedTerrain) {
+    validateSourceSharing(job, sourceRecords, identityAuthority?.identity ?? null);
+  }
   const nonemptyHashes = unitRecords.filter(({ unit }) => unit.sourceRequired).map(({ raw }) => sha256(raw));
   if (new Set(nonemptyHashes).size !== nonemptyHashes.length) {
     throw new Error('Persisted expected-nonempty unit cells are byte-identical');
@@ -1714,7 +1917,8 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
   const assembled = {
     identity: identityAuthority?.identity ?? null,
     unitRecords,
-    artifactRecords
+    artifactRecords,
+    ...(replayedTerrain ? { terrainComposition: replayedTerrain.terrainComposition } : {})
   };
   await replayAssembly(job, assembled);
   finalCellAudit(job, assembled);
@@ -1734,6 +1938,9 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
         `${stem}-monolithic-atlas.source-original.${sourceFormatExtension(sourceRecords[0].source.image.sourceFormat)}`
       )
     : null;
+  const compositionInputPersistence = composedTerrain
+    ? terrainInputPersistence(root, outputRoot, stem, assembled.terrainComposition)
+    : [];
   const expectedUnits = await Promise.all(unitRecords.map(async (record) => {
     const sourcePath = record.sourceRecord
       ? (monolithicSourcePath ?? path.join(
@@ -1742,7 +1949,7 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
           `${stem}-${record.unit.unitId}.source-original.${sourceFormatExtension(record.sourceRecord.source.image.sourceFormat)}`
         ))
       : null;
-    const transformedPath = record.sourceRecord
+    const transformedPath = (record.sourceRecord || (composedTerrain && record.unit.sourceRequired))
       ? path.join(outputRoot, 'unit-cells', `${stem}-${record.unit.unitId}.png`)
       : null;
     return {
@@ -1772,7 +1979,7 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
         width: record.sourceRecord.source.image.metadata.width,
         height: record.sourceRecord.source.image.metadata.height
       } : null,
-      transformedSnapshot: record.sourceRecord ? {
+      transformedSnapshot: transformedPath ? {
         path: toPosixRelative(root, transformedPath),
         sha256: sha256(await encodeRawPng(
           record.raw,
@@ -1783,9 +1990,9 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
         width: record.unit.targetRect.width,
         height: record.unit.targetRect.height
       } : null,
-      transformSteps: record.sourceRecord
-        ? [...transformStepsFor(job)]
-        : [],
+      transformSteps: composedTerrain
+        ? (record.unit.sourceRequired ? [TERRAIN_COMPOSER_UNIT_STEP] : [])
+        : (record.sourceRecord ? [...transformStepsFor(job)] : []),
       ...(canonicalBackgroundRemoval(job) ? {
         transformEvidence: record.sourceRecord
           ? structuredClone(record.sourceRecord.transformEvidence)
@@ -1812,7 +2019,9 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
     const assemblySourcePath = toPosixRelative(root, path.join(
       outputRoot,
       'sources',
-      `${stem}-${artifact.contract.role}.source-original.png`
+      composedTerrain
+        ? `${stem}-${artifact.contract.role}.derived-composition.png`
+        : `${stem}-${artifact.contract.role}.source-original.png`
     ));
     const persisted = resultArtifacts[index];
     const expectedInspection = inspectPng(artifact.png);
@@ -1868,7 +2077,8 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
   const expectedRecipes = recipeRecords.map((record) => assemblyRecipe(
     record,
     job,
-    verifiedPack.pack.members.prompt.path
+    verifiedPack.pack.members.prompt.path,
+    assembled.terrainComposition ?? null
   ));
   requireCanonicalEqual(result.productionRecipesV2, expectedRecipes, 'production recipes');
   const expectedIdentityLedger = identityAuthority ? {
@@ -1911,6 +2121,13 @@ export async function verifyPersistedWaveAUnitAssembly(result, {
     expectations: structuredClone(job.generationExpectations),
     sourceRequiredCount: job.generationUnits.filter(({ sourceRequired }) => sourceRequired).length,
     identityMaster: expectedIdentityLedger,
+    ...(composedTerrain ? {
+      terrainComposition: terrainCompositionLedger(
+        assembled.terrainComposition,
+        compositionInputPersistence,
+        expectedOutputRecords
+      )
+    } : {}),
     units: expectedUnits,
     artifacts: expectedArtifactLedger,
     missingUnitIds: [],
@@ -2048,7 +2265,63 @@ async function assembleUnits(job, unitSources, boundIdentity, cache, sourceBudge
   return { identity, unitRecords, artifactRecords };
 }
 
+async function assembleComposedTerrain(job, inputs) {
+  const composition = await composeTerrainAtlas(job, inputs);
+  const unitRecords = composition.unitRecords.map((record) => {
+    const audit = pixelAudit(record.raw);
+    if (record.unit.sourceRequired) requireCleanNonemptyUnit(record.unit, audit);
+    else requireZeroTransparentUnit(record.unit, record.raw, audit);
+    return {
+      unit: record.unit,
+      sourceRecord: null,
+      raw: record.raw,
+      audit,
+      derivation: record.derivation
+    };
+  });
+  const contract = job.artifactContracts[0];
+  if (job.artifactContracts.length !== 1 || contract.role !== 'primary'
+    || contract.outputSize.width !== 320 || contract.outputSize.height !== 320) {
+    throw new Error('Terrain composition requires one canonical 320x320 primary artifact');
+  }
+  return {
+    identity: null,
+    unitRecords,
+    artifactRecords: [{
+      contract,
+      raw: composition.atlasRaw,
+      png: await encodeRawPng(
+        composition.atlasRaw,
+        contract.outputSize.width,
+        contract.outputSize.height
+      )
+    }],
+    terrainComposition: composition
+  };
+}
+
 async function replayAssembly(job, assembled) {
+  if (assembled.terrainComposition) {
+    const replay = await assembleComposedTerrain(job, assembled.terrainComposition.inputs);
+    if (canonicalJson(replay.terrainComposition.descriptor)
+        !== canonicalJson(assembled.terrainComposition.descriptor)
+      || replay.terrainComposition.inputSetSha256
+        !== assembled.terrainComposition.inputSetSha256
+      || replay.terrainComposition.unitDerivationSetSha256
+        !== assembled.terrainComposition.unitDerivationSetSha256
+      || replay.terrainComposition.atlasRawSha256
+        !== assembled.terrainComposition.atlasRawSha256
+      || replay.terrainComposition.derivationSha256
+        !== assembled.terrainComposition.derivationSha256
+      || replay.unitRecords.some((record, index) =>
+        !record.raw.equals(assembled.unitRecords[index].raw)
+        || canonicalJson(record.derivation)
+          !== canonicalJson(assembled.unitRecords[index].derivation))
+      || !replay.artifactRecords[0].png.equals(assembled.artifactRecords[0].png)) {
+      throw new Error('Wave A terrain composition replay is not byte-identical');
+    }
+    return;
+  }
   if (assembled.identity) {
     const replayIdentity = await canonicalUnitTransform(
       assembled.identity.source.image,
@@ -2177,11 +2450,81 @@ function uniqueDestinations(destinations) {
   return [...byPath.values()];
 }
 
-function assemblyRecipe(record, job, promptPath) {
+function terrainInputPersistence(root, outputRoot, stem, composition) {
+  const byCanonicalPath = new Map();
+  return composition.inputs.map((input) => {
+    let sourcePath = byCanonicalPath.get(input.source.canonicalPath);
+    if (!sourcePath) {
+      sourcePath = path.join(
+        outputRoot,
+        'sources',
+        `${stem}-provider-${input.source.sha256.slice(0, 16)}.provider-original.${sourceFormatExtension(input.source.image.sourceFormat)}`
+      );
+      byCanonicalPath.set(input.source.canonicalPath, sourcePath);
+    }
+    return {
+      ...input,
+      sourcePath,
+      sourceRelativePath: toPosixRelative(root, sourcePath)
+    };
+  });
+}
+
+function terrainCompositionLedger(composition, inputPersistence, outputRecords) {
+  const inputs = composition.inputDescriptors.map((descriptor, index) => {
+    const persisted = inputPersistence[index];
+    return {
+      role: descriptor.role,
+      originKind: 'provider-original',
+      providerInvocationEvidence: 'unverified-no-provider-receipt',
+      sourceOriginal: {
+        sha256: descriptor.sha256,
+        format: descriptor.format,
+        width: descriptor.width,
+        height: descriptor.height,
+        cropRect: structuredClone(descriptor.cropRect)
+      },
+      sourceSnapshot: {
+        path: persisted.sourceRelativePath,
+        sha256: descriptor.sha256,
+        format: descriptor.format,
+        width: descriptor.width,
+        height: descriptor.height
+      },
+      normalizedCellSha256: descriptor.normalizedCellSha256
+    };
+  });
+  const outputArtifacts = outputRecords.map((record) => ({
+    role: record.contract.role,
+    originKind: 'deterministic-derived',
+    path: record.outputPath,
+    sha256: record.outputSha256,
+    width: record.contract.outputSize.width,
+    height: record.contract.outputSize.height
+  }));
+  return {
+    ...structuredClone(composition.descriptor),
+    inputs,
+    inputSetSha256: composition.inputSetSha256,
+    unitDerivations: structuredClone(composition.unitDerivations),
+    unitDerivationSetSha256: composition.unitDerivationSetSha256,
+    atlasRawSha256: composition.atlasRawSha256,
+    derivationSha256: terrainDerivationSha256(composition),
+    outputArtifacts,
+    outputArtifactSetSha256: sha256(canonicalJson(outputArtifacts)),
+    replayPassed: true
+  };
+}
+
+function assemblyRecipe(record, job, promptPath, terrainComposition = null) {
+  const composed = job.generationMode === 'terrain-composed-atlas';
+  if (composed !== Boolean(terrainComposition)) {
+    throw new Error('Terrain composition recipe evidence does not match the job mode');
+  }
   return {
     role: record.contract.role,
-    method: 'unit-assembly',
-    generator: 'codecity-unit-assembler-v2',
+    method: composed ? 'terrain-composition' : 'unit-assembly',
+    generator: composed ? 'codecity-terrain-composer-v1' : 'codecity-unit-assembler-v2',
     toolMode: 'built-in',
     transformSteps: ['none'],
     promptSnapshot: { path: promptPath, sha256: job.promptSha256 },
@@ -2193,7 +2536,14 @@ function assemblyRecipe(record, job, promptPath) {
       sha256: record.outputSha256,
       format: 'png',
       width: record.contract.outputSize.width,
-      height: record.contract.outputSize.height
+      height: record.contract.outputSize.height,
+      ...(composed ? {
+        originKind: 'deterministic-derived',
+        derivedFromSha256s: [...new Set(
+          terrainComposition.inputDescriptors.map(({ sha256: digest }) => digest)
+        )],
+        derivationSha256: terrainDerivationSha256(terrainComposition)
+      } : {})
     },
     artifact: {
       path: record.outputPath,
@@ -2222,6 +2572,17 @@ function importProvenance(job, assembled) {
     identityMasterSourceSha256: assembled.identity?.source.sha256 ?? null,
     identityMasterTransformedSha256: assembled.identity?.transformedSha256 ?? null,
     identityMasterCropRect: assembled.identity?.effectiveCrop ?? null,
+    ...(assembled.terrainComposition ? {
+      terrainComposition: {
+        descriptor: assembled.terrainComposition.descriptor,
+        inputDescriptors: assembled.terrainComposition.inputDescriptors,
+        inputSetSha256: assembled.terrainComposition.inputSetSha256,
+        unitDerivations: assembled.terrainComposition.unitDerivations,
+        unitDerivationSetSha256: assembled.terrainComposition.unitDerivationSetSha256,
+        atlasRawSha256: assembled.terrainComposition.atlasRawSha256,
+        derivationSha256: assembled.terrainComposition.derivationSha256
+      }
+    } : {}),
     sourceEvidence,
     outputArtifacts: assembled.artifactRecords.map(({ contract, png }) => ({
       role: contract.role,
@@ -2271,6 +2632,9 @@ function pendingUnitAssemblyResult({
     warnings: [
       'Imported Fable5 Wave A unit assembly remains pending until explicit human visual approval.',
       'Semantic-transparent and reserved-transparent cells are zero-RGBA contracts, not generated accomplishments.',
+      ...(job.generationMode === 'terrain-composed-atlas' ? [
+        'Terrain semantic cells are deterministic-derived outputs; only terrainComposition inputs are provider-original byte claims.'
+      ] : []),
       ...(job.identityMasterPlan ? [
         'The identity master is auxiliary consistency evidence, not a semantic runtime cell or approved asset.',
         'The importer associated submitted unit IDs and source hashes with a pre-existing issued plan that names exact prompt and identity hashes; this is record-level binding, not proof of provider delivery, execution, or generation order.'
@@ -2280,7 +2644,9 @@ function pendingUnitAssemblyResult({
     inspection: {
       status: 'pending-inspection',
       observed: [
-        `${sourceRequiredCount} expected-nonempty source units were transformed and assembled with no missing, duplicate, or extra unit IDs.`,
+        job.generationMode === 'terrain-composed-atlas'
+          ? `${sourceRequiredCount} expected-nonempty terrain cells were deterministically derived from separately persisted provider-original inputs with no missing, duplicate, or extra unit IDs.`
+          : `${sourceRequiredCount} expected-nonempty source units were transformed and assembled with no missing, duplicate, or extra unit IDs.`,
         `${job.generationExpectations['semantic-transparent']} semantic-transparent and ${job.generationExpectations['reserved-transparent']} reserved-transparent cells were assembled as zero RGBA without source claims.`,
         'Every unit transform and final atlas replayed byte-identically from persisted source evidence.'
       ],
@@ -2329,6 +2695,7 @@ export async function importWaveACandidate({
   assetId,
   jobPackPath,
   unitSources,
+  terrainComposition = null,
   identityBindingPath = null
 }, {
   root = FORGE_ROOT,
@@ -2337,15 +2704,15 @@ export async function importWaveACandidate({
   if (path.resolve(root) !== path.resolve(forgeRoot)) {
     throw new Error('Wave A import requires one canonical Forge root');
   }
-  validateCallerInputs(unitSources, identityBindingPath);
+  validateCallerInputs(unitSources, identityBindingPath, terrainComposition);
   return withFileLock(root, pathsFor(root).requiredPromotionLock, () =>
     importWaveACandidateLocked({
-      assetId, jobPackPath, unitSources, identityBindingPath
+      assetId, jobPackPath, unitSources, terrainComposition, identityBindingPath
     }, { root, forgeRoot }));
 }
 
 async function importWaveACandidateLocked({
-  assetId, jobPackPath, unitSources, identityBindingPath
+  assetId, jobPackPath, unitSources, terrainComposition, identityBindingPath
 }, {
   root, forgeRoot
 }) {
@@ -2355,14 +2722,27 @@ async function importWaveACandidateLocked({
   if (assetId !== asset.id || job.requiredSetId !== 'fable5-v2' || job.waveId !== 'A') {
     throw new Error('Wave A import identity does not match explicit fable5-v2/A job pack');
   }
-  const coverage = exactSourceCoverage(job, unitSources);
+  const composedTerrain = job.generationMode === 'terrain-composed-atlas';
+  if (composedTerrain) requireTerrainCompositionRequest(job, terrainComposition);
+  else if (terrainComposition !== null) {
+    throw new Error('Terrain composition input cannot be used with an existing Wave A job mode');
+  }
+  const coverage = composedTerrain
+    ? {
+        required: job.generationUnits.filter(({ sourceRequired }) => sourceRequired),
+        missing: [], duplicates: [], extra: []
+      }
+    : exactSourceCoverage(job, unitSources);
   if (job.category === 'character' && job.generationMode === 'monolithic-atlas') {
     validateCharacterMonolithicCropLayout(job, coverage.required.map((unit, index) => ({
       unit,
       input: unitSources[index]
     })));
   }
-  const { cache: sourceCache, sourceBudget } = await preflightUnitSources(job, unitSources);
+  const preflight = composedTerrain
+    ? await preflightTerrainInputs(job, terrainComposition)
+    : await preflightUnitSources(job, unitSources);
+  const { cache: sourceCache, sourceBudget } = preflight;
   let identityAuthority = null;
   if (job.category === 'character') {
     if (!identityBindingPath) {
@@ -2380,13 +2760,15 @@ async function importWaveACandidateLocked({
   } else if (identityBindingPath !== null) {
     throw new Error('Non-character Wave A jobs forbid identityBindingPath');
   }
-  const assembled = await assembleUnits(
-    job,
-    unitSources,
-    identityAuthority?.identity ?? null,
-    sourceCache,
-    sourceBudget
-  );
+  const assembled = composedTerrain
+    ? await assembleComposedTerrain(job, preflight.inputs)
+    : await assembleUnits(
+        job,
+        unitSources,
+        identityAuthority?.identity ?? null,
+        sourceCache,
+        sourceBudget
+      );
   if (identityAuthority) {
     const executionById = new Map(identityAuthority.executionUnits.map((unit) => [unit.unitId, unit]));
     for (const record of assembled.unitRecords) {
@@ -2414,7 +2796,9 @@ async function importWaveACandidateLocked({
     const assemblySourceAbsolute = path.join(
       outputRoot,
       'sources',
-      `${stem}-${record.contract.role}.source-original.png`
+      composedTerrain
+        ? `${stem}-${record.contract.role}.derived-composition.png`
+        : `${stem}-${record.contract.role}.source-original.png`
     );
     return {
       ...record,
@@ -2436,6 +2820,16 @@ async function importWaveACandidateLocked({
       )
     : null;
   const unitPersistence = assembled.unitRecords.map((record) => {
+    if (composedTerrain) {
+      const transformedPath = record.unit.sourceRequired
+        ? path.join(
+            outputRoot,
+            'unit-cells',
+            `${stem}-${record.unit.unitId}.png`
+          )
+        : null;
+      return { ...record, sourcePath: null, transformedPath };
+    }
     if (!record.sourceRecord) return { ...record, sourcePath: null, transformedPath: null };
     const sourcePath = monolithicSourcePath ?? path.join(
       outputRoot,
@@ -2454,14 +2848,24 @@ async function importWaveACandidateLocked({
     sourceOriginalPath: resolveWithin(root, identityAuthority.binding.identityMaster.sourceSnapshot.path),
     transformedPath: resolveWithin(root, identityAuthority.binding.identityMaster.transformedSnapshot.path)
   } : null;
+  const compositionInputPersistence = composedTerrain
+    ? terrainInputPersistence(root, outputRoot, stem, assembled.terrainComposition)
+    : [];
   const transformedBytes = new Map();
-  for (const record of unitPersistence.filter(({ sourceRecord }) => sourceRecord)) {
+  for (const record of unitPersistence.filter(({ transformedPath }) => transformedPath)) {
     transformedBytes.set(record.unit.unitId, await encodeRawPng(
       record.raw,
       record.unit.targetRect.width,
       record.unit.targetRect.height
     ));
   }
+  const terrainCompositionV2 = composedTerrain
+    ? terrainCompositionLedger(
+        assembled.terrainComposition,
+        compositionInputPersistence,
+        outputRecords
+      )
+    : null;
   const unitAssemblyV2 = {
     jobId: job.id,
     jobProvenanceKey: job.provenanceKey,
@@ -2519,6 +2923,7 @@ async function importWaveACandidateLocked({
       issuanceSequence: identityAuthority.binding.issuanceSequence,
       providerInvocationEvidence: identityAuthority.binding.providerInvocationEvidence
     } : null,
+    ...(terrainCompositionV2 ? { terrainComposition: terrainCompositionV2 } : {}),
     units: unitPersistence.map((record) => ({
       unitId: record.unit.unitId,
       artifactRole: record.unit.artifactRole,
@@ -2546,16 +2951,16 @@ async function importWaveACandidateLocked({
         width: record.sourceRecord.source.image.metadata.width,
         height: record.sourceRecord.source.image.metadata.height
       } : null,
-      transformedSnapshot: record.sourceRecord ? {
+      transformedSnapshot: record.transformedPath ? {
         path: toPosixRelative(root, record.transformedPath),
         sha256: sha256(transformedBytes.get(record.unit.unitId)),
         format: 'png',
         width: record.unit.targetRect.width,
         height: record.unit.targetRect.height
       } : null,
-      transformSteps: record.sourceRecord
-        ? [...transformStepsFor(job)]
-        : [],
+      transformSteps: composedTerrain
+        ? (record.unit.sourceRequired ? [TERRAIN_COMPOSER_UNIT_STEP] : [])
+        : (record.sourceRecord ? [...transformStepsFor(job)] : []),
       ...(canonicalBackgroundRemoval(job) ? {
         transformEvidence: record.sourceRecord
           ? structuredClone(record.sourceRecord.transformEvidence)
@@ -2581,7 +2986,12 @@ async function importWaveACandidateLocked({
     finalCellAuditPassed: true
   };
   const promptPath = verifiedPack.pack.members.prompt.path;
-  const recipes = outputRecords.map((record) => assemblyRecipe(record, job, promptPath));
+  const recipes = outputRecords.map((record) => assemblyRecipe(
+    record,
+    job,
+    promptPath,
+    assembled.terrainComposition ?? null
+  ));
   const metadataAbsolute = path.join(outputRoot, `${stem}.json`);
   const metadataPath = toPosixRelative(root, metadataAbsolute);
   const manifest = await readLocalGenerationManifest(root);
@@ -2612,6 +3022,11 @@ async function importWaveACandidateLocked({
     throw new Error('Existing Wave A import metadata conflicts with deterministic provenance');
   }
   const destinations = uniqueDestinations([
+    ...compositionInputPersistence.map((input) => ({
+      path: input.sourcePath,
+      bytes: input.source.image.buffer,
+      label: `${input.role} provider-original`
+    })),
     ...unitPersistence.filter(({ sourceRecord }) => sourceRecord).flatMap((record) => [
       {
         path: record.sourcePath,
@@ -2624,6 +3039,11 @@ async function importWaveACandidateLocked({
         label: `${record.unit.unitId} transformed unit`
       }
     ]),
+    ...unitPersistence.filter((record) => composedTerrain && record.transformedPath).map((record) => ({
+      path: record.transformedPath,
+      bytes: transformedBytes.get(record.unit.unitId),
+      label: `${record.unit.unitId} deterministic-derived unit`
+    })),
     ...outputRecords.flatMap((record) => [
       {
         path: record.assemblySourceAbsolute,
