@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { parseCliArgs, startServer } from '../src/server.mjs';
+import { buildTownPayload } from '../src/town/index.mjs';
 
 function rawRequest(port, requestPath, method = 'GET', headers = {}) {
   return new Promise((resolve, reject) => {
@@ -78,7 +79,7 @@ test('serves the city report and assets on loopback without source bodies', asyn
   assert.match(siteModuleHead.headers['content-type'], /text\/javascript/);
 });
 
-test('serves the town model, habitability, and validated layout without leaking source', async (t) => {
+test('serves the exact WorldPlan v2 payload without leaking source', async (t) => {
   const fixture = await serverFixture();
   const running = await startServer({ ...fixture, repoPath: fixture.repo, port: 0 });
   t.after(running.close);
@@ -90,25 +91,26 @@ test('serves the town model, habitability, and validated layout without leaking 
   assert.equal(api.body.includes('SOURCE_MUST_NOT_LEAK'), false);
 
   const town = JSON.parse(api.body);
-  assert.equal(town.schemaVersion, 1);
+  assert.deepEqual(Object.keys(town), [
+    'schemaVersion', 'repository', 'habitability', 'facts', 'worldPlan'
+  ]);
+  assert.equal(town.schemaVersion, 2);
   assert.equal(town.repository.name, 'repo');
-  assert.equal(typeof town.generatorVersion, 'string');
-  assert.equal(typeof town.seed, 'string');
-
-  assert.equal(Array.isArray(town.model.facilities), true);
-  assert.equal(typeof town.model.guild, 'object');
-  assert.equal(typeof town.model.external, 'object');
-  assert.equal(typeof town.model.summary, 'object');
 
   assert.equal(Number.isInteger(town.habitability.level), true);
   assert.equal(town.habitability.level >= 0 && town.habitability.level <= 5, true);
   assert.equal(typeof town.habitability.levelName, 'string');
   assert.equal(typeof town.habitability.canLive, 'boolean');
 
-  assert.equal(Array.isArray(town.layout.buildings), true);
-  assert.equal(typeof town.layout.validation, 'object');
-  assert.notEqual(town.layout.validation, null);
-  assert.equal(town.layout.validation.ok, true);
+  assert.equal(Array.isArray(town.facts), true);
+  assert.equal(town.facts.length, town.worldPlan.facts.length);
+  assert.equal(town.worldPlan.schemaVersion, 2);
+  assert.equal(typeof town.worldPlan.seed, 'string');
+  assert.equal(typeof town.worldPlan.generatorVersion, 'string');
+  assert.equal(Array.isArray(town.worldPlan.buildings), true);
+  assert.equal(typeof town.worldPlan.validation, 'object');
+  assert.notEqual(town.worldPlan.validation, null);
+  assert.equal(town.worldPlan.validation.ok, true);
 
   // Deterministic: an unchanged repository yields a byte-identical payload.
   const repeat = await rawRequest(port, '/api/town');
@@ -125,14 +127,15 @@ test('serves the town model, habitability, and validated layout without leaking 
   assert.equal(post.status, 405);
 });
 
-test('refuses to return a town payload whose layout did not pass validation', async (t) => {
+test('refuses to return a town payload whose WorldPlan did not pass validation', async (t) => {
   const fixture = await serverFixture();
   const running = await startServer({
     ...fixture,
     repoPath: fixture.repo,
     port: 0,
     townPayloadBuilder: async () => ({
-      layout: { validation: { ok: false } }
+      schemaVersion: 2,
+      worldPlan: { validation: { ok: false } }
     })
   });
   t.after(running.close);
@@ -147,6 +150,36 @@ test('refuses to return a town payload whose layout did not pass validation', as
   assert.equal(head.body, '');
 });
 
+test('revalidates the WorldPlan and requires the top-level facts to be its exact fact table', async (t) => {
+  const fixture = await serverFixture();
+  let requestIndex = 0;
+  const running = await startServer({
+    ...fixture,
+    repoPath: fixture.repo,
+    port: 0,
+    townPayloadBuilder: async (repoPath, inspection) => {
+      const payload = structuredClone(await buildTownPayload(repoPath, inspection));
+      if (requestIndex++ === 0) {
+        const fileBuilding = payload.worldPlan.buildings.find(({ files }) => files.length > 0);
+        fileBuilding.rooms = [];
+      } else {
+        payload.facts = [];
+      }
+      return payload;
+    }
+  });
+  t.after(running.close);
+  const port = running.server.address().port;
+
+  const forgedVerdict = await rawRequest(port, '/api/town');
+  assert.equal(forgedVerdict.status, 500);
+  assert.equal(forgedVerdict.body, 'Unable to generate town\n');
+
+  const mismatchedFacts = await rawRequest(port, '/api/town');
+  assert.equal(mismatchedFacts.status, 500);
+  assert.equal(mismatchedFacts.body, 'Unable to generate town\n');
+});
+
 test('a repository with buildings but no entrypoint returns an honest uninhabitable town', async (t) => {
   const fixture = await serverFixture({ withEntrypoint: false });
   const running = await startServer({ ...fixture, repoPath: fixture.repo, port: 0 });
@@ -157,9 +190,8 @@ test('a repository with buildings but no entrypoint returns an honest uninhabita
   const town = JSON.parse(response.body);
   assert.equal(town.habitability.canLive, false);
   assert.ok(town.habitability.blockers.some((entry) => /入口/.test(entry)));
-  assert.equal(town.layout.validation.ok, true);
-  assert.equal(town.layout.validation.importantBuildingsReachable, false);
-  assert.ok(town.layout.validation.issues.some((entry) => entry.code === 'REACHABLE' && entry.severity === 'warning'));
+  assert.equal(town.worldPlan.validation.ok, true);
+  assert.ok(town.worldPlan.validation.issues.some((entry) => entry.code === 'REACHABLE' && entry.severity === 'warning'));
 });
 
 test('rescans the repository after each completed city request and recovers from scan errors', async (t) => {

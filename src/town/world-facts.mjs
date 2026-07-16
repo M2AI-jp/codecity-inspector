@@ -17,7 +17,8 @@ const TYPE_RANK = Object.freeze({
   runtime_unknown: 6,
   truncation: 7,
   facility_present: 8,
-  facility_absent: 8
+  facility_absent: 8,
+  survey_scope: 9
 });
 
 const SAYINGS = Object.freeze({
@@ -30,7 +31,8 @@ const SAYINGS = Object.freeze({
   runtime_unknown: Object.freeze({ primary: 'fact.runtime_unknown.primary', reflect: Object.freeze(['fact.runtime_unknown.reflect']) }),
   truncation: Object.freeze({ primary: 'fact.truncation.primary', reflect: Object.freeze(['fact.truncation.reflect']) }),
   facility_present: Object.freeze({ primary: 'fact.facility_present.primary', reflect: Object.freeze(['fact.facility_present.reflect']) }),
-  facility_absent: Object.freeze({ primary: 'fact.facility_absent.primary', reflect: Object.freeze(['fact.facility_absent.reflect']) })
+  facility_absent: Object.freeze({ primary: 'fact.facility_absent.primary', reflect: Object.freeze(['fact.facility_absent.reflect']) }),
+  survey_scope: Object.freeze({ primary: 'fact.survey_scope.primary', reflect: Object.freeze(['fact.survey_scope.reflect']) })
 });
 
 /** @param {string} left @param {string} right @returns {-1|0|1} */
@@ -135,6 +137,36 @@ function facilityEvidence(counts, state) {
   if (counts.inferred > 0) evidence.inferred.push(`facility.${state}.inferred`);
   if (counts.unknown > 0) evidence.unknown.push(`facility.${state}.unknown`);
   return evidence;
+}
+
+function surveyScopeFacts(source) {
+  const repositoryName = nonemptyString(source.repository?.name);
+  const hasFileInventory = Array.isArray(source.city?.buildings) || Array.isArray(source.graph?.nodes);
+  const filePaths = sortedUniqueStrings([
+    ...arrayOf(source.city?.buildings).map((building) => building?.path),
+    ...arrayOf(source.graph?.nodes).map((node) => node?.path)
+  ]);
+  const hasEdgeInventory = Array.isArray(source.graph?.edges);
+  return [
+    makeFact('survey_scope', {
+      dimension: 'repository',
+      name: repositoryName
+    }, repositoryName
+      ? { observed: ['inspection.repository.name.observed'] }
+      : { unknown: ['inspection.repository.name.unknown'] }),
+    makeFact('survey_scope', {
+      dimension: 'files',
+      count: filePaths.length
+    }, hasFileInventory
+      ? { observed: ['inspection.file.inventory.observed'] }
+      : { unknown: ['inspection.file.inventory.unknown'] }),
+    makeFact('survey_scope', {
+      dimension: 'static_dependencies',
+      count: arrayOf(source.graph?.edges).length
+    }, hasEdgeInventory
+      ? { observed: ['inspection.dependency.inventory.observed'] }
+      : { unknown: ['inspection.dependency.inventory.unknown'] })
+  ];
 }
 
 /**
@@ -259,6 +291,12 @@ export function buildWorldFacts(inspection, townModel) {
     const unique = new Map();
     for (const fact of facts) {
       if (!unique.has(fact.id)) unique.set(fact.id, fact);
+    }
+    const hasRepositoryFact = [...unique.values()].some((fact) => !fact.type.startsWith('facility_'));
+    if (unique.size < 3 || !hasRepositoryFact) {
+      for (const fact of surveyScopeFacts(source)) {
+        if (!unique.has(fact.id)) unique.set(fact.id, fact);
+      }
     }
     return deepFreeze([...unique.values()].sort(compareFacts));
   } catch {

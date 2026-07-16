@@ -69,6 +69,13 @@ const NAV_SPACE_SET = new Set(WORLD_PLAN_NAV_SPACES);
 const NAV_EDGE_KIND_SET = new Set(WORLD_PLAN_NAV_EDGE_KINDS);
 const LIGHT_KIND_SET = new Set(WORLD_PLAN_LIGHT_KINDS);
 const EVIDENCE_FIELDS = ['observed', 'inferred', 'unknown'];
+const FACT_TYPE_SET = new Set([
+  'entrypoint', 'unresolved', 'cycle', 'test_association', 'unverified',
+  'unreached', 'runtime_unknown', 'truncation', 'facility_present',
+  'facility_absent', 'survey_scope', 'external'
+]);
+const EDGE_STATUS_SET = new Set(['resolved', 'unresolved']);
+const MACHINE_EVIDENCE_KEY = /^[a-z0-9_.-]+$/;
 
 function isPlainObject(value) {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
@@ -287,7 +294,7 @@ function inspectStreets(value, width, height, issues) {
   for (let index = 0; index < streets.length; index += 1) {
     const street = streets[index];
     const path = `worldPlan.streets[${index}]`;
-    if (!inspectObject(street, path, ['id', 'tiles', 'width', 'edges', 'kind'], [], issues)) continue;
+    if (!inspectObject(street, path, ['id', 'tiles', 'width', 'edges', 'edgeBindings', 'kind'], [], issues)) continue;
     requireNonemptyString(street.id, `${path}.id`, issues);
     const tiles = inspectArray(street.tiles, `${path}.tiles`, issues);
     if (tiles.length === 0) add(issues, `${path}.tiles`, 'must not be empty.');
@@ -296,10 +303,33 @@ function inspectStreets(value, width, height, issues) {
     }
     requireInteger(street.width, `${path}.width`, issues, { minimum: 1, maximum: 3 });
     const edges = inspectStringArray(street.edges, `${path}.edges`, issues);
+    const edgeBindings = inspectArray(street.edgeBindings, `${path}.edgeBindings`, issues);
+    for (let bindingIndex = 0; bindingIndex < edgeBindings.length; bindingIndex += 1) {
+      const binding = edgeBindings[bindingIndex];
+      const bindingPath = `${path}.edgeBindings[${bindingIndex}]`;
+      if (!inspectObject(binding, bindingPath, ['from', 'to', 'targetHint', 'kind', 'status'], [], issues)) continue;
+      requireNonemptyString(binding.from, `${bindingPath}.from`, issues);
+      requireNonemptyString(binding.kind, `${bindingPath}.kind`, issues);
+      if (!EDGE_STATUS_SET.has(binding.status)) {
+        add(issues, `${bindingPath}.status`, 'must be resolved or unresolved.');
+      }
+      if (binding.status === 'resolved') {
+        requireNonemptyString(binding.to, `${bindingPath}.to`, issues);
+        if (binding.targetHint !== null) add(issues, `${bindingPath}.targetHint`, 'must be null for a resolved edge.');
+      } else {
+        if (binding.to !== null) add(issues, `${bindingPath}.to`, 'must be null for an unresolved edge.');
+        requireNonemptyString(binding.targetHint, `${bindingPath}.targetHint`, issues);
+      }
+    }
     if (!STREET_KIND_SET.has(street.kind)) {
       add(issues, `${path}.kind`, 'must be a supported street kind.');
-    } else if (street.kind !== 'civic-avenue' && edges.length === 0) {
-      add(issues, `${path}.edges`, 'may be empty only for a civic-avenue.');
+    } else if (street.kind !== 'civic-avenue' && (edges.length === 0 || edgeBindings.length === 0)) {
+      add(issues, `${path}.edges`, 'and edgeBindings may be empty only for a civic-avenue.');
+    } else if (street.kind === 'civic-avenue' && (edges.length > 0 || edgeBindings.length > 0)) {
+      add(issues, path, 'a civic-avenue must not claim repository edge bindings.');
+    }
+    if (edges.length !== edgeBindings.length) {
+      add(issues, path, 'must keep edges and edgeBindings in a one-to-one relationship.');
     }
   }
   return streets;
@@ -320,6 +350,7 @@ function inspectBuildings(value, width, height, issues) {
     requireNonemptyString(building.assetId, `${path}.assetId`, issues);
     const files = inspectStringArray(building.files, `${path}.files`, issues);
     const fileSet = new Set(files.filter(isNonemptyString));
+    if (fileSet.size !== files.length) add(issues, `${path}.files`, 'must not contain duplicate file paths.');
     if (!BUILDING_CLASS_SET.has(building.class)) {
       add(issues, `${path}.class`, 'must be a supported building class.');
     }
@@ -334,6 +365,7 @@ function inspectBuildings(value, width, height, issues) {
       }
     }
     const rooms = inspectArray(building.rooms, `${path}.rooms`, issues);
+    const buildingRoomFiles = new Set();
     for (let roomIndex = 0; roomIndex < rooms.length; roomIndex += 1) {
       const room = rooms[roomIndex];
       const roomPath = `${path}.rooms[${roomIndex}]`;
@@ -343,6 +375,7 @@ function inspectBuildings(value, width, height, issues) {
       requireNonemptyString(room.file, `${roomPath}.file`, issues);
       if (isNonemptyString(room.file)) {
         if (!fileSet.has(room.file)) add(issues, `${roomPath}.file`, 'must also appear in the building files list.');
+        buildingRoomFiles.add(room.file);
         if (roomFiles.has(room.file)) add(issues, `${roomPath}.file`, `duplicates room file "${room.file}".`);
         roomFiles.add(room.file);
       }
@@ -352,6 +385,12 @@ function inspectBuildings(value, width, height, issues) {
       }
       inspectStringArray(room.props, `${roomPath}.props`, issues);
       inspectStringArray(room.floorNavNodeIds, `${roomPath}.floorNavNodeIds`, issues, { allowEmpty: false });
+    }
+    for (const file of fileSet) {
+      if (!buildingRoomFiles.has(file)) add(issues, `${path}.rooms`, `must contain exactly one room for building file "${file}".`);
+    }
+    if (buildingRoomFiles.size !== fileSet.size) {
+      add(issues, `${path}.rooms`, 'must map one-to-one with the building files list.');
     }
     inspectStringArray(building.overlays, `${path}.overlays`, issues);
     const interaction = building.interaction;
@@ -394,12 +433,17 @@ function inspectProps(value, width, height, issues) {
   for (let index = 0; index < props.length; index += 1) {
     const prop = props[index];
     const path = `worldPlan.props[${index}]`;
-    if (!inspectObject(prop, path, ['id', 'assetId', 'kind', 'x', 'y'], ['factRef'], issues)) continue;
+    if (!inspectObject(prop, path, ['id', 'assetId', 'kind', 'x', 'y'], ['factRef', 'navEdgeId'], issues)) continue;
     requireNonemptyString(prop.id, `${path}.id`, issues);
     requireNonemptyString(prop.assetId, `${path}.assetId`, issues);
     requireNonemptyString(prop.kind, `${path}.kind`, issues);
     inspectCoordinate(prop.x, prop.y, path, width, height, issues);
     if (Object.hasOwn(prop, 'factRef')) requireNonemptyString(prop.factRef, `${path}.factRef`, issues);
+    const isTransition = prop.kind === 'bridge' || prop.kind === 'stairs';
+    if (isTransition) requireNonemptyString(prop.navEdgeId, `${path}.navEdgeId`, issues);
+    else if (Object.hasOwn(prop, 'navEdgeId')) {
+      add(issues, `${path}.navEdgeId`, 'is allowed only for a bridge or stairs transition prop.');
+    }
   }
   return props;
 }
@@ -422,22 +466,35 @@ function inspectLights(value, width, height, issues) {
 function inspectFacts(value, issues) {
   const facts = inspectArray(value, 'worldPlan.facts', issues);
   collectIds(facts, 'worldPlan.facts', issues);
+  const evidenceClassByKey = new Map();
   for (let index = 0; index < facts.length; index += 1) {
     const fact = facts[index];
     const path = `worldPlan.facts[${index}]`;
-    if (!isPlainObject(fact)) {
-      add(issues, path, 'must be a plain object.');
-      continue;
-    }
+    if (!inspectObject(fact, path, ['id', 'type', 'params', 'evidence', 'sayings'], [], issues)) continue;
     requireNonemptyString(fact.id, `${path}.id`, issues);
-    if (!Object.hasOwn(fact, 'evidence')) {
-      add(issues, `${path}.evidence`, 'is required.');
-      continue;
-    }
+    if (!FACT_TYPE_SET.has(fact.type)) add(issues, `${path}.type`, 'must be a supported fact type.');
+    if (!isPlainObject(fact.params)) add(issues, `${path}.params`, 'must be a plain object.');
     const evidence = fact.evidence;
     if (!inspectObject(evidence, `${path}.evidence`, EVIDENCE_FIELDS, [], issues)) continue;
     for (const field of EVIDENCE_FIELDS) {
-      inspectArray(evidence[field], `${path}.evidence.${field}`, issues);
+      const keys = inspectStringArray(evidence[field], `${path}.evidence.${field}`, issues);
+      for (let keyIndex = 0; keyIndex < keys.length; keyIndex += 1) {
+        const key = keys[keyIndex];
+        if (!isNonemptyString(key)) continue;
+        if (!MACHINE_EVIDENCE_KEY.test(key)) {
+          add(issues, `${path}.evidence.${field}[${keyIndex}]`, 'must be a machine evidence key.');
+        }
+        const prior = evidenceClassByKey.get(key);
+        if (prior && prior !== field) {
+          add(issues, `${path}.evidence.${field}[${keyIndex}]`, `reclassifies evidence key "${key}" from ${prior}.`);
+        } else {
+          evidenceClassByKey.set(key, field);
+        }
+      }
+    }
+    if (inspectObject(fact.sayings, `${path}.sayings`, ['primary', 'reflect'], [], issues)) {
+      requireNonemptyString(fact.sayings.primary, `${path}.sayings.primary`, issues);
+      inspectStringArray(fact.sayings.reflect, `${path}.sayings.reflect`, issues);
     }
   }
   return facts;
@@ -454,11 +511,19 @@ function inspectNav(value, width, height, issues) {
   for (let index = 0; index < nodes.length; index += 1) {
     const node = nodes[index];
     const path = `worldPlan.nav.nodes[${index}]`;
-    if (!inspectObject(node, path, ['id', 'x', 'y', 'elevation', 'space'], [], issues)) continue;
+    if (!inspectObject(node, path, ['id', 'x', 'y', 'elevation', 'space'], ['buildingId', 'roomRef'], issues)) continue;
     requireNonemptyString(node.id, `${path}.id`, issues);
     inspectCoordinate(node.x, node.y, path, width, height, issues);
     requireInteger(node.elevation, `${path}.elevation`, issues, { minimum: 0 });
     if (!NAV_SPACE_SET.has(node.space)) add(issues, `${path}.space`, 'must be outdoor or interior.');
+    if (node.space === 'outdoor') {
+      if (Object.hasOwn(node, 'buildingId') || Object.hasOwn(node, 'roomRef')) {
+        add(issues, path, 'an outdoor node must not claim an interior building or room.');
+      }
+    } else {
+      requireNonemptyString(node.buildingId, `${path}.buildingId`, issues);
+      if (Object.hasOwn(node, 'roomRef')) requireNonemptyString(node.roomRef, `${path}.roomRef`, issues);
+    }
   }
   for (let index = 0; index < edges.length; index += 1) {
     const edge = edges[index];
@@ -493,6 +558,7 @@ function inspectReferences({ districts, buildings, npcs, props, lights, facts, n
   const propIds = new Set(props.filter(isPlainObject).map(({ id }) => id).filter(isNonemptyString));
   const factIds = new Set(facts.filter(isPlainObject).map(({ id }) => id).filter(isNonemptyString));
   const nodeIds = new Set(nav.nodes.filter(isPlainObject).map(({ id }) => id).filter(isNonemptyString));
+  const navEdgeIds = new Set(nav.edges.filter(isPlainObject).map(({ id }) => id).filter(isNonemptyString));
   const landmarkIds = new Set([...buildingIds, ...propIds]);
 
   for (let index = 0; index < districts.length; index += 1) {
@@ -534,6 +600,9 @@ function inspectReferences({ districts, buildings, npcs, props, lights, facts, n
     if (isPlainObject(prop) && Object.hasOwn(prop, 'factRef')) {
       requireReference(prop.factRef, `worldPlan.props[${index}].factRef`, factIds, 'fact', issues);
     }
+    if (isPlainObject(prop) && Object.hasOwn(prop, 'navEdgeId')) {
+      requireReference(prop.navEdgeId, `worldPlan.props[${index}].navEdgeId`, navEdgeIds, 'nav edge', issues);
+    }
   }
   for (let index = 0; index < lights.length; index += 1) {
     const light = lights[index];
@@ -546,6 +615,14 @@ function inspectReferences({ districts, buildings, npcs, props, lights, facts, n
     if (!isPlainObject(edge)) continue;
     requireReference(edge.from, `worldPlan.nav.edges[${index}].from`, nodeIds, 'nav node', issues);
     requireReference(edge.to, `worldPlan.nav.edges[${index}].to`, nodeIds, 'nav node', issues);
+  }
+  for (let index = 0; index < nav.nodes.length; index += 1) {
+    const node = nav.nodes[index];
+    if (!isPlainObject(node) || node.space !== 'interior') continue;
+    requireReference(node.buildingId, `worldPlan.nav.nodes[${index}].buildingId`, buildingIds, 'building', issues);
+    if (Object.hasOwn(node, 'roomRef')) {
+      requireReference(node.roomRef, `worldPlan.nav.nodes[${index}].roomRef`, roomFiles, 'room', issues);
+    }
   }
   if (isPlainObject(playerStart)) {
     requireReference(playerStart.navNodeId, 'worldPlan.playerStart.navNodeId', nodeIds, 'nav node', issues);

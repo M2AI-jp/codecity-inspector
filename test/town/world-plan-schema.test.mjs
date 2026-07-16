@@ -49,6 +49,7 @@ function validPlan() {
       tiles: [[0, 2], [1, 2]],
       width: 3,
       edges: [],
+      edgeBindings: [],
       kind: 'civic-avenue'
     }],
     buildings: [{
@@ -101,13 +102,16 @@ function validPlan() {
       id: 'fact.entrypoint',
       type: 'entrypoint',
       params: { path: 'src/main.js' },
-      evidence: { observed: ['src/main.js'], inferred: [], unknown: [] },
+      evidence: { observed: ['inspection.entrypoint.observed'], inferred: [], unknown: [] },
       sayings: { primary: 'entrypoint.primary', reflect: [] }
     }],
     nav: {
       nodes: [
         { id: 'nav.start', x: 0, y: 2, elevation: 0, space: 'outdoor' },
-        { id: 'nav.room', x: 1, y: 1, elevation: 0, space: 'interior' }
+        {
+          id: 'nav.room', x: 1, y: 1, elevation: 0, space: 'interior',
+          buildingId: 'building.survey', roomRef: 'src/main.js'
+        }
       ],
       edges: [{ id: 'nav.door', from: 'nav.start', to: 'nav.room', kind: 'door' }]
     },
@@ -194,14 +198,36 @@ test('only civic avenues may omit repository import-edge bindings', () => {
   const plan = clonePlan();
   plan.streets[0].kind = 'street';
   plan.streets[0].edges = ['src/main.js→src/service.js'];
+  plan.streets[0].edgeBindings = [{
+    from: 'src/main.js', to: 'src/service.js', targetHint: null, kind: 'import', status: 'resolved'
+  }];
   assert.equal(validateWorldPlanShape(plan).ok, true);
 
   expectStructureFailure((candidate) => {
     candidate.streets[0].kind = 'street';
     candidate.streets[0].edges = [];
+    candidate.streets[0].edgeBindings = [];
   }, /may be empty only for a civic-avenue/);
   expectStructureFailure((candidate) => { candidate.streets[0].kind = 'boulevard'; }, /streets\[0\]\.kind/);
   expectStructureFailure((candidate) => { candidate.streets[0].width = 4; }, /streets\[0\]\.width/);
+  expectStructureFailure((candidate) => {
+    candidate.streets[0].kind = 'street';
+    candidate.streets[0].edges = ['src/main.js→src/service.js'];
+  }, /one-to-one relationship/);
+  expectStructureFailure((candidate) => {
+    candidate.streets[0].kind = 'street';
+    candidate.streets[0].edges = ['src/main.js→src/service.js'];
+    candidate.streets[0].edgeBindings = [{
+      from: 'src/main.js', to: null, targetHint: null, kind: 'import', status: 'resolved'
+    }];
+  }, /to must be a nonempty string/);
+  expectStructureFailure((candidate) => {
+    candidate.streets[0].kind = 'street';
+    candidate.streets[0].edges = ['src/main.js→src/service.js'];
+    candidate.streets[0].edgeBindings = [{
+      from: 'src/main.js', to: 'src/service.js', targetHint: null, kind: 'import', status: 'guessed'
+    }];
+  }, /status must be resolved or unresolved/);
 });
 
 test('rendered entities require explicit nonempty asset IDs, including the survey tower', () => {
@@ -216,21 +242,42 @@ test('building cutaway shape includes interaction anchors and room floor-nav bin
   expectStructureFailure((plan) => { plan.buildings[0].interaction.anchor.x = 9; }, /interaction\.anchor must be inside world bounds/);
   expectStructureFailure((plan) => { plan.buildings[0].rooms[0].floorNavNodeIds = []; }, /floorNavNodeIds must not be empty/);
   expectStructureFailure((plan) => { plan.buildings[0].rooms[0].file = 'src/other.js'; }, /must also appear in the building files list/);
+  expectStructureFailure((plan) => { plan.buildings[0].rooms = []; }, /exactly one room/);
+  expectStructureFailure((plan) => { plan.buildings[0].files.push('src/main.js'); }, /duplicate file paths/);
   expectStructureFailure((plan) => { plan.buildings[0].rooms[0].state = 'broken'; }, /rooms\[0\]\.state/);
 });
 
-test('fact payloads remain extensible while evidence uses exactly three arrays', () => {
+test('fact core is exact while params remain extensible and evidence stays machine-key separated', () => {
   const plan = clonePlan();
-  plan.facts[0] = {
-    id: 'fact.entrypoint',
-    evidence: { observed: [{ path: 'src/main.js' }], inferred: [], unknown: [] },
-    workerOwnedPayload: { futureShape: true }
-  };
+  plan.facts[0].params.futureShape = { nested: true };
   assert.equal(validateWorldPlanShape(plan).ok, true);
 
+  expectStructureFailure((candidate) => { delete candidate.facts[0].type; }, /facts\[0\]\.type is required/);
+  expectStructureFailure((candidate) => { delete candidate.facts[0].params; }, /facts\[0\]\.params is required/);
+  expectStructureFailure((candidate) => { delete candidate.facts[0].sayings; }, /facts\[0\]\.sayings is required/);
+  expectStructureFailure((candidate) => { candidate.facts[0].workerOwnedPayload = {}; }, /workerOwnedPayload is not allowed/);
   expectStructureFailure((candidate) => { delete candidate.facts[0].evidence.unknown; }, /evidence\.unknown is required/);
   expectStructureFailure((candidate) => { candidate.facts[0].evidence.status = []; }, /evidence\.status is not allowed/);
   expectStructureFailure((candidate) => { candidate.facts[0].evidence.observed = 'src/main.js'; }, /evidence\.observed must be an array/);
+  expectStructureFailure((candidate) => { candidate.facts[0].evidence.observed = [123]; }, /must be a nonempty string/);
+  expectStructureFailure((candidate) => { candidate.facts[0].evidence.observed = ['src/main.js']; }, /machine evidence key/);
+  expectStructureFailure((candidate) => {
+    candidate.facts[0].evidence.inferred = [...candidate.facts[0].evidence.observed];
+  }, /reclassifies evidence key/);
+
+  const repeatedSameClass = clonePlan();
+  const repeatedFact = structuredClone(repeatedSameClass.facts[0]);
+  repeatedFact.id = 'fact.entrypoint.repeat';
+  repeatedSameClass.facts.push(repeatedFact);
+  assert.equal(validateWorldPlanShape(repeatedSameClass).ok, true);
+
+  expectStructureFailure((candidate) => {
+    const reclassified = structuredClone(candidate.facts[0]);
+    reclassified.id = 'fact.entrypoint.reclassified';
+    reclassified.evidence.observed = [];
+    reclassified.evidence.unknown = [...candidate.facts[0].evidence.observed];
+    candidate.facts.push(reclassified);
+  }, /reclassifies evidence key/);
 });
 
 test('duplicate entity and graph IDs are rejected within every namespace', () => {
@@ -257,9 +304,17 @@ test('missing references are rejected across landmarks, rooms, interactions, inh
     [(plan) => { plan.npcs[0].home = 'missing.building'; }, /missing building/],
     [(plan) => { plan.npcs[0].factRefs = ['missing.fact']; }, /missing fact/],
     [(plan) => { plan.props[0].factRef = 'missing.fact'; }, /missing fact/],
+    [(plan) => {
+      plan.props.push({
+        id: 'prop.bridge', assetId: 'structure.bridge_stone', kind: 'bridge',
+        x: 0, y: 2, navEdgeId: 'missing.edge'
+      });
+    }, /missing nav edge/],
     [(plan) => { plan.lights[0].roomRef = 'missing.room'; }, /missing room/],
     [(plan) => { plan.nav.edges[0].from = 'missing.node'; }, /missing nav node/],
     [(plan) => { plan.nav.edges[0].to = 'missing.node'; }, /missing nav node/],
+    [(plan) => { plan.nav.nodes[1].buildingId = 'missing.building'; }, /missing building/],
+    [(plan) => { plan.nav.nodes[1].roomRef = 'missing.room'; }, /missing room/],
     [(plan) => { plan.playerStart.navNodeId = 'missing.node'; }, /missing nav node/]
   ];
   for (const [mutator, pattern] of cases) expectStructureFailure(mutator, pattern);
@@ -284,7 +339,15 @@ test('player start and nav graph use the exact v2 fields and enums', () => {
   expectStructureFailure((plan) => { plan.playerStart.facing = 'down'; }, /playerStart\.facing/);
   expectStructureFailure((plan) => { plan.nav.nodes[0].space = 'roof'; }, /nav\.nodes\[0\]\.space/);
   expectStructureFailure((plan) => { plan.nav.edges[0].kind = 'teleport'; }, /nav\.edges\[0\]\.kind/);
+  expectStructureFailure((plan) => { delete plan.nav.nodes[1].buildingId; }, /buildingId/);
+  expectStructureFailure((plan) => { plan.nav.nodes[0].roomRef = 'src/main.js'; }, /outdoor node/);
   expectStructureFailure((plan) => { plan.playerStart.z = 0; }, /playerStart\.z is not allowed/);
+  expectStructureFailure((plan) => {
+    plan.props.push({
+      id: 'prop.bridge', assetId: 'structure.bridge_stone', kind: 'bridge', x: 0, y: 2
+    });
+  }, /navEdgeId/);
+  expectStructureFailure((plan) => { plan.props[0].navEdgeId = 'nav.door'; }, /allowed only for a bridge or stairs/);
 });
 
 test('embedded validation has only ok and issues fields', () => {

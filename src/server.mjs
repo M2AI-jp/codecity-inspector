@@ -7,7 +7,7 @@ import { createServer } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { inspectRepository } from './inspector.mjs';
-import { buildTownPayload } from './town/index.mjs';
+import { buildTownPayload, validateWorldPlan } from './town/index.mjs';
 
 const PROJECT_ROOT = fileURLToPath(new URL('..', import.meta.url));
 const DEFAULT_PUBLIC_ROOT = path.join(PROJECT_ROOT, 'public');
@@ -166,8 +166,12 @@ export async function startServer({
       try {
         const inspection = await inspectCurrentRepository();
         const payload = await townPayloadBuilder(repoPath, inspection);
-        if (payload?.layout?.validation?.ok !== true) {
-          throw new Error('Town payload contains an invalid layout');
+        const validation = validateWorldPlan(payload?.worldPlan, { inspection });
+        const factsMatch = Array.isArray(payload?.facts)
+          && JSON.stringify(payload.facts) === JSON.stringify(payload?.worldPlan?.facts);
+        const validationMatches = JSON.stringify(validation) === JSON.stringify(payload?.worldPlan?.validation);
+        if (payload?.schemaVersion !== 2 || !factsMatch || !validationMatches || validation.ok !== true) {
+          throw new Error('Town payload contains an invalid WorldPlan');
         }
         sendJson(response, 200, payload, headOnly);
       } catch {
