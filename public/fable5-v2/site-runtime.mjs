@@ -112,9 +112,9 @@ ui.footstep
 ui.town_crest`.split('\n').sort());
 
 const PINNED_LEGACY = Object.freeze({
-  recordSha256: 'caf19944245818a481659e757675e78907db543fd1aab82ca4947b068499e8c4',
-  dispositionDigest: '5e03f0885b97ec9421ada3cbe52846aec91f2f85e2d928465798df902df4b92d',
-  freezeDigest: '733142d2868070fb8c4d95382426f725090dea7aa29314672cfd847dbc18fa5f',
+  recordSha256: 'd1edad762c364d003984c9906875c7683e966babd5f31388e7158738f7cca881',
+  dispositionDigest: 'b52d7631352f8d5ac7cd4c9972c7380c905c837a0802b22d63c5e07afb3f9642',
+  freezeDigest: '54983dee954c7892865305e6b57bb9f2452f65301f369df8908d72aba4bcf5b8',
   assetIdsSha256: '1035cfc0c269a6c6f40f99655c030aaf5f91cb1de217aad0fed6bbf67cfb0065'
 });
 const PINNED_REFERENCE_AUTHORIZATION_SHA256 = '6f02d72f10711ecf50c9d525a7762431f2548252f8071d9035c425f1c8e32f14';
