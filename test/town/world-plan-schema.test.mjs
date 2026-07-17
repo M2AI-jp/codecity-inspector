@@ -33,7 +33,7 @@ function validPlan() {
     schemaVersion: 2,
     seed: 'stable-world-seed',
     inspectionDigest: DIGEST,
-    generatorVersion: '2.0.0',
+    generatorVersion: '2.2.0',
     generation: { mode: 'primary', attempt: 0 },
     world: { widthTiles: 4, heightTiles: 3, tileSize: 64 },
     terrain: Array.from({ length: 12 }, () => terrainCell()),
@@ -141,7 +141,7 @@ function expectStructureFailure(mutator, pattern) {
 
 test('WorldPlan v2 exports the fixed contract vocabulary as frozen values', () => {
   assert.equal(WORLD_PLAN_VERSION, 2);
-  assert.equal(WORLD_GENERATOR_VERSION, '2.0.0');
+  assert.equal(WORLD_GENERATOR_VERSION, '2.2.0');
   assert.deepEqual(WORLD_PLAN_TOP_LEVEL_FIELDS, [
     'schemaVersion', 'seed', 'inspectionDigest', 'generatorVersion',
     'generation', 'world', 'terrain', 'districts', 'streets', 'buildings',

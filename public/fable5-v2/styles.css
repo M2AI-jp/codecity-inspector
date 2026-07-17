@@ -55,6 +55,7 @@ button:disabled {
 }
 
 button:focus-visible,
+a:focus-visible,
 summary:focus-visible,
 #world-canvas:focus-visible {
   outline: 3px solid var(--cyan);
@@ -116,6 +117,49 @@ summary:focus-visible,
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.preview-link {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border: 1px solid rgba(115, 216, 210, 0.65);
+  border-radius: 10px;
+  background: rgba(115, 216, 210, 0.13);
+  color: var(--ink);
+  font-weight: 800;
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.preview-link:hover {
+  border-color: var(--cyan);
+  background: rgba(115, 216, 210, 0.22);
+}
+
+.sound-toggle {
+  min-height: 48px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.sound-toggle:hover {
+  border-color: rgba(115, 216, 210, 0.55);
+  background: rgba(115, 216, 210, 0.12);
+  color: var(--ink);
+}
+
+.preview-link-short {
+  display: none;
 }
 
 .habitability-badge {
@@ -263,6 +307,10 @@ summary:focus-visible,
   color: var(--ink);
 }
 
+.game-error .error-preview-link {
+  margin-top: 4px;
+}
+
 .context-hint {
   position: absolute;
   z-index: 4;
@@ -320,6 +368,23 @@ summary:focus-visible,
   box-shadow: 0 10px 32px rgba(0, 0, 0, 0.34);
   transform: translateX(-50%);
   pointer-events: none;
+}
+
+.nearby-prompt[data-access="enterable"] {
+  border-color: rgba(242, 201, 109, 0.68);
+}
+
+.nearby-prompt[data-access="closed"] {
+  border-color: rgba(174, 183, 212, 0.58);
+}
+
+.nearby-prompt[data-access="invalid"] {
+  border-color: rgba(255, 143, 143, 0.72);
+}
+
+.nearby-prompt[data-access="closed"] #nearby-note {
+  max-width: 42ch;
+  color: #d5d9e8;
 }
 
 .nearby-prompt span,
@@ -660,6 +725,8 @@ dialog::backdrop {
 
 @media (max-width: 560px) {
   .topbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 8px;
     padding-block: 7px;
   }
@@ -671,11 +738,43 @@ dialog::backdrop {
   }
 
   .identity strong {
-    max-width: 30vw;
+    max-width: 100%;
+    font-size: 16px;
   }
 
   .topbar-actions {
+    width: 100%;
+    justify-content: flex-end;
     gap: 5px;
+  }
+
+  .preview-link {
+    padding-inline: 10px;
+    font-size: 14px;
+  }
+
+  .sound-toggle {
+    width: 48px;
+    min-width: 48px;
+    padding: 0;
+    font-size: 0;
+  }
+
+  .sound-toggle::before {
+    content: "🔊";
+    font-size: 18px;
+  }
+
+  .sound-toggle[aria-pressed="true"]::before {
+    content: "🔇";
+  }
+
+  .preview-link-long {
+    display: none;
+  }
+
+  .preview-link-short {
+    display: inline;
   }
 
   .primary-button {

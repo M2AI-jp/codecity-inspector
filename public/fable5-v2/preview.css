@@ -1,0 +1,51 @@
+:root { color-scheme: dark; font-family: ui-rounded, "Hiragino Sans", system-ui, sans-serif; background: #111719; color: #f3ead6; }
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; background: radial-gradient(circle at top, #263435, #111719 62%); }
+button, canvas { font: inherit; }
+.preview-shell { width: min(100%, 1380px); margin: 0 auto; padding: clamp(16px, 3vw, 34px); }
+.preview-header { display: flex; gap: 24px; justify-content: space-between; align-items: end; margin: 0 0 16px; }
+h1, h2, h3, p { margin: 0; }
+h1 { font-size: clamp(1.4rem, 3vw, 2rem); letter-spacing: .025em; }
+.eyebrow { color: #f0c770; font: 700 .7rem/1.35 ui-monospace, monospace; letter-spacing: .12em; }
+.repository-name, .scope-note, #facts-summary { color: #c6d1c5; font-size: .88rem; margin-top: 5px; }
+.scope-note { max-width: 37rem; text-align: right; line-height: 1.55; }
+.game-wrap { position: relative; width: 100%; aspect-ratio: 16 / 10; overflow: hidden; border: 2px solid #80653b; border-radius: 15px; box-shadow: 0 24px 70px #000a, inset 0 0 0 3px #1a201c; background: #202521; }
+#town-canvas { display: block; width: 100%; height: 100%; touch-action: manipulation; cursor: crosshair; image-rendering: pixelated; outline: none; }
+#town-canvas:focus-visible { outline: 3px solid #f6d779; outline-offset: -6px; }
+.sound-toggle { position: absolute; z-index: 2; right: clamp(10px, 2vw, 24px); top: clamp(10px, 2vw, 24px); padding: 7px 10px; color: #e8e2d0; font: 700 .72rem ui-monospace, monospace; border: 1px solid #82908799; border-radius: 999px; background: #101714d9; box-shadow: 0 3px 12px #0008; }
+.sound-toggle:hover, .sound-toggle:focus-visible { border-color: #f0c770; color: #fff0bd; outline: none; }
+.sound-toggle[aria-pressed="true"] { color: #aeb8af; border-color: #5e6962; }
+.hud { position: absolute; left: clamp(10px, 2vw, 24px); top: clamp(10px, 2vw, 24px); max-width: min(430px, calc(100% - 20px)); padding: 11px 14px; border: 1px solid #b99555aa; border-radius: 9px; background: #101714dc; box-shadow: 0 5px 18px #0009; pointer-events: none; }
+.hud-kicker { color: #f0c770; font: 700 .65rem ui-monospace, monospace; letter-spacing: .1em; }
+.objective { font-weight: 800; margin-top: 3px; text-shadow: 0 1px 2px #000; }
+.nearby { color: #c9d5c8; font-size: .82rem; margin-top: 4px; }
+.interact { position: absolute; right: clamp(10px, 2vw, 24px); bottom: clamp(10px, 2vw, 24px); padding: 10px 14px; color: #21180d; font-weight: 800; border: 1px solid #f7e29a; border-radius: 8px; background: #e3ba55; box-shadow: 0 3px 10px #000a; }
+.interact:disabled { opacity: .55; filter: grayscale(.5); }
+kbd { padding: 1px 5px; border: 1px solid #ffffff55; border-bottom-width: 2px; border-radius: 4px; color: inherit; font: 700 .78em ui-monospace, monospace; }
+.interact kbd { border-color: #604817; }
+.completion { position: absolute; left: 50%; top: 50%; width: min(410px, calc(100% - 32px)); padding: 18px; transform: translate(-50%, -50%); text-align: center; border: 1px solid #f0c770; border-radius: 11px; background: #17221df1; box-shadow: 0 9px 35px #000c; }
+.completion strong { display: block; color: #ffe493; font-size: 1.2rem; margin-bottom: 6px; }
+.completion span { color: #d9e4d7; font-size: .9rem; }
+.dialogue { position: absolute; z-index: 2; left: 50%; bottom: clamp(12px, 3vw, 34px); width: min(520px, calc(100% - 30px)); padding: 15px 17px; transform: translateX(-50%); border: 1px solid #d1aa5a; border-radius: 10px; background: #131b18f2; box-shadow: 0 10px 30px #000c; }
+.dialogue-place { color: #f0c770; font: 700 .68rem ui-monospace, monospace; letter-spacing: .1em; }
+.dialogue h2 { color: #fff0bd; font-size: 1.05rem; margin-top: 3px; }
+.dialogue-body { color: #e1e7dc; line-height: 1.55; margin-top: 7px; }
+.dialogue-evidence { color: #cbd5cc; font-size: .78rem; line-height: 1.4; margin-top: 9px; padding-top: 8px; border-top: 1px solid #ffffff22; }
+.dialogue-evidence.observed { color: #8bd8b5; } .dialogue-evidence.inferred { color: #e8c572; } .dialogue-evidence.unknown { color: #bac3df; }
+.dialogue-close { float: right; margin-top: 11px; padding: 6px 9px; color: #f8eccc; border: 1px solid #90733f; border-radius: 6px; background: #29352e; }
+.scene-overlay { position: absolute; z-index: 3; left: 50%; top: 50%; width: min(430px, calc(100% - 34px)); padding: 18px; transform: translate(-50%, -50%); text-align: center; border: 1px solid #e0b958; border-radius: 10px; background: #14201ce8; box-shadow: 0 12px 36px #000c; pointer-events: none; }
+.scene-overlay strong { display: block; color: #fff0bd; font-size: 1.45rem; margin-top: 4px; }.scene-overlay span { display: block; color: #dbe4d7; font-size: .88rem; margin-top: 7px; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 12px 2px; color: #c8d0c5; font-size: .82rem; }
+.facts-panel { padding: 17px; border: 1px solid #43534e; border-radius: 12px; background: #18211f; }
+.facts-title { margin-bottom: 12px; }
+.facts-title h2 { font-size: 1.12rem; margin-top: 2px; }
+.fact-columns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.fact-column { min-height: 88px; padding: 11px; border-left: 3px solid; border-radius: 5px; background: #0e1513; }
+.fact-column h3 { font-size: .88rem; margin-bottom: 7px; }
+.fact-column ul { margin: 0; padding-left: 1.1em; color: #dbe1d7; font-size: .79rem; line-height: 1.45; }
+.fact-column li + li { margin-top: 4px; }
+.observed { border-color: #77d6ac; } .observed h3 { color: #77d6ac; }
+.inferred { border-color: #e5ba60; } .inferred h3 { color: #e5ba60; }
+.unknown { border-color: #aeb7d4; } .unknown h3 { color: #aeb7d4; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+@media (max-width: 680px) { .preview-shell { padding: 12px; } .preview-header { display: block; } .scope-note { text-align: left; } .fact-columns { grid-template-columns: 1fr; } .sound-toggle { top: 7px; right: 7px; padding: 5px 8px; } .hud { top: 40px; max-width: calc(100% - 14px); font-size: .84rem; } .nearby { display: none; } .dialogue { bottom: 9px; padding: 11px 13px; } .dialogue-body { font-size: .86rem; } }

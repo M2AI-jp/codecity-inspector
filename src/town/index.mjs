@@ -64,6 +64,12 @@ export { isConnectionBuilding, buildTownModel } from './detect.mjs';
 export { assessHabitability } from './habitability.mjs';
 export { validateLayout };
 export { validateWorldPlan } from './world-plan-validator.mjs';
+export {
+  REPOSITORY_SEMANTIC_MODEL_VERSION,
+  REPOSITORY_SEMANTIC_ROLES,
+  normalizeRepositorySemanticModel
+} from './repository-semantic-model.mjs';
+export { PREFAB_CATALOG, PREFAB_IDS, getPrefab } from './prefab-catalog.mjs';
 
 // --- orchestrator -----------------------------------------------------------
 
@@ -145,8 +151,10 @@ export async function buildLegacyTownPayload(repoPath, inspection, options = {})
  * @param {string} repoPath - repository root (read only, never executed); used
  *   only to re-collect read-only signals inside buildTown.
  * @param {object} inspection - src/inspector.mjs buildInspection(scan) output (schemaVersion 2)
- * @param {{ seed?: string|null }} [options] - `seed` overrides the stable
- *   repository-name world seed; omit for the deterministic default.
+ * @param {{ seed?: string|null, semanticAnnotations?: object[] }} [options] -
+ *   `seed` overrides the stable repository-name world seed. Candidate semantic
+ *   annotations may classify inspected files, but cannot add files, observed
+ *   evidence, placement, collision, or game behavior.
  * @returns {Promise<{schemaVersion: 2, repository: {name: string}, habitability: object, facts: object[], worldPlan: object}>}
  */
 export async function buildTownPayload(repoPath, inspection, options = {}) {
@@ -154,6 +162,9 @@ export async function buildTownPayload(repoPath, inspection, options = {}) {
   const worldPlan = annotateWorldPlan(generateWorldPlan({
     inspection,
     model,
+    ...(options.semanticAnnotations == null
+      ? {}
+      : { semanticAnnotations: options.semanticAnnotations }),
     ...(options.seed == null ? {} : { seed: String(options.seed) })
   }), { inspection });
   if (worldPlan.validation?.ok !== true) {

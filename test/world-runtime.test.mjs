@@ -112,7 +112,7 @@ export function makeWorldPlan() {
     schemaVersion: 2,
     seed: 'playable-fixture',
     inspectionDigest: DIGEST,
-    generatorVersion: '2.0.0',
+    generatorVersion: '2.2.0',
     generation: { mode: 'primary', attempt: 0 },
     world: { widthTiles: 10, heightTiles: 8, tileSize: 64 },
     terrain: Array.from({ length: 80 }, (_, index) => ({

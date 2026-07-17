@@ -16,6 +16,6 @@ jobs:
         with:
           node-version: 20.9.0
       - run: npm ci
-      - run: npm run check
       - run: npm ci --prefix tools/asset-forge
+      - run: npm run check
       - run: npm run asset:check

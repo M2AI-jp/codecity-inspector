@@ -50,6 +50,7 @@ const elements = {
   zoomOut: document.querySelector('#zoom-out'),
   zoomIn: document.querySelector('#zoom-in'),
   zoomValue: document.querySelector('#zoom-value'),
+  soundToggle: document.querySelector('#sound-toggle'),
   journalButton: document.querySelector('#journal-button'),
   startupPanel: document.querySelector('#startup-panel'),
   startupMessage: document.querySelector('#startup-message'),
@@ -63,6 +64,7 @@ const elements = {
   nearbyPrompt: document.querySelector('#nearby-prompt'),
   nearbyPlace: document.querySelector('#nearby-place'),
   nearbyAction: document.querySelector('#nearby-action'),
+  nearbyNote: document.querySelector('#nearby-note'),
   actionButton: document.querySelector('#action-button'),
   screenReaderStatus: document.querySelector('#screen-reader-status'),
   dialogue: document.querySelector('#dialogue'),
@@ -111,7 +113,7 @@ const state = {
   cutawayId: null,
   cutawayExitStartedAt: null,
   roofAlpha: new Map(),
-  lastCutawayUpdate: null,
+  roofTransitions: new Map(),
   pointers: new Map(),
   pinchDistance: null,
   pinchUsed: false,
@@ -132,6 +134,157 @@ const state = {
   reducedMotion: reducedMotionQuery.matches,
   animationFrame: 0
 };
+
+const CUTAWAY_TRANSITION_MS = 460;
+const ROOF_OPEN_ALPHA = 0.12;
+const SOUND_CUES = Object.freeze({
+  enter: Object.freeze([
+    Object.freeze({ frequency: 196, endFrequency: 294, delay: 0, duration: 0.16, gain: 0.035 }),
+    Object.freeze({ frequency: 392, endFrequency: 494, delay: 0.09, duration: 0.19, gain: 0.025 })
+  ]),
+  exit: Object.freeze([
+    Object.freeze({ frequency: 294, endFrequency: 196, delay: 0, duration: 0.2, gain: 0.03 })
+  ]),
+  interact: Object.freeze([
+    Object.freeze({ frequency: 523, endFrequency: 659, delay: 0, duration: 0.09, gain: 0.022 })
+  ])
+});
+
+function easeInOutCubic(progress) {
+  const value = Math.max(0, Math.min(1, progress));
+  return value < 0.5 ? 4 * value ** 3 : 1 - ((-2 * value + 2) ** 3) / 2;
+}
+
+const ANIMATION_REGISTRY = Object.freeze({
+  'animation.building.cutaway.fade': Object.freeze({
+    kind: 'cutaway', durationMs: 460, easingId: 'ease-in-out-cubic', easing: easeInOutCubic
+  }),
+  'animation.building.closed.idle': Object.freeze({
+    kind: 'idle', durationMs: 0, easingId: 'linear', easing: (progress) => Math.max(0, Math.min(1, progress))
+  })
+});
+
+const SOUND_EVENT_REGISTRY = Object.freeze({
+  'sound.building.inn.entry': Object.freeze({
+    'event.facility.enter': 'enter',
+    'event.facility.exit': 'exit',
+    'event.facility.talk-keeper': 'interact'
+  }),
+  'sound.building.closed-sign': Object.freeze({
+    'event.facility.inspect-closure-sign': 'interact'
+  })
+});
+
+const PREFAB_BEHAVIOR_REGISTRY = Object.freeze({
+  'behavior.building.enterable-service': Object.freeze({
+    kind: 'enterable',
+    prefabId: 'prefab.service.inn.enterable',
+    access: 'enterable',
+    animationSetId: 'animation.building.cutaway.fade',
+    collision: Object.freeze({ exterior: 'solid-footprint', entrance: 'door', interior: 'walkable' }),
+    eventIds: Object.freeze([
+      'event.facility.approach',
+      'event.facility.enter',
+      'event.facility.talk-keeper',
+      'event.facility.exit'
+    ]),
+    interactionEventId: 'event.facility.talk-keeper',
+    interactionVerb: 'talk-innkeeper',
+    labelMode: 'proximity',
+    soundSetId: 'sound.building.inn.entry',
+    speakerRole: 'keeper.inn'
+  }),
+  'behavior.building.closed-evidence-sign': Object.freeze({
+    kind: 'closed',
+    prefabId: 'prefab.module.closed-unreached',
+    access: 'closed',
+    animationSetId: 'animation.building.closed.idle',
+    collision: Object.freeze({ exterior: 'solid-footprint', entrance: 'blocked', interior: 'none' }),
+    eventIds: Object.freeze([
+      'event.facility.approach',
+      'event.facility.inspect-closure-sign'
+    ]),
+    interactionEventId: 'event.facility.inspect-closure-sign',
+    interactionVerb: 'inspect-closure-sign',
+    labelMode: 'proximity',
+    soundSetId: 'sound.building.closed-sign',
+    speakerRole: null
+  })
+});
+
+const LEGACY_CUTAWAY_ANIMATION = Object.freeze({
+  kind: 'cutaway', durationMs: CUTAWAY_TRANSITION_MS, easingId: 'ease-in-out-cubic', easing: easeInOutCubic
+});
+const LEGACY_ENTERABLE_PROGRAM = Object.freeze({
+  kind: 'legacy-enterable',
+  access: 'enterable',
+  collision: Object.freeze({ exterior: 'solid-footprint', entrance: 'door', interior: 'walkable' }),
+  animation: LEGACY_CUTAWAY_ANIMATION,
+  eventIds: Object.freeze([]),
+  soundEvents: null
+});
+const prefabProgramCache = new WeakMap();
+const legacyProgramCache = new WeakMap();
+
+function createSoundEngine() {
+  let audioContext = null;
+  let activated = false;
+  let muted = false;
+  const contextForPlayback = () => {
+    if (!activated || muted) return null;
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return null;
+    try {
+      audioContext ??= new AudioContext();
+    } catch {
+      return null;
+    }
+    return audioContext;
+  };
+  return Object.freeze({
+    async prime() {
+      activated = true;
+      const current = contextForPlayback();
+      if (current?.state === 'suspended') {
+        try {
+          await current.resume();
+        } catch {
+          // Sound is optional. The generated city remains fully playable in silence.
+        }
+      }
+    },
+    play(name) {
+      const current = contextForPlayback();
+      const cue = SOUND_CUES[name];
+      if (!current || current.state !== 'running' || !cue) return;
+      for (const note of cue) {
+        const start = current.currentTime + note.delay;
+        const end = start + note.duration;
+        try {
+          const oscillator = current.createOscillator();
+          const gain = current.createGain();
+          oscillator.type = 'sine';
+          oscillator.frequency.setValueAtTime(note.frequency, start);
+          oscillator.frequency.exponentialRampToValueAtTime(note.endFrequency, end);
+          gain.gain.setValueAtTime(0.0001, start);
+          gain.gain.exponentialRampToValueAtTime(note.gain, start + Math.min(0.025, note.duration / 3));
+          gain.gain.exponentialRampToValueAtTime(0.0001, end);
+          oscillator.connect(gain).connect(current.destination);
+          oscillator.start(start);
+          oscillator.stop(end + 0.01);
+        } catch {
+          // Web Audio may be unavailable or blocked; gameplay must continue without it.
+        }
+      }
+    },
+    toggle() {
+      muted = !muted;
+      return muted;
+    }
+  });
+}
+
+const sound = createSoundEngine();
 
 function withDeadline(promise, milliseconds, message = '残りの承認済み素材が15秒以内に届きませんでした。') {
   let timer;
@@ -244,6 +397,99 @@ function displayBuildingName(building) {
   const file = building.files?.[0];
   const basename = typeof file === 'string' ? file.split('/').at(-1) : null;
   return basename ? `建物「${basename}」` : '街の調査地点';
+}
+
+function prefabValue(building, field) {
+  return building?.prefab?.[field] ?? building?.[field] ?? null;
+}
+
+function hasPrefabDeclaration(building) {
+  return typeof building?.prefab?.id === 'string' || typeof building?.prefabId === 'string';
+}
+
+function sameEventIds(actual, expected) {
+  return Array.isArray(actual)
+    && actual.length === expected.length
+    && expected.every((eventId) => actual.includes(eventId));
+}
+
+function prefabProgram(building) {
+  if (!building || typeof building !== 'object' || !hasPrefabDeclaration(building)) return null;
+  if (prefabProgramCache.has(building)) return prefabProgramCache.get(building);
+  const prefab = building.prefab;
+  const behavior = PREFAB_BEHAVIOR_REGISTRY[prefab?.behaviorId];
+  const animation = ANIMATION_REGISTRY[prefab?.animationSetId];
+  const soundEvents = SOUND_EVENT_REGISTRY[prefab?.soundSetId];
+  const matches = Boolean(behavior && animation && soundEvents)
+    && prefab.id === behavior.prefabId
+    && prefab.access === behavior.access
+    && prefab.animationSetId === behavior.animationSetId
+    && prefab.cutawayDurationMs === animation.durationMs
+    && prefab.cutawayEasing === animation.easingId
+    && prefab.collision?.exterior === behavior.collision.exterior
+    && prefab.collision?.entrance === behavior.collision.entrance
+    && prefab.collision?.interior === behavior.collision.interior
+    && sameEventIds(prefab.eventIds, behavior.eventIds)
+    && prefab.soundSetId === behavior.soundSetId
+    && prefab.labelMode === behavior.labelMode
+    && (prefab.speakerRole ?? null) === behavior.speakerRole
+    && prefab.interactionVerb === behavior.interactionVerb
+    && Object.hasOwn(soundEvents ?? {}, behavior.interactionEventId);
+  const program = matches ? Object.freeze({ ...behavior, animation, soundEvents }) : null;
+  prefabProgramCache.set(building, program);
+  return program;
+}
+
+function legacyEnterableProgram(building) {
+  if (!building || hasPrefabDeclaration(building) || building.class === 'S' || !state.runtime) return null;
+  if (legacyProgramCache.has(building)) return legacyProgramCache.get(building);
+  const roomNodeIds = new Set((building.rooms ?? [])
+    .flatMap((room) => Array.isArray(room?.floorNavNodeIds) ? room.floorNavNodeIds : [])
+    .filter((nodeId) => typeof nodeId === 'string'));
+  const interiorNodeIds = new Set([...roomNodeIds].filter((nodeId) => {
+    const node = state.runtime.nodeById.get(nodeId);
+    return node?.space === 'interior' && node.buildingId === building.id;
+  }));
+  const hasInteriorDoor = interiorNodeIds.size > 0 && state.runtime.plan.nav.edges.some((edge) => (
+    edge.kind === 'door' && (interiorNodeIds.has(edge.from) !== interiorNodeIds.has(edge.to))
+  ));
+  const program = hasInteriorDoor ? LEGACY_ENTERABLE_PROGRAM : null;
+  legacyProgramCache.set(building, program);
+  return program;
+}
+
+function buildingAccess(building) {
+  const program = prefabProgram(building);
+  if (program?.kind === 'enterable'
+    && program.collision.entrance === 'door'
+    && program.collision.interior === 'walkable') return 'enterable';
+  if (program?.kind === 'closed'
+    && program.collision.entrance === 'blocked'
+    && program.collision.interior === 'none') return 'closed';
+  return legacyEnterableProgram(building)?.access ?? null;
+}
+
+function buildingAllowsCutaway(building) {
+  if (!building) return false;
+  if (!hasPrefabDeclaration(building)) return Boolean(legacyEnterableProgram(building));
+  const program = prefabProgram(building);
+  return program?.kind === 'enterable'
+    && program.collision.entrance === 'door'
+    && program.collision.interior === 'walkable'
+    && program.animation.kind === 'cutaway';
+}
+
+function cutawayAnimation(building) {
+  if (!hasPrefabDeclaration(building)) return legacyEnterableProgram(building)?.animation ?? null;
+  const program = prefabProgram(building);
+  return program?.kind === 'enterable' && program.animation.kind === 'cutaway' ? program.animation : null;
+}
+
+function playPrefabEvent(building, eventId) {
+  const program = prefabProgram(building);
+  if (!program || !program.eventIds.includes(eventId)) return;
+  const cue = program.soundEvents[eventId];
+  if (cue) sound.play(cue);
 }
 
 function habitabilityLabel(habitability) {
@@ -563,6 +809,33 @@ function drawDojoObservation(timestamp) {
   context.restore();
 }
 
+function drawEntranceAffordances(timestamp) {
+  for (const building of state.runtime.buildings) {
+    if (buildingAccess(building) !== 'enterable' || building.id === state.cutawayId) continue;
+    const { x, y } = building.entrance;
+    if (x < state.camera.sourceX - state.runtime.tileSize
+      || y < state.camera.sourceY - state.runtime.tileSize
+      || x > state.camera.sourceX + state.camera.sourceWidth + state.runtime.tileSize
+      || y > state.camera.sourceY + state.camera.sourceHeight + state.runtime.tileSize) continue;
+    const lift = state.reducedMotion ? 0 : Math.sin(timestamp / 240) * 2;
+    context.save();
+    context.translate(x, y - state.runtime.tileSize * 0.28 + lift);
+    context.lineCap = 'round';
+    context.lineJoin = 'round';
+    context.lineWidth = 4;
+    context.strokeStyle = 'rgba(11, 16, 32, 0.88)';
+    context.beginPath();
+    context.moveTo(-9, -5);
+    context.lineTo(0, 4);
+    context.lineTo(9, -5);
+    context.stroke();
+    context.lineWidth = 2;
+    context.strokeStyle = '#f2c96d';
+    context.stroke();
+    context.restore();
+  }
+}
+
 function drawWorld(timestamp) {
   resizeCanvas();
   currentCamera();
@@ -603,6 +876,7 @@ function drawWorld(timestamp) {
     context.restore();
   }
 
+  drawEntranceAffordances(timestamp);
   drawDojoObservation(timestamp);
 
   if (playerNeedsSilhouette(entities)) {
@@ -662,23 +936,42 @@ function updateNearby() {
     cancelDojoObservation('観察地点を離れたため、道場の観察を取り消しました。');
   }
   state.nearby = nearby;
-  const ready = nearby ? state.assetsComplete && buildingImageReady(nearby.building) : false;
+  const declaredPrefab = nearby ? hasPrefabDeclaration(nearby.building) : false;
+  const program = nearby ? prefabProgram(nearby.building) : null;
+  const invalidPrefab = declaredPrefab && !program;
+  const ready = nearby ? !invalidPrefab && state.assetsComplete && buildingImageReady(nearby.building) : false;
+  const access = nearby ? buildingAccess(nearby.building) : null;
   const dojoStage = state.dojoObservation
     ? (performance.now() >= state.dojoObservation.readyAt ? 'ready' : Math.floor((state.dojoObservation.readyAt - performance.now()) / 250))
     : '';
   const overviewStage = state.overview?.buildingId ?? '';
-  const key = nearby ? `${nearby.building.id}:${nearby.family}:${ready}:${state.assetsComplete}:${dojoStage}:${overviewStage}` : '';
+  const key = nearby ? `${nearby.building.id}:${nearby.family}:${access}:${invalidPrefab}:${ready}:${state.assetsComplete}:${dojoStage}:${overviewStage}` : '';
   if (key === state.nearbyKey) return;
   state.nearbyKey = key;
   if (!nearby) {
     elements.nearbyPrompt.hidden = true;
+    delete elements.nearbyPrompt.dataset.access;
     elements.actionButton.disabled = true;
     elements.contextHint.hidden = state.tour.status === 'complete';
     return;
   }
   elements.contextHint.hidden = true;
-  elements.nearbyPlace.textContent = displayBuildingName(nearby.building);
-  if (state.overview?.buildingId === nearby.building.id) {
+  elements.nearbyPrompt.dataset.access = invalidPrefab ? 'invalid' : access ?? 'legacy';
+  elements.nearbyPlace.textContent = access === 'closed'
+    ? '閉鎖 · 未到達／要確認'
+    : access === 'enterable'
+      ? `${displayBuildingName(nearby.building)} · 入れる`
+      : displayBuildingName(nearby.building);
+  elements.nearbyNote.textContent = invalidPrefab
+    ? 'Prefabの動作宣言が一致しないため、この施設の操作を停止しています。'
+    : access === 'closed'
+      ? '入口からの静的な道筋が未確認です。死んだコードとは断定していません。'
+      : 'Enter / Space、またはTabで操作ボタンへ';
+  if (invalidPrefab) {
+    elements.nearbyAction.textContent = '施設動作を確認できません';
+  } else if (access === 'closed') {
+    elements.nearbyAction.textContent = ready ? '閉鎖看板を調べる' : '承認済み素材を照合中…';
+  } else if (state.overview?.buildingId === nearby.building.id) {
     elements.nearbyAction.textContent = '俯瞰を終了して記録する';
   } else if (state.dojoObservation?.buildingId === nearby.building.id) {
     const remaining = Math.max(0, state.dojoObservation.readyAt - performance.now());
@@ -690,13 +983,23 @@ function updateNearby() {
   }
   elements.nearbyPrompt.hidden = false;
   elements.actionButton.disabled = !ready;
-  elements.actionButton.setAttribute('aria-label', `${displayBuildingName(nearby.building)}で${interactionVerbLabel(nearby.family)}`);
+  elements.actionButton.setAttribute('aria-label', invalidPrefab
+    ? 'Prefabの動作宣言が一致しないため操作できません'
+    : access === 'closed'
+      ? '閉鎖看板を調べる'
+      : `${displayBuildingName(nearby.building)}で${interactionVerbLabel(nearby.family)}`);
 }
 
 function updateCutaway(timestamp) {
-  const candidate = buildingForCutaway(state.runtime, state.player.x, state.player.y);
+  const cutawayCandidate = buildingForCutaway(state.runtime, state.player.x, state.player.y);
+  const candidate = buildingAllowsCutaway(cutawayCandidate) ? cutawayCandidate : null;
   if (candidate) {
-    state.cutawayId = candidate.id;
+    if (state.cutawayId !== candidate.id) {
+      const previous = state.runtime.buildingById.get(state.cutawayId);
+      playPrefabEvent(previous, 'event.facility.exit');
+      state.cutawayId = candidate.id;
+      playPrefabEvent(candidate, 'event.facility.enter');
+    }
     state.cutawayExitStartedAt = null;
   } else if (state.cutawayId) {
     const active = state.runtime.buildingById.get(state.cutawayId);
@@ -705,21 +1008,36 @@ function updateCutaway(timestamp) {
     } else if (state.cutawayExitStartedAt === null) {
       state.cutawayExitStartedAt = timestamp;
     } else if (timestamp - state.cutawayExitStartedAt >= 300) {
+      playPrefabEvent(active, 'event.facility.exit');
       state.cutawayId = null;
       state.cutawayExitStartedAt = null;
     }
   }
-  const elapsed = state.lastCutawayUpdate === null ? 16 : Math.min(50, Math.max(0, timestamp - state.lastCutawayUpdate));
-  state.lastCutawayUpdate = timestamp;
   for (const building of state.runtime.buildings) {
-    const target = building.id === state.cutawayId ? 0.12 : 1;
-    const current = state.roofAlpha.get(building.id) ?? 1;
-    const next = state.reducedMotion
-      ? target
-      : target < current
-        ? Math.max(target, current - elapsed * (0.88 / 200))
-        : Math.min(target, current + elapsed * (0.88 / 200));
-    state.roofAlpha.set(building.id, next);
+    const animation = cutawayAnimation(building);
+    const target = building.id === state.cutawayId && buildingAllowsCutaway(building) && animation
+      ? ROOF_OPEN_ALPHA : 1;
+    let current = state.roofAlpha.get(building.id) ?? 1;
+    let transition = state.roofTransitions.get(building.id) ?? null;
+    if (transition) {
+      const progress = (timestamp - transition.startedAt) / Math.max(1, transition.duration);
+      current = transition.from + (transition.to - transition.from) * transition.easing(progress);
+      if (progress >= 1) {
+        current = transition.to;
+        state.roofTransitions.delete(building.id);
+        transition = null;
+      }
+    }
+    if (state.reducedMotion) {
+      current = target;
+      state.roofTransitions.delete(building.id);
+    } else if (animation && (!transition || transition.to !== target) && Math.abs(current - target) > 0.0001) {
+      const fullDistance = 1 - ROOF_OPEN_ALPHA;
+      const duration = animation.durationMs * Math.abs(target - current) / fullDistance;
+      transition = Object.freeze({ from: current, to: target, startedAt: timestamp, duration, easing: animation.easing });
+      state.roofTransitions.set(building.id, transition);
+    }
+    state.roofAlpha.set(building.id, current);
   }
 }
 
@@ -1093,7 +1411,8 @@ function finishDojoObservation(nearby) {
   completeWitness(nearby, state.dojoObservation.factId);
 }
 
-function conversationSpeaker(actor) {
+function conversationSpeaker(actor, building) {
+  if (prefabProgram(building)?.speakerRole === 'keeper.inn' && actor?.role === 'keeper.inn') return '宿の主人';
   if (actor?.role === 'witness') return '近所の目撃者';
   if (actor?.role === 'resident') return 'この家の住人';
   return '街の住人';
@@ -1128,7 +1447,7 @@ function startNeighborConversation(nearby, fact) {
   state.conversationActorId = actor.id;
   state.interactionSession = Object.freeze({
     kind: 'neighbor', buildingId: nearby.building.id, factId: fact.id,
-    actorId: actor.id, roomFile: room?.file ?? null, speaker: conversationSpeaker(actor)
+    actorId: actor.id, roomFile: room?.file ?? null, speaker: conversationSpeaker(actor, nearby.building)
   });
   openNeighborStep(nearby, 0);
 }
@@ -1222,8 +1541,27 @@ function performWitnessInteraction(nearby) {
   });
 }
 
+function dispatchPrefabInteraction(nearby, program) {
+  const enterable = program.kind === 'enterable'
+    && program.collision.entrance === 'door'
+    && program.collision.interior === 'walkable';
+  const closed = program.kind === 'closed'
+    && program.collision.entrance === 'blocked'
+    && program.collision.interior === 'none';
+  if (!enterable && !closed) return false;
+  playPrefabEvent(nearby.building, program.interactionEventId);
+  performWitnessInteraction(nearby);
+  return true;
+}
+
 function performInteraction() {
   if (!state.ready || !state.assetsComplete || !state.nearby || state.movement || !buildingImageReady(state.nearby.building)) return;
+  const program = prefabProgram(state.nearby.building);
+  if (hasPrefabDeclaration(state.nearby.building) && !program) {
+    announce('Prefabの動作宣言が一致しないため、この施設は操作できません。');
+    return;
+  }
+  if (program && dispatchPrefabInteraction(state.nearby, program)) return;
   if (state.overview) {
     leaveTowerOverview({ record: true });
     return;
@@ -1485,6 +1823,10 @@ function modalIsOpen() {
 
 function onKeyDown(event) {
   if (!state.ready || state.stopped) return;
+  const soundKey = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+  if (['e', 'Enter', ' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(soundKey)) {
+    void sound.prime();
+  }
   if ((event.key === 'Escape') && !elements.evidencePanel.hidden) {
     elements.evidencePanel.hidden = true;
     scheduleModalDirection();
@@ -1551,6 +1893,7 @@ function pointerDistance() {
 
 function onPointerDown(event) {
   if (!state.ready || modalIsOpen() || state.overview) return;
+  void sound.prime();
   elements.canvas.focus({ preventScroll: true });
   elements.canvas.setPointerCapture?.(event.pointerId);
   state.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY });
@@ -1708,7 +2051,17 @@ elements.evidenceCopy.addEventListener('click', async () => {
     announce('このブラウザーではコピーできませんでした。テキストを選択してコピーしてください。');
   }
 });
-elements.actionButton.addEventListener('click', performInteraction);
+elements.actionButton.addEventListener('click', () => {
+  void sound.prime();
+  performInteraction();
+});
+elements.soundToggle.addEventListener('click', () => {
+  const muted = sound.toggle();
+  elements.soundToggle.setAttribute('aria-pressed', String(muted));
+  elements.soundToggle.textContent = muted ? '🔇 効果音 OFF' : '🔊 効果音 ON';
+  elements.soundToggle.setAttribute('aria-label', muted ? '効果音をオンにする' : '効果音をミュートする');
+  if (!muted) void sound.prime().then(() => sound.play('interact'));
+});
 elements.canvas.addEventListener('pointerdown', onPointerDown);
 elements.canvas.addEventListener('pointermove', onPointerMove);
 elements.canvas.addEventListener('pointerup', onPointerUp);

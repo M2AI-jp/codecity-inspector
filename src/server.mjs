@@ -19,6 +19,7 @@ const PROJECT_ROOT = fileURLToPath(new URL('..', import.meta.url));
 const DEFAULT_PUBLIC_ROOT = path.join(PROJECT_ROOT, 'public');
 const DEFAULT_REPOSITORY = path.join(PROJECT_ROOT, 'sample', 'tiny-town');
 const DEFAULT_PORT = 4173;
+const DEFAULT_GAME_PATH = '/fable5-v2/preview.html';
 
 const CONTENT_TYPES = new Map([
   ['.css', 'text/css; charset=utf-8'],
@@ -450,9 +451,10 @@ async function main() {
   }
   try {
     const running = await startServer(options);
-    process.stdout.write(`CodeCity Inspector: ${running.url}\nRepository: ${path.basename(path.resolve(options.repoPath))}\nPress Ctrl+C to stop.\n`);
+    const gameUrl = new URL(DEFAULT_GAME_PATH, `${running.url}/`).href;
+    process.stdout.write(`CodeCity Inspector: ${gameUrl}\nRepository: ${path.basename(path.resolve(options.repoPath))}\nLegacy view: ${running.url}/\nPress Ctrl+C to stop.\n`);
     if (options.open) {
-      const opener = spawn('open', [running.url], { detached: true, stdio: 'ignore' });
+      const opener = spawn('open', [gameUrl], { detached: true, stdio: 'ignore' });
       opener.unref();
     }
   } catch (error) {

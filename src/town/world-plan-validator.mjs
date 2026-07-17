@@ -7,6 +7,7 @@
 // can be entered, and the permanent landmarks retain clear sightlines.
 
 import { deepFreeze } from './schema.mjs';
+import { getPrefab } from './prefab-catalog.mjs';
 import { validateWorldPlanShape } from './world-plan-schema.mjs';
 
 const INTERIOR_CLASSES = new Set(['M', 'L', 'XL', 'rowhouse_s', 'rowhouse_l', 'tower']);
@@ -530,7 +531,9 @@ function checkInteriors(plan, indexes, reached) {
   const claimedFloorIds = new Set();
   const claimedNpcIds = new Set();
   for (const building of plan.buildings) {
-    const requiresInterior = INTERIOR_CLASSES.has(building.class);
+    const isClosed = building.access === 'closed';
+    const requiresInterior = !isClosed
+      && (building.access === 'enterable' || INTERIOR_CLASSES.has(building.class));
     const interiorNodes = indexes.interiorsByBuilding.get(building.id) ?? [];
     const buildingDoors = indexes.doorsByBuilding.get(building.id) ?? [];
     const entranceId = indexes.outdoorByCoord.get(coordKey(building.entrance.x, building.entrance.y));
@@ -614,6 +617,12 @@ function checkInteriors(plan, indexes, reached) {
           issues.push(issue('INTERIOR_WALKABLE', `Room "${room.file}" in "${building.id}" cannot be walked to.`));
         }
       }
+      if (isClosed) {
+        if (room.npcId !== null) {
+          issues.push(issue('INTERIOR_WALKABLE', `Closed building "${building.id}" must not assign a resident to "${room.file}".`));
+        }
+        continue;
+      }
       const npc = npcById.get(room.npcId);
       if (!npc || npc.home !== building.id) {
         issues.push(issue('INTERIOR_WALKABLE', `Room "${room.file}" in "${building.id}" lacks its own resident.`));
@@ -649,10 +658,23 @@ function checkInteriors(plan, indexes, reached) {
       issues.push(issue('INTERIOR_WALKABLE', `NPC "${npc.id}" has no valid home building.`));
       continue;
     }
+    if (home.access === 'closed') {
+      issues.push(issue('INTERIOR_WALKABLE', `Closed building "${home.id}" must not contain resident or keeper "${npc.id}".`));
+      continue;
+    }
     const homeInteriorNodes = indexes.interiorsByBuilding.get(home.id) ?? [];
+    const speakerRoom = home.speakerRole === npc.role
+      ? home.rooms.find((room) => room.npcId === npc.id) ?? null : null;
     let allowedCoords;
     let locationDescription;
-    if (npc.role.startsWith('keeper.')) {
+    if (speakerRoom) {
+      allowedCoords = new Set(speakerRoom.floorNavNodeIds.flatMap((floorId) => {
+        const node = indexes.byId.get(floorId);
+        return node?.space === 'interior' && reached.has(node.id)
+          ? [coordKey(node.x, node.y)] : [];
+      }));
+      locationDescription = 'reachable prefab conversation room';
+    } else if (npc.role.startsWith('keeper.')) {
       const keeperX = home.entrance.x - 1;
       const keeperY = home.entrance.y;
       const keeperNodeId = indexes.outdoorByCoord.get(coordKey(keeperX, keeperY));
@@ -691,6 +713,91 @@ function checkInteriors(plan, indexes, reached) {
     }
     if (npc.role === 'witness' && home.id !== 'building.witness.resident') {
       issues.push(issue('INTERIOR_WALKABLE', `Witness "${npc.id}" must use the designated witness home "building.witness.resident".`));
+    }
+  }
+  return issues;
+}
+
+function checkPrefabBindings(plan) {
+  const issues = [];
+  for (const building of plan.buildings) {
+    if (!nonemptyString(building.prefabId)) continue;
+    const prefab = getPrefab(building.prefabId);
+    if (!prefab) {
+      issues.push(issue('PREFAB_BINDING', `Building "${building.id}" references unknown prefab "${building.prefabId}".`));
+      continue;
+    }
+    const expected = {
+      assetId: prefab.assetId,
+      access: prefab.access,
+      behaviorId: prefab.behaviorId,
+      animationSetId: prefab.animationSetId,
+      cutawayDurationMs: prefab.cutaway.animationDurationMs,
+      cutawayEasing: prefab.cutaway.easing,
+      collisionExterior: prefab.collision.exterior,
+      collisionEntrance: prefab.collision.entrance,
+      collisionInterior: prefab.collision.interior,
+      soundSetId: prefab.soundSetId,
+      labelMode: prefab.labelMode,
+      class: prefab.buildingClass
+    };
+    for (const [field, value] of Object.entries(expected)) {
+      if (building[field] !== value) {
+        issues.push(issue(
+          'PREFAB_BINDING',
+          `Building "${building.id}" field "${field}" must match prefab "${building.prefabId}".`
+        ));
+      }
+    }
+    if (building.interaction.verb !== prefab.interactionVerb) {
+      issues.push(issue(
+        'PREFAB_BINDING',
+        `Building "${building.id}" interaction verb must match prefab "${building.prefabId}".`
+      ));
+    }
+    if (prefab.facilityKind && building.facilityKind !== prefab.facilityKind) {
+      issues.push(issue(
+        'PREFAB_BINDING',
+        `Building "${building.id}" facility must match prefab "${building.prefabId}".`
+      ));
+    }
+    if (prefab.speakerRole
+      ? building.speakerRole !== prefab.speakerRole
+      : Object.hasOwn(building, 'speakerRole')) {
+      issues.push(issue(
+        'PREFAB_BINDING',
+        `Building "${building.id}" speaker role must match prefab "${building.prefabId}".`
+      ));
+    }
+    const eventIdsMatch = Array.isArray(building.eventIds)
+      && building.eventIds.length === prefab.eventIds.length
+      && building.eventIds.every((eventId, index) => eventId === prefab.eventIds[index]);
+    if (!eventIdsMatch) {
+      issues.push(issue(
+        'PREFAB_BINDING',
+        `Building "${building.id}" event IDs must exactly match prefab "${building.prefabId}".`
+      ));
+    }
+    for (const overlayAssetId of prefab.visual.overlayAssetIds) {
+      if (!building.overlays.includes(overlayAssetId)) {
+        issues.push(issue(
+          'PREFAB_BINDING',
+          `Building "${building.id}" is missing prefab overlay "${overlayAssetId}".`
+        ));
+      }
+    }
+    if (prefab.access === 'closed') {
+      const hasSign = plan.props.some((prop) => (
+        prop.assetId === 'structure.signpost_broken'
+          && prop.kind === 'closed-unreached-needs-confirmation'
+          && Math.abs(prop.x - building.entrance.x) + Math.abs(prop.y - building.entrance.y) === 1
+      ));
+      if (!hasSign) {
+        issues.push(issue(
+          'PREFAB_BINDING',
+          `Closed building "${building.id}" needs a broken confirmation sign beside its entrance.`
+        ));
+      }
     }
   }
   return issues;
@@ -846,6 +953,7 @@ export function validateWorldPlan(plan, { inspection } = {}) {
       ...checkEntrances(plan, indexes),
       ...checkWalkableNavigation(plan, indexes, reached),
       ...checkReachability(plan, indexes, reached, inspection),
+      ...checkPrefabBindings(plan),
       ...checkImportStreets(plan, inspection),
       ...checkInteriors(plan, indexes, reached),
       ...checkWitnessInteractions(plan),

@@ -15,7 +15,12 @@
         <strong id="repository-name">街を読み込み中</strong>
       </div>
       <div class="topbar-actions">
+        <a class="preview-link" href="/fable5-v2/preview.html" aria-label="新しい街を遊ぶ">
+          <span class="preview-link-long">新しい街を遊ぶ</span>
+          <span class="preview-link-short" aria-hidden="true">新しい街</span>
+        </a>
         <span id="habitability-badge" class="habitability-badge" aria-live="polite">検査中</span>
+        <button id="sound-toggle" class="sound-toggle" type="button" aria-pressed="false" aria-label="効果音をミュートする">🔊 効果音 ON</button>
         <div class="zoom-control" aria-label="表示倍率">
           <button id="zoom-out" type="button" class="icon-button" aria-label="縮小">−</button>
           <output id="zoom-value" aria-live="polite">2×</output>
@@ -41,6 +46,7 @@
         <p id="game-error-message"></p>
         <ul id="game-error-details"></ul>
         <p class="error-note">未承認素材や仮の素材では続行しません。承認済み素材を揃えてから再読み込みしてください。</p>
+        <a class="preview-link error-preview-link" href="/fable5-v2/preview.html">新しい街を遊ぶ</a>
       </section>
 
       <section id="context-hint" class="context-hint" aria-live="polite" hidden>
@@ -53,7 +59,7 @@
         <span id="nearby-place"></span>
         <strong id="nearby-action"></strong>
         <kbd>Enter</kbd>
-        <small>Enter / Space、またはTabで操作ボタンへ</small>
+        <small id="nearby-note">Enter / Space、またはTabで操作ボタンへ</small>
       </section>
 
       <button id="action-button" class="action-button" type="button" disabled aria-label="近くを調べる" aria-keyshortcuts="E Enter">
@@ -107,6 +113,7 @@
             <div><dt>暗い窓</dt><dd>対応するテストが、この検査ではまだ見つかっていない家です。建物やコードの故障・失敗を意味しません。</dd></div>
             <div><dt>街灯の光</dt><dd>街の表示上で点灯しています。人や処理が現在活動中だという証拠ではありません。</dd></div>
             <div><dt>建物を覆う蔦</dt><dd>外観の特徴を表します。放棄、故障、未使用を断定する印ではありません。</dd></div>
+            <div><dt>壊れた閉鎖看板</dt><dd>確認済みの入口から静的な道筋が見つからなかったモジュールを表します。実行時に未使用、削除可能、または故障しているとは断定しません。</dd></div>
             <div><dt>足場と覆い布</dt><dd>調査中の外観を表します。工事が実行中、または建物が壊れているという意味ではありません。</dd></div>
             <div><dt>存在と活動</dt><dd>施設の存在を確認しても、現在動いているかは別に調べます。</dd></div>
           </dl>

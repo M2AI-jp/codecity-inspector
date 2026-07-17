@@ -8,6 +8,9 @@
 
 import { buildWorldFacts } from './world-facts.mjs';
 import { inspectionDigest, worldSeed as deriveWorldSeed } from './world-identity.mjs';
+import { getPrefab } from './prefab-catalog.mjs';
+import { normalizeRepositorySemanticModel } from './repository-semantic-model.mjs';
+import { makeRng } from './rng.mjs';
 import { deepFreeze, FACILITY_KINDS } from './schema.mjs';
 import { WORLD_GENERATOR_VERSION, WORLD_PLAN_VERSION } from './world-plan-schema.mjs';
 
@@ -143,7 +146,9 @@ function edgeBinding(edge) {
   return from && target ? `${from}→${target}` : null;
 }
 
-function normalizeFiles(inspection) {
+function normalizeFiles(inspection, semanticModel) {
+  const semanticsByPath = new Map(arrayOf(semanticModel?.files)
+    .map((file) => [file.path, file]));
   const graphByPath = new Map(arrayOf(inspection?.graph?.nodes)
     .filter((node) => nonemptyString(node?.path))
     .map((node) => [node.path, node]));
@@ -154,6 +159,7 @@ function normalizeFiles(inspection) {
   return paths.map((filePath) => {
     const graph = graphByPath.get(filePath) ?? {};
     const city = cityByPath.get(filePath) ?? {};
+    const semantic = semanticsByPath.get(filePath);
     return {
       path: filePath,
       dir: canonicalDir(filePath),
@@ -161,6 +167,9 @@ function normalizeFiles(inspection) {
       kind: nonemptyString(city.kind ?? graph.kind) ?? 'module',
       isTest: city.isTest === true || graph.isTest === true,
       state: nonemptyString(city.state) ?? 'mapped',
+      semanticRole: semantic?.role ?? 'module',
+      semanticSource: semantic?.source ?? 'heuristic',
+      semanticEvidence: semantic?.evidence ?? { observed: [], inferred: [], unknown: [] },
       evidence: {
         unresolvedLinks: Math.max(0, safeInteger(city.evidence?.unresolvedLinks)),
         cycle: city.evidence?.cycle === true,
@@ -254,7 +263,8 @@ function candidateMatches(kind, file, entrypointSet) {
   if (kind === 'dojo') return file.isTest;
   if (kind === 'house') return file.kind === 'module' && !file.isTest;
   if (kind === 'ruin') return file.evidence.reachability === 'not-reached-from-known-entrypoints';
-  if (kind === 'inn') return file.kind === 'service' || /(?:server|route|service)/.test(path);
+  if (kind === 'inn') return file.semanticRole === 'service'
+    && file.evidence.reachability === 'reachable';
   if (kind === 'warehouse') return file.kind === 'data' || /(?:data|storage|model|db)/.test(path);
   if (kind === 'well') return file.kind === 'configuration' || /(?:config|env)/.test(path);
   if (kind === 'shop') return file.kind === 'interface' || /(?:component|view|ui)/.test(path);
@@ -540,7 +550,51 @@ function overlayIds(spec) {
   // Snowcap art remains an approved candidate, but its current anchors float
   // above roofs in the live renderer.  Do not attach it to game buildings
   // until a correctly anchored asset is approved.
-  return [...new Set(overlays)].sort(compareStrings);
+  return [...new Set([...overlays, ...arrayOf(spec.overlayAssetIds)])].sort(compareStrings);
+}
+
+function prefabIdForSpec(spec) {
+  const reachableService = spec.files.some((file) => (
+    file.evidence.reachability === 'reachable'
+      && (file.semanticRole === 'service'
+        || spec.facilityKind === 'inn'
+        || /(?:^|\/)inn(?:[._/-]|$)/.test(file.path.toLowerCase()))
+  ));
+  if (reachableService) return 'prefab.service.inn.enterable';
+  const file = spec.files.length === 1 ? spec.files[0] : null;
+  if (file?.semanticRole === 'module'
+    && file.state === 'unverified'
+    && file.evidence.reachability === 'not-reached-from-known-entrypoints') {
+    return 'prefab.module.closed-unreached';
+  }
+  return null;
+}
+
+function bindPrefab(spec) {
+  const prefabId = prefabIdForSpec(spec);
+  const prefab = prefabId ? getPrefab(prefabId) : null;
+  if (!prefab) return spec;
+  return {
+    ...spec,
+    prefabId,
+    access: prefab.access,
+    behaviorId: prefab.behaviorId,
+    animationSetId: prefab.animationSetId,
+    cutawayDurationMs: prefab.cutaway.animationDurationMs,
+    cutawayEasing: prefab.cutaway.easing,
+    collisionExterior: prefab.collision.exterior,
+    collisionEntrance: prefab.collision.entrance,
+    collisionInterior: prefab.collision.interior,
+    eventIds: [...prefab.eventIds],
+    soundSetId: prefab.soundSetId,
+    labelMode: prefab.labelMode,
+    assetId: prefab.assetId,
+    class: prefab.buildingClass,
+    facilityKind: prefab.facilityKind ?? spec.facilityKind,
+    overlayAssetIds: prefab.visual.overlayAssetIds,
+    verb: prefab.interactionVerb,
+    speakerRole: prefab.speakerRole
+  };
 }
 
 function navOutdoorId(x, y) {
@@ -602,6 +656,21 @@ function buildingFromSpec(spec, district, x, baseY) {
     files: spec.files.map(({ path }) => path),
     class: spec.class,
     ...(spec.facilityKind ? { facilityKind: spec.facilityKind } : {}),
+    ...(spec.prefabId ? {
+      prefabId: spec.prefabId,
+      access: spec.access,
+      behaviorId: spec.behaviorId,
+      animationSetId: spec.animationSetId,
+      cutawayDurationMs: spec.cutawayDurationMs,
+      cutawayEasing: spec.cutawayEasing,
+      collisionExterior: spec.collisionExterior,
+      collisionEntrance: spec.collisionEntrance,
+      collisionInterior: spec.collisionInterior,
+      eventIds: [...spec.eventIds],
+      soundSetId: spec.soundSetId,
+      labelMode: spec.labelMode,
+      ...(spec.speakerRole ? { speakerRole: spec.speakerRole } : {})
+    } : {}),
     footprint,
     entrance,
     rooms: spec.files.map((file, roomIndex) => ({
@@ -609,7 +678,7 @@ function buildingFromSpec(spec, district, x, baseY) {
       state: roomState(file),
       npcId: null,
       props: [],
-      floorNavNodeIds: [spec.class === 'S'
+      floorNavNodeIds: [spec.class === 'S' || spec.access === 'closed'
         ? navOutdoorId(entrance.x, entrance.y)
         : navInteriorId(spec.id, roomIndex)]
     })),
@@ -654,13 +723,17 @@ function packedRows(members, maximumWidth) {
   return rows;
 }
 
-function placementStagger(spec, districtIndex) {
+function placementStagger(spec, districtIndex, seed) {
   const preservesCivicSightline = districtIndex === 0
     && (spec.facilityKind === 'gate' || spec.facilityKind === 'town_hall');
-  return preservesCivicSightline ? 0 : Number.parseInt(shortDigest(spec.key).slice(0, 1), 16) % 2;
+  return preservesCivicSightline ? 0 : makeRng(`${seed}\0stagger\0${spec.key}`).int(0, 1);
 }
 
-function placeDistricts(definitions, specs, lod) {
+function rowHorizontalOffset(definition, row, seed) {
+  return makeRng(`${seed}\0row-x\0${definition.id}\0${row}`).int(0, 1);
+}
+
+function placeDistricts(definitions, specs, lod, seed) {
   const specsByDir = new Map();
   for (const spec of specs) {
     const members = specsByDir.get(spec.dir) ?? [];
@@ -690,7 +763,7 @@ function placeDistricts(definitions, specs, lod) {
       : 1;
     const maximumBaselineOffset = members.length === 0 ? null : Math.max(...rows.flatMap((row, rowIndex) => (
       row.map((member) => topInset + rowIndex * ROW_STRIDE_Y
-        + placementStagger(member, districtIndex) + MAX_FOOTPRINT_HEIGHT)
+        + placementStagger(member, districtIndex, seed) + MAX_FOOTPRINT_HEIGHT)
     )));
     const height = members.length === 0
       ? districtIndex === 0
@@ -716,12 +789,12 @@ function placeDistricts(definitions, specs, lod) {
 
     for (let row = 0; row < rows.length; row += 1) {
       const rowMembers = row % 2 === 0 ? rows[row] : [...rows[row]].reverse();
-      let x = FIRST_BUILDING_X;
+      let x = FIRST_BUILDING_X + rowHorizontalOffset(definition, row, seed);
       for (const member of rowMembers) {
         // Serpentine blocks make the same deterministic input read as a town
         // block rather than a left-to-right catalogue.  A one-tile stagger is
         // safe because rows are six tiles apart (the largest footprint is four).
-        const stagger = placementStagger(member, districtIndex);
+        const stagger = placementStagger(member, districtIndex, seed);
         const baseY = nextY + topInset + row * ROW_STRIDE_Y + stagger;
         buildings.push(buildingFromSpec(member, definition, x, baseY));
         x += (FOOTPRINTS[member.class] ?? FOOTPRINTS.M).w + 1;
@@ -864,7 +937,7 @@ function buildNavigation(buildings, districts, landmarkProps, transitions, eleva
   }
 
   for (const building of buildings) {
-    if (building.class === 'S') continue;
+    if (building.class === 'S' || building.access === 'closed') continue;
     const floorCount = Math.max(1, building.rooms.length);
     const floorLayout = interiorFloorLayout(building);
     const floorNodes = [];
@@ -1010,13 +1083,17 @@ function buildActors(buildings) {
   let genericIndex = 0;
   for (const building of buildings) {
     if (building.id === 'building.survey_tower') continue;
+    if (building.access === 'closed') continue;
     const isWitnessResident = building.id === 'building.witness.resident';
     if (!building.facilityKind && building.files.length === 0 && !isWitnessResident) continue;
     const interiorFloors = building.class === 'S' ? [] : interiorFloorLayout(building);
+    const prefabSpeakerRoom = building.speakerRole
+      ? building.rooms[0] ?? null : null;
     const residents = building.rooms.length > 0 ? building.rooms
       : building.facilityKind ? [] : [null];
     for (let roomIndex = 0; roomIndex < residents.length; roomIndex += 1) {
       const room = residents[roomIndex];
+      if (room && room === prefabSpeakerRoom) continue;
       const id = `npc.${shortDigest([building.id, room?.file ?? 'witness'])}`;
       const assetId = genericIndex++ % 2 === 0
         ? 'character.mob.townsfolk_female' : 'character.mob.townsfolk_male';
@@ -1034,16 +1111,19 @@ function buildActors(buildings) {
       });
       if (room) room.npcId = id;
     }
-    if (building.facilityKind) {
+    if (building.facilityKind || prefabSpeakerRoom) {
+      const keeperId = `npc.${shortDigest([building.id, 'keeper'])}`;
+      const keeperFloor = prefabSpeakerRoom ? interiorFloors[0] : null;
       npcs.push({
-        id: `npc.${shortDigest([building.id, 'keeper'])}`,
+        id: keeperId,
         assetId: KEEPER_ASSETS[building.facilityKind]
           ?? (genericIndex++ % 2 === 0 ? 'character.mob.townsfolk_female' : 'character.mob.townsfolk_male'),
-        role: `keeper.${building.facilityKind}`,
+        role: building.speakerRole ?? `keeper.${building.facilityKind}`,
         home: building.id,
-        patrol: [[building.entrance.x - 1, building.entrance.y]],
+        patrol: [[keeperFloor?.x ?? building.entrance.x - 1, keeperFloor?.y ?? building.entrance.y]],
         factRefs: [...building.interaction.factRefs]
       });
+      if (prefabSpeakerRoom) prefabSpeakerRoom.npcId = keeperId;
     }
   }
   const dojo = buildings.find(({ facilityKind }) => facilityKind === 'dojo');
@@ -1095,6 +1175,19 @@ function buildFactProps(facts, buildings, baseProps, transitions) {
       x: building.entrance.x,
       y: building.entrance.y,
       factRef: fact.id
+    };
+    props.push(prop);
+    if (building.rooms[0]) building.rooms[0].props.push(prop.id);
+  }
+  for (const building of buildings.filter(({ access }) => access === 'closed')) {
+    const factRef = building.interaction.factRefs[0] ?? null;
+    const prop = {
+      id: `prop.closed-sign.${shortDigest(building.id)}`,
+      assetId: 'structure.signpost_broken',
+      kind: 'closed-unreached-needs-confirmation',
+      x: building.entrance.x + 1,
+      y: building.entrance.y,
+      ...(factRef ? { factRef } : {})
     };
     props.push(prop);
     if (building.rooms[0]) building.rooms[0].props.push(prop.id);
@@ -1177,9 +1270,11 @@ function normalizedDigestInput(inspection, files, edges, facilities, facts) {
  * Generate an unannotated, shape-valid WorldPlan v2. Semantic validation is a
  * separate fail-closed step in world-plan-validator.mjs.
  */
-export function generateWorldPlan({ inspection, model, seed } = {}) {
+export function generateWorldPlan({ inspection, model, seed, semanticAnnotations } = {}) {
   const source = inspection && typeof inspection === 'object' ? inspection : {};
-  const files = normalizeFiles(source);
+  const actualSeed = typeof seed === 'string' && seed.length > 0 ? seed : deriveWorldSeed(source);
+  const semanticModel = normalizeRepositorySemanticModel({ inspection: source, annotations: semanticAnnotations });
+  const files = normalizeFiles(source, semanticModel);
   const edges = normalizeEdges(source);
   const facilities = normalizeFacilities(model);
   const facts = buildWorldFacts(source, model);
@@ -1191,9 +1286,9 @@ export function generateWorldPlan({ inspection, model, seed } = {}) {
     ...assigned.specs,
     ...remainingSpecs(files, assigned.used, lod, edges, indexes)
   ], facts);
-  const specs = ensureWitnessSpecs(baseSpecs, facts, oldDir);
+  const specs = ensureWitnessSpecs(baseSpecs, facts, oldDir).map(bindPrefab);
   const definitions = districtDefinitions(specs, files, oldDir);
-  const placement = placeDistricts(definitions, specs, lod);
+  const placement = placeDistricts(definitions, specs, lod, actualSeed);
   const surveyFactId = preferredFactId(facts, 'operate');
   if (surveyFactId) placement.surveyTower.interaction.factRefs = [surveyFactId];
   const transitions = transitionDefinitions(placement.districts);
@@ -1206,7 +1301,6 @@ export function generateWorldPlan({ inspection, model, seed } = {}) {
     elevations
   );
   const streets = buildStreets(edges, placement.buildings, navigation.outdoor);
-  const actualSeed = typeof seed === 'string' && seed.length > 0 ? seed : deriveWorldSeed(source);
   const props = addDistrictDecor(
     buildFactProps(facts, placement.buildings, placement.props, transitions),
     placement.districts,

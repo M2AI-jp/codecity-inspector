@@ -3,6 +3,16 @@ export const INTEGER_ZOOMS = Object.freeze([1, 2, 3]);
 export const TOUR_WITNESS_COUNT = 3;
 
 const DIRECTIONS = Object.freeze(['north', 'east', 'south', 'west']);
+const BUILDING_ACCESS = Object.freeze(['enterable', 'closed']);
+const BUILDING_LABEL_MODES = Object.freeze(['proximity']);
+const CUTAWAY_EASINGS = Object.freeze(['ease-in-out-cubic', 'linear']);
+const PREFAB_IDS = Object.freeze([
+  'prefab.service.inn.enterable',
+  'prefab.module.closed-unreached'
+]);
+const COLLISION_EXTERIORS = Object.freeze(['solid-footprint']);
+const COLLISION_ENTRANCES = Object.freeze(['door', 'blocked']);
+const COLLISION_INTERIORS = Object.freeze(['walkable', 'none']);
 const QUESTION_PRIORITY = Object.freeze([
   'unresolved',
   'cycle',
@@ -111,6 +121,60 @@ export function validateRuntimeWorldPlan(plan) {
     if (buildingIds.has(building.id)) issues.push(`duplicate building: ${building.id}`);
     buildingIds.add(building.id);
     if (typeof building.assetId !== 'string') issues.push(`building ${building.id} needs an assetId`);
+    for (const field of ['prefabId', 'behaviorId', 'animationSetId', 'soundSetId', 'speakerRole']) {
+      if (Object.hasOwn(building, field)
+        && (typeof building[field] !== 'string' || building[field].length === 0)) {
+        issues.push(`building ${building.id} has an invalid ${field}`);
+      }
+    }
+    if (Object.hasOwn(building, 'access') && !BUILDING_ACCESS.includes(building.access)) {
+      issues.push(`building ${building.id} has an invalid access`);
+    }
+    if (Object.hasOwn(building, 'labelMode') && !BUILDING_LABEL_MODES.includes(building.labelMode)) {
+      issues.push(`building ${building.id} has an invalid labelMode`);
+    }
+    if (Object.hasOwn(building, 'cutawayDurationMs')
+      && (!Number.isInteger(building.cutawayDurationMs) || building.cutawayDurationMs < 0)) {
+      issues.push(`building ${building.id} has an invalid cutawayDurationMs`);
+    }
+    if (Object.hasOwn(building, 'cutawayEasing') && !CUTAWAY_EASINGS.includes(building.cutawayEasing)) {
+      issues.push(`building ${building.id} has an invalid cutawayEasing`);
+    }
+    if (Object.hasOwn(building, 'prefabId') && !PREFAB_IDS.includes(building.prefabId)) {
+      issues.push(`building ${building.id} has an unknown prefabId`);
+    }
+    if (Object.hasOwn(building, 'collisionExterior')
+      && !COLLISION_EXTERIORS.includes(building.collisionExterior)) {
+      issues.push(`building ${building.id} has an invalid collisionExterior`);
+    }
+    if (Object.hasOwn(building, 'collisionEntrance')
+      && !COLLISION_ENTRANCES.includes(building.collisionEntrance)) {
+      issues.push(`building ${building.id} has an invalid collisionEntrance`);
+    }
+    if (Object.hasOwn(building, 'collisionInterior')
+      && !COLLISION_INTERIORS.includes(building.collisionInterior)) {
+      issues.push(`building ${building.id} has an invalid collisionInterior`);
+    }
+    if (Object.hasOwn(building, 'eventIds')) {
+      const eventIds = uniqueStrings(building.eventIds);
+      if (!Array.isArray(building.eventIds) || eventIds.length === 0 || eventIds.length !== building.eventIds.length) {
+        issues.push(`building ${building.id} has invalid eventIds`);
+      }
+    }
+    if (PREFAB_IDS.includes(building.prefabId)) {
+      if (!COLLISION_EXTERIORS.includes(building.collisionExterior)
+        || !COLLISION_ENTRANCES.includes(building.collisionEntrance)
+        || !COLLISION_INTERIORS.includes(building.collisionInterior)
+        || !Array.isArray(building.eventIds) || building.eventIds.length === 0) {
+        issues.push(`building ${building.id} has an incomplete prefab program`);
+      }
+      if ((building.access === 'enterable'
+        && (building.collisionEntrance !== 'door' || building.collisionInterior !== 'walkable'))
+        || (building.access === 'closed'
+          && (building.collisionEntrance !== 'blocked' || building.collisionInterior !== 'none'))) {
+        issues.push(`building ${building.id} collision does not match access`);
+      }
+    }
     if (!isRecord(building.footprint)
       || !Number.isInteger(building.footprint.x)
       || !Number.isInteger(building.footprint.y)
@@ -167,7 +231,34 @@ function normalizeBuilding(building, tileSize) {
     verb: typeof building.interaction?.verb === 'string' ? building.interaction.verb : 'inspect',
     factRefs: Object.freeze(uniqueStrings(building.interaction?.factRefs))
   });
-  return Object.freeze({ ...building, footprint, entrance: Object.freeze({ ...building.entrance, ...entrance }), interaction });
+  const eventIds = Object.freeze(uniqueStrings(building.eventIds));
+  const collision = Object.freeze({
+    exterior: COLLISION_EXTERIORS.includes(building.collisionExterior) ? building.collisionExterior : null,
+    entrance: COLLISION_ENTRANCES.includes(building.collisionEntrance) ? building.collisionEntrance : null,
+    interior: COLLISION_INTERIORS.includes(building.collisionInterior) ? building.collisionInterior : null
+  });
+  const prefab = Object.freeze({
+    id: typeof building.prefabId === 'string' ? building.prefabId : null,
+    access: BUILDING_ACCESS.includes(building.access) ? building.access : null,
+    behaviorId: typeof building.behaviorId === 'string' ? building.behaviorId : null,
+    animationSetId: typeof building.animationSetId === 'string' ? building.animationSetId : null,
+    cutawayDurationMs: Number.isInteger(building.cutawayDurationMs) ? building.cutawayDurationMs : null,
+    cutawayEasing: CUTAWAY_EASINGS.includes(building.cutawayEasing) ? building.cutawayEasing : null,
+    collision,
+    eventIds,
+    soundSetId: typeof building.soundSetId === 'string' ? building.soundSetId : null,
+    labelMode: BUILDING_LABEL_MODES.includes(building.labelMode) ? building.labelMode : null,
+    speakerRole: typeof building.speakerRole === 'string' ? building.speakerRole : null,
+    interactionVerb: interaction.verb
+  });
+  return Object.freeze({
+    ...building,
+    footprint,
+    entrance: Object.freeze({ ...building.entrance, ...entrance }),
+    interaction,
+    eventIds,
+    prefab
+  });
 }
 
 export function createWorldRuntime(plan) {
@@ -397,8 +488,10 @@ export function interactionProtocol(building) {
     'inspect-entry-tags': { kind: 'entry-tags', family: 'spatial' },
     'watch-forms': { kind: 'forms', family: 'observe' },
     'talk-neighbor': { kind: 'neighbor', family: 'talk' },
+    'talk-innkeeper': { kind: 'neighbor', family: 'talk' },
     'use-telescope': { kind: 'overview', family: 'operate' },
     'read-away-sign': { kind: 'away-sign', family: 'inspect' },
+    'inspect-closure-sign': { kind: 'away-sign', family: 'inspect' },
     'inspect-field-notice': { kind: 'away-sign', family: 'inspect' }
   })[verb];
   return Object.freeze(protocol

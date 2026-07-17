@@ -9,7 +9,7 @@
 import { deepFreeze } from './schema.mjs';
 
 export const WORLD_PLAN_VERSION = 2;
-export const WORLD_GENERATOR_VERSION = '2.0.0';
+export const WORLD_GENERATOR_VERSION = '2.2.0';
 
 export const WORLD_PLAN_TOP_LEVEL_FIELDS = deepFreeze([
   'schemaVersion',
@@ -43,6 +43,13 @@ export const WORLD_PLAN_BUILDING_CLASSES = deepFreeze([
   'S', 'M', 'L', 'XL', 'rowhouse_s', 'rowhouse_l', 'tower'
 ]);
 
+export const WORLD_PLAN_BUILDING_ACCESS = deepFreeze(['enterable', 'closed']);
+export const WORLD_PLAN_LABEL_MODES = deepFreeze(['proximity']);
+export const WORLD_PLAN_CUTAWAY_EASINGS = deepFreeze(['ease-in-out-cubic', 'linear']);
+export const WORLD_PLAN_COLLISION_EXTERIORS = deepFreeze(['solid-footprint']);
+export const WORLD_PLAN_COLLISION_ENTRANCES = deepFreeze(['door', 'blocked']);
+export const WORLD_PLAN_COLLISION_INTERIORS = deepFreeze(['walkable', 'none']);
+
 export const WORLD_PLAN_ROOM_STATES = deepFreeze([
   'lit', 'dark', 'ivy', 'warning', 'scaffold'
 ]);
@@ -63,6 +70,12 @@ const SHA256_HEX = /^[a-f0-9]{64}$/;
 const GENERATION_MODE_SET = new Set(WORLD_PLAN_GENERATION_MODES);
 const STREET_KIND_SET = new Set(WORLD_PLAN_STREET_KINDS);
 const BUILDING_CLASS_SET = new Set(WORLD_PLAN_BUILDING_CLASSES);
+const BUILDING_ACCESS_SET = new Set(WORLD_PLAN_BUILDING_ACCESS);
+const LABEL_MODE_SET = new Set(WORLD_PLAN_LABEL_MODES);
+const CUTAWAY_EASING_SET = new Set(WORLD_PLAN_CUTAWAY_EASINGS);
+const COLLISION_EXTERIOR_SET = new Set(WORLD_PLAN_COLLISION_EXTERIORS);
+const COLLISION_ENTRANCE_SET = new Set(WORLD_PLAN_COLLISION_ENTRANCES);
+const COLLISION_INTERIOR_SET = new Set(WORLD_PLAN_COLLISION_INTERIORS);
 const ROOM_STATE_SET = new Set(WORLD_PLAN_ROOM_STATES);
 const FACING_SET = new Set(WORLD_PLAN_FACINGS);
 const NAV_SPACE_SET = new Set(WORLD_PLAN_NAV_SPACES);
@@ -345,7 +358,12 @@ function inspectBuildings(value, width, height, issues) {
     if (!inspectObject(building, path, [
       'id', 'assetId', 'files', 'class', 'footprint', 'entrance', 'rooms',
       'overlays', 'interaction'
-    ], ['facilityKind'], issues)) continue;
+    ], [
+      'facilityKind', 'prefabId', 'access', 'behaviorId', 'animationSetId',
+      'cutawayDurationMs', 'cutawayEasing', 'collisionExterior',
+      'collisionEntrance', 'collisionInterior', 'eventIds', 'soundSetId',
+      'labelMode', 'speakerRole'
+    ], issues)) continue;
     requireNonemptyString(building.id, `${path}.id`, issues);
     requireNonemptyString(building.assetId, `${path}.assetId`, issues);
     const files = inspectStringArray(building.files, `${path}.files`, issues);
@@ -356,6 +374,36 @@ function inspectBuildings(value, width, height, issues) {
     }
     if (Object.hasOwn(building, 'facilityKind')) {
       requireNonemptyString(building.facilityKind, `${path}.facilityKind`, issues);
+    }
+    for (const field of ['prefabId', 'behaviorId', 'animationSetId', 'soundSetId', 'speakerRole']) {
+      if (Object.hasOwn(building, field)) requireNonemptyString(building[field], `${path}.${field}`, issues);
+    }
+    if (Object.hasOwn(building, 'cutawayDurationMs')) {
+      requireInteger(building.cutawayDurationMs, `${path}.cutawayDurationMs`, issues, { minimum: 0 });
+    }
+    if (Object.hasOwn(building, 'cutawayEasing') && !CUTAWAY_EASING_SET.has(building.cutawayEasing)) {
+      add(issues, `${path}.cutawayEasing`, 'must be ease-in-out-cubic or linear.');
+    }
+    if (Object.hasOwn(building, 'collisionExterior')
+      && !COLLISION_EXTERIOR_SET.has(building.collisionExterior)) {
+      add(issues, `${path}.collisionExterior`, 'must be solid-footprint.');
+    }
+    if (Object.hasOwn(building, 'collisionEntrance')
+      && !COLLISION_ENTRANCE_SET.has(building.collisionEntrance)) {
+      add(issues, `${path}.collisionEntrance`, 'must be door or blocked.');
+    }
+    if (Object.hasOwn(building, 'collisionInterior')
+      && !COLLISION_INTERIOR_SET.has(building.collisionInterior)) {
+      add(issues, `${path}.collisionInterior`, 'must be walkable or none.');
+    }
+    if (Object.hasOwn(building, 'eventIds')) {
+      inspectStringArray(building.eventIds, `${path}.eventIds`, issues, { allowEmpty: false });
+    }
+    if (Object.hasOwn(building, 'access') && !BUILDING_ACCESS_SET.has(building.access)) {
+      add(issues, `${path}.access`, 'must be enterable or closed.');
+    }
+    if (Object.hasOwn(building, 'labelMode') && !LABEL_MODE_SET.has(building.labelMode)) {
+      add(issues, `${path}.labelMode`, 'must be proximity.');
     }
     inspectRectangle(building.footprint, `${path}.footprint`, width, height, issues);
     if (inspectObject(building.entrance, `${path}.entrance`, ['x', 'y', 'dir'], [], issues)) {

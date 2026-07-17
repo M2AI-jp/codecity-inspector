@@ -115,7 +115,7 @@ test('generates a deterministic, shape-valid and semantically valid playable pla
   assert.deepEqual(validateWorldPlan(first, { inspection }), { ok: true, issues: [] });
   assert.deepEqual(first.lights, []);
   assert.equal(first.schemaVersion, 2);
-  assert.equal(first.generatorVersion, '2.0.0');
+  assert.equal(first.generatorVersion, '2.2.0');
   assert.equal(first.world.tileSize, 64);
   assert.equal(first.terrain.length, first.world.widthTiles * first.world.heightTiles);
   assert.deepEqual(new Set(first.districts.map(({ biome }) => biome)), new Set([
