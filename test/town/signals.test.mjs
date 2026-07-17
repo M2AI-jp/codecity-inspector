@@ -211,13 +211,29 @@ test('collectSignals against this repo root reads its real bin field, scripts, a
   assert.deepEqual(signals.packageJson.bin, { codecity: 'src/server.mjs' });
   assert.deepEqual(signals.packageJson.engines, { node: '>=20' });
   assert.equal(signals.packageJson.module, null);
-  assert.equal(signals.packageJson.files, null);
+  assert.deepEqual(signals.packageJson.files, [
+    'CodeCity.command', 'public/', 'sample/', 'src/',
+    'tools/asset-forge/README.md', 'tools/asset-forge/asset-forge.config.example.json',
+    'tools/asset-forge/data/', 'tools/asset-forge/package-lock.json', 'tools/asset-forge/package.json',
+    'tools/asset-forge/prompts/', 'tools/asset-forge/references/README.md',
+    'tools/asset-forge/schemas/', 'tools/asset-forge/src/', 'SECURITY.md', 'THIRD_PARTY_NOTICES.md'
+  ]);
 
   assert.equal(signals.scripts.hasStart, true);
   assert.equal(signals.scripts.hasTest, true);
   assert.equal(signals.scripts.hasBuild, false);
   assert.equal(signals.scripts.hasLint, false);
-  assert.deepEqual(signals.scripts.names, ['check', 'check:launcher', 'demo', 'generate:town', 'start', 'test']);
+  assert.deepEqual(signals.scripts.names, [
+    'asset:check',
+    'asset:dry-run',
+    'asset:validate',
+    'check',
+    'check:launcher',
+    'demo',
+    'generate:town',
+    'start',
+    'test'
+  ]);
 
   assert.equal(signals.distribution.hasBinField, true);
   assert.equal(signals.distribution.isPublishablePackage, true);
@@ -295,6 +311,31 @@ test('collectSignals reads scripts (including a "name:variant" match), a script-
   assert.equal(signals.files.procfile, false);
   assert.equal(signals.files.prismaSchema, true);
   assert.equal(signals.hasEnvFiles, true);
+});
+
+test('collectSignals rejects symlinked ancestor directories instead of reading outside the repository', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'codecity-signals-boundary-'));
+  const outside = await mkdtemp(path.join(os.tmpdir(), 'codecity-signals-outside-'));
+  await mkdir(path.join(outside, '.github', 'workflows'), { recursive: true });
+  await writeFile(path.join(outside, '.github', 'workflows', 'leak.yml'), 'name: outside\n');
+  await mkdir(path.join(outside, '.git', 'logs'), { recursive: true });
+  const sha = 'a'.repeat(40);
+  await writeFile(path.join(outside, '.git', 'logs', 'HEAD'), `${sha} ${sha} Codex <bot@example.com> 1700000000 +0000\tcommit: outside\n`);
+  await mkdir(path.join(outside, 'prisma'), { recursive: true });
+  await writeFile(path.join(outside, 'prisma', 'schema.prisma'), 'datasource db { provider = "postgresql" }\n');
+  await writeFile(path.join(outside, 'package.json'), '{"name":"outside","main":"index.js"}\n');
+
+  await symlink(path.join(outside, '.github'), path.join(root, '.github'));
+  await symlink(path.join(outside, '.git'), path.join(root, '.git'));
+  await symlink(path.join(outside, 'prisma'), path.join(root, 'prisma'));
+  await symlink(path.join(outside, 'package.json'), path.join(root, 'package.json'));
+
+  const signals = await collectSignals(root);
+  assert.equal(signals.packageJson.present, false);
+  assert.equal(signals.files.githubWorkflows, false);
+  assert.deepEqual(signals.files.githubWorkflowFiles, []);
+  assert.equal(signals.files.prismaSchema, false);
+  assert.deepEqual(signals.external.contractorReports, []);
 });
 
 test('collectSignals lists workflow filenames sorted (not in raw filesystem order), non-recursively, capped by maxWorkflowFiles', async () => {

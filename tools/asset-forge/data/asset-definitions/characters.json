@@ -1,0 +1,3067 @@
+{
+  "$schema": "../../schemas/asset-catalog.schema.json",
+  "schemaVersion": 1,
+  "category": "character",
+  "assets": [
+    {
+      "id": "character.player",
+      "category": "character",
+      "displayName": "Player",
+      "gameMeaning": "Required character art for character.player.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/characters/00_common_character_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "character_visual_master"
+      ],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 24,
+          "height": 40
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "directions": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "frames": [
+          "idle",
+          "walk_1",
+          "walk_2"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 3,
+          "frameWidth": 24,
+          "frameHeight": 40
+        }
+      },
+      "tags": [
+        "character",
+        "player"
+      ],
+      "constraints": {
+        "must": [
+          "small map-scale sprite",
+          "slim vertical silhouette",
+          "controlled palette"
+        ],
+        "mustNot": [
+          "chibi proportions",
+          "large anime eyes",
+          "labels or UI frames"
+        ]
+      },
+      "reviewChecklist": [
+        "顔が大きくなっていないか",
+        "丸顔になっていないか",
+        "体が横に太くなっていないか",
+        "縦長シルエットが保たれているか",
+        "服・髪・ポーズで役割が読めるか",
+        "小さな街歩きスプライトに見えるか",
+        "現代的なSDキャラに寄っていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "npc",
+        "semanticKind": "player",
+        "drawLayer": "character",
+        "runtimeBindings": [],
+        "coverage": "future"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
+      }
+    },
+    {
+      "id": "character.innkeeper",
+      "category": "character",
+      "displayName": "Innkeeper",
+      "gameMeaning": "Required character art for character.innkeeper.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/characters/00_common_character_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "character_visual_master"
+      ],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 24,
+          "height": 40
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "directions": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "frames": [
+          "idle",
+          "walk_1",
+          "walk_2"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 3,
+          "frameWidth": 24,
+          "frameHeight": 40
+        }
+      },
+      "tags": [
+        "character",
+        "innkeeper"
+      ],
+      "constraints": {
+        "must": [
+          "small map-scale sprite",
+          "slim vertical silhouette",
+          "controlled palette"
+        ],
+        "mustNot": [
+          "chibi proportions",
+          "large anime eyes",
+          "labels or UI frames"
+        ]
+      },
+      "reviewChecklist": [
+        "顔が大きくなっていないか",
+        "丸顔になっていないか",
+        "体が横に太くなっていないか",
+        "縦長シルエットが保たれているか",
+        "服・髪・ポーズで役割が読めるか",
+        "小さな街歩きスプライトに見えるか",
+        "現代的なSDキャラに寄っていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "npc",
+        "semanticKind": "innkeeper",
+        "drawLayer": "character",
+        "runtimeBindings": [
+          {
+            "vocabulary": "NPC_ROLES",
+            "id": "innkeeper"
+          }
+        ],
+        "coverage": "exact"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
+      }
+    },
+    {
+      "id": "character.tavern_master",
+      "category": "character",
+      "displayName": "Tavern Master",
+      "gameMeaning": "Required character art for character.tavern_master.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/characters/00_common_character_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "character_visual_master"
+      ],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 24,
+          "height": 40
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "directions": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "frames": [
+          "idle",
+          "walk_1",
+          "walk_2"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 3,
+          "frameWidth": 24,
+          "frameHeight": 40
+        }
+      },
+      "tags": [
+        "character",
+        "tavern_master"
+      ],
+      "constraints": {
+        "must": [
+          "small map-scale sprite",
+          "slim vertical silhouette",
+          "controlled palette"
+        ],
+        "mustNot": [
+          "chibi proportions",
+          "large anime eyes",
+          "labels or UI frames"
+        ]
+      },
+      "reviewChecklist": [
+        "顔が大きくなっていないか",
+        "丸顔になっていないか",
+        "体が横に太くなっていないか",
+        "縦長シルエットが保たれているか",
+        "服・髪・ポーズで役割が読めるか",
+        "小さな街歩きスプライトに見えるか",
+        "現代的なSDキャラに寄っていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "npc",
+        "semanticKind": "tavern_master",
+        "drawLayer": "character",
+        "runtimeBindings": [
+          {
+            "vocabulary": "NPC_ROLES",
+            "id": "barkeep"
+          }
+        ],
+        "coverage": "mapped"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
+      }
+    },
+    {
+      "id": "character.town_clerk",
+      "category": "character",
+      "displayName": "Town Clerk",
+      "gameMeaning": "Required character art for character.town_clerk.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/characters/00_common_character_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "character_visual_master"
+      ],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 24,
+          "height": 40
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "directions": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "frames": [
+          "idle",
+          "walk_1",
+          "walk_2"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 3,
+          "frameWidth": 24,
+          "frameHeight": 40
+        }
+      },
+      "tags": [
+        "character",
+        "town_clerk"
+      ],
+      "constraints": {
+        "must": [
+          "small map-scale sprite",
+          "slim vertical silhouette",
+          "controlled palette"
+        ],
+        "mustNot": [
+          "chibi proportions",
+          "large anime eyes",
+          "labels or UI frames"
+        ]
+      },
+      "reviewChecklist": [
+        "顔が大きくなっていないか",
+        "丸顔になっていないか",
+        "体が横に太くなっていないか",
+        "縦長シルエットが保たれているか",
+        "服・髪・ポーズで役割が読めるか",
+        "小さな街歩きスプライトに見えるか",
+        "現代的なSDキャラに寄っていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "npc",
+        "semanticKind": "town_clerk",
+        "drawLayer": "character",
+        "runtimeBindings": [
+          {
+            "vocabulary": "NPC_ROLES",
+            "id": "clerk"
+          }
+        ],
+        "coverage": "mapped"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
+      }
+    },
+    {
+      "id": "character.workshop_artisan",
+      "category": "character",
+      "displayName": "Workshop Artisan",
+      "gameMeaning": "Required character art for character.workshop_artisan.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/characters/00_common_character_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "character_visual_master"
+      ],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 24,
+          "height": 40
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "directions": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "frames": [
+          "idle",
+          "walk_1",
+          "walk_2"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 3,
+          "frameWidth": 24,
+          "frameHeight": 40
+        }
+      },
+      "tags": [
+        "character",
+        "workshop_artisan"
+      ],
+      "constraints": {
+        "must": [
+          "small map-scale sprite",
+          "slim vertical silhouette",
+          "controlled palette"
+        ],
+        "mustNot": [
+          "chibi proportions",
+          "large anime eyes",
+          "labels or UI frames"
+        ]
+      },
+      "reviewChecklist": [
+        "顔が大きくなっていないか",
+        "丸顔になっていないか",
+        "体が横に太くなっていないか",
+        "縦長シルエットが保たれているか",
+        "服・髪・ポーズで役割が読めるか",
+        "小さな街歩きスプライトに見えるか",
+        "現代的なSDキャラに寄っていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "npc",
+        "semanticKind": "workshop_artisan",
+        "drawLayer": "character",
+        "runtimeBindings": [
+          {
+            "vocabulary": "NPC_ROLES",
+            "id": "foreman"
+          }
+        ],
+        "coverage": "mapped"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
+      }
+    },
+    {
+      "id": "character.dojo_inspector",
+      "category": "character",
+      "displayName": "Dojo Inspector",
+      "gameMeaning": "Required character art for character.dojo_inspector.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/characters/00_common_character_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "character_visual_master"
+      ],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 24,
+          "height": 40
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "directions": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "frames": [
+          "idle",
+          "walk_1",
+          "walk_2"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 3,
+          "frameWidth": 24,
+          "frameHeight": 40
+        }
+      },
+      "tags": [
+        "character",
+        "dojo_inspector"
+      ],
+      "constraints": {
+        "must": [
+          "small map-scale sprite",
+          "slim vertical silhouette",
+          "controlled palette"
+        ],
+        "mustNot": [
+          "chibi proportions",
+          "large anime eyes",
+          "labels or UI frames"
+        ]
+      },
+      "reviewChecklist": [
+        "顔が大きくなっていないか",
+        "丸顔になっていないか",
+        "体が横に太くなっていないか",
+        "縦長シルエットが保たれているか",
+        "服・髪・ポーズで役割が読めるか",
+        "小さな街歩きスプライトに見えるか",
+        "現代的なSDキャラに寄っていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "npc",
+        "semanticKind": "dojo_inspector",
+        "drawLayer": "character",
+        "runtimeBindings": [
+          {
+            "vocabulary": "NPC_ROLES",
+            "id": "inspector"
+          }
+        ],
+        "coverage": "mapped"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
+      }
+    },
+    {
+      "id": "character.watchtower_guard",
+      "category": "character",
+      "displayName": "Watchtower Guard",
+      "gameMeaning": "Required character art for character.watchtower_guard.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/characters/00_common_character_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "character_visual_master"
+      ],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 24,
+          "height": 40
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "directions": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "frames": [
+          "idle",
+          "walk_1",
+          "walk_2"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 3,
+          "frameWidth": 24,
+          "frameHeight": 40
+        }
+      },
+      "tags": [
+        "character",
+        "watchtower_guard"
+      ],
+      "constraints": {
+        "must": [
+          "small map-scale sprite",
+          "slim vertical silhouette",
+          "controlled palette"
+        ],
+        "mustNot": [
+          "chibi proportions",
+          "large anime eyes",
+          "labels or UI frames"
+        ]
+      },
+      "reviewChecklist": [
+        "顔が大きくなっていないか",
+        "丸顔になっていないか",
+        "体が横に太くなっていないか",
+        "縦長シルエットが保たれているか",
+        "服・髪・ポーズで役割が読めるか",
+        "小さな街歩きスプライトに見えるか",
+        "現代的なSDキャラに寄っていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "npc",
+        "semanticKind": "watchtower_guard",
+        "drawLayer": "character",
+        "runtimeBindings": [
+          {
+            "vocabulary": "NPC_ROLES",
+            "id": "watch"
+          }
+        ],
+        "coverage": "mapped"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
+      }
+    },
+    {
+      "id": "character.dock_ferryman",
+      "category": "character",
+      "displayName": "Dock Ferryman",
+      "gameMeaning": "Required character art for character.dock_ferryman.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/characters/00_common_character_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "character_visual_master"
+      ],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 24,
+          "height": 40
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "directions": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "frames": [
+          "idle",
+          "walk_1",
+          "walk_2"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 3,
+          "frameWidth": 24,
+          "frameHeight": 40
+        }
+      },
+      "tags": [
+        "character",
+        "dock_ferryman"
+      ],
+      "constraints": {
+        "must": [
+          "small map-scale sprite",
+          "slim vertical silhouette",
+          "controlled palette"
+        ],
+        "mustNot": [
+          "chibi proportions",
+          "large anime eyes",
+          "labels or UI frames"
+        ]
+      },
+      "reviewChecklist": [
+        "顔が大きくなっていないか",
+        "丸顔になっていないか",
+        "体が横に太くなっていないか",
+        "縦長シルエットが保たれているか",
+        "服・髪・ポーズで役割が読めるか",
+        "小さな街歩きスプライトに見えるか",
+        "現代的なSDキャラに寄っていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "npc",
+        "semanticKind": "dock_ferryman",
+        "drawLayer": "character",
+        "runtimeBindings": [
+          {
+            "vocabulary": "NPC_ROLES",
+            "id": "ferryman"
+          }
+        ],
+        "coverage": "mapped"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
+      }
+    },
+    {
+      "id": "character.warehouse_keeper",
+      "category": "character",
+      "displayName": "Warehouse Keeper",
+      "gameMeaning": "Required character art for character.warehouse_keeper.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/characters/00_common_character_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "character_visual_master"
+      ],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 24,
+          "height": 40
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "directions": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "frames": [
+          "idle",
+          "walk_1",
+          "walk_2"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 3,
+          "frameWidth": 24,
+          "frameHeight": 40
+        }
+      },
+      "tags": [
+        "character",
+        "warehouse_keeper"
+      ],
+      "constraints": {
+        "must": [
+          "small map-scale sprite",
+          "slim vertical silhouette",
+          "controlled palette"
+        ],
+        "mustNot": [
+          "chibi proportions",
+          "large anime eyes",
+          "labels or UI frames"
+        ]
+      },
+      "reviewChecklist": [
+        "顔が大きくなっていないか",
+        "丸顔になっていないか",
+        "体が横に太くなっていないか",
+        "縦長シルエットが保たれているか",
+        "服・髪・ポーズで役割が読めるか",
+        "小さな街歩きスプライトに見えるか",
+        "現代的なSDキャラに寄っていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "npc",
+        "semanticKind": "warehouse_keeper",
+        "drawLayer": "character",
+        "runtimeBindings": [
+          {
+            "vocabulary": "NPC_ROLES",
+            "id": "warehouse_keeper"
+          }
+        ],
+        "coverage": "exact"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
+      }
+    },
+    {
+      "id": "character.external_contractor_agent",
+      "category": "character",
+      "displayName": "External Contractor Agent",
+      "gameMeaning": "Optional future enhancement for character.external_contractor_agent; the current game remains complete without it.",
+      "required": false,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/characters/00_common_character_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 24,
+          "height": 40
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "directions": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "frames": [
+          "idle",
+          "walk_1",
+          "walk_2"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 3,
+          "frameWidth": 24,
+          "frameHeight": 40
+        }
+      },
+      "tags": [
+        "character",
+        "external_contractor_agent"
+      ],
+      "constraints": {
+        "must": [
+          "small map-scale sprite",
+          "slim vertical silhouette",
+          "controlled palette"
+        ],
+        "mustNot": [
+          "chibi proportions",
+          "large anime eyes",
+          "labels or UI frames"
+        ]
+      },
+      "reviewChecklist": [
+        "顔が大きくなっていないか",
+        "丸顔になっていないか",
+        "体が横に太くなっていないか",
+        "縦長シルエットが保たれているか",
+        "服・髪・ポーズで役割が読めるか",
+        "小さな街歩きスプライトに見えるか",
+        "現代的なSDキャラに寄っていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "npc",
+        "semanticKind": "external_contractor_agent",
+        "drawLayer": "character",
+        "runtimeBindings": [],
+        "coverage": "future"
+      }
+    },
+    {
+      "id": "character.llm_librarian",
+      "category": "character",
+      "displayName": "Llm Librarian",
+      "gameMeaning": "Optional future enhancement for character.llm_librarian; the current game remains complete without it.",
+      "required": false,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/characters/00_common_character_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 24,
+          "height": 40
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "directions": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "frames": [
+          "idle",
+          "walk_1",
+          "walk_2"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 3,
+          "frameWidth": 24,
+          "frameHeight": 40
+        }
+      },
+      "tags": [
+        "character",
+        "llm_librarian"
+      ],
+      "constraints": {
+        "must": [
+          "small map-scale sprite",
+          "slim vertical silhouette",
+          "controlled palette"
+        ],
+        "mustNot": [
+          "chibi proportions",
+          "large anime eyes",
+          "labels or UI frames"
+        ]
+      },
+      "reviewChecklist": [
+        "顔が大きくなっていないか",
+        "丸顔になっていないか",
+        "体が横に太くなっていないか",
+        "縦長シルエットが保たれているか",
+        "服・髪・ポーズで役割が読めるか",
+        "小さな街歩きスプライトに見えるか",
+        "現代的なSDキャラに寄っていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "npc",
+        "semanticKind": "llm_librarian",
+        "drawLayer": "character",
+        "runtimeBindings": [],
+        "coverage": "future"
+      }
+    },
+    {
+      "id": "character.llm_bard",
+      "category": "character",
+      "displayName": "Llm Bard",
+      "gameMeaning": "Optional future enhancement for character.llm_bard; the current game remains complete without it.",
+      "required": false,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/characters/00_common_character_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 24,
+          "height": 40
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "directions": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "frames": [
+          "idle",
+          "walk_1",
+          "walk_2"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 3,
+          "frameWidth": 24,
+          "frameHeight": 40
+        }
+      },
+      "tags": [
+        "character",
+        "llm_bard"
+      ],
+      "constraints": {
+        "must": [
+          "small map-scale sprite",
+          "slim vertical silhouette",
+          "controlled palette"
+        ],
+        "mustNot": [
+          "chibi proportions",
+          "large anime eyes",
+          "labels or UI frames"
+        ]
+      },
+      "reviewChecklist": [
+        "顔が大きくなっていないか",
+        "丸顔になっていないか",
+        "体が横に太くなっていないか",
+        "縦長シルエットが保たれているか",
+        "服・髪・ポーズで役割が読めるか",
+        "小さな街歩きスプライトに見えるか",
+        "現代的なSDキャラに寄っていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "npc",
+        "semanticKind": "llm_bard",
+        "drawLayer": "character",
+        "runtimeBindings": [],
+        "coverage": "future"
+      }
+    },
+    {
+      "id": "character.llm_counselor",
+      "category": "character",
+      "displayName": "Llm Counselor",
+      "gameMeaning": "Optional future enhancement for character.llm_counselor; the current game remains complete without it.",
+      "required": false,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/characters/00_common_character_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 24,
+          "height": 40
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "directions": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "frames": [
+          "idle",
+          "walk_1",
+          "walk_2"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 3,
+          "frameWidth": 24,
+          "frameHeight": 40
+        }
+      },
+      "tags": [
+        "character",
+        "llm_counselor"
+      ],
+      "constraints": {
+        "must": [
+          "small map-scale sprite",
+          "slim vertical silhouette",
+          "controlled palette"
+        ],
+        "mustNot": [
+          "chibi proportions",
+          "large anime eyes",
+          "labels or UI frames"
+        ]
+      },
+      "reviewChecklist": [
+        "顔が大きくなっていないか",
+        "丸顔になっていないか",
+        "体が横に太くなっていないか",
+        "縦長シルエットが保たれているか",
+        "服・髪・ポーズで役割が読めるか",
+        "小さな街歩きスプライトに見えるか",
+        "現代的なSDキャラに寄っていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "npc",
+        "semanticKind": "llm_counselor",
+        "drawLayer": "character",
+        "runtimeBindings": [],
+        "coverage": "future"
+      }
+    },
+    {
+      "id": "character.treasurer",
+      "category": "character",
+      "displayName": "Treasurer",
+      "gameMeaning": "Optional future enhancement for character.treasurer; the current game remains complete without it.",
+      "required": false,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/characters/00_common_character_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 24,
+          "height": 40
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "directions": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "frames": [
+          "idle",
+          "walk_1",
+          "walk_2"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 3,
+          "frameWidth": 24,
+          "frameHeight": 40
+        }
+      },
+      "tags": [
+        "character",
+        "treasurer"
+      ],
+      "constraints": {
+        "must": [
+          "small map-scale sprite",
+          "slim vertical silhouette",
+          "controlled palette"
+        ],
+        "mustNot": [
+          "chibi proportions",
+          "large anime eyes",
+          "labels or UI frames"
+        ]
+      },
+      "reviewChecklist": [
+        "顔が大きくなっていないか",
+        "丸顔になっていないか",
+        "体が横に太くなっていないか",
+        "縦長シルエットが保たれているか",
+        "服・髪・ポーズで役割が読めるか",
+        "小さな街歩きスプライトに見えるか",
+        "現代的なSDキャラに寄っていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "npc",
+        "semanticKind": "treasurer",
+        "drawLayer": "character",
+        "runtimeBindings": [],
+        "coverage": "future"
+      }
+    },
+    {
+      "id": "character.mail_carrier",
+      "category": "character",
+      "displayName": "Mail Carrier",
+      "gameMeaning": "Optional future enhancement for character.mail_carrier; the current game remains complete without it.",
+      "required": false,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/characters/00_common_character_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 24,
+          "height": 40
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "directions": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "frames": [
+          "idle",
+          "walk_1",
+          "walk_2"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 3,
+          "frameWidth": 24,
+          "frameHeight": 40
+        }
+      },
+      "tags": [
+        "character",
+        "mail_carrier"
+      ],
+      "constraints": {
+        "must": [
+          "small map-scale sprite",
+          "slim vertical silhouette",
+          "controlled palette"
+        ],
+        "mustNot": [
+          "chibi proportions",
+          "large anime eyes",
+          "labels or UI frames"
+        ]
+      },
+      "reviewChecklist": [
+        "顔が大きくなっていないか",
+        "丸顔になっていないか",
+        "体が横に太くなっていないか",
+        "縦長シルエットが保たれているか",
+        "服・髪・ポーズで役割が読めるか",
+        "小さな街歩きスプライトに見えるか",
+        "現代的なSDキャラに寄っていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "npc",
+        "semanticKind": "mail_carrier",
+        "drawLayer": "character",
+        "runtimeBindings": [],
+        "coverage": "future"
+      }
+    },
+    {
+      "id": "character.gatekeeper",
+      "category": "character",
+      "displayName": "Gatekeeper",
+      "gameMeaning": "Required character art for character.gatekeeper.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/characters/00_common_character_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "character_visual_master"
+      ],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 24,
+          "height": 40
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "directions": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "frames": [
+          "idle",
+          "walk_1",
+          "walk_2"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 3,
+          "frameWidth": 24,
+          "frameHeight": 40
+        }
+      },
+      "tags": [
+        "character",
+        "gatekeeper"
+      ],
+      "constraints": {
+        "must": [
+          "small map-scale sprite",
+          "slim vertical silhouette",
+          "controlled palette"
+        ],
+        "mustNot": [
+          "chibi proportions",
+          "large anime eyes",
+          "labels or UI frames"
+        ]
+      },
+      "reviewChecklist": [
+        "顔が大きくなっていないか",
+        "丸顔になっていないか",
+        "体が横に太くなっていないか",
+        "縦長シルエットが保たれているか",
+        "服・髪・ポーズで役割が読めるか",
+        "小さな街歩きスプライトに見えるか",
+        "現代的なSDキャラに寄っていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "npc",
+        "semanticKind": "gatekeeper",
+        "drawLayer": "character",
+        "runtimeBindings": [
+          {
+            "vocabulary": "NPC_ROLES",
+            "id": "gatekeeper"
+          }
+        ],
+        "coverage": "exact"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
+      }
+    },
+    {
+      "id": "character.mob.townsfolk_male",
+      "category": "character",
+      "displayName": "Mob Townsfolk Male",
+      "gameMeaning": "Required character art for character.mob.townsfolk_male.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/characters/00_common_character_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "character_visual_master"
+      ],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 24,
+          "height": 40
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "directions": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "frames": [
+          "idle",
+          "walk_1",
+          "walk_2"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 3,
+          "frameWidth": 24,
+          "frameHeight": 40
+        }
+      },
+      "tags": [
+        "character",
+        "mob",
+        "townsfolk_male"
+      ],
+      "constraints": {
+        "must": [
+          "small map-scale sprite",
+          "slim vertical silhouette",
+          "controlled palette"
+        ],
+        "mustNot": [
+          "chibi proportions",
+          "large anime eyes",
+          "labels or UI frames"
+        ]
+      },
+      "reviewChecklist": [
+        "顔が大きくなっていないか",
+        "丸顔になっていないか",
+        "体が横に太くなっていないか",
+        "縦長シルエットが保たれているか",
+        "服・髪・ポーズで役割が読めるか",
+        "小さな街歩きスプライトに見えるか",
+        "現代的なSDキャラに寄っていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "mob",
+        "semanticKind": "townsfolk_male",
+        "drawLayer": "character",
+        "runtimeBindings": [
+          {
+            "vocabulary": "NPC_ROLES",
+            "id": "townsfolk"
+          }
+        ],
+        "coverage": "mapped"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
+      }
+    },
+    {
+      "id": "character.mob.townsfolk_female",
+      "category": "character",
+      "displayName": "Mob Townsfolk Female",
+      "gameMeaning": "Required character art for character.mob.townsfolk_female.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/characters/00_common_character_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "character_visual_master"
+      ],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 24,
+          "height": 40
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "directions": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "frames": [
+          "idle",
+          "walk_1",
+          "walk_2"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 3,
+          "frameWidth": 24,
+          "frameHeight": 40
+        }
+      },
+      "tags": [
+        "character",
+        "mob",
+        "townsfolk_female"
+      ],
+      "constraints": {
+        "must": [
+          "small map-scale sprite",
+          "slim vertical silhouette",
+          "controlled palette"
+        ],
+        "mustNot": [
+          "chibi proportions",
+          "large anime eyes",
+          "labels or UI frames"
+        ]
+      },
+      "reviewChecklist": [
+        "顔が大きくなっていないか",
+        "丸顔になっていないか",
+        "体が横に太くなっていないか",
+        "縦長シルエットが保たれているか",
+        "服・髪・ポーズで役割が読めるか",
+        "小さな街歩きスプライトに見えるか",
+        "現代的なSDキャラに寄っていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "mob",
+        "semanticKind": "townsfolk_female",
+        "drawLayer": "character",
+        "runtimeBindings": [
+          {
+            "vocabulary": "NPC_ROLES",
+            "id": "townsfolk"
+          }
+        ],
+        "coverage": "mapped"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
+      }
+    },
+    {
+      "id": "character.mob.elder",
+      "category": "character",
+      "displayName": "Mob Elder",
+      "gameMeaning": "Required character art for character.mob.elder.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/characters/00_common_character_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "character_visual_master"
+      ],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 24,
+          "height": 40
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "directions": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "frames": [
+          "idle",
+          "walk_1",
+          "walk_2"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 3,
+          "frameWidth": 24,
+          "frameHeight": 40
+        }
+      },
+      "tags": [
+        "character",
+        "mob",
+        "elder"
+      ],
+      "constraints": {
+        "must": [
+          "small map-scale sprite",
+          "slim vertical silhouette",
+          "controlled palette"
+        ],
+        "mustNot": [
+          "chibi proportions",
+          "large anime eyes",
+          "labels or UI frames"
+        ]
+      },
+      "reviewChecklist": [
+        "顔が大きくなっていないか",
+        "丸顔になっていないか",
+        "体が横に太くなっていないか",
+        "縦長シルエットが保たれているか",
+        "服・髪・ポーズで役割が読めるか",
+        "小さな街歩きスプライトに見えるか",
+        "現代的なSDキャラに寄っていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "mob",
+        "semanticKind": "elder",
+        "drawLayer": "character",
+        "runtimeBindings": [
+          {
+            "vocabulary": "NPC_ROLES",
+            "id": "townsfolk"
+          }
+        ],
+        "coverage": "mapped"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "elder",
+          "min": 26,
+          "max": 30
+        },
+        "partialAlphaPixels": 0
+      }
+    },
+    {
+      "id": "character.mob.child",
+      "category": "character",
+      "displayName": "Mob Child",
+      "gameMeaning": "Required character art for character.mob.child.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/characters/00_common_character_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "character_visual_master"
+      ],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 24,
+          "height": 40
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "directions": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "frames": [
+          "idle",
+          "walk_1",
+          "walk_2"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 3,
+          "frameWidth": 24,
+          "frameHeight": 40
+        }
+      },
+      "tags": [
+        "character",
+        "mob",
+        "child"
+      ],
+      "constraints": {
+        "must": [
+          "small map-scale sprite",
+          "slim vertical silhouette",
+          "controlled palette"
+        ],
+        "mustNot": [
+          "chibi proportions",
+          "large anime eyes",
+          "labels or UI frames"
+        ]
+      },
+      "reviewChecklist": [
+        "顔が大きくなっていないか",
+        "丸顔になっていないか",
+        "体が横に太くなっていないか",
+        "縦長シルエットが保たれているか",
+        "服・髪・ポーズで役割が読めるか",
+        "小さな街歩きスプライトに見えるか",
+        "現代的なSDキャラに寄っていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "mob",
+        "semanticKind": "child",
+        "drawLayer": "character",
+        "runtimeBindings": [
+          {
+            "vocabulary": "NPC_ROLES",
+            "id": "child"
+          }
+        ],
+        "coverage": "exact"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "child",
+          "min": 21,
+          "max": 25
+        },
+        "partialAlphaPixels": 0
+      }
+    },
+    {
+      "id": "character.mob.traveler",
+      "category": "character",
+      "displayName": "Mob Traveler",
+      "gameMeaning": "Required character art for character.mob.traveler.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/characters/00_common_character_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "character_visual_master"
+      ],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 24,
+          "height": 40
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "directions": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "frames": [
+          "idle",
+          "walk_1",
+          "walk_2"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 3,
+          "frameWidth": 24,
+          "frameHeight": 40
+        }
+      },
+      "tags": [
+        "character",
+        "mob",
+        "traveler"
+      ],
+      "constraints": {
+        "must": [
+          "small map-scale sprite",
+          "slim vertical silhouette",
+          "controlled palette"
+        ],
+        "mustNot": [
+          "chibi proportions",
+          "large anime eyes",
+          "labels or UI frames"
+        ]
+      },
+      "reviewChecklist": [
+        "顔が大きくなっていないか",
+        "丸顔になっていないか",
+        "体が横に太くなっていないか",
+        "縦長シルエットが保たれているか",
+        "服・髪・ポーズで役割が読めるか",
+        "小さな街歩きスプライトに見えるか",
+        "現代的なSDキャラに寄っていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "mob",
+        "semanticKind": "traveler",
+        "drawLayer": "character",
+        "runtimeBindings": [
+          {
+            "vocabulary": "NPC_ROLES",
+            "id": "traveler"
+          }
+        ],
+        "coverage": "exact"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
+      }
+    },
+    {
+      "id": "character.mob.merchant",
+      "category": "character",
+      "displayName": "Mob Merchant",
+      "gameMeaning": "Required character art for character.mob.merchant.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/characters/00_common_character_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "character_visual_master"
+      ],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 24,
+          "height": 40
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "directions": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "frames": [
+          "idle",
+          "walk_1",
+          "walk_2"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 3,
+          "frameWidth": 24,
+          "frameHeight": 40
+        }
+      },
+      "tags": [
+        "character",
+        "mob",
+        "merchant"
+      ],
+      "constraints": {
+        "must": [
+          "small map-scale sprite",
+          "slim vertical silhouette",
+          "controlled palette"
+        ],
+        "mustNot": [
+          "chibi proportions",
+          "large anime eyes",
+          "labels or UI frames"
+        ]
+      },
+      "reviewChecklist": [
+        "顔が大きくなっていないか",
+        "丸顔になっていないか",
+        "体が横に太くなっていないか",
+        "縦長シルエットが保たれているか",
+        "服・髪・ポーズで役割が読めるか",
+        "小さな街歩きスプライトに見えるか",
+        "現代的なSDキャラに寄っていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "mob",
+        "semanticKind": "merchant",
+        "drawLayer": "character",
+        "runtimeBindings": [
+          {
+            "vocabulary": "NPC_ROLES",
+            "id": "shopkeeper"
+          }
+        ],
+        "coverage": "mapped"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
+      }
+    },
+    {
+      "id": "character.mob.artisan",
+      "category": "character",
+      "displayName": "Mob Artisan",
+      "gameMeaning": "Required character art for character.mob.artisan.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/characters/00_common_character_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "character_visual_master"
+      ],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 24,
+          "height": 40
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "directions": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "frames": [
+          "idle",
+          "walk_1",
+          "walk_2"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 3,
+          "frameWidth": 24,
+          "frameHeight": 40
+        }
+      },
+      "tags": [
+        "character",
+        "mob",
+        "artisan"
+      ],
+      "constraints": {
+        "must": [
+          "small map-scale sprite",
+          "slim vertical silhouette",
+          "controlled palette"
+        ],
+        "mustNot": [
+          "chibi proportions",
+          "large anime eyes",
+          "labels or UI frames"
+        ]
+      },
+      "reviewChecklist": [
+        "顔が大きくなっていないか",
+        "丸顔になっていないか",
+        "体が横に太くなっていないか",
+        "縦長シルエットが保たれているか",
+        "服・髪・ポーズで役割が読めるか",
+        "小さな街歩きスプライトに見えるか",
+        "現代的なSDキャラに寄っていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "mob",
+        "semanticKind": "artisan",
+        "drawLayer": "character",
+        "runtimeBindings": [
+          {
+            "vocabulary": "NPC_ROLES",
+            "id": "resident"
+          }
+        ],
+        "coverage": "mapped"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
+      }
+    },
+    {
+      "id": "character.mob.tavern_guest",
+      "category": "character",
+      "displayName": "Mob Tavern Guest",
+      "gameMeaning": "Required character art for character.mob.tavern_guest.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/characters/00_common_character_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "character_visual_master"
+      ],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 24,
+          "height": 40
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "directions": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "frames": [
+          "idle",
+          "walk_1",
+          "walk_2"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 3,
+          "frameWidth": 24,
+          "frameHeight": 40
+        }
+      },
+      "tags": [
+        "character",
+        "mob",
+        "tavern_guest"
+      ],
+      "constraints": {
+        "must": [
+          "small map-scale sprite",
+          "slim vertical silhouette",
+          "controlled palette"
+        ],
+        "mustNot": [
+          "chibi proportions",
+          "large anime eyes",
+          "labels or UI frames"
+        ]
+      },
+      "reviewChecklist": [
+        "顔が大きくなっていないか",
+        "丸顔になっていないか",
+        "体が横に太くなっていないか",
+        "縦長シルエットが保たれているか",
+        "服・髪・ポーズで役割が読めるか",
+        "小さな街歩きスプライトに見えるか",
+        "現代的なSDキャラに寄っていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "mob",
+        "semanticKind": "tavern_guest",
+        "drawLayer": "character",
+        "runtimeBindings": [
+          {
+            "vocabulary": "NPC_ROLES",
+            "id": "townsfolk"
+          }
+        ],
+        "coverage": "mapped"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
+      }
+    },
+    {
+      "id": "character.mob.inn_guest",
+      "category": "character",
+      "displayName": "Mob Inn Guest",
+      "gameMeaning": "Required character art for character.mob.inn_guest.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/characters/00_common_character_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "character_visual_master"
+      ],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 24,
+          "height": 40
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "directions": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "frames": [
+          "idle",
+          "walk_1",
+          "walk_2"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 3,
+          "frameWidth": 24,
+          "frameHeight": 40
+        }
+      },
+      "tags": [
+        "character",
+        "mob",
+        "inn_guest"
+      ],
+      "constraints": {
+        "must": [
+          "small map-scale sprite",
+          "slim vertical silhouette",
+          "controlled palette"
+        ],
+        "mustNot": [
+          "chibi proportions",
+          "large anime eyes",
+          "labels or UI frames"
+        ]
+      },
+      "reviewChecklist": [
+        "顔が大きくなっていないか",
+        "丸顔になっていないか",
+        "体が横に太くなっていないか",
+        "縦長シルエットが保たれているか",
+        "服・髪・ポーズで役割が読めるか",
+        "小さな街歩きスプライトに見えるか",
+        "現代的なSDキャラに寄っていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "mob",
+        "semanticKind": "inn_guest",
+        "drawLayer": "character",
+        "runtimeBindings": [
+          {
+            "vocabulary": "NPC_ROLES",
+            "id": "townsfolk"
+          }
+        ],
+        "coverage": "mapped"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
+      }
+    },
+    {
+      "id": "character.mob.dock_worker",
+      "category": "character",
+      "displayName": "Mob Dock Worker",
+      "gameMeaning": "Required character art for character.mob.dock_worker.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/characters/00_common_character_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "character_visual_master"
+      ],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 24,
+          "height": 40
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "directions": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "frames": [
+          "idle",
+          "walk_1",
+          "walk_2"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 3,
+          "frameWidth": 24,
+          "frameHeight": 40
+        }
+      },
+      "tags": [
+        "character",
+        "mob",
+        "dock_worker"
+      ],
+      "constraints": {
+        "must": [
+          "small map-scale sprite",
+          "slim vertical silhouette",
+          "controlled palette"
+        ],
+        "mustNot": [
+          "chibi proportions",
+          "large anime eyes",
+          "labels or UI frames"
+        ]
+      },
+      "reviewChecklist": [
+        "顔が大きくなっていないか",
+        "丸顔になっていないか",
+        "体が横に太くなっていないか",
+        "縦長シルエットが保たれているか",
+        "服・髪・ポーズで役割が読めるか",
+        "小さな街歩きスプライトに見えるか",
+        "現代的なSDキャラに寄っていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "mob",
+        "semanticKind": "dock_worker",
+        "drawLayer": "character",
+        "runtimeBindings": [
+          {
+            "vocabulary": "NPC_ROLES",
+            "id": "townsfolk"
+          }
+        ],
+        "coverage": "mapped"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
+      }
+    },
+    {
+      "id": "character.mob.delivery_person",
+      "category": "character",
+      "displayName": "Mob Delivery Person",
+      "gameMeaning": "Required character art for character.mob.delivery_person.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/characters/00_common_character_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "character_visual_master"
+      ],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 24,
+          "height": 40
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "directions": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "frames": [
+          "idle",
+          "walk_1",
+          "walk_2"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 3,
+          "frameWidth": 24,
+          "frameHeight": 40
+        }
+      },
+      "tags": [
+        "character",
+        "mob",
+        "delivery_person"
+      ],
+      "constraints": {
+        "must": [
+          "small map-scale sprite",
+          "slim vertical silhouette",
+          "controlled palette"
+        ],
+        "mustNot": [
+          "chibi proportions",
+          "large anime eyes",
+          "labels or UI frames"
+        ]
+      },
+      "reviewChecklist": [
+        "顔が大きくなっていないか",
+        "丸顔になっていないか",
+        "体が横に太くなっていないか",
+        "縦長シルエットが保たれているか",
+        "服・髪・ポーズで役割が読めるか",
+        "小さな街歩きスプライトに見えるか",
+        "現代的なSDキャラに寄っていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "mob",
+        "semanticKind": "delivery_person",
+        "drawLayer": "character",
+        "runtimeBindings": [
+          {
+            "vocabulary": "NPC_ROLES",
+            "id": "traveler"
+          }
+        ],
+        "coverage": "mapped"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
+      }
+    },
+    {
+      "id": "character.guildmaster",
+      "category": "character",
+      "displayName": "Guildmaster",
+      "gameMeaning": "Required character art for character.guildmaster.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/characters/00_common_character_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "character_visual_master"
+      ],
+      "output": {
+        "kind": "spritesheet",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": true
+      },
+      "pixelArt": {
+        "logicalSpriteSize": {
+          "width": 24,
+          "height": 40
+        },
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "sprites": {
+        "directions": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "frames": [
+          "idle",
+          "walk_1",
+          "walk_2"
+        ],
+        "grid": {
+          "columns": 4,
+          "rows": 3,
+          "frameWidth": 24,
+          "frameHeight": 40
+        }
+      },
+      "tags": [
+        "character",
+        "guildmaster"
+      ],
+      "constraints": {
+        "must": [
+          "small map-scale sprite",
+          "slim vertical silhouette",
+          "controlled palette"
+        ],
+        "mustNot": [
+          "chibi proportions",
+          "large anime eyes",
+          "labels or UI frames"
+        ]
+      },
+      "reviewChecklist": [
+        "顔が大きくなっていないか",
+        "丸顔になっていないか",
+        "体が横に太くなっていないか",
+        "縦長シルエットが保たれているか",
+        "服・髪・ポーズで役割が読めるか",
+        "小さな街歩きスプライトに見えるか",
+        "現代的なSDキャラに寄っていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "npc",
+        "semanticKind": "guildmaster",
+        "drawLayer": "character",
+        "runtimeBindings": [
+          {
+            "vocabulary": "NPC_ROLES",
+            "id": "guildmaster"
+          }
+        ],
+        "coverage": "exact"
+      },
+      "characterSpriteContract": {
+        "frame": {
+          "width": 24,
+          "height": 40
+        },
+        "columns": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "rows": [
+          "idle",
+          "walk1",
+          "walk2"
+        ],
+        "footBaseline": "common",
+        "resampling": {
+          "kernel": "nearest",
+          "downscaleOnly": true,
+          "allowEnlargement": false
+        },
+        "visibleBboxHeight": {
+          "class": "adult",
+          "min": 28,
+          "max": 32
+        },
+        "partialAlphaPixels": 0
+      }
+    }
+  ]
+}

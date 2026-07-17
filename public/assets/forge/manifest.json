@@ -1,0 +1,3231 @@
+{
+  "assets": [
+    {
+      "assetId": "building.dock",
+      "category": "building",
+      "gameBinding": {
+        "coverage": "exact",
+        "drawLayer": "building",
+        "rendererCategory": "building_exterior",
+        "runtimeBindings": [
+          {
+            "id": "dock",
+            "vocabulary": "FACILITY_KINDS"
+          }
+        ],
+        "semanticKind": "dock"
+      },
+      "publicPath": "/assets/forge/v1/dade95d62820688d/building_dock.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 256,
+          "width": 256
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [
+          "normal",
+          "active",
+          "inactive",
+          "under_construction",
+          "unverified",
+          "broken",
+          "approved",
+          "warning"
+        ],
+        "tileSize": 16,
+        "variantTags": [
+          "building",
+          "dock"
+        ]
+      },
+      "sha256": "dade95d62820688d0ac8ad004b4c83bbd37c40f12262b8423f1733bc5bf1708f"
+    },
+    {
+      "assetId": "building.dojo",
+      "category": "building",
+      "gameBinding": {
+        "coverage": "exact",
+        "drawLayer": "building",
+        "rendererCategory": "building_exterior",
+        "runtimeBindings": [
+          {
+            "id": "dojo",
+            "vocabulary": "FACILITY_KINDS"
+          }
+        ],
+        "semanticKind": "dojo"
+      },
+      "publicPath": "/assets/forge/v1/77222549f874d140/building_dojo.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 256,
+          "width": 256
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [
+          "normal",
+          "active",
+          "inactive",
+          "under_construction",
+          "unverified",
+          "broken",
+          "approved",
+          "warning"
+        ],
+        "tileSize": 16,
+        "variantTags": [
+          "building",
+          "dojo"
+        ]
+      },
+      "sha256": "77222549f874d140f38a3b2ed7fc9510b5aa65a82a46e8e2dcf966215a9a0ef6"
+    },
+    {
+      "assetId": "building.gate",
+      "category": "building",
+      "gameBinding": {
+        "coverage": "exact",
+        "drawLayer": "building",
+        "rendererCategory": "building_exterior",
+        "runtimeBindings": [
+          {
+            "id": "gate",
+            "vocabulary": "FACILITY_KINDS"
+          }
+        ],
+        "semanticKind": "gate"
+      },
+      "publicPath": "/assets/forge/v1/f85131d265539c67/building_gate.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 256,
+          "width": 256
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [
+          "normal",
+          "active",
+          "inactive",
+          "under_construction",
+          "unverified",
+          "broken",
+          "approved",
+          "warning"
+        ],
+        "tileSize": 16,
+        "variantTags": [
+          "building",
+          "gate"
+        ]
+      },
+      "sha256": "f85131d265539c676cfc743e76dbfd813651c0518f0877e6be9daf89a9186e4e"
+    },
+    {
+      "assetId": "building.guild",
+      "category": "building",
+      "gameBinding": {
+        "coverage": "exact",
+        "drawLayer": "building",
+        "rendererCategory": "building_exterior",
+        "runtimeBindings": [
+          {
+            "id": "guild",
+            "vocabulary": "FACILITY_KINDS"
+          }
+        ],
+        "semanticKind": "guild"
+      },
+      "publicPath": "/assets/forge/v1/14649f026c987b1a/building_guild.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 256,
+          "width": 256
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [
+          "normal",
+          "active",
+          "inactive",
+          "under_construction",
+          "unverified",
+          "broken",
+          "approved",
+          "warning"
+        ],
+        "tileSize": 16,
+        "variantTags": [
+          "building",
+          "guild"
+        ]
+      },
+      "sha256": "14649f026c987b1a4532ceeb7444508602e049472143209bf9bd4cd36823cb6c"
+    },
+    {
+      "assetId": "building.house.medium",
+      "category": "building",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "building",
+        "rendererCategory": "building_exterior",
+        "runtimeBindings": [
+          {
+            "id": "house",
+            "vocabulary": "FACILITY_KINDS"
+          }
+        ],
+        "semanticKind": "house_medium"
+      },
+      "publicPath": "/assets/forge/v1/30b3dffbf7016e29/building_house_medium.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 256,
+          "width": 256
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [
+          "normal",
+          "active",
+          "inactive",
+          "under_construction",
+          "unverified",
+          "broken",
+          "approved",
+          "warning"
+        ],
+        "tileSize": 16,
+        "variantTags": [
+          "building",
+          "house",
+          "medium"
+        ]
+      },
+      "sha256": "30b3dffbf7016e29aedb31b2be5cec051677c7dd76932eecd195407a429434cb"
+    },
+    {
+      "assetId": "building.house.small",
+      "category": "building",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "building",
+        "rendererCategory": "building_exterior",
+        "runtimeBindings": [
+          {
+            "id": "house",
+            "vocabulary": "FACILITY_KINDS"
+          }
+        ],
+        "semanticKind": "house_small"
+      },
+      "publicPath": "/assets/forge/v1/4b95916b0ed94aea/building_house_small.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 256,
+          "width": 256
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [
+          "normal",
+          "active",
+          "inactive",
+          "under_construction",
+          "unverified",
+          "broken",
+          "approved",
+          "warning"
+        ],
+        "tileSize": 16,
+        "variantTags": [
+          "building",
+          "house",
+          "small"
+        ]
+      },
+      "sha256": "4b95916b0ed94aea97d8f46840df4d31b30e294fadaa2697b628961751ea00af"
+    },
+    {
+      "assetId": "building.hut",
+      "category": "building",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "building",
+        "rendererCategory": "building_exterior",
+        "runtimeBindings": [
+          {
+            "id": "house",
+            "vocabulary": "FACILITY_KINDS"
+          }
+        ],
+        "semanticKind": "hut"
+      },
+      "publicPath": "/assets/forge/v1/39fd3b61ed5d4e67/building_hut.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 256,
+          "width": 256
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [
+          "normal",
+          "active",
+          "inactive",
+          "under_construction",
+          "unverified",
+          "broken",
+          "approved",
+          "warning"
+        ],
+        "tileSize": 16,
+        "variantTags": [
+          "building",
+          "hut"
+        ]
+      },
+      "sha256": "39fd3b61ed5d4e6774d336862dbd833d1d2a6ab5d7fb2256bdfecae6eacb686b"
+    },
+    {
+      "assetId": "building.inn",
+      "category": "building",
+      "gameBinding": {
+        "coverage": "exact",
+        "drawLayer": "building",
+        "rendererCategory": "building_exterior",
+        "runtimeBindings": [
+          {
+            "id": "inn",
+            "vocabulary": "FACILITY_KINDS"
+          }
+        ],
+        "semanticKind": "inn"
+      },
+      "publicPath": "/assets/forge/v1/3952f1aeab543925/building_inn.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 256,
+          "width": 256
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [
+          "normal",
+          "active",
+          "inactive",
+          "under_construction",
+          "unverified",
+          "broken",
+          "approved",
+          "warning"
+        ],
+        "tileSize": 16,
+        "variantTags": [
+          "building",
+          "inn"
+        ]
+      },
+      "sha256": "3952f1aeab54392548e10a2bec6b673085ff2dec0199330aed745160a4080e96"
+    },
+    {
+      "assetId": "building.old_house",
+      "category": "building",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "building",
+        "rendererCategory": "building_exterior",
+        "runtimeBindings": [
+          {
+            "id": "house",
+            "vocabulary": "FACILITY_KINDS"
+          }
+        ],
+        "semanticKind": "old_house"
+      },
+      "publicPath": "/assets/forge/v1/c38c0bdf995ecebc/building_old_house.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 256,
+          "width": 256
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [
+          "normal",
+          "active",
+          "inactive",
+          "under_construction",
+          "unverified",
+          "broken",
+          "approved",
+          "warning"
+        ],
+        "tileSize": 16,
+        "variantTags": [
+          "building",
+          "old_house"
+        ]
+      },
+      "sha256": "c38c0bdf995ecebc4dd96f8f5667d8a89e9a2657bc50d85ca4e428b6e46e0c43"
+    },
+    {
+      "assetId": "building.pub",
+      "category": "building",
+      "gameBinding": {
+        "coverage": "exact",
+        "drawLayer": "building",
+        "rendererCategory": "building_exterior",
+        "runtimeBindings": [
+          {
+            "id": "pub",
+            "vocabulary": "FACILITY_KINDS"
+          }
+        ],
+        "semanticKind": "pub"
+      },
+      "publicPath": "/assets/forge/v1/622b5760c38eacee/building_pub.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 256,
+          "width": 256
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [
+          "normal",
+          "active",
+          "inactive",
+          "under_construction",
+          "unverified",
+          "broken",
+          "approved",
+          "warning"
+        ],
+        "tileSize": 16,
+        "variantTags": [
+          "building",
+          "pub"
+        ]
+      },
+      "sha256": "622b5760c38eacee4066512cdef231f45be29a7dd1f8f26822af7e2195d20e25"
+    },
+    {
+      "assetId": "building.ruin",
+      "category": "building",
+      "gameBinding": {
+        "coverage": "exact",
+        "drawLayer": "building",
+        "rendererCategory": "building_exterior",
+        "runtimeBindings": [
+          {
+            "id": "ruin",
+            "vocabulary": "FACILITY_KINDS"
+          }
+        ],
+        "semanticKind": "ruin"
+      },
+      "publicPath": "/assets/forge/v1/d2ed01eaea2bb54e/building_ruin.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 256,
+          "width": 256
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [
+          "normal",
+          "active",
+          "inactive",
+          "under_construction",
+          "unverified",
+          "broken",
+          "approved",
+          "warning"
+        ],
+        "tileSize": 16,
+        "variantTags": [
+          "building",
+          "ruin"
+        ]
+      },
+      "sha256": "d2ed01eaea2bb54e435dfbdf77112f81cb9d96d8bda19bba8726cecbac442459"
+    },
+    {
+      "assetId": "building.shop",
+      "category": "building",
+      "gameBinding": {
+        "coverage": "exact",
+        "drawLayer": "building",
+        "rendererCategory": "building_exterior",
+        "runtimeBindings": [
+          {
+            "id": "shop",
+            "vocabulary": "FACILITY_KINDS"
+          }
+        ],
+        "semanticKind": "shop"
+      },
+      "publicPath": "/assets/forge/v1/9ced540efc5fc93b/building_shop.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 256,
+          "width": 256
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [
+          "normal",
+          "active",
+          "inactive",
+          "under_construction",
+          "unverified",
+          "broken",
+          "approved",
+          "warning"
+        ],
+        "tileSize": 16,
+        "variantTags": [
+          "building",
+          "shop"
+        ]
+      },
+      "sha256": "9ced540efc5fc93b7fed7a7ccfe370cda1a8f202731f428437ea8733a84f00d3"
+    },
+    {
+      "assetId": "building.town_hall",
+      "category": "building",
+      "gameBinding": {
+        "coverage": "exact",
+        "drawLayer": "building",
+        "rendererCategory": "building_exterior",
+        "runtimeBindings": [
+          {
+            "id": "town_hall",
+            "vocabulary": "FACILITY_KINDS"
+          }
+        ],
+        "semanticKind": "town_hall"
+      },
+      "publicPath": "/assets/forge/v1/86480fef5d990728/building_town_hall.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 256,
+          "width": 256
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [
+          "normal",
+          "active",
+          "inactive",
+          "under_construction",
+          "unverified",
+          "broken",
+          "approved",
+          "warning"
+        ],
+        "tileSize": 16,
+        "variantTags": [
+          "building",
+          "town_hall"
+        ]
+      },
+      "sha256": "86480fef5d990728560ff1bb8c6d34d24ddb0b8e1b0ab9b21f3c28b01c472095"
+    },
+    {
+      "assetId": "building.warehouse",
+      "category": "building",
+      "gameBinding": {
+        "coverage": "exact",
+        "drawLayer": "building",
+        "rendererCategory": "building_exterior",
+        "runtimeBindings": [
+          {
+            "id": "warehouse",
+            "vocabulary": "FACILITY_KINDS"
+          }
+        ],
+        "semanticKind": "warehouse"
+      },
+      "publicPath": "/assets/forge/v1/5903d7f18ae9be2c/building_warehouse.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 256,
+          "width": 256
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [
+          "normal",
+          "active",
+          "inactive",
+          "under_construction",
+          "unverified",
+          "broken",
+          "approved",
+          "warning"
+        ],
+        "tileSize": 16,
+        "variantTags": [
+          "building",
+          "warehouse"
+        ]
+      },
+      "sha256": "5903d7f18ae9be2cbea022ed7ccf61954feb4fb7f3091832ad3043d3568e563a"
+    },
+    {
+      "assetId": "building.watchtower",
+      "category": "building",
+      "gameBinding": {
+        "coverage": "exact",
+        "drawLayer": "building",
+        "rendererCategory": "building_exterior",
+        "runtimeBindings": [
+          {
+            "id": "watchtower",
+            "vocabulary": "FACILITY_KINDS"
+          }
+        ],
+        "semanticKind": "watchtower"
+      },
+      "publicPath": "/assets/forge/v1/05d7e8ec505c3538/building_watchtower.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 256,
+          "width": 256
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [
+          "normal",
+          "active",
+          "inactive",
+          "under_construction",
+          "unverified",
+          "broken",
+          "approved",
+          "warning"
+        ],
+        "tileSize": 16,
+        "variantTags": [
+          "building",
+          "watchtower"
+        ]
+      },
+      "sha256": "05d7e8ec505c35389d625a53bc9b1d8a8fc041f2d41a59756be5155a0b5ce9e3"
+    },
+    {
+      "assetId": "building.well",
+      "category": "building",
+      "gameBinding": {
+        "coverage": "exact",
+        "drawLayer": "building",
+        "rendererCategory": "building_exterior",
+        "runtimeBindings": [
+          {
+            "id": "well",
+            "vocabulary": "FACILITY_KINDS"
+          }
+        ],
+        "semanticKind": "well"
+      },
+      "publicPath": "/assets/forge/v1/7c8854e1d89db1ae/building_well.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 256,
+          "width": 256
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [
+          "normal",
+          "active",
+          "inactive",
+          "under_construction",
+          "unverified",
+          "broken",
+          "approved",
+          "warning"
+        ],
+        "tileSize": 16,
+        "variantTags": [
+          "building",
+          "well"
+        ]
+      },
+      "sha256": "7c8854e1d89db1ae370552e924bea2b7f917280369e5083957d8389ef9ab2d54"
+    },
+    {
+      "assetId": "building.workshop",
+      "category": "building",
+      "gameBinding": {
+        "coverage": "exact",
+        "drawLayer": "building",
+        "rendererCategory": "building_exterior",
+        "runtimeBindings": [
+          {
+            "id": "workshop",
+            "vocabulary": "FACILITY_KINDS"
+          }
+        ],
+        "semanticKind": "workshop"
+      },
+      "publicPath": "/assets/forge/v1/bb0e116b92c11d97/building_workshop.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 256,
+          "width": 256
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [
+          "normal",
+          "active",
+          "inactive",
+          "under_construction",
+          "unverified",
+          "broken",
+          "approved",
+          "warning"
+        ],
+        "tileSize": 16,
+        "variantTags": [
+          "building",
+          "workshop"
+        ]
+      },
+      "sha256": "bb0e116b92c11d97adb04550c9ba5c9fbcf9939896ba88b892a04c274b51e62b"
+    },
+    {
+      "assetId": "character.dock_ferryman",
+      "category": "character",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "character",
+        "rendererCategory": "npc",
+        "runtimeBindings": [
+          {
+            "id": "ferryman",
+            "vocabulary": "NPC_ROLES"
+          }
+        ],
+        "semanticKind": "dock_ferryman"
+      },
+      "publicPath": "/assets/forge/v1/2b9f13e14cb61913/character_dock_ferryman.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "spritesheet",
+        "logicalSize": {
+          "height": 40,
+          "width": 24
+        },
+        "nearestNeighbor": true,
+        "sprites": {
+          "directionAxis": "column",
+          "directions": [
+            "front",
+            "back",
+            "left",
+            "right"
+          ],
+          "frameAxis": "row",
+          "frames": [
+            "idle",
+            "walk_1",
+            "walk_2"
+          ],
+          "grid": {
+            "columns": 4,
+            "frameHeight": 40,
+            "frameWidth": 24,
+            "rows": 3
+          }
+        },
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "character",
+          "dock_ferryman"
+        ]
+      },
+      "sha256": "2b9f13e14cb61913c0d617466803b6d7daf82daed9053eb1e236d8fdc4c3af2c"
+    },
+    {
+      "assetId": "character.dojo_inspector",
+      "category": "character",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "character",
+        "rendererCategory": "npc",
+        "runtimeBindings": [
+          {
+            "id": "inspector",
+            "vocabulary": "NPC_ROLES"
+          }
+        ],
+        "semanticKind": "dojo_inspector"
+      },
+      "publicPath": "/assets/forge/v1/8ef4c90c817e504b/character_dojo_inspector.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "spritesheet",
+        "logicalSize": {
+          "height": 40,
+          "width": 24
+        },
+        "nearestNeighbor": true,
+        "sprites": {
+          "directionAxis": "column",
+          "directions": [
+            "front",
+            "back",
+            "left",
+            "right"
+          ],
+          "frameAxis": "row",
+          "frames": [
+            "idle",
+            "walk_1",
+            "walk_2"
+          ],
+          "grid": {
+            "columns": 4,
+            "frameHeight": 40,
+            "frameWidth": 24,
+            "rows": 3
+          }
+        },
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "character",
+          "dojo_inspector"
+        ]
+      },
+      "sha256": "8ef4c90c817e504bcc073b93b6698af13c61f97021f7d630a7a2c602f3b5acec"
+    },
+    {
+      "assetId": "character.gatekeeper",
+      "category": "character",
+      "gameBinding": {
+        "coverage": "exact",
+        "drawLayer": "character",
+        "rendererCategory": "npc",
+        "runtimeBindings": [
+          {
+            "id": "gatekeeper",
+            "vocabulary": "NPC_ROLES"
+          }
+        ],
+        "semanticKind": "gatekeeper"
+      },
+      "publicPath": "/assets/forge/v1/9d6b4a501916e3eb/character_gatekeeper.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "spritesheet",
+        "logicalSize": {
+          "height": 40,
+          "width": 24
+        },
+        "nearestNeighbor": true,
+        "sprites": {
+          "directionAxis": "column",
+          "directions": [
+            "front",
+            "back",
+            "left",
+            "right"
+          ],
+          "frameAxis": "row",
+          "frames": [
+            "idle",
+            "walk_1",
+            "walk_2"
+          ],
+          "grid": {
+            "columns": 4,
+            "frameHeight": 40,
+            "frameWidth": 24,
+            "rows": 3
+          }
+        },
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "character",
+          "gatekeeper"
+        ]
+      },
+      "sha256": "9d6b4a501916e3eb518bdac3f158583868ac37ca8337f033f89966df11c86601"
+    },
+    {
+      "assetId": "character.guildmaster",
+      "category": "character",
+      "gameBinding": {
+        "coverage": "exact",
+        "drawLayer": "character",
+        "rendererCategory": "npc",
+        "runtimeBindings": [
+          {
+            "id": "guildmaster",
+            "vocabulary": "NPC_ROLES"
+          }
+        ],
+        "semanticKind": "guildmaster"
+      },
+      "publicPath": "/assets/forge/v1/17bb295857231bb7/character_guildmaster.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "spritesheet",
+        "logicalSize": {
+          "height": 40,
+          "width": 24
+        },
+        "nearestNeighbor": true,
+        "sprites": {
+          "directionAxis": "column",
+          "directions": [
+            "front",
+            "back",
+            "left",
+            "right"
+          ],
+          "frameAxis": "row",
+          "frames": [
+            "idle",
+            "walk_1",
+            "walk_2"
+          ],
+          "grid": {
+            "columns": 4,
+            "frameHeight": 40,
+            "frameWidth": 24,
+            "rows": 3
+          }
+        },
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "character",
+          "guildmaster"
+        ]
+      },
+      "sha256": "17bb295857231bb7675c85a53f02c1824339bb3611a2f2249e4990f4f8bf1a74"
+    },
+    {
+      "assetId": "character.innkeeper",
+      "category": "character",
+      "gameBinding": {
+        "coverage": "exact",
+        "drawLayer": "character",
+        "rendererCategory": "npc",
+        "runtimeBindings": [
+          {
+            "id": "innkeeper",
+            "vocabulary": "NPC_ROLES"
+          }
+        ],
+        "semanticKind": "innkeeper"
+      },
+      "publicPath": "/assets/forge/v1/9688b329d8ac3c59/character_innkeeper.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "spritesheet",
+        "logicalSize": {
+          "height": 40,
+          "width": 24
+        },
+        "nearestNeighbor": true,
+        "sprites": {
+          "directionAxis": "column",
+          "directions": [
+            "front",
+            "back",
+            "left",
+            "right"
+          ],
+          "frameAxis": "row",
+          "frames": [
+            "idle",
+            "walk_1",
+            "walk_2"
+          ],
+          "grid": {
+            "columns": 4,
+            "frameHeight": 40,
+            "frameWidth": 24,
+            "rows": 3
+          }
+        },
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "character",
+          "innkeeper"
+        ]
+      },
+      "sha256": "9688b329d8ac3c594b0210690bfd821b85a2f80e6c777b91772a57cbe64f311a"
+    },
+    {
+      "assetId": "character.mob.artisan",
+      "category": "character",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "character",
+        "rendererCategory": "mob",
+        "runtimeBindings": [
+          {
+            "id": "resident",
+            "vocabulary": "NPC_ROLES"
+          }
+        ],
+        "semanticKind": "artisan"
+      },
+      "publicPath": "/assets/forge/v1/5198b8b6115230dd/character_mob_artisan.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "spritesheet",
+        "logicalSize": {
+          "height": 40,
+          "width": 24
+        },
+        "nearestNeighbor": true,
+        "sprites": {
+          "directionAxis": "column",
+          "directions": [
+            "front",
+            "back",
+            "left",
+            "right"
+          ],
+          "frameAxis": "row",
+          "frames": [
+            "idle",
+            "walk_1",
+            "walk_2"
+          ],
+          "grid": {
+            "columns": 4,
+            "frameHeight": 40,
+            "frameWidth": 24,
+            "rows": 3
+          }
+        },
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "character",
+          "mob",
+          "artisan"
+        ]
+      },
+      "sha256": "5198b8b6115230ddb184ab4297b3f817238fa0b0273f1880e0f647306c893429"
+    },
+    {
+      "assetId": "character.mob.child",
+      "category": "character",
+      "gameBinding": {
+        "coverage": "exact",
+        "drawLayer": "character",
+        "rendererCategory": "mob",
+        "runtimeBindings": [
+          {
+            "id": "child",
+            "vocabulary": "NPC_ROLES"
+          }
+        ],
+        "semanticKind": "child"
+      },
+      "publicPath": "/assets/forge/v1/d5c68379573e0fa0/character_mob_child.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "spritesheet",
+        "logicalSize": {
+          "height": 40,
+          "width": 24
+        },
+        "nearestNeighbor": true,
+        "sprites": {
+          "directionAxis": "column",
+          "directions": [
+            "front",
+            "back",
+            "left",
+            "right"
+          ],
+          "frameAxis": "row",
+          "frames": [
+            "idle",
+            "walk_1",
+            "walk_2"
+          ],
+          "grid": {
+            "columns": 4,
+            "frameHeight": 40,
+            "frameWidth": 24,
+            "rows": 3
+          }
+        },
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "character",
+          "mob",
+          "child"
+        ]
+      },
+      "sha256": "d5c68379573e0fa0ec339ff6a8bc8d9dd66104d3619bb8c73916d0af74b52a0b"
+    },
+    {
+      "assetId": "character.mob.delivery_person",
+      "category": "character",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "character",
+        "rendererCategory": "mob",
+        "runtimeBindings": [
+          {
+            "id": "traveler",
+            "vocabulary": "NPC_ROLES"
+          }
+        ],
+        "semanticKind": "delivery_person"
+      },
+      "publicPath": "/assets/forge/v1/d7100b27eabdf26d/character_mob_delivery_person.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "spritesheet",
+        "logicalSize": {
+          "height": 40,
+          "width": 24
+        },
+        "nearestNeighbor": true,
+        "sprites": {
+          "directionAxis": "column",
+          "directions": [
+            "front",
+            "back",
+            "left",
+            "right"
+          ],
+          "frameAxis": "row",
+          "frames": [
+            "idle",
+            "walk_1",
+            "walk_2"
+          ],
+          "grid": {
+            "columns": 4,
+            "frameHeight": 40,
+            "frameWidth": 24,
+            "rows": 3
+          }
+        },
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "character",
+          "mob",
+          "delivery_person"
+        ]
+      },
+      "sha256": "d7100b27eabdf26d409c14dd0bd292af401c528e43e5251ae42d6c6a57fbfa58"
+    },
+    {
+      "assetId": "character.mob.dock_worker",
+      "category": "character",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "character",
+        "rendererCategory": "mob",
+        "runtimeBindings": [
+          {
+            "id": "townsfolk",
+            "vocabulary": "NPC_ROLES"
+          }
+        ],
+        "semanticKind": "dock_worker"
+      },
+      "publicPath": "/assets/forge/v1/4966fea0f209e4c7/character_mob_dock_worker.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "spritesheet",
+        "logicalSize": {
+          "height": 40,
+          "width": 24
+        },
+        "nearestNeighbor": true,
+        "sprites": {
+          "directionAxis": "column",
+          "directions": [
+            "front",
+            "back",
+            "left",
+            "right"
+          ],
+          "frameAxis": "row",
+          "frames": [
+            "idle",
+            "walk_1",
+            "walk_2"
+          ],
+          "grid": {
+            "columns": 4,
+            "frameHeight": 40,
+            "frameWidth": 24,
+            "rows": 3
+          }
+        },
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "character",
+          "mob",
+          "dock_worker"
+        ]
+      },
+      "sha256": "4966fea0f209e4c71e9dfe4c17cac7ea74a7548d7e3420a53cd56420ad06aa3b"
+    },
+    {
+      "assetId": "character.mob.elder",
+      "category": "character",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "character",
+        "rendererCategory": "mob",
+        "runtimeBindings": [
+          {
+            "id": "townsfolk",
+            "vocabulary": "NPC_ROLES"
+          }
+        ],
+        "semanticKind": "elder"
+      },
+      "publicPath": "/assets/forge/v1/c9fd8ecc2da78dac/character_mob_elder.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "spritesheet",
+        "logicalSize": {
+          "height": 40,
+          "width": 24
+        },
+        "nearestNeighbor": true,
+        "sprites": {
+          "directionAxis": "column",
+          "directions": [
+            "front",
+            "back",
+            "left",
+            "right"
+          ],
+          "frameAxis": "row",
+          "frames": [
+            "idle",
+            "walk_1",
+            "walk_2"
+          ],
+          "grid": {
+            "columns": 4,
+            "frameHeight": 40,
+            "frameWidth": 24,
+            "rows": 3
+          }
+        },
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "character",
+          "mob",
+          "elder"
+        ]
+      },
+      "sha256": "c9fd8ecc2da78dac72048044fb99ad31369b2a92a41fb9562d4d36df9be99c60"
+    },
+    {
+      "assetId": "character.mob.inn_guest",
+      "category": "character",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "character",
+        "rendererCategory": "mob",
+        "runtimeBindings": [
+          {
+            "id": "townsfolk",
+            "vocabulary": "NPC_ROLES"
+          }
+        ],
+        "semanticKind": "inn_guest"
+      },
+      "publicPath": "/assets/forge/v1/25691dabb82ca97c/character_mob_inn_guest.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "spritesheet",
+        "logicalSize": {
+          "height": 40,
+          "width": 24
+        },
+        "nearestNeighbor": true,
+        "sprites": {
+          "directionAxis": "column",
+          "directions": [
+            "front",
+            "back",
+            "left",
+            "right"
+          ],
+          "frameAxis": "row",
+          "frames": [
+            "idle",
+            "walk_1",
+            "walk_2"
+          ],
+          "grid": {
+            "columns": 4,
+            "frameHeight": 40,
+            "frameWidth": 24,
+            "rows": 3
+          }
+        },
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "character",
+          "mob",
+          "inn_guest"
+        ]
+      },
+      "sha256": "25691dabb82ca97c1f85429b5b55b2e80cde1b28d697308516a78ad941c2999a"
+    },
+    {
+      "assetId": "character.mob.merchant",
+      "category": "character",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "character",
+        "rendererCategory": "mob",
+        "runtimeBindings": [
+          {
+            "id": "shopkeeper",
+            "vocabulary": "NPC_ROLES"
+          }
+        ],
+        "semanticKind": "merchant"
+      },
+      "publicPath": "/assets/forge/v1/94644e6d646b3d96/character_mob_merchant.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "spritesheet",
+        "logicalSize": {
+          "height": 40,
+          "width": 24
+        },
+        "nearestNeighbor": true,
+        "sprites": {
+          "directionAxis": "column",
+          "directions": [
+            "front",
+            "back",
+            "left",
+            "right"
+          ],
+          "frameAxis": "row",
+          "frames": [
+            "idle",
+            "walk_1",
+            "walk_2"
+          ],
+          "grid": {
+            "columns": 4,
+            "frameHeight": 40,
+            "frameWidth": 24,
+            "rows": 3
+          }
+        },
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "character",
+          "mob",
+          "merchant"
+        ]
+      },
+      "sha256": "94644e6d646b3d96f874de18b1cb39a9849315f8fa5675744346cf86a2090e95"
+    },
+    {
+      "assetId": "character.mob.tavern_guest",
+      "category": "character",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "character",
+        "rendererCategory": "mob",
+        "runtimeBindings": [
+          {
+            "id": "townsfolk",
+            "vocabulary": "NPC_ROLES"
+          }
+        ],
+        "semanticKind": "tavern_guest"
+      },
+      "publicPath": "/assets/forge/v1/a4f4752d320f9b0b/character_mob_tavern_guest.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "spritesheet",
+        "logicalSize": {
+          "height": 40,
+          "width": 24
+        },
+        "nearestNeighbor": true,
+        "sprites": {
+          "directionAxis": "column",
+          "directions": [
+            "front",
+            "back",
+            "left",
+            "right"
+          ],
+          "frameAxis": "row",
+          "frames": [
+            "idle",
+            "walk_1",
+            "walk_2"
+          ],
+          "grid": {
+            "columns": 4,
+            "frameHeight": 40,
+            "frameWidth": 24,
+            "rows": 3
+          }
+        },
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "character",
+          "mob",
+          "tavern_guest"
+        ]
+      },
+      "sha256": "a4f4752d320f9b0b6a24f163e23e25ebb5af0da842de91660b8f8eabdd58bd8b"
+    },
+    {
+      "assetId": "character.mob.townsfolk_female",
+      "category": "character",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "character",
+        "rendererCategory": "mob",
+        "runtimeBindings": [
+          {
+            "id": "townsfolk",
+            "vocabulary": "NPC_ROLES"
+          }
+        ],
+        "semanticKind": "townsfolk_female"
+      },
+      "publicPath": "/assets/forge/v1/62b5d2f9867cdc2e/character_mob_townsfolk_female.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "spritesheet",
+        "logicalSize": {
+          "height": 40,
+          "width": 24
+        },
+        "nearestNeighbor": true,
+        "sprites": {
+          "directionAxis": "column",
+          "directions": [
+            "front",
+            "back",
+            "left",
+            "right"
+          ],
+          "frameAxis": "row",
+          "frames": [
+            "idle",
+            "walk_1",
+            "walk_2"
+          ],
+          "grid": {
+            "columns": 4,
+            "frameHeight": 40,
+            "frameWidth": 24,
+            "rows": 3
+          }
+        },
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "character",
+          "mob",
+          "townsfolk_female"
+        ]
+      },
+      "sha256": "62b5d2f9867cdc2ebabac5527d51c96a7f8146dda7b9c4dc1489b99c63c5f206"
+    },
+    {
+      "assetId": "character.mob.townsfolk_male",
+      "category": "character",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "character",
+        "rendererCategory": "mob",
+        "runtimeBindings": [
+          {
+            "id": "townsfolk",
+            "vocabulary": "NPC_ROLES"
+          }
+        ],
+        "semanticKind": "townsfolk_male"
+      },
+      "publicPath": "/assets/forge/v1/a00883d85ab0f819/character_mob_townsfolk_male.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "spritesheet",
+        "logicalSize": {
+          "height": 40,
+          "width": 24
+        },
+        "nearestNeighbor": true,
+        "sprites": {
+          "directionAxis": "column",
+          "directions": [
+            "front",
+            "back",
+            "left",
+            "right"
+          ],
+          "frameAxis": "row",
+          "frames": [
+            "idle",
+            "walk_1",
+            "walk_2"
+          ],
+          "grid": {
+            "columns": 4,
+            "frameHeight": 40,
+            "frameWidth": 24,
+            "rows": 3
+          }
+        },
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "character",
+          "mob",
+          "townsfolk_male"
+        ]
+      },
+      "sha256": "a00883d85ab0f8197ffef77820706bbb34e07b990c99376e67250d2016e70de6"
+    },
+    {
+      "assetId": "character.mob.traveler",
+      "category": "character",
+      "gameBinding": {
+        "coverage": "exact",
+        "drawLayer": "character",
+        "rendererCategory": "mob",
+        "runtimeBindings": [
+          {
+            "id": "traveler",
+            "vocabulary": "NPC_ROLES"
+          }
+        ],
+        "semanticKind": "traveler"
+      },
+      "publicPath": "/assets/forge/v1/f58bc56ae0b48fe5/character_mob_traveler.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "spritesheet",
+        "logicalSize": {
+          "height": 40,
+          "width": 24
+        },
+        "nearestNeighbor": true,
+        "sprites": {
+          "directionAxis": "column",
+          "directions": [
+            "front",
+            "back",
+            "left",
+            "right"
+          ],
+          "frameAxis": "row",
+          "frames": [
+            "idle",
+            "walk_1",
+            "walk_2"
+          ],
+          "grid": {
+            "columns": 4,
+            "frameHeight": 40,
+            "frameWidth": 24,
+            "rows": 3
+          }
+        },
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "character",
+          "mob",
+          "traveler"
+        ]
+      },
+      "sha256": "f58bc56ae0b48fe57ba06c59aa0f901e8607d8939937e9e6080d4756c2b4827a"
+    },
+    {
+      "assetId": "character.player",
+      "category": "character",
+      "gameBinding": {
+        "coverage": "future",
+        "drawLayer": "character",
+        "rendererCategory": "npc",
+        "runtimeBindings": [],
+        "semanticKind": "player"
+      },
+      "publicPath": "/assets/forge/v1/c44d99132e20ac85/character_player.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "spritesheet",
+        "logicalSize": {
+          "height": 40,
+          "width": 24
+        },
+        "nearestNeighbor": true,
+        "sprites": {
+          "directionAxis": "column",
+          "directions": [
+            "front",
+            "back",
+            "left",
+            "right"
+          ],
+          "frameAxis": "row",
+          "frames": [
+            "idle",
+            "walk_1",
+            "walk_2"
+          ],
+          "grid": {
+            "columns": 4,
+            "frameHeight": 40,
+            "frameWidth": 24,
+            "rows": 3
+          }
+        },
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "character",
+          "player"
+        ]
+      },
+      "sha256": "c44d99132e20ac85a9a600373c0e3281fe80e4726e46a633be8242c3a850af97"
+    },
+    {
+      "assetId": "character.tavern_master",
+      "category": "character",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "character",
+        "rendererCategory": "npc",
+        "runtimeBindings": [
+          {
+            "id": "barkeep",
+            "vocabulary": "NPC_ROLES"
+          }
+        ],
+        "semanticKind": "tavern_master"
+      },
+      "publicPath": "/assets/forge/v1/a1c182ee6a03bec2/character_tavern_master.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "spritesheet",
+        "logicalSize": {
+          "height": 40,
+          "width": 24
+        },
+        "nearestNeighbor": true,
+        "sprites": {
+          "directionAxis": "column",
+          "directions": [
+            "front",
+            "back",
+            "left",
+            "right"
+          ],
+          "frameAxis": "row",
+          "frames": [
+            "idle",
+            "walk_1",
+            "walk_2"
+          ],
+          "grid": {
+            "columns": 4,
+            "frameHeight": 40,
+            "frameWidth": 24,
+            "rows": 3
+          }
+        },
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "character",
+          "tavern_master"
+        ]
+      },
+      "sha256": "a1c182ee6a03bec2d6a03fc3adbddac0a4501469b6231a501251b29c6db314a5"
+    },
+    {
+      "assetId": "character.town_clerk",
+      "category": "character",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "character",
+        "rendererCategory": "npc",
+        "runtimeBindings": [
+          {
+            "id": "clerk",
+            "vocabulary": "NPC_ROLES"
+          }
+        ],
+        "semanticKind": "town_clerk"
+      },
+      "publicPath": "/assets/forge/v1/a7066c3b013a46f8/character_town_clerk.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "spritesheet",
+        "logicalSize": {
+          "height": 40,
+          "width": 24
+        },
+        "nearestNeighbor": true,
+        "sprites": {
+          "directionAxis": "column",
+          "directions": [
+            "front",
+            "back",
+            "left",
+            "right"
+          ],
+          "frameAxis": "row",
+          "frames": [
+            "idle",
+            "walk_1",
+            "walk_2"
+          ],
+          "grid": {
+            "columns": 4,
+            "frameHeight": 40,
+            "frameWidth": 24,
+            "rows": 3
+          }
+        },
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "character",
+          "town_clerk"
+        ]
+      },
+      "sha256": "a7066c3b013a46f84142219612dbeec3e7d9667c273cda279f8bafeffec09784"
+    },
+    {
+      "assetId": "character.warehouse_keeper",
+      "category": "character",
+      "gameBinding": {
+        "coverage": "exact",
+        "drawLayer": "character",
+        "rendererCategory": "npc",
+        "runtimeBindings": [
+          {
+            "id": "warehouse_keeper",
+            "vocabulary": "NPC_ROLES"
+          }
+        ],
+        "semanticKind": "warehouse_keeper"
+      },
+      "publicPath": "/assets/forge/v1/19a51352061e10cc/character_warehouse_keeper.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "spritesheet",
+        "logicalSize": {
+          "height": 40,
+          "width": 24
+        },
+        "nearestNeighbor": true,
+        "sprites": {
+          "directionAxis": "column",
+          "directions": [
+            "front",
+            "back",
+            "left",
+            "right"
+          ],
+          "frameAxis": "row",
+          "frames": [
+            "idle",
+            "walk_1",
+            "walk_2"
+          ],
+          "grid": {
+            "columns": 4,
+            "frameHeight": 40,
+            "frameWidth": 24,
+            "rows": 3
+          }
+        },
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "character",
+          "warehouse_keeper"
+        ]
+      },
+      "sha256": "19a51352061e10cc7f6f2cc677b6efca4cfdb2aaa3f1af6d6166cc3f7ddd52f5"
+    },
+    {
+      "assetId": "character.watchtower_guard",
+      "category": "character",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "character",
+        "rendererCategory": "npc",
+        "runtimeBindings": [
+          {
+            "id": "watch",
+            "vocabulary": "NPC_ROLES"
+          }
+        ],
+        "semanticKind": "watchtower_guard"
+      },
+      "publicPath": "/assets/forge/v1/169fdd9960cbfa5c/character_watchtower_guard.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "spritesheet",
+        "logicalSize": {
+          "height": 40,
+          "width": 24
+        },
+        "nearestNeighbor": true,
+        "sprites": {
+          "directionAxis": "column",
+          "directions": [
+            "front",
+            "back",
+            "left",
+            "right"
+          ],
+          "frameAxis": "row",
+          "frames": [
+            "idle",
+            "walk_1",
+            "walk_2"
+          ],
+          "grid": {
+            "columns": 4,
+            "frameHeight": 40,
+            "frameWidth": 24,
+            "rows": 3
+          }
+        },
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "character",
+          "watchtower_guard"
+        ]
+      },
+      "sha256": "169fdd9960cbfa5cf49bedf35638dc46ebfcb687888cfe08460ae880519560ca"
+    },
+    {
+      "assetId": "character.workshop_artisan",
+      "category": "character",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "character",
+        "rendererCategory": "npc",
+        "runtimeBindings": [
+          {
+            "id": "foreman",
+            "vocabulary": "NPC_ROLES"
+          }
+        ],
+        "semanticKind": "workshop_artisan"
+      },
+      "publicPath": "/assets/forge/v1/e36bbc9306ee037a/character_workshop_artisan.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "spritesheet",
+        "logicalSize": {
+          "height": 40,
+          "width": 24
+        },
+        "nearestNeighbor": true,
+        "sprites": {
+          "directionAxis": "column",
+          "directions": [
+            "front",
+            "back",
+            "left",
+            "right"
+          ],
+          "frameAxis": "row",
+          "frames": [
+            "idle",
+            "walk_1",
+            "walk_2"
+          ],
+          "grid": {
+            "columns": 4,
+            "frameHeight": 40,
+            "frameWidth": 24,
+            "rows": 3
+          }
+        },
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "character",
+          "workshop_artisan"
+        ]
+      },
+      "sha256": "e36bbc9306ee037aaba2a6471f352df175ad207931424f99204eb664405e2e5f"
+    },
+    {
+      "assetId": "effect.construction_dust",
+      "category": "effect",
+      "gameBinding": {
+        "coverage": "future",
+        "drawLayer": "effect",
+        "rendererCategory": "effect",
+        "runtimeBindings": [],
+        "semanticKind": "construction_dust"
+      },
+      "publicPath": "/assets/forge/v1/48ce213abf1f1ec9/effect_construction_dust.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "spritesheet",
+        "logicalSize": {
+          "height": 32,
+          "width": 32
+        },
+        "nearestNeighbor": true,
+        "sprites": {
+          "directionAxis": null,
+          "directions": [],
+          "frameAxis": "column",
+          "frames": [
+            "frame_1",
+            "frame_2",
+            "frame_3",
+            "frame_4"
+          ],
+          "grid": {
+            "columns": 4,
+            "frameHeight": 32,
+            "frameWidth": 32,
+            "rows": 1
+          }
+        },
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "effect",
+          "construction_dust"
+        ]
+      },
+      "sha256": "48ce213abf1f1ec970b55f02ed4faf9888e5e1ea4348669ea093557d8814510c"
+    },
+    {
+      "assetId": "effect.water_ripple",
+      "category": "effect",
+      "gameBinding": {
+        "coverage": "future",
+        "drawLayer": "effect",
+        "rendererCategory": "effect",
+        "runtimeBindings": [],
+        "semanticKind": "water_ripple"
+      },
+      "publicPath": "/assets/forge/v1/8586e1d16331790a/effect_water_ripple.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "spritesheet",
+        "logicalSize": {
+          "height": 32,
+          "width": 32
+        },
+        "nearestNeighbor": true,
+        "sprites": {
+          "directionAxis": null,
+          "directions": [],
+          "frameAxis": "column",
+          "frames": [
+            "frame_1",
+            "frame_2",
+            "frame_3",
+            "frame_4"
+          ],
+          "grid": {
+            "columns": 4,
+            "frameHeight": 32,
+            "frameWidth": 32,
+            "rows": 1
+          }
+        },
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "effect",
+          "water_ripple"
+        ]
+      },
+      "sha256": "8586e1d16331790ab633b9fb890de9413eb0f63aee683bbe4d128d053f3a25fa"
+    },
+    {
+      "assetId": "field.bridge_stone",
+      "category": "field",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "ground",
+        "rendererCategory": "tile",
+        "runtimeBindings": [
+          {
+            "id": "bridge",
+            "vocabulary": "TILE_TYPES"
+          }
+        ],
+        "semanticKind": "bridge_stone"
+      },
+      "publicPath": "/assets/forge/v1/adeb44abf559513e/field_bridge_stone.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "tileset",
+        "logicalSize": null,
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": 64,
+        "variantTags": [
+          "field",
+          "bridge_stone"
+        ]
+      },
+      "sha256": "adeb44abf559513eaa3077f183304b88473d9edc0bbe5575abc03cf38b2eee2a"
+    },
+    {
+      "assetId": "field.bridge_wood",
+      "category": "field",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "ground",
+        "rendererCategory": "tile",
+        "runtimeBindings": [
+          {
+            "id": "bridge",
+            "vocabulary": "TILE_TYPES"
+          }
+        ],
+        "semanticKind": "bridge_wood"
+      },
+      "publicPath": "/assets/forge/v1/0ed0d4495775f2b4/field_bridge_wood.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "tileset",
+        "logicalSize": null,
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": 64,
+        "variantTags": [
+          "field",
+          "bridge_wood"
+        ]
+      },
+      "sha256": "0ed0d4495775f2b4cf31b39a4db166b266a8560863aec5c55d80625753795863"
+    },
+    {
+      "assetId": "field.cliff",
+      "category": "field",
+      "gameBinding": {
+        "coverage": "exact",
+        "drawLayer": "ground",
+        "rendererCategory": "tile",
+        "runtimeBindings": [
+          {
+            "id": "cliff",
+            "vocabulary": "TILE_TYPES"
+          }
+        ],
+        "semanticKind": "cliff"
+      },
+      "publicPath": "/assets/forge/v1/4089488794d9e6af/field_cliff.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "tileset",
+        "logicalSize": null,
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": 64,
+        "variantTags": [
+          "field",
+          "cliff"
+        ]
+      },
+      "sha256": "4089488794d9e6af1ff61246f206e6ba666f40f6cad510fc297f41aa9d6cafa6"
+    },
+    {
+      "assetId": "field.cobblestone",
+      "category": "field",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "object",
+        "rendererCategory": "tile",
+        "runtimeBindings": [
+          {
+            "id": "road",
+            "vocabulary": "TILE_TYPES"
+          }
+        ],
+        "semanticKind": "cobblestone"
+      },
+      "publicPath": "/assets/forge/v1/0f4f78f8ecd73be7/field_cobblestone.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "tileset",
+        "logicalSize": null,
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": 64,
+        "variantTags": [
+          "field",
+          "cobblestone"
+        ]
+      },
+      "sha256": "0f4f78f8ecd73be769f16d6b15c07c2671113e8f69bdda0d6897c4e7609969bc"
+    },
+    {
+      "assetId": "field.dirt_path",
+      "category": "field",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "ground",
+        "rendererCategory": "tile",
+        "runtimeBindings": [
+          {
+            "id": "path",
+            "vocabulary": "TILE_TYPES"
+          },
+          {
+            "id": "dirt",
+            "vocabulary": "TILE_TYPES"
+          }
+        ],
+        "semanticKind": "dirt_path"
+      },
+      "publicPath": "/assets/forge/v1/3de53aeaf2a0eaec/field_dirt_path.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "tileset",
+        "logicalSize": null,
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": 64,
+        "variantTags": [
+          "field",
+          "dirt_path"
+        ]
+      },
+      "sha256": "3de53aeaf2a0eaec10dc8677a3b21f3eaf1c7c71d25845f3e31f74bee650ad88"
+    },
+    {
+      "assetId": "field.dock_floor",
+      "category": "field",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "ground",
+        "rendererCategory": "tile",
+        "runtimeBindings": [
+          {
+            "id": "floor",
+            "vocabulary": "TILE_TYPES"
+          }
+        ],
+        "semanticKind": "dock_floor"
+      },
+      "publicPath": "/assets/forge/v1/8fd0e89e4f8d7eb3/field_dock_floor.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "tileset",
+        "logicalSize": null,
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": 64,
+        "variantTags": [
+          "field",
+          "dock_floor"
+        ]
+      },
+      "sha256": "8fd0e89e4f8d7eb350f1644eae3a69a499c979b92c0b020a1b07f9fb7f271683"
+    },
+    {
+      "assetId": "field.fence_wood",
+      "category": "field",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "object",
+        "rendererCategory": "prop",
+        "runtimeBindings": [
+          {
+            "id": "fence",
+            "vocabulary": "PROP_KINDS"
+          }
+        ],
+        "semanticKind": "fence_wood"
+      },
+      "publicPath": "/assets/forge/v1/f754b577a7ed4a00/field_fence_wood.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "tileset",
+        "logicalSize": null,
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": 64,
+        "variantTags": [
+          "field",
+          "fence_wood"
+        ]
+      },
+      "sha256": "f754b577a7ed4a00196479554c22105e4031ca89d49875c3d72b30d0619077eb"
+    },
+    {
+      "assetId": "field.grass",
+      "category": "field",
+      "gameBinding": {
+        "coverage": "exact",
+        "drawLayer": "ground",
+        "rendererCategory": "tile",
+        "runtimeBindings": [
+          {
+            "id": "grass",
+            "vocabulary": "TILE_TYPES"
+          }
+        ],
+        "semanticKind": "grass"
+      },
+      "publicPath": "/assets/forge/v1/71bf5f0a74b80669/field_grass.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "tileset",
+        "logicalSize": null,
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": 64,
+        "variantTags": [
+          "field",
+          "grass"
+        ]
+      },
+      "sha256": "71bf5f0a74b8066984e9dea5a43ea5dd794f1e9663a2488fae2785f2e6348afd"
+    },
+    {
+      "assetId": "field.plaza",
+      "category": "field",
+      "gameBinding": {
+        "coverage": "exact",
+        "drawLayer": "ground",
+        "rendererCategory": "tile",
+        "runtimeBindings": [
+          {
+            "id": "plaza",
+            "vocabulary": "TILE_TYPES"
+          }
+        ],
+        "semanticKind": "plaza"
+      },
+      "publicPath": "/assets/forge/v1/7d6fe88976dafa76/field_plaza.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "tileset",
+        "logicalSize": null,
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": 64,
+        "variantTags": [
+          "field",
+          "plaza"
+        ]
+      },
+      "sha256": "7d6fe88976dafa76f49cbb83165e28b8b6931a065b289145a877f9ac3da4faff"
+    },
+    {
+      "assetId": "field.river_edge",
+      "category": "field",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "ground",
+        "rendererCategory": "tile",
+        "runtimeBindings": [
+          {
+            "id": "water",
+            "vocabulary": "TILE_TYPES"
+          }
+        ],
+        "semanticKind": "river_edge"
+      },
+      "publicPath": "/assets/forge/v1/5e42ba2aa43e70a4/field_river_edge.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "tileset",
+        "logicalSize": null,
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": 64,
+        "variantTags": [
+          "field",
+          "river_edge"
+        ]
+      },
+      "sha256": "5e42ba2aa43e70a46bbf999b30441ddb18ee8ab8afcd4fa9b5ef0c628e90b81b"
+    },
+    {
+      "assetId": "field.road_corner",
+      "category": "field",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "ground",
+        "rendererCategory": "tile",
+        "runtimeBindings": [
+          {
+            "id": "road",
+            "vocabulary": "TILE_TYPES"
+          }
+        ],
+        "semanticKind": "road_corner"
+      },
+      "publicPath": "/assets/forge/v1/317eed2026bc424e/field_road_corner.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "tileset",
+        "logicalSize": null,
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": 64,
+        "variantTags": [
+          "field",
+          "road_corner"
+        ]
+      },
+      "sha256": "317eed2026bc424efb6c5d2930b0a45c21d1dca3cbeaa105ff75e24d9eff1aff"
+    },
+    {
+      "assetId": "field.road_edge",
+      "category": "field",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "ground",
+        "rendererCategory": "tile",
+        "runtimeBindings": [
+          {
+            "id": "road",
+            "vocabulary": "TILE_TYPES"
+          }
+        ],
+        "semanticKind": "road_edge"
+      },
+      "publicPath": "/assets/forge/v1/bb00489351d01dc9/field_road_edge.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "tileset",
+        "logicalSize": null,
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": 64,
+        "variantTags": [
+          "field",
+          "road_edge"
+        ]
+      },
+      "sha256": "bb00489351d01dc915d49492fcf9f2830c1faea710efb5de7e18a9486162410e"
+    },
+    {
+      "assetId": "field.road_intersection",
+      "category": "field",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "ground",
+        "rendererCategory": "tile",
+        "runtimeBindings": [
+          {
+            "id": "road",
+            "vocabulary": "TILE_TYPES"
+          }
+        ],
+        "semanticKind": "road_intersection"
+      },
+      "publicPath": "/assets/forge/v1/58f0931adc5f0290/field_road_intersection.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "tileset",
+        "logicalSize": null,
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": 64,
+        "variantTags": [
+          "field",
+          "road_intersection"
+        ]
+      },
+      "sha256": "58f0931adc5f0290018d5c63a00e4056341b0f5a444854f0d484b03e0ff09150"
+    },
+    {
+      "assetId": "field.rock",
+      "category": "field",
+      "gameBinding": {
+        "coverage": "exact",
+        "drawLayer": "ground",
+        "rendererCategory": "tile",
+        "runtimeBindings": [
+          {
+            "id": "rock",
+            "vocabulary": "TILE_TYPES"
+          }
+        ],
+        "semanticKind": "rock"
+      },
+      "publicPath": "/assets/forge/v1/f292aad060cbd541/field_rock.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "tileset",
+        "logicalSize": null,
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": 64,
+        "variantTags": [
+          "field",
+          "rock"
+        ]
+      },
+      "sha256": "f292aad060cbd541285b6fd95d2f8415a9a800828852504994ba605a7705c7cb"
+    },
+    {
+      "assetId": "field.snow",
+      "category": "field",
+      "gameBinding": {
+        "coverage": "exact",
+        "drawLayer": "ground",
+        "rendererCategory": "tile",
+        "runtimeBindings": [
+          {
+            "id": "snow",
+            "vocabulary": "TILE_TYPES"
+          }
+        ],
+        "semanticKind": "snow"
+      },
+      "publicPath": "/assets/forge/v1/7bfa23c40818ebae/field_snow.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "tileset",
+        "logicalSize": null,
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": 64,
+        "variantTags": [
+          "field",
+          "snow"
+        ]
+      },
+      "sha256": "7bfa23c40818ebae2425a03a59438753bb5a9d4fa20f3c577986c09f2319319f"
+    },
+    {
+      "assetId": "field.stairs_stone",
+      "category": "field",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "ground",
+        "rendererCategory": "tile",
+        "runtimeBindings": [
+          {
+            "id": "stairs",
+            "vocabulary": "TILE_TYPES"
+          }
+        ],
+        "semanticKind": "stairs_stone"
+      },
+      "publicPath": "/assets/forge/v1/1dd6c3b5d69dd5af/field_stairs_stone.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "tileset",
+        "logicalSize": null,
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": 64,
+        "variantTags": [
+          "field",
+          "stairs_stone"
+        ]
+      },
+      "sha256": "1dd6c3b5d69dd5af1044258a5fef18c85fba60491411476ec165c4907fddd4c3"
+    },
+    {
+      "assetId": "field.tree",
+      "category": "field",
+      "gameBinding": {
+        "coverage": "exact",
+        "drawLayer": "ground",
+        "rendererCategory": "tile",
+        "runtimeBindings": [
+          {
+            "id": "tree",
+            "vocabulary": "TILE_TYPES"
+          }
+        ],
+        "semanticKind": "tree"
+      },
+      "publicPath": "/assets/forge/v1/79e80ff835bfd3fd/field_tree.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "tileset",
+        "logicalSize": null,
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": 64,
+        "variantTags": [
+          "field",
+          "tree"
+        ]
+      },
+      "sha256": "79e80ff835bfd3fdaeec32a79bc17b2dd8acbf57f54f62104f0f3b9466b69cf7"
+    },
+    {
+      "assetId": "field.wall_stone",
+      "category": "field",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "ground",
+        "rendererCategory": "tile",
+        "runtimeBindings": [
+          {
+            "id": "wall",
+            "vocabulary": "TILE_TYPES"
+          }
+        ],
+        "semanticKind": "wall_stone"
+      },
+      "publicPath": "/assets/forge/v1/06fef4fbdc56b574/field_wall_stone.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "tileset",
+        "logicalSize": null,
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": 64,
+        "variantTags": [
+          "field",
+          "wall_stone"
+        ]
+      },
+      "sha256": "06fef4fbdc56b574140a6a9461778b8e44cfea9cc1d66f88676060016653dff0"
+    },
+    {
+      "assetId": "field.water",
+      "category": "field",
+      "gameBinding": {
+        "coverage": "exact",
+        "drawLayer": "ground",
+        "rendererCategory": "tile",
+        "runtimeBindings": [
+          {
+            "id": "water",
+            "vocabulary": "TILE_TYPES"
+          }
+        ],
+        "semanticKind": "water"
+      },
+      "publicPath": "/assets/forge/v1/694a4a43f6385feb/field_water.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "tileset",
+        "logicalSize": null,
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": 64,
+        "variantTags": [
+          "field",
+          "water"
+        ]
+      },
+      "sha256": "694a4a43f6385feb8cc50243e479793e9e2482150dc5129672f8aeaa9d43571a"
+    },
+    {
+      "assetId": "object.barrel",
+      "category": "object",
+      "gameBinding": {
+        "coverage": "exact",
+        "drawLayer": "object",
+        "rendererCategory": "prop",
+        "runtimeBindings": [
+          {
+            "id": "barrel",
+            "vocabulary": "PROP_KINDS"
+          }
+        ],
+        "semanticKind": "barrel"
+      },
+      "publicPath": "/assets/forge/v1/71fc318a616e8e81/object_barrel.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 64,
+          "width": 64
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "object",
+          "barrel"
+        ]
+      },
+      "sha256": "71fc318a616e8e813cb5a9d0734269f804667342277238ea88604857ee11e7f7"
+    },
+    {
+      "assetId": "object.bench",
+      "category": "object",
+      "gameBinding": {
+        "coverage": "exact",
+        "drawLayer": "object",
+        "rendererCategory": "prop",
+        "runtimeBindings": [
+          {
+            "id": "bench",
+            "vocabulary": "PROP_KINDS"
+          }
+        ],
+        "semanticKind": "bench"
+      },
+      "publicPath": "/assets/forge/v1/7cd0d87c46f5fb28/object_bench.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 64,
+          "width": 64
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "object",
+          "bench"
+        ]
+      },
+      "sha256": "7cd0d87c46f5fb28fea3c0134d6d434aa0c73d1dbd70305ce480c93f55506dea"
+    },
+    {
+      "assetId": "object.blue_flag",
+      "category": "object",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "object",
+        "rendererCategory": "prop",
+        "runtimeBindings": [
+          {
+            "id": "flag",
+            "vocabulary": "PROP_KINDS"
+          }
+        ],
+        "semanticKind": "blue_flag"
+      },
+      "publicPath": "/assets/forge/v1/96876238dec26ac1/object_blue_flag.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 64,
+          "width": 64
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "object",
+          "blue_flag"
+        ]
+      },
+      "sha256": "96876238dec26ac159ad7b56cfa33761cd4a9251cd8614bfdb0f93f8ea1d4a29"
+    },
+    {
+      "assetId": "object.construction_sign",
+      "category": "object",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "object",
+        "rendererCategory": "prop",
+        "runtimeBindings": [
+          {
+            "id": "scaffold",
+            "vocabulary": "PROP_KINDS"
+          }
+        ],
+        "semanticKind": "construction_sign"
+      },
+      "publicPath": "/assets/forge/v1/843680770e687357/object_construction_sign.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 64,
+          "width": 64
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "object",
+          "construction_sign"
+        ]
+      },
+      "sha256": "843680770e687357305bc8639a6a3656cd7ec172ec70545bea8068ac13f04ee7"
+    },
+    {
+      "assetId": "object.crate",
+      "category": "object",
+      "gameBinding": {
+        "coverage": "exact",
+        "drawLayer": "object",
+        "rendererCategory": "prop",
+        "runtimeBindings": [
+          {
+            "id": "crate",
+            "vocabulary": "PROP_KINDS"
+          }
+        ],
+        "semanticKind": "crate"
+      },
+      "publicPath": "/assets/forge/v1/f47ed882f797ccd5/object_crate.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 64,
+          "width": 64
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "object",
+          "crate"
+        ]
+      },
+      "sha256": "f47ed882f797ccd59e08dd13030599ea0d7e50820cfcef5d9170bc4a5d8feec8"
+    },
+    {
+      "assetId": "object.flowerbed",
+      "category": "object",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "object",
+        "rendererCategory": "prop",
+        "runtimeBindings": [
+          {
+            "id": "plant",
+            "vocabulary": "PROP_KINDS"
+          }
+        ],
+        "semanticKind": "flowerbed"
+      },
+      "publicPath": "/assets/forge/v1/6f366b7c3622efd0/object_flowerbed.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 64,
+          "width": 64
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "object",
+          "flowerbed"
+        ]
+      },
+      "sha256": "6f366b7c3622efd08c1ab5eac908647d89a7131e3b0e05718d0a47f8a0c1d189"
+    },
+    {
+      "assetId": "object.grass_patch",
+      "category": "object",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "object",
+        "rendererCategory": "prop",
+        "runtimeBindings": [
+          {
+            "id": "plant",
+            "vocabulary": "PROP_KINDS"
+          }
+        ],
+        "semanticKind": "grass_patch"
+      },
+      "publicPath": "/assets/forge/v1/80ed192572cbb825/object_grass_patch.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 64,
+          "width": 64
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "object",
+          "grass_patch"
+        ]
+      },
+      "sha256": "80ed192572cbb825a41ee9804693e0f0debe18b80698039a1c0f47d417392c1e"
+    },
+    {
+      "assetId": "object.lamp",
+      "category": "object",
+      "gameBinding": {
+        "coverage": "exact",
+        "drawLayer": "object",
+        "rendererCategory": "prop",
+        "runtimeBindings": [
+          {
+            "id": "lamp",
+            "vocabulary": "PROP_KINDS"
+          }
+        ],
+        "semanticKind": "lamp"
+      },
+      "publicPath": "/assets/forge/v1/e06588c0ea81851a/object_lamp.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 64,
+          "width": 64
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "object",
+          "lamp"
+        ]
+      },
+      "sha256": "e06588c0ea81851a3d090f67f8294f34fe29c7691be1f3c071da796c9a6fcddc"
+    },
+    {
+      "assetId": "object.notice_board",
+      "category": "object",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "object",
+        "rendererCategory": "prop",
+        "runtimeBindings": [
+          {
+            "id": "signboard",
+            "vocabulary": "PROP_KINDS"
+          }
+        ],
+        "semanticKind": "notice_board"
+      },
+      "publicPath": "/assets/forge/v1/93fa43cb4c9c85f2/object_notice_board.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 64,
+          "width": 64
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "object",
+          "notice_board"
+        ]
+      },
+      "sha256": "93fa43cb4c9c85f25bca23334b007af076fe15fb896ae3e43a003d4bf6c45909"
+    },
+    {
+      "assetId": "object.red_flag",
+      "category": "object",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "object",
+        "rendererCategory": "prop",
+        "runtimeBindings": [
+          {
+            "id": "flag",
+            "vocabulary": "PROP_KINDS"
+          }
+        ],
+        "semanticKind": "red_flag"
+      },
+      "publicPath": "/assets/forge/v1/88e900e6c6f57131/object_red_flag.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 64,
+          "width": 64
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "object",
+          "red_flag"
+        ]
+      },
+      "sha256": "88e900e6c6f5713137d39585e02f95c3feb080719f061c663ea40ef9c0e1404f"
+    },
+    {
+      "assetId": "object.rubble",
+      "category": "object",
+      "gameBinding": {
+        "coverage": "exact",
+        "drawLayer": "object",
+        "rendererCategory": "prop",
+        "runtimeBindings": [
+          {
+            "id": "rubble",
+            "vocabulary": "PROP_KINDS"
+          }
+        ],
+        "semanticKind": "rubble"
+      },
+      "publicPath": "/assets/forge/v1/6be08b76e6e790a3/object_rubble.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 64,
+          "width": 64
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "object",
+          "rubble"
+        ]
+      },
+      "sha256": "6be08b76e6e790a3eeeffc5c964e22565480bd989323ebca6d092a6d9fcd1cec"
+    },
+    {
+      "assetId": "object.signboard",
+      "category": "object",
+      "gameBinding": {
+        "coverage": "exact",
+        "drawLayer": "object",
+        "rendererCategory": "prop",
+        "runtimeBindings": [
+          {
+            "id": "signboard",
+            "vocabulary": "PROP_KINDS"
+          }
+        ],
+        "semanticKind": "signboard"
+      },
+      "publicPath": "/assets/forge/v1/3db5b06ff4eb548f/object_signboard.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 64,
+          "width": 64
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "object",
+          "signboard"
+        ]
+      },
+      "sha256": "3db5b06ff4eb548ffbb3dc3bcc4f7b8da61bdaae86cd3654d4cc11d3b0cd63ac"
+    },
+    {
+      "assetId": "object.stacked_crates",
+      "category": "object",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "object",
+        "rendererCategory": "prop",
+        "runtimeBindings": [
+          {
+            "id": "crate",
+            "vocabulary": "PROP_KINDS"
+          }
+        ],
+        "semanticKind": "stacked_crates"
+      },
+      "publicPath": "/assets/forge/v1/173f6375ff416799/object_stacked_crates.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 64,
+          "width": 64
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "object",
+          "stacked_crates"
+        ]
+      },
+      "sha256": "173f6375ff416799ddcf8017a7f0ff397bafc2ad1a5d786ac94ddb5c8c971916"
+    },
+    {
+      "assetId": "object.streetlight",
+      "category": "object",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "object",
+        "rendererCategory": "prop",
+        "runtimeBindings": [
+          {
+            "id": "lamp",
+            "vocabulary": "PROP_KINDS"
+          }
+        ],
+        "semanticKind": "streetlight"
+      },
+      "publicPath": "/assets/forge/v1/639def25b22eba56/object_streetlight.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 64,
+          "width": 64
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "object",
+          "streetlight"
+        ]
+      },
+      "sha256": "639def25b22eba568ac2b7f347eeb549c4eca62b6e5750042ad52ac9dec4da2d"
+    },
+    {
+      "assetId": "object.unverified_tag",
+      "category": "object",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "object",
+        "rendererCategory": "prop",
+        "runtimeBindings": [
+          {
+            "id": "todo_grass",
+            "vocabulary": "PROP_KINDS"
+          }
+        ],
+        "semanticKind": "unverified_tag"
+      },
+      "publicPath": "/assets/forge/v1/c0ad3a68ea16181b/object_unverified_tag.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 64,
+          "width": 64
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "object",
+          "unverified_tag"
+        ]
+      },
+      "sha256": "c0ad3a68ea16181b11818e25ec68b40e7f63f386195571bbf09c1b99e75ff401"
+    },
+    {
+      "assetId": "object.warning_stake",
+      "category": "object",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "object",
+        "rendererCategory": "prop",
+        "runtimeBindings": [
+          {
+            "id": "flag",
+            "vocabulary": "PROP_KINDS"
+          }
+        ],
+        "semanticKind": "warning_stake"
+      },
+      "publicPath": "/assets/forge/v1/a482ba544c8ddaf6/object_warning_stake.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 64,
+          "width": 64
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "object",
+          "warning_stake"
+        ]
+      },
+      "sha256": "a482ba544c8ddaf6d686fc0097d1f5992ef532410a480141397b8af8a70a016f"
+    },
+    {
+      "assetId": "object.well",
+      "category": "object",
+      "gameBinding": {
+        "coverage": "exact",
+        "drawLayer": "object",
+        "rendererCategory": "prop",
+        "runtimeBindings": [
+          {
+            "id": "well",
+            "vocabulary": "PROP_KINDS"
+          }
+        ],
+        "semanticKind": "well"
+      },
+      "publicPath": "/assets/forge/v1/abf65f2948387c77/object_well.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 64,
+          "width": 64
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "object",
+          "well"
+        ]
+      },
+      "sha256": "abf65f2948387c775b5f06867fec5f5d9b4dc97a72ffff67bcc1b1f4cf9195bd"
+    },
+    {
+      "assetId": "object.yellow_flag",
+      "category": "object",
+      "gameBinding": {
+        "coverage": "mapped",
+        "drawLayer": "object",
+        "rendererCategory": "prop",
+        "runtimeBindings": [
+          {
+            "id": "flag",
+            "vocabulary": "PROP_KINDS"
+          }
+        ],
+        "semanticKind": "yellow_flag"
+      },
+      "publicPath": "/assets/forge/v1/a6f483074440a1a6/object_yellow_flag.png",
+      "renderSpec": {
+        "allowAntiAlias": false,
+        "kind": "single",
+        "logicalSize": {
+          "height": 64,
+          "width": 64
+        },
+        "nearestNeighbor": true,
+        "sprites": null,
+        "states": [],
+        "tileSize": null,
+        "variantTags": [
+          "object",
+          "yellow_flag"
+        ]
+      },
+      "sha256": "a6f483074440a1a62af14c4af43eb96db878385381b251438db90a7d62d11b3a"
+    }
+  ],
+  "complete": true,
+  "generatedAt": "2026-07-15T04:45:31.085Z",
+  "missingAssets": [],
+  "missingBindings": [],
+  "schemaVersion": 2
+}

@@ -1,0 +1,9 @@
+Use case: stylized-concept
+Asset type: production game building sprite source for CodeCity Inspector
+Input images: Image 1 is the global world/palette/pixel-density reference; Image 2 is the direct warehouse architecture, loading details, masonry and roof reference.
+Primary request: create one distinct late-medieval WAREHOUSE building, suitable for later downsampling to a 256x256 transparent master.
+Scene/backdrop: perfectly flat solid #ff00ff chroma-key background for local background removal.
+Subject: one complete broad low warehouse with a clearly readable large front loading door facing the walkable foreground, a small side personnel door, dark blue-green gabled roof, warm amber windows, heavy timber and stone masonry, attached hoist, stacked barrels and crates kept tight to the walls. No people, carts, water, or neighboring structures.
+Style/medium: dense crisp top-down three-quarter pixel art, matching the references' fine pixel clusters, scale, palette, texture, moss, and warm lighting.
+Composition/framing: one building centered, coherent three-quarter/top-down perspective, generous padding, entire roof and footprint visible, consistent baseline.
+Constraints: one uniform #ff00ff background with no shadows, gradients, texture, reflections, floor plane, or lighting variation. Crisp silhouette. Do not use #ff00ff in the subject. No cast/contact shadow, rectangular ground pad, scene background, neighboring examples, specimen sheet, labels, text, watermark, characters, or cropped edges. Distinct warehouse architecture, not a recolor.

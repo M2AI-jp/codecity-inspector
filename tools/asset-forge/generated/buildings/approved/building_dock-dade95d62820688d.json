@@ -1,0 +1,141 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-15T04:36:58.157Z",
+    "approvedPath": "generated/buildings/approved/building_dock-dade95d62820688d.png",
+    "approvedSha256": "dade95d62820688d0ac8ad004b4c83bbd37c40f12262b8423f1733bc5bf1708f",
+    "note": "Required 78 batch approval cb4aa5f67c91a329c140f4a09bdc39b960ccce8a76334957066d7c0e83540042",
+    "reviewer": "human"
+  },
+  "assetId": "building.dock",
+  "category": "building",
+  "createdAt": "2026-07-14T00:00:00.000Z",
+  "dryRun": false,
+  "id": "gen_import_5c060b5ec1ddf595dd4d",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 256x256.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_10330f9af6e8de80d849",
+  "manualImport": true,
+  "metadataPath": "generated/buildings/approved/building_dock-dade95d62820688d.json",
+  "outputInspection": {
+    "bytes": 55626,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 256,
+    "width": 256
+  },
+  "outputPath": "generated/buildings/approved/building_dock-dade95d62820688d.png",
+  "outputSha256": "dade95d62820688d0ac8ad004b4c83bbd37c40f12262b8423f1733bc5bf1708f",
+  "productionRecipe": {
+    "assetId": "building.dock",
+    "backgroundRemoval": {
+      "autoKey": "border",
+      "cleanup": {
+        "alphaCutoff": 16,
+        "componentMinPixels": 128,
+        "resizeKernel": "nearest",
+        "targetMaxHeight": 190,
+        "targetMaxWidth": 218
+      },
+      "despill": true,
+      "keyColor": null,
+      "method": "official-chroma-key-helper",
+      "opaqueThreshold": 220,
+      "softMatte": true,
+      "transparentThreshold": 12
+    },
+    "canvas": {
+      "baselineY": 244,
+      "height": 256,
+      "width": 256
+    },
+    "generationPromptPath": "review/prompts/wave1a-buildings/building_dock.txt",
+    "generationPromptSha256": "90e3c171094fc518d1a4c49e0df4ebd889dfb8b1490103ce83a8856ab9a4c56c",
+    "generator": "codex-imagegen-built-in",
+    "inputReferences": [
+      {
+        "id": "world_visual_master",
+        "role": "global-style",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_field_harbor_docks_tiles",
+        "role": "primary-subject",
+        "sha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580"
+      }
+    ],
+    "method": "imagegen",
+    "outputSha256": "dade95d62820688d0ac8ad004b4c83bbd37c40f12262b8423f1733bc5bf1708f",
+    "referenceImages": [
+      {
+        "id": "world_visual_master",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_field_harbor_docks_tiles",
+        "sha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580"
+      }
+    ],
+    "scaleClass": "large",
+    "source": {
+      "comparisonRect": {
+        "height": 475,
+        "width": 535,
+        "x": 0,
+        "y": 0
+      },
+      "cropRect": null,
+      "height": 1024,
+      "path": "tmp/imagegen/wave1a/raw/building_dock.png",
+      "sha256": "ec3fdc9ec888bc0e5c821960feea6f411d7fdcb73aea95e1a36aa0ab38d8a040",
+      "width": 1536
+    },
+    "sourceSnapshot": {
+      "height": 1024,
+      "path": "generated/buildings/approved/source-ec3fdc9ec888bc0e5c821960feea6f411d7fdcb73aea95e1a36aa0ab38d8a040.source-original.png",
+      "sha256": "ec3fdc9ec888bc0e5c821960feea6f411d7fdcb73aea95e1a36aa0ab38d8a040",
+      "width": 1536
+    },
+    "subjectBbox": {
+      "height": 140,
+      "width": 218,
+      "x": 19,
+      "y": 105
+    },
+    "toolMode": "built-in",
+    "waveId": "wave1a-buildings"
+  },
+  "promptHash": "982d62b89c3c4cc3d545275bc615cf17f677c1ce407197b368e8f8974cded63b",
+  "provenanceKey": "5c060b5ec1ddf595dd4de1e545fa76b3e959480a9dd718d1901d611644029e95",
+  "provider": "manual-import",
+  "referenceImageHashes": [
+    "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+    "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580"
+  ],
+  "referenceImageIds": [
+    "world_visual_master",
+    "intake_20260713_field_harbor_docks_tiles"
+  ],
+  "sourceFormat": "png",
+  "sourcePath": "generated/buildings/pending/building_dock-dade95d62820688d.source.png",
+  "sourceSha256": "dade95d62820688d0ac8ad004b4c83bbd37c40f12262b8423f1733bc5bf1708f",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

@@ -1,0 +1,14 @@
+Use case: stylized-concept
+Asset type: production game character spritesheet source for character.town_clerk
+Input images: Image 1 is the global CodeCity world style and map-scale reference; Image 2 is the approved character proportion, clothing treatment, pixel-cluster, palette, and 4x3 sheet reference. Use both images directly as references, but author a new role-specific character rather than copying or recoloring the inspector.
+
+Primary request: create exactly one consistent late-medieval CodeCity character across a 4-column by 3-row spritesheet.
+Subject: a reserved town clerk in a long stone-blue formal coat holding a closed ledger to the chest; narrow orderly silhouette, tidy collar, no satchel and no apron.
+Style/medium: authentic compact pixel art matching both references, with dense deliberate hard-edged pixel clusters, small head, slim map-scale anatomy, restrained detail, and no anti-aliasing.
+Color palette: muted blue-green, brown, stone-gray, dark charcoal, and at most one restrained warm accent; no bright saturated carpet-like color and no modern synthetic color.
+
+Layout contract: exactly 4 equal columns by 3 equal rows on one perfectly uniform solid #ff00ff chroma-key background. Columns left-to-right are front, back, left, right. Rows top-to-bottom are idle, walk pose A, walk pose B. The same individual, face, body, clothing, accessories, colors, lighting, and scale must remain consistent in all 12 cells. Each cell contains exactly one full-body sprite centered within generous magenta separation. Feet share a consistent baseline. Walk A and B visibly alternate arms and legs. Front faces toward viewer, back clearly faces away, and side views are true left and right.
+
+Production contract: the source will be chroma-removed, cell-extracted, and nearest-neighbor downscaled into 24x40 frames without enlargement. Preserve role-defining silhouette and accessory at that size. Use crisp fully opaque subject pixels and a flat background. No semi-transparent edge, blur, painterly texture, smooth vector curve, soft shadow, cast shadow, floor plane, scenery, border, divider, panel, grid line, label, text, letter, number, logo, watermark, or signature.
+
+Avoid: additional people or creatures; multiple characters in any cell; swapped outfits; missing cells; duplicate poses; cropped body; oversized head; chibi or anime proportions; modern clothing; weapon as focal point; environmental objects; #ff00ff anywhere in the subject.

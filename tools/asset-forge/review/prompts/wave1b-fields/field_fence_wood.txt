@@ -1,0 +1,8 @@
+Use case: stylized-concept
+Asset type: production 64x64 directional obstacle terrain master source for CodeCity Inspector
+Input images: Image 1 is the global world style, palette, camera, and pixel-density reference; Image 2 is the direct approved fences, wooden barriers, cliffs, stonework, and vegetation reference.
+Primary request: create one impassable wooden fence tile with the FENCE running continuously LEFT TO RIGHT.
+Subject: weathered dark-brown posts and two sturdy horizontal rails, subtle iron fasteners and restrained moss, both ends meeting the left and right edges at the same height and rail spacing; continuous muted grass terrain above and below.
+Style/medium: dense crisp late-medieval fantasy top-down three-quarter pixel art matching CodeCity's timber grain, vegetation, palette, and upper-left lighting.
+Composition/framing: exactly one full-bleed square terrain tile; continuous barrier meaning remains obvious at 64x64 after nearest-neighbor downsampling.
+Constraints: no gate, opening, diagonal fence, wall, building, people, props, signs, labels, arrows, text, border, margin, variants, watermark, blur, or enlarged old pixels.

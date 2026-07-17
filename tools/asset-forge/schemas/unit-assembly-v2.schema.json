@@ -1,0 +1,650 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://codecity-inspector.local/asset-forge/unit-assembly-v2.schema.json",
+  "title": "Fable5WaveAUnitAssemblyEvidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "jobId", "jobProvenanceKey", "definitionSha256", "promptSha256",
+    "referenceAuthorizationSha256", "referenceImageHashes", "identityMasterPlanSha256",
+    "assemblyAlgorithm", "generationMode", "generationUnitSetSha256", "expectations", "sourceRequiredCount",
+    "identityMaster", "units", "artifacts", "missingUnitIds", "duplicateUnitIds",
+    "extraUnitIds", "replayPassed", "finalCellAuditPassed"
+  ],
+  "properties": {
+    "jobId": { "type": "string", "pattern": "^job_v2_[a-f0-9]{20}$" },
+    "jobProvenanceKey": { "$ref": "#/definitions/sha256" },
+    "definitionSha256": { "$ref": "#/definitions/sha256" },
+    "promptSha256": { "$ref": "#/definitions/sha256" },
+    "referenceAuthorizationSha256": { "$ref": "#/definitions/sha256" },
+    "referenceImageHashes": {
+      "type": "array", "minItems": 2, "maxItems": 2,
+      "items": { "$ref": "#/definitions/sha256" }
+    },
+    "identityMasterPlanSha256": {
+      "oneOf": [{ "type": "null" }, { "$ref": "#/definitions/sha256" }]
+    },
+    "assemblyAlgorithm": {
+      "enum": [
+        "crop-key-nearest-hard-alpha/raw-copy-v2",
+        "auto-border-crop-soft-matte-nearest-hard-alpha/raw-copy-v3",
+        "auto-border-connected-fringe-soft-matte-nearest-hard-alpha/raw-copy-v4",
+        "auto-border-connected-fringe-soft-matte-nearest-hard-alpha/raw-copy-v5",
+        "provider-key-normalize-v1/auto-border-connected-fringe-soft-matte-nearest-hard-alpha/raw-copy-v1",
+        "provider-key-normalize-v2/auto-border-connected-fringe-soft-matte-nearest-hard-alpha/raw-copy-v1",
+        "terrain-composed-atlas/shared-seam-blob16-v1"
+      ]
+    },
+    "sourceLimits": {
+      "$ref": "generation-job-v2.schema.json#/definitions/sourceLimits"
+    },
+    "generationMode": { "enum": ["per-unit", "monolithic-atlas", "character-direction-strips", "terrain-composed-atlas"] },
+    "generationUnitSetSha256": { "$ref": "#/definitions/sha256" },
+    "expectations": { "$ref": "#/definitions/expectations" },
+    "sourceRequiredCount": { "type": "integer", "minimum": 1, "maximum": 100 },
+    "identityMaster": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": [
+            "planId", "promptSha256", "inputReferences", "sourceOriginal",
+            "sourceSnapshot", "transformedSnapshot", "transformSteps",
+            "consistencyInputSha256", "directionCellSha256s", "auxiliary", "semanticCell",
+            "approvedAsset", "unitExecutionPlanPath", "unitExecutionPlanSha256",
+            "issuanceSequence", "providerInvocationEvidence"
+          ],
+          "properties": {
+            "planId": { "type": "string", "pattern": "^identity_[a-f0-9]{20}$" },
+            "promptSha256": { "$ref": "#/definitions/sha256" },
+            "inputReferences": { "$ref": "#/definitions/references" },
+            "sourceOriginal": { "$ref": "#/definitions/sourceRecord" },
+            "sourceSnapshot": { "$ref": "#/definitions/snapshot" },
+            "providerKeyNormalization": {
+              "allOf": [
+                { "$ref": "#/definitions/providerKeyNormalization" },
+                { "type": "object", "properties": { "sourceKind": { "const": "identity-master" } } }
+              ]
+            },
+            "transformedSnapshot": { "$ref": "#/definitions/snapshot" },
+            "transformSteps": {
+              "$ref": "#/definitions/sourceTransformSteps"
+            },
+            "transformEvidence": { "$ref": "#/definitions/transformEvidence" },
+            "consistencyInputSha256": { "$ref": "#/definitions/sha256" },
+            "directionCellSha256s": {
+              "type": "array", "minItems": 4, "maxItems": 4, "uniqueItems": true,
+              "items": { "$ref": "#/definitions/sha256" }
+            },
+            "unitExecutionPlanPath": {
+              "type": "string",
+              "pattern": "^generated/jobs/v2/fable5-v2/wave-a/[a-z0-9_-]+-job_v2_[a-f0-9]{20}/identity-bindings/identity_binding_[a-f0-9]{20}/unit-execution\\.json$"
+            },
+            "unitExecutionPlanSha256": { "$ref": "#/definitions/sha256" },
+            "issuanceSequence": { "const": "identity-binding-before-unit-source-import" },
+            "providerInvocationEvidence": { "const": "unverified-no-provider-receipt" },
+            "auxiliary": { "const": true },
+            "semanticCell": { "const": false },
+            "approvedAsset": { "const": false }
+          }
+        }
+      ]
+    },
+    "terrainComposition": { "$ref": "#/definitions/terrainComposition" },
+    "providerKeyNormalization": { "$ref": "#/definitions/providerKeyNormalization" },
+    "units": {
+      "type": "array", "minItems": 1, "maxItems": 100,
+      "items": { "$ref": "#/definitions/unitResult" }
+    },
+    "artifacts": {
+      "type": "array", "minItems": 1, "maxItems": 2,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["role", "path", "sha256", "width", "height", "unitIds"],
+        "properties": {
+          "role": { "enum": ["primary", "base", "roof"] },
+          "path": { "type": "string", "minLength": 1 },
+          "sha256": { "$ref": "#/definitions/sha256" },
+          "width": { "type": "integer", "minimum": 1 },
+          "height": { "type": "integer", "minimum": 1 },
+          "unitIds": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string" } }
+        }
+      }
+    },
+    "missingUnitIds": { "type": "array", "maxItems": 0 },
+    "duplicateUnitIds": { "type": "array", "maxItems": 0 },
+    "extraUnitIds": { "type": "array", "maxItems": 0 },
+    "replayPassed": { "const": true },
+    "finalCellAuditPassed": { "const": true }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "generationMode": { "const": "terrain-composed-atlas" } },
+        "required": ["generationMode"]
+      },
+      "then": {
+        "properties": { "terrainComposition": { "$ref": "#/definitions/terrainComposition" } },
+        "required": ["terrainComposition"]
+      },
+      "else": {
+        "not": {
+          "properties": { "terrainComposition": {} },
+          "required": ["terrainComposition"]
+        }
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "properties": { "providerKeyNormalization": {} },
+        "required": ["providerKeyNormalization"]
+      },
+      "then": {
+        "allOf": [
+          {
+            "oneOf": [
+              {
+                "properties": {
+                  "assemblyAlgorithm": { "const": "provider-key-normalize-v1/auto-border-connected-fringe-soft-matte-nearest-hard-alpha/raw-copy-v1" },
+                  "providerKeyNormalization": { "type": "object", "properties": { "plan": { "type": "object", "properties": { "version": { "const": "provider-key-normalize-v1" } } } } }
+                }
+              },
+              {
+                "properties": {
+                  "assemblyAlgorithm": { "const": "provider-key-normalize-v2/auto-border-connected-fringe-soft-matte-nearest-hard-alpha/raw-copy-v1" },
+                  "providerKeyNormalization": { "type": "object", "properties": { "plan": { "type": "object", "properties": { "version": { "const": "provider-key-normalize-v2" } } } } }
+                }
+              }
+            ]
+          },
+          {
+            "oneOf": [
+              {
+                "properties": {
+                  "generationMode": { "const": "monolithic-atlas" },
+                  "providerKeyNormalization": {
+                    "type": "object",
+                    "properties": {
+                      "sourceKind": { "const": "monolithic-atlas" },
+                      "plan": { "type": "object", "properties": { "sourceKinds": { "const": ["identity-master", "monolithic-atlas"] } } }
+                    }
+                  },
+                  "identityMaster": {
+                    "type": "object",
+                    "properties": { "providerKeyNormalization": {} },
+                    "required": ["providerKeyNormalization"]
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "generationMode": { "const": "monolithic-atlas" },
+                  "providerKeyNormalization": {
+                    "type": "object",
+                    "properties": {
+                      "sourceKind": { "const": "monolithic-atlas" },
+                      "plan": { "type": "object", "properties": { "sourceKinds": { "const": ["monolithic-atlas"] } } }
+                    }
+                  },
+                  "identityMaster": { "type": "null" }
+                }
+              },
+              {
+                "properties": {
+                  "generationMode": { "const": "per-unit" },
+                  "sourceRequiredCount": { "const": 1 },
+                  "providerKeyNormalization": {
+                    "type": "object",
+                    "properties": { "sourceKind": { "const": "single-unit" } }
+                  },
+                  "identityMaster": { "type": "null" },
+                  "units": { "type": "array", "minItems": 1, "maxItems": 1 },
+                  "artifacts": {
+                    "type": "array", "minItems": 1, "maxItems": 1,
+                    "items": [{
+                      "type": "object",
+                      "properties": { "role": { "const": "primary" } },
+                      "required": ["role"]
+                    }],
+                    "additionalItems": false
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "else": {
+        "properties": {
+          "identityMaster": {
+            "not": {
+              "type": "object",
+              "properties": { "providerKeyNormalization": {} },
+              "required": ["providerKeyNormalization"]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "expectations": {
+      "type": "object", "additionalProperties": false,
+      "required": ["expected-nonempty", "semantic-transparent", "reserved-transparent"],
+      "properties": {
+        "expected-nonempty": { "type": "integer", "minimum": 0 },
+        "semantic-transparent": { "type": "integer", "minimum": 0 },
+        "reserved-transparent": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "reference": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "sha256", "role"],
+      "properties": {
+        "id": { "type": "string" }, "sha256": { "$ref": "#/definitions/sha256" },
+        "role": { "enum": ["global-style", "primary-subject"] }
+      }
+    },
+    "references": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "$ref": "#/definitions/reference" } },
+    "rect": {
+      "type": "object", "additionalProperties": false, "required": ["x", "y", "width", "height"],
+      "properties": {
+        "x": { "type": "integer", "minimum": 0 }, "y": { "type": "integer", "minimum": 0 },
+        "width": { "type": "integer", "minimum": 1 }, "height": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "sourceRecord": {
+      "type": "object", "additionalProperties": false,
+      "required": ["sha256", "format", "width", "height", "cropRect"],
+      "properties": {
+        "sha256": { "$ref": "#/definitions/sha256" },
+        "format": { "enum": ["png", "jpeg", "webp"] },
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 },
+        "cropRect": { "oneOf": [{ "type": "null" }, { "$ref": "#/definitions/rect" }] }
+      }
+    },
+    "snapshot": {
+      "type": "object", "additionalProperties": false,
+      "required": ["path", "sha256", "format", "width", "height"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": { "$ref": "#/definitions/sha256" },
+        "format": { "enum": ["png", "jpeg", "webp"] },
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "pixelAudit": {
+      "type": "object", "additionalProperties": false,
+      "required": ["visiblePixels", "transparentPixels", "partialAlphaPixels", "hiddenRgbPixels", "opaqueMagentaPixels"],
+      "properties": {
+        "visiblePixels": { "type": "integer", "minimum": 0 },
+        "transparentPixels": { "type": "integer", "minimum": 0 },
+        "partialAlphaPixels": { "const": 0 },
+        "hiddenRgbPixels": { "const": 0 },
+        "opaqueMagentaPixels": { "const": 0 }
+      }
+    },
+    "sourceTransformSteps": {
+      "oneOf": [
+        {
+          "type": "array", "minItems": 4, "maxItems": 4,
+          "items": [
+            { "const": "crop" }, { "const": "chroma-key-remove" },
+            { "const": "nearest-downscale" }, { "const": "hard-alpha" }
+          ],
+          "additionalItems": false
+        },
+        {
+          "type": "array", "minItems": 6, "maxItems": 6,
+          "items": [
+            { "const": "auto-border-key-detect" }, { "const": "crop" },
+            { "const": "soft-matte-despill" }, { "const": "zero-hidden-rgb" },
+            { "const": "nearest-downscale" },
+            { "const": "hard-alpha-zero-hidden-rgb" }
+          ],
+          "additionalItems": false
+        },
+        {
+          "type": "array", "minItems": 7, "maxItems": 7,
+          "items": [
+            { "const": "provider-key-normalize-v1" },
+            { "const": "auto-border-key-detect" }, { "const": "crop" },
+            { "const": "soft-matte-despill" }, { "const": "zero-hidden-rgb" },
+            { "const": "nearest-downscale" },
+            { "const": "hard-alpha-zero-hidden-rgb" }
+          ],
+          "additionalItems": false
+        },
+        {
+          "type": "array", "minItems": 7, "maxItems": 7,
+          "items": [
+            { "const": "provider-key-normalize-v2" },
+            { "const": "auto-border-key-detect" }, { "const": "crop" },
+            { "const": "soft-matte-despill" }, { "const": "zero-hidden-rgb" },
+            { "const": "nearest-downscale" },
+            { "const": "hard-alpha-zero-hidden-rgb" }
+          ],
+          "additionalItems": false
+        }
+      ]
+    },
+    "providerKeyNormalization": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "sourceKind", "plan", "sourceOriginal", "normalizedSnapshot", "preBorder",
+        "eligibility", "outsideMaskBeforeRgbaSha256", "outsideMaskAfterRgbaSha256",
+        "outsideMaskPreserved", "postBorder",
+        "providerInvocationEvidence", "derivationSha256", "replayPassed"
+      ],
+      "properties": {
+        "sourceKind": { "enum": ["identity-master", "monolithic-atlas", "single-unit"] },
+        "plan": { "$ref": "generation-job-v2.schema.json#/definitions/providerKeyNormalizationPlan" },
+        "sourceOriginal": {
+          "allOf": [
+            { "$ref": "#/definitions/normalizationImage" },
+            {
+              "type": "object",
+              "properties": { "originKind": { "const": "provider-original" } },
+              "not": {
+                "type": "object",
+                "properties": { "derivedFromSha256": {} },
+                "required": ["derivedFromSha256"]
+              }
+            }
+          ]
+        },
+        "normalizedSnapshot": {
+          "allOf": [
+            { "$ref": "#/definitions/normalizationImage" },
+            {
+              "type": "object", "required": ["path", "originKind", "derivedFromSha256"],
+              "properties": {
+                "path": { "type": "string", "minLength": 1 },
+                "originKind": { "const": "deterministic-derived" },
+                "derivedFromSha256": { "$ref": "#/definitions/sha256" }
+              }
+            }
+          ]
+        },
+        "preBorder": { "$ref": "#/definitions/normalizationBorder" },
+        "eligibility": { "$ref": "#/definitions/normalizationEligibility" },
+        "outsideMaskBeforeRgbaSha256": { "$ref": "#/definitions/sha256" },
+        "outsideMaskAfterRgbaSha256": { "$ref": "#/definitions/sha256" },
+        "outsideMaskPreserved": { "const": true },
+        "postBorder": { "$ref": "#/definitions/normalizationBorder" },
+        "providerInvocationEvidence": { "const": "unverified-no-provider-receipt" },
+        "derivationSha256": { "$ref": "#/definitions/sha256" },
+        "replayPassed": { "const": true }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "plan": { "type": "object", "properties": { "version": { "const": "provider-key-normalize-v1" } } } } },
+          "then": { "properties": { "eligibility": { "type": "object", "properties": {
+            "connectedPixelPermille": { "type": "integer", "maximum": 900 },
+            "disconnectedEligiblePermille": { "type": "integer", "maximum": 1 }
+          }, "not": { "anyOf": [
+            { "properties": { "spillPixelCount": {} }, "required": ["spillPixelCount"] },
+            { "properties": { "spillPixelPermille": {} }, "required": ["spillPixelPermille"] },
+            { "properties": { "repairPixelCount": {} }, "required": ["repairPixelCount"] },
+            { "properties": { "repairPixelPermille": {} }, "required": ["repairPixelPermille"] }
+          ] } } } },
+          "else": { "properties": { "eligibility": { "type": "object", "properties": {
+            "spillPixelCount": {}, "spillPixelPermille": {}, "repairPixelCount": {}, "repairPixelPermille": {}
+          }, "required": ["spillPixelCount", "spillPixelPermille", "repairPixelCount", "repairPixelPermille"] } } }
+        }
+      ]
+    },
+    "normalizationImage": {
+      "type": "object", "additionalProperties": false,
+      "required": ["originKind", "sha256", "decodedRgbaSha256", "format", "width", "height"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "originKind": { "enum": ["provider-original", "deterministic-derived"] },
+        "derivedFromSha256": { "$ref": "#/definitions/sha256" },
+        "sha256": { "$ref": "#/definitions/sha256" },
+        "decodedRgbaSha256": { "$ref": "#/definitions/sha256" },
+        "format": { "const": "png" },
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "normalizationBorder": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "detectedKeyColor", "detectedKeyExpectedDistance", "borderBand",
+        "borderSampleStride", "borderSampleCount", "borderSampleSha256",
+        "inlierRadius", "borderInlierCount", "borderInlierPermille"
+      ],
+      "properties": {
+        "detectedKeyColor": { "type": "string", "pattern": "^#[A-F0-9]{6}$" },
+        "detectedKeyExpectedDistance": { "type": "integer", "minimum": 0, "maximum": 255 },
+        "borderBand": { "type": "integer", "minimum": 1, "maximum": 6 },
+        "borderSampleStride": { "type": "integer", "minimum": 1 },
+        "borderSampleCount": { "type": "integer", "minimum": 4 },
+        "borderSampleSha256": { "$ref": "#/definitions/sha256" },
+        "inlierRadius": { "enum": [0, 12] },
+        "borderInlierCount": { "type": "integer", "minimum": 0 },
+        "borderInlierPermille": { "type": "integer", "minimum": 0, "maximum": 1000 }
+      }
+    },
+    "normalizationEligibility": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "eligiblePixelCount", "connectedPixelCount", "connectedPixelPermille",
+        "disconnectedEligiblePixelCount", "disconnectedEligiblePermille",
+        "maskSha256", "maskPixelCount", "changedPixelCount"
+      ],
+      "properties": {
+        "eligiblePixelCount": { "type": "integer", "minimum": 1 },
+        "connectedPixelCount": { "type": "integer", "minimum": 1 },
+        "connectedPixelPermille": { "type": "integer", "minimum": 100, "maximum": 990 },
+        "disconnectedEligiblePixelCount": { "type": "integer", "minimum": 0 },
+        "disconnectedEligiblePermille": { "type": "integer", "minimum": 0, "maximum": 150 },
+        "maskSha256": { "$ref": "#/definitions/sha256" },
+        "maskPixelCount": { "type": "integer", "minimum": 1 },
+        "changedPixelCount": { "type": "integer", "minimum": 0 },
+        "spillPixelCount": { "type": "integer", "minimum": 0 },
+        "spillPixelPermille": { "type": "integer", "minimum": 0, "maximum": 10 },
+        "repairPixelCount": { "type": "integer", "minimum": 0 },
+        "repairPixelPermille": { "type": "integer", "minimum": 0, "maximum": 160 }
+      }
+    },
+    "transformEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy", "detectedKeyColor", "detectedKeyExpectedDistance",
+        "borderBand", "borderSampleStride", "borderSampleCount",
+        "borderSampleSha256", "borderInlierCount", "borderInlierPermille"
+      ],
+      "properties": {
+        "policy": {
+          "$ref": "generation-job-v2.schema.json#/definitions/canonicalBackgroundRemovalPolicy"
+        },
+        "detectedKeyColor": { "type": "string", "pattern": "^#[A-F0-9]{6}$" },
+        "detectedKeyExpectedDistance": { "type": "integer", "minimum": 0, "maximum": 255 },
+        "borderBand": { "type": "integer", "minimum": 1, "maximum": 6 },
+        "borderSampleStride": { "type": "integer", "minimum": 1, "maximum": 32 },
+        "borderSampleCount": { "type": "integer", "minimum": 4, "maximum": 100000 },
+        "borderSampleSha256": { "$ref": "#/definitions/sha256" },
+        "borderInlierCount": { "type": "integer", "minimum": 0, "maximum": 100000 },
+        "borderInlierPermille": { "type": "integer", "minimum": 0, "maximum": 1000 }
+      }
+    },
+    "terrainComposition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "originKind", "composerVersion", "algorithm", "configSha256", "maskSetSha256",
+        "seamBand", "inputs", "inputSetSha256", "unitDerivations",
+        "unitDerivationSetSha256", "atlasRawSha256", "derivationSha256", "outputArtifacts",
+        "outputArtifactSetSha256", "replayPassed"
+      ],
+      "properties": {
+        "originKind": { "const": "deterministic-derived" },
+        "composerVersion": { "const": "terrain-composed-atlas-v1" },
+        "algorithm": { "const": "terrain-composed-atlas/shared-seam-blob16-v1" },
+        "configSha256": { "$ref": "#/definitions/sha256" },
+        "maskSetSha256": { "$ref": "#/definitions/sha256" },
+        "seamBand": { "const": 4 },
+        "inputs": {
+          "type": "array", "minItems": 1, "maxItems": 6,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": [
+              "role", "originKind", "providerInvocationEvidence",
+              "sourceOriginal", "sourceSnapshot", "normalizedCellSha256"
+            ],
+            "properties": {
+              "role": {
+                "enum": [
+                  "base-0", "base-1", "base-2",
+                  "water-motion-0", "water-motion-1", "water-motion-2"
+                ]
+              },
+              "originKind": { "const": "provider-original" },
+              "providerInvocationEvidence": { "const": "unverified-no-provider-receipt" },
+              "sourceOriginal": { "$ref": "#/definitions/sourceRecord" },
+              "sourceSnapshot": {
+                "allOf": [
+                  { "$ref": "#/definitions/snapshot" },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "path": {
+                        "type": "string",
+                        "pattern": "^generated/terrains/pending/sources/[a-z0-9_-]+\\.provider-original\\.(png|jpg|webp)$"
+                      }
+                    }
+                  }
+                ]
+              },
+              "normalizedCellSha256": { "$ref": "#/definitions/sha256" }
+            }
+          }
+        },
+        "inputSetSha256": { "$ref": "#/definitions/sha256" },
+        "unitDerivations": {
+          "type": "array", "minItems": 25, "maxItems": 25,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": [
+              "unitId", "sourceRoles", "sourceSha256s", "operations", "shift",
+              "maskId", "outputCellSha256"
+            ],
+            "properties": {
+              "unitId": { "type": "string", "pattern": "^unit_[a-z0-9_]+$" },
+              "sourceRoles": {
+                "type": "array", "minItems": 0, "maxItems": 1, "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "base-0", "base-1", "base-2",
+                    "water-motion-0", "water-motion-1", "water-motion-2"
+                  ]
+                }
+              },
+              "sourceSha256s": {
+                "type": "array", "minItems": 0, "maxItems": 1, "uniqueItems": true,
+                "items": { "$ref": "#/definitions/sha256" }
+              },
+              "operations": {
+                "type": "array", "minItems": 1, "maxItems": 6, "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "crop", "nearest-downscale", "toroidal-shift", "shared-seam-band",
+                    "canonical-blob-mask",
+                    "hard-alpha-zero-hidden-rgb", "semantic-zero-rgba", "reserved-zero-rgba"
+                  ]
+                }
+              },
+              "shift": {
+                "type": "object", "additionalProperties": false,
+                "required": ["x", "y"],
+                "properties": {
+                  "x": { "type": "integer", "minimum": 0, "maximum": 63 },
+                  "y": { "type": "integer", "minimum": 0, "maximum": 63 }
+                }
+              },
+              "maskId": {
+                "oneOf": [
+                  { "type": "null" },
+                  { "type": "string", "pattern": "^blob-(?:[0-9]|1[0-5])$" }
+                ]
+              },
+              "outputCellSha256": { "$ref": "#/definitions/sha256" }
+            }
+          }
+        },
+        "unitDerivationSetSha256": { "$ref": "#/definitions/sha256" },
+        "atlasRawSha256": { "$ref": "#/definitions/sha256" },
+        "derivationSha256": { "$ref": "#/definitions/sha256" },
+        "outputArtifacts": {
+          "type": "array", "minItems": 1, "maxItems": 1,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["role", "originKind", "path", "sha256", "width", "height"],
+            "properties": {
+              "role": { "const": "primary" },
+              "originKind": { "const": "deterministic-derived" },
+              "path": { "type": "string", "pattern": "^generated/terrains/pending/[a-z0-9_-]+\\.png$" },
+              "sha256": { "$ref": "#/definitions/sha256" },
+              "width": { "const": 320 },
+              "height": { "const": 320 }
+            }
+          }
+        },
+        "outputArtifactSetSha256": { "$ref": "#/definitions/sha256" },
+        "replayPassed": { "const": true }
+      }
+    },
+    "unitResult": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "unitId", "artifactRole", "frameId", "semanticRole", "targetRect", "expectation",
+        "sourceRequired", "unitPromptSha256", "inputReferences", "consistencyPlanId",
+        "consistencyInputSha256", "sourceOriginal", "sourceSnapshot", "transformedSnapshot",
+        "transformSteps", "outputCellSha256", "pixelAudit"
+      ],
+      "properties": {
+        "unitId": { "type": "string", "pattern": "^unit_[a-z0-9_]+$" },
+        "artifactRole": { "enum": ["primary", "base", "roof"] },
+        "frameId": { "type": "string" },
+        "direction": { "enum": ["front", "back", "left", "right"] },
+        "semanticRole": { "type": "string" },
+        "targetRect": { "$ref": "#/definitions/rect" },
+        "expectation": { "enum": ["expected-nonempty", "semantic-transparent", "reserved-transparent"] },
+        "sourceRequired": { "type": "boolean" },
+        "unitPromptSha256": { "$ref": "#/definitions/sha256" },
+        "inputReferences": { "$ref": "#/definitions/references" },
+        "consistencyPlanId": { "oneOf": [{ "type": "null" }, { "type": "string", "pattern": "^identity_[a-f0-9]{20}$" }] },
+        "consistencyInputSha256": { "oneOf": [{ "type": "null" }, { "$ref": "#/definitions/sha256" }] },
+        "sourceOriginal": { "oneOf": [{ "type": "null" }, { "$ref": "#/definitions/sourceRecord" }] },
+        "sourceSnapshot": { "oneOf": [{ "type": "null" }, { "$ref": "#/definitions/snapshot" }] },
+        "transformedSnapshot": { "oneOf": [{ "type": "null" }, { "$ref": "#/definitions/snapshot" }] },
+        "transformSteps": {
+          "oneOf": [
+            { "type": "array", "maxItems": 0 },
+            { "$ref": "#/definitions/sourceTransformSteps" },
+            {
+              "type": "array", "minItems": 1, "maxItems": 1,
+              "items": [{ "const": "deterministic-terrain-compose-v1" }],
+              "additionalItems": false
+            }
+          ]
+        },
+        "transformEvidence": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/definitions/transformEvidence" }
+          ]
+        },
+        "outputCellSha256": { "$ref": "#/definitions/sha256" },
+        "pixelAudit": { "$ref": "#/definitions/pixelAudit" }
+      }
+    }
+  }
+}

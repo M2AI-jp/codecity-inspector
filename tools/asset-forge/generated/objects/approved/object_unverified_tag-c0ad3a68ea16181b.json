@@ -1,0 +1,142 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-15T04:37:23.598Z",
+    "approvedPath": "generated/objects/approved/object_unverified_tag-c0ad3a68ea16181b.png",
+    "approvedSha256": "c0ad3a68ea16181b11818e25ec68b40e7f63f386195571bbf09c1b99e75ff401",
+    "note": "Required 78 batch approval cb4aa5f67c91a329c140f4a09bdc39b960ccce8a76334957066d7c0e83540042",
+    "reviewer": "human"
+  },
+  "assetId": "object.unverified_tag",
+  "category": "object",
+  "createdAt": "2026-07-14T10:00:00.000Z",
+  "dryRun": false,
+  "id": "gen_import_716ef2ee4a50276309ce",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 64x64.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_796f560f1134ae7dc740",
+  "manualImport": true,
+  "metadataPath": "generated/objects/approved/object_unverified_tag-c0ad3a68ea16181b.json",
+  "outputInspection": {
+    "bytes": 1317,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 64,
+    "width": 64
+  },
+  "outputPath": "generated/objects/approved/object_unverified_tag-c0ad3a68ea16181b.png",
+  "outputSha256": "c0ad3a68ea16181b11818e25ec68b40e7f63f386195571bbf09c1b99e75ff401",
+  "productionRecipe": {
+    "assetId": "object.unverified_tag",
+    "backgroundRemoval": {
+      "autoKey": "border",
+      "cleanup": {
+        "alphaCutoff": 128,
+        "componentMinPixels": 1,
+        "resizeKernel": "nearest",
+        "targetMaxHeight": 60,
+        "targetMaxWidth": 60
+      },
+      "despill": true,
+      "keyColor": null,
+      "method": "official-chroma-key-helper",
+      "opaqueThreshold": 110,
+      "softMatte": true,
+      "transparentThreshold": 35
+    },
+    "canvas": {
+      "baselineY": 63,
+      "height": 64,
+      "width": 64
+    },
+    "generationPromptPath": "review/prompts/wave1d-objects-effects/unverified_tag.txt",
+    "generationPromptSha256": "f84b0b86ea5f7c4109881ec9f1ad01051d69d2cd6929cf822a27aac73609e2f4",
+    "generator": "codex-imagegen-built-in",
+    "inputReferences": [
+      {
+        "id": "world_visual_master",
+        "role": "global-style",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_object_status_markers",
+        "role": "primary-subject",
+        "sha256": "e3d2f177bf10bc07d1362251d8aa80d490fc6f58999d24b06a66c34a177e1d1b"
+      }
+    ],
+    "method": "imagegen",
+    "outputSha256": "c0ad3a68ea16181b11818e25ec68b40e7f63f386195571bbf09c1b99e75ff401",
+    "referenceImages": [
+      {
+        "id": "world_visual_master",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_object_status_markers",
+        "sha256": "e3d2f177bf10bc07d1362251d8aa80d490fc6f58999d24b06a66c34a177e1d1b"
+      }
+    ],
+    "scaleClass": "tiny",
+    "source": {
+      "cropRect": null,
+      "height": 1254,
+      "path": "tmp/imagegen/wave1d-objects-effects/raw/unverified_tag.png",
+      "sha256": "4dc221c0647037addd739fa338c7404a4a004d396034be801d66f0d9a438736c",
+      "width": 1254
+    },
+    "sourceSnapshot": {
+      "height": 1254,
+      "path": "generated/objects/approved/source-4dc221c0647037addd739fa338c7404a4a004d396034be801d66f0d9a438736c.source-original.png",
+      "sha256": "4dc221c0647037addd739fa338c7404a4a004d396034be801d66f0d9a438736c",
+      "width": 1254
+    },
+    "subjectBbox": {
+      "height": 60,
+      "width": 27,
+      "x": 18,
+      "y": 4
+    },
+    "toolMode": "built-in",
+    "transformSteps": [
+      "full-frame",
+      "chroma-key-remove",
+      "nearest-downscale",
+      "hard-alpha",
+      "palette-quantize"
+    ],
+    "waveId": "wave1d-objects-effects"
+  },
+  "promptHash": "422bce337d2a5cb66102734f96e2bbcccf619563899e5015ad3ba6f6496f4e41",
+  "provenanceKey": "716ef2ee4a50276309ce37916797a2434aae67908fedaff475e21cef4ac15f92",
+  "provider": "manual-import",
+  "referenceImageHashes": [
+    "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+    "e3d2f177bf10bc07d1362251d8aa80d490fc6f58999d24b06a66c34a177e1d1b"
+  ],
+  "referenceImageIds": [
+    "world_visual_master",
+    "intake_20260713_object_status_markers"
+  ],
+  "sourceFormat": "png",
+  "sourcePath": "generated/objects/pending/object_unverified_tag-693f35a1b7c8fd28.source.png",
+  "sourceSha256": "693f35a1b7c8fd2817c86a29e20f0e2aedbafc94af513214451d9f6d3f1684bf",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "assetReferenceMapSha256": "bbaae96f7976bfd3fc36aaa17890c3fc6da2625c05578c5daa05d27395d81fa3",
+  "authorizedReferenceIds": [
+    "character_visual_master",
+    "intake_20260713_building_guild_variant_01",
+    "intake_20260713_building_houses_shops_ruins",
+    "intake_20260713_building_inn",
+    "intake_20260713_building_town_hall",
+    "intake_20260713_building_warehouse",
+    "intake_20260713_building_watchtower",
+    "intake_20260713_building_workshop",
+    "intake_20260713_field_cobblestone_roads",
+    "intake_20260713_field_harbor_docks_tiles",
+    "intake_20260713_field_stairs_bridges_cliffs",
+    "intake_20260713_object_status_markers",
+    "intake_20260713_object_street_props",
+    "intake_20260713_ui_dialogue_frames",
+    "intake_20260713_ui_guild_roster",
+    "intake_20260713_ui_inspection_report",
+    "world_visual_master"
+  ],
+  "forbiddenReferenceIds": [
+    "cutaway_interior_visual_reference"
+  ],
+  "limitations": [
+    "This is an independent read-only consistency review of repository-local provenance records and the project owner's stated authorization; it is not a legal opinion, copyright clearance, or third-party license verification.",
+    "This PASS applies only to the exact ownerAuthorizationSha256, assetReferenceMapSha256, 109 definitions, 17 manifest records, and image bytes named above; any change requires a new independent review and hash.",
+    "This review does not approve any generated asset candidate, native/repeat/ensemble visual quality, runtime integration, public export, or game completion."
+  ],
+  "observed": [
+    "Recomputed 109 unique, schema-valid and cross-field-valid Wave A AssetDefinitions; the canonical definition set digest is a5a7a82886c75bca4b42a815421c751b5a8225bd8267fe0520d5006d933fb92d, every definition has exactly two references, their union is exactly the 17 authorized reference IDs, and the forbidden cutaway reference is absent from every mapping.",
+    "Recomputed the canonical owner authorization digest from the exact source, scope, and rights limitation; it matches af4f1a13c2e4a41cae24902cc7675577e0446b0a4510fcefa6fc73d321974b2e.",
+    "Recomputed the canonical 109-asset reference map from every current AssetDefinition hash plus every referenced manifest-record hash and declared bytes hash; it matches bbaae96f7976bfd3fc36aaa17890c3fc6da2625c05578c5daa05d27395d81fa3.",
+    "Resolved and decoded all 17 repository-local reference images; every record is approved, every actual image-byte SHA-256 matches its manifest value, every record carries a non-empty license note, and no reviewed path is a symbolic link.",
+    "Observed cutaway_interior_visual_reference remains pending, is the sole forbidden ID, and is mapped by zero Wave A definitions; the owner scope authorizes candidate generation from the exact 17 local records but does not approve generated candidates or authorize export."
+  ],
+  "ownerAuthorizationSha256": "af4f1a13c2e4a41cae24902cc7675577e0446b0a4510fcefa6fc73d321974b2e",
+  "requiredSetId": "fable5-v2",
+  "reviewType": "fable5-wave-reference-rights",
+  "reviewedAt": "2026-07-16T07:44:57.000Z",
+  "reviewer": "independent-read-only",
+  "schemaVersion": 1,
+  "status": "pass",
+  "waveId": "A"
+}

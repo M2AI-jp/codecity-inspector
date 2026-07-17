@@ -1,0 +1,11 @@
+Use case: stylized-concept
+Asset type: seamless tileable game texture for CodeCity Inspector
+Primary request: Create one non-directional 64x64 production snow-ground tile, shown enlarged as a single square texture filling the image. It is compacted snow on a medieval town street, not fresh featureless snow.
+Input images: Image 1 is the global style and snow-district reference; Image 2 is the primary terrain pixel-art, stone, cliff, and snowy-stair reference.
+Scene/backdrop: no surrounding scene, no border, no presentation card; the terrain texture fills the full square canvas edge to edge.
+Subject: low-saturation blue-grey packed snow with restrained off-white highlights, tiny embedded ice flecks, sparse muted brown earth grains, and a few very small grey stone grains. It must remain clearly walkable ground.
+Style/medium: dense hand-authored 16-bit-era pixel art matching the supplied CodeCity world board; hard pixel clusters; controlled compact palette; two or three shading steps; no anti-aliasing.
+Composition/framing: orthographic top-down terrain only; uniform visual weight; no focal object; no horizon or perspective; no directional tracks. The left/right edges and top/bottom edges must repeat seamlessly.
+Color palette: subdued blue-grey, dirty off-white, muted slate, very sparse dull earth brown; never bright white or saturated cyan.
+Constraints: all four edges completely tileable; one continuous texture; no transparency; no cast lighting gradient; no large dark or bright patches; preserve small map-scale readability; no text, labels, logos, watermark, frame, grid, checkerboard, UI, character, building, prop, footprint, road edge, cliff edge, wall, stairs, tree, shadow mass, or isolated icon.
+Avoid: soft painting, blur, anti-aliasing, photoreal snow, glossy 3D rendering, beach sand, grass, decorative snowflakes, repeated stamp motifs, obvious seams, directional lines.

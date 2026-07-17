@@ -1,0 +1,269 @@
+{
+  "schemaVersion": 1,
+  "observedAtCommit": "c4815f2",
+  "status": "pending-inspection",
+  "vocabularies": {
+    "TILE_TYPES": [
+      "grass",
+      "dirt",
+      "path",
+      "road",
+      "snow",
+      "water",
+      "bridge",
+      "stairs",
+      "plaza",
+      "floor",
+      "wall",
+      "rock",
+      "tree",
+      "cliff"
+    ],
+    "NPC_ROLES": [
+      "innkeeper",
+      "barkeep",
+      "guildmaster",
+      "clerk",
+      "ferryman",
+      "warehouse_keeper",
+      "foreman",
+      "inspector",
+      "watch",
+      "resident",
+      "shopkeeper",
+      "gatekeeper",
+      "townsfolk",
+      "traveler",
+      "child"
+    ],
+    "PROP_KINDS": [
+      "well",
+      "barrel",
+      "crate",
+      "signboard",
+      "lamp",
+      "plant",
+      "todo_grass",
+      "scaffold",
+      "fence",
+      "flag",
+      "bench",
+      "rubble"
+    ],
+    "FACILITY_KINDS": [
+      "inn",
+      "pub",
+      "guild",
+      "town_hall",
+      "dock",
+      "warehouse",
+      "well",
+      "workshop",
+      "dojo",
+      "watchtower",
+      "house",
+      "shop",
+      "ruin",
+      "gate"
+    ],
+    "BUILDING_STATES": [
+      "occupied",
+      "vacant",
+      "busy",
+      "under_construction",
+      "ruined"
+    ]
+  },
+  "uncovered": [],
+  "lossyMappings": [
+    {
+      "vocabulary": "TILE_TYPES",
+      "runtimeId": "dirt",
+      "assetIds": [
+        "field.dirt_path"
+      ],
+      "note": "The requested dirt-path art must provide a dirt base variant; there is no generic field.dirt ID."
+    },
+    {
+      "vocabulary": "TILE_TYPES",
+      "runtimeId": "path",
+      "assetIds": [
+        "field.dirt_path"
+      ],
+      "note": "A specialized dirt path stands in for the generic runtime path."
+    },
+    {
+      "vocabulary": "TILE_TYPES",
+      "runtimeId": "road",
+      "assetIds": [
+        "field.cobblestone",
+        "field.road_corner",
+        "field.road_edge",
+        "field.road_intersection"
+      ],
+      "note": "Runtime road needs an autotile selection over several authored assets."
+    },
+    {
+      "vocabulary": "TILE_TYPES",
+      "runtimeId": "water",
+      "assetIds": [
+        "field.water",
+        "field.river_edge"
+      ],
+      "note": "River edge is a contextual water variant."
+    },
+    {
+      "vocabulary": "TILE_TYPES",
+      "runtimeId": "bridge",
+      "assetIds": [
+        "field.bridge_stone",
+        "field.bridge_wood"
+      ],
+      "note": "A deterministic style selection is required."
+    },
+    {
+      "vocabulary": "TILE_TYPES",
+      "runtimeId": "stairs",
+      "assetIds": [
+        "field.stairs_stone"
+      ],
+      "note": "The runtime has generic stairs; the formal asset fixes the material to stone."
+    },
+    {
+      "vocabulary": "TILE_TYPES",
+      "runtimeId": "floor",
+      "assetIds": [
+        "field.dock_floor"
+      ],
+      "note": "Dock flooring is narrower than the generic runtime floor meaning."
+    },
+    {
+      "vocabulary": "TILE_TYPES",
+      "runtimeId": "wall",
+      "assetIds": [
+        "field.wall_stone"
+      ],
+      "note": "Stone wall is narrower than generic runtime wall."
+    },
+    {
+      "vocabulary": "NPC_ROLES",
+      "runtimeId": "barkeep",
+      "assetIds": [
+        "character.tavern_master"
+      ],
+      "note": "Different names; explicit adapter mapping required."
+    },
+    {
+      "vocabulary": "NPC_ROLES",
+      "runtimeId": "resident",
+      "assetIds": [
+        "character.mob.artisan",
+        "character.mob.townsfolk_male",
+        "character.mob.townsfolk_female",
+        "character.mob.elder"
+      ],
+      "note": "Runtime resident requires a deterministic mob variant policy."
+    },
+    {
+      "vocabulary": "NPC_ROLES",
+      "runtimeId": "townsfolk",
+      "assetIds": [
+        "character.mob.townsfolk_male",
+        "character.mob.townsfolk_female",
+        "character.mob.elder",
+        "character.mob.tavern_guest",
+        "character.mob.inn_guest",
+        "character.mob.dock_worker"
+      ],
+      "note": "Many authored roles collapse to one runtime role."
+    },
+    {
+      "vocabulary": "NPC_ROLES",
+      "runtimeId": "traveler",
+      "assetIds": [
+        "character.mob.traveler",
+        "character.mob.delivery_person"
+      ],
+      "note": "Runtime traveler requires deterministic selection from loaded character variants."
+    },
+    {
+      "vocabulary": "PROP_KINDS",
+      "runtimeId": "crate",
+      "assetIds": [
+        "object.crate",
+        "object.stacked_crates",
+        "object.harbor_cargo"
+      ],
+      "note": "Runtime crate requires deterministic selection from loaded prop variants; object.harbor_cargo is an optional contextual future asset because the current layout has no harbor context."
+    },
+    {
+      "vocabulary": "PROP_KINDS",
+      "runtimeId": "lamp",
+      "assetIds": [
+        "object.lamp",
+        "object.streetlight"
+      ],
+      "note": "Runtime lamp requires deterministic selection from loaded prop variants."
+    },
+    {
+      "vocabulary": "PROP_KINDS",
+      "runtimeId": "signboard",
+      "assetIds": [
+        "object.signboard",
+        "object.notice_board",
+        "object.guild_roster_stand",
+        "object.menu_board"
+      ],
+      "note": "Runtime signboard requires deterministic selection from loaded prop variants; object.guild_roster_stand and object.menu_board are optional contextual future assets because the current layout has no guild or menu context."
+    },
+    {
+      "vocabulary": "PROP_KINDS",
+      "runtimeId": "plant",
+      "assetIds": [
+        "object.flowerbed",
+        "object.grass_patch"
+      ],
+      "note": "Runtime plant requires a deterministic variant policy."
+    },
+    {
+      "vocabulary": "PROP_KINDS",
+      "runtimeId": "scaffold",
+      "assetIds": [
+        "object.construction_sign"
+      ],
+      "note": "A sign cannot fully depict the existing scaffold semantic."
+    },
+    {
+      "vocabulary": "PROP_KINDS",
+      "runtimeId": "flag",
+      "assetIds": [
+        "object.warning_stake",
+        "object.red_flag",
+        "object.yellow_flag",
+        "object.blue_flag"
+      ],
+      "note": "Runtime flag requires state-to-colour selection."
+    },
+    {
+      "vocabulary": "FACILITY_KINDS",
+      "runtimeId": "house",
+      "assetIds": [
+        "building.house.small",
+        "building.house.medium",
+        "building.hut",
+        "building.old_house"
+      ],
+      "note": "Runtime house requires a deterministic size/state variant policy."
+    }
+  ],
+  "stateMap": {
+    "normal": "occupied",
+    "active": "busy",
+    "inactive": "vacant",
+    "under_construction": "under_construction",
+    "unverified": "vacant",
+    "broken": "ruined",
+    "approved": "occupied",
+    "warning": "occupied"
+  }
+}

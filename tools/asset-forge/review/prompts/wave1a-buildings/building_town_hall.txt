@@ -1,0 +1,15 @@
+Create one production game asset for CodeCity Inspector.
+
+ASSET: building.town_hall — the civic centerpiece and largest landmark in a medieval Japanese-fantasy code-inspection town.
+
+Use the two attached reference images strictly for visual language and identity:
+1) world visual master: exact palette, dense crisp pixel clusters, consistent 3/4 top-down camera, teal-blue roofs, warm amber light, stone and moss;
+2) town hall reference sheet: recognizable civic silhouette, formal central entrance, clock/belfry-like upper landmark and stately massing.
+
+Deliver exactly ONE complete freestanding town hall, centered and fully visible. Landmark scale: taller and broader than ordinary shops and inns. It needs a highly readable formal main entrance, symmetrical civic façade, blue-green tiled roofs, warm windows, stone lower walls, timber upper structure, restrained moss and gold-brass civic details. No readable insignia or letters. Preserve a clean silhouette for later downsampling to a 256×256 transparent sprite.
+
+BACKGROUND CONTRACT: perfectly flat uniform chroma-magenta #ff00ff on every non-building pixel. No ground patch, pavement, grass tile, rectangular base, cast shadow, sky, gradient.
+
+DO NOT include: people, flags with symbols, neighboring structures, trees, carts, smoke, particles, labels, letters, UI, multiple variants, sprite sheet, frame, crop, blur, painterly rendering, enlarged pixels, perspective mismatch.
+
+Production-quality, hard-edged, coherent pixel art. Keep the entrance and landmark tower unmistakable at game scale.

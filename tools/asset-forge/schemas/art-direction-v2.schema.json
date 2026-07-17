@@ -1,0 +1,273 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://codecity-inspector.local/asset-forge/art-direction-v2.schema.json",
+  "title": "Fable5 Wave A Art Direction",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "requiredSetId", "waveId", "category", "assetCount", "assets"],
+  "properties": {
+    "schemaVersion": { "const": 2 },
+    "requiredSetId": { "const": "fable5-v2" },
+    "waveId": { "const": "A" },
+    "category": {
+      "enum": ["character", "building", "terrain", "overlay", "structure", "interior", "prop", "ui", "effect"]
+    },
+    "assetCount": { "type": "integer", "minimum": 1, "maximum": 109 },
+    "assets": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 109,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "category", "artDirection"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^(character|building|terrain|overlay|structure|interior|prop|ui|effect)\\.[a-z0-9_]+(?:\\.[a-z0-9_]+)*$"
+          },
+          "category": {
+            "enum": ["character", "building", "terrain", "overlay", "structure", "interior", "prop", "ui", "effect"]
+          },
+          "artDirection": { "$ref": "#/definitions/artDirection" }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": { "category": { "enum": ["terrain", "interior"] } },
+              "required": ["category"]
+            },
+            "then": {
+              "properties": {
+                "artDirection": {
+                  "type": "object",
+                  "required": ["terrainContent"],
+                  "properties": {
+                    "terrainContent": {},
+                    "frameContent": { "type": "array", "minItems": 25, "maxItems": 25 }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": { "category": { "const": "building" } },
+              "required": ["category"]
+            },
+            "then": {
+              "properties": {
+                "artDirection": {
+                  "type": "object",
+                  "required": ["layerContent"],
+                  "properties": {
+                    "layerContent": {},
+                    "frameContent": { "type": "array", "minItems": 2, "maxItems": 2 }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": { "category": { "const": "character" } },
+              "required": ["category"]
+            },
+            "then": {
+              "properties": {
+                "artDirection": {
+                  "type": "object",
+                  "required": ["characterContent"],
+                  "properties": {
+                    "characterContent": {},
+                    "frameContent": { "type": "array", "minItems": 10, "maxItems": 10 }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": { "category": { "const": "ui" } },
+              "required": ["category"]
+            },
+            "then": {
+              "properties": {
+                "artDirection": {
+                  "type": "object",
+                  "required": ["uiContent"],
+                  "properties": {
+                    "uiContent": {},
+                    "frameContent": { "type": "array", "minItems": 1 }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "nonEmptyStrings": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 3 }
+    },
+    "directionDifference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["assetId", "reason"],
+      "properties": {
+        "assetId": {
+          "type": "string",
+          "pattern": "^(character|building|terrain|overlay|structure|interior|prop|ui|effect)\\.[a-z0-9_]+(?:\\.[a-z0-9_]+)*$"
+        },
+        "reason": { "type": "string", "minLength": 12 }
+      }
+    },
+    "frameContent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["frameId", "visualContent"],
+      "properties": {
+        "frameId": { "type": "string", "minLength": 1 },
+        "visualContent": { "type": "string", "minLength": 12 }
+      }
+    },
+    "terrainCell": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["frameId", "visualContent"],
+      "properties": {
+        "frameId": { "type": "string", "pattern": "^tile_[0-9]+$" },
+        "mask": { "type": "integer", "minimum": 0, "maximum": 15 },
+        "role": { "type": "string", "minLength": 3 },
+        "visualContent": { "type": "string", "minLength": 12 }
+      }
+    },
+    "terrainContent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["baseVariants", "blob16", "auxiliary"],
+      "properties": {
+        "baseVariants": {
+          "type": "array", "minItems": 3, "maxItems": 3,
+          "items": { "$ref": "#/definitions/terrainCell" }
+        },
+        "blob16": {
+          "type": "array", "minItems": 16, "maxItems": 16,
+          "items": { "$ref": "#/definitions/terrainCell" }
+        },
+        "auxiliary": {
+          "type": "array", "minItems": 6, "maxItems": 6,
+          "items": { "$ref": "#/definitions/terrainCell" }
+        }
+      }
+    },
+    "characterContent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outfit", "roleTool", "directionConsistency", "actionContent"],
+      "properties": {
+        "outfit": { "type": "string", "minLength": 12 },
+        "roleTool": { "type": "string", "minLength": 8 },
+        "directionConsistency": { "type": "string", "minLength": 16 },
+        "actionContent": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["idle", "walk", "talk", "work"],
+          "properties": {
+            "idle": { "type": "string", "minLength": 12 },
+            "walk": { "type": "string", "minLength": 12 },
+            "talk": { "type": "string", "minLength": 12 },
+            "work": { "type": "string", "minLength": 12 }
+          }
+        }
+      }
+    },
+    "buildingLayer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "includes", "excludes", "materials", "doorWindowCue", "facilityCue"],
+      "properties": {
+        "role": { "enum": ["base", "roof"] },
+        "includes": { "$ref": "#/definitions/nonEmptyStrings" },
+        "excludes": { "$ref": "#/definitions/nonEmptyStrings" },
+        "materials": { "$ref": "#/definitions/nonEmptyStrings" },
+        "doorWindowCue": { "type": "string", "minLength": 12 },
+        "facilityCue": { "type": "string", "minLength": 12 }
+      }
+    },
+    "layerContent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["layers", "compositeMatch", "cutawayMatch"],
+      "properties": {
+        "layers": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "$ref": "#/definitions/buildingLayer" }
+        },
+        "compositeMatch": { "type": "string", "minLength": 16 },
+        "cutawayMatch": { "type": "string", "minLength": 16 }
+      }
+    },
+    "uiContent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["textFree", "panelContent", "cells"],
+      "properties": {
+        "textFree": { "const": true },
+        "panelContent": { "type": "string", "minLength": 12 },
+        "cells": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/frameContent" }
+        }
+      }
+    },
+    "artDirection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version", "subjectForm", "materials", "dominantColors", "accentColors",
+        "shapeLanguage", "distinguishingFeatures", "distinguishFrom",
+        "composition", "groundContact", "negativeConstraints", "frameContent"
+      ],
+      "properties": {
+        "version": { "const": 2 },
+        "subjectForm": { "type": "string", "minLength": 12 },
+        "materials": { "$ref": "#/definitions/nonEmptyStrings" },
+        "dominantColors": { "$ref": "#/definitions/nonEmptyStrings" },
+        "accentColors": { "$ref": "#/definitions/nonEmptyStrings" },
+        "shapeLanguage": { "type": "string", "minLength": 12 },
+        "distinguishingFeatures": {
+          "type": "array", "minItems": 2, "uniqueItems": true,
+          "items": { "type": "string", "minLength": 12 }
+        },
+        "distinguishFrom": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": { "$ref": "#/definitions/directionDifference" }
+        },
+        "composition": { "type": "string", "minLength": 12 },
+        "groundContact": { "type": "string", "minLength": 12 },
+        "negativeConstraints": {
+          "type": "array", "minItems": 2, "uniqueItems": true,
+          "items": { "type": "string", "minLength": 8 }
+        },
+        "frameContent": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/frameContent" }
+        },
+        "terrainContent": { "$ref": "#/definitions/terrainContent" },
+        "characterContent": { "$ref": "#/definitions/characterContent" },
+        "layerContent": { "$ref": "#/definitions/layerContent" },
+        "uiContent": { "$ref": "#/definitions/uiContent" }
+      }
+    }
+  }
+}

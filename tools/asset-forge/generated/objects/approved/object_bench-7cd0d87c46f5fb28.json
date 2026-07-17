@@ -1,0 +1,133 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-15T04:37:18.833Z",
+    "approvedPath": "generated/objects/approved/object_bench-7cd0d87c46f5fb28.png",
+    "approvedSha256": "7cd0d87c46f5fb28fea3c0134d6d434aa0c73d1dbd70305ce480c93f55506dea",
+    "note": "Required 78 batch approval cb4aa5f67c91a329c140f4a09bdc39b960ccce8a76334957066d7c0e83540042",
+    "reviewer": "human"
+  },
+  "assetId": "object.bench",
+  "category": "object",
+  "createdAt": "2026-07-14T10:00:00.000Z",
+  "dryRun": false,
+  "id": "gen_import_345811ac144bfa1cc320",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 64x64.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_9b331fd5fa1120f273c8",
+  "manualImport": true,
+  "metadataPath": "generated/objects/approved/object_bench-7cd0d87c46f5fb28.json",
+  "outputInspection": {
+    "bytes": 1076,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 64,
+    "width": 64
+  },
+  "outputPath": "generated/objects/approved/object_bench-7cd0d87c46f5fb28.png",
+  "outputSha256": "7cd0d87c46f5fb28fea3c0134d6d434aa0c73d1dbd70305ce480c93f55506dea",
+  "productionRecipe": {
+    "assetId": "object.bench",
+    "backgroundRemoval": {
+      "autoKey": "border",
+      "cleanup": {
+        "alphaCutoff": 128,
+        "componentMinPixels": 1,
+        "resizeKernel": "nearest",
+        "targetMaxHeight": 60,
+        "targetMaxWidth": 60
+      },
+      "despill": true,
+      "keyColor": null,
+      "method": "official-chroma-key-helper",
+      "opaqueThreshold": 110,
+      "softMatte": true,
+      "transparentThreshold": 20
+    },
+    "canvas": {
+      "baselineY": 63,
+      "height": 64,
+      "width": 64
+    },
+    "generator": "approved-reference-direct-extraction",
+    "method": "direct-extraction",
+    "orientationContract": "complete standalone prop centered on a 64x64 transparent canvas and aligned to baseline y=63",
+    "outputSha256": "7cd0d87c46f5fb28fea3c0134d6d434aa0c73d1dbd70305ce480c93f55506dea",
+    "referenceImages": [
+      {
+        "id": "world_visual_master",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_object_street_props",
+        "sha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85"
+      }
+    ],
+    "scaleClass": "tiny",
+    "source": {
+      "cropRect": {
+        "height": 60,
+        "width": 105,
+        "x": 617,
+        "y": 98
+      },
+      "height": 1024,
+      "path": "references/approved/object_street_props_sheet.png",
+      "sha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "width": 1536
+    },
+    "sourceSnapshot": {
+      "height": 1024,
+      "path": "generated/objects/approved/source-b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85.source-original.png",
+      "sha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "width": 1536
+    },
+    "subjectBbox": {
+      "height": 28,
+      "width": 59,
+      "x": 2,
+      "y": 36
+    },
+    "transformSteps": [
+      "crop",
+      "chroma-key-remove",
+      "nearest-downscale",
+      "hard-alpha",
+      "palette-quantize"
+    ],
+    "waveId": "wave1d-objects-effects"
+  },
+  "promptHash": "422bce337d2a5cb66102734f96e2bbcccf619563899e5015ad3ba6f6496f4e41",
+  "provenanceKey": "345811ac144bfa1cc320372d1ceb39b9eb1baa67c2ebd31e5457c6648f170504",
+  "provider": "manual-import",
+  "referenceImageHashes": [
+    "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+    "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85"
+  ],
+  "referenceImageIds": [
+    "world_visual_master",
+    "intake_20260713_object_street_props"
+  ],
+  "sourceFormat": "png",
+  "sourcePath": "generated/objects/pending/object_bench-989ca4b83f31ea6f.source.png",
+  "sourceSha256": "989ca4b83f31ea6ffa8084091930cdfcae778ba25ce48959f019d41ca12a7c7c",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

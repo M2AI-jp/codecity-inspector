@@ -1,0 +1,141 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-15T04:37:14.750Z",
+    "approvedPath": "generated/fields/approved/field_river_edge-5e42ba2aa43e70a4.png",
+    "approvedSha256": "5e42ba2aa43e70a46bbf999b30441ddb18ee8ab8afcd4fa9b5ef0c628e90b81b",
+    "note": "Required 78 batch approval cb4aa5f67c91a329c140f4a09bdc39b960ccce8a76334957066d7c0e83540042",
+    "reviewer": "human"
+  },
+  "assetId": "field.river_edge",
+  "category": "field",
+  "createdAt": "2026-07-14T00:00:00.000Z",
+  "dryRun": false,
+  "id": "gen_import_818bd750b4b387e27d96",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 64x64.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_5202b7a068de256477d9",
+  "manualImport": true,
+  "metadataPath": "generated/fields/approved/field_river_edge-5e42ba2aa43e70a4.json",
+  "outputInspection": {
+    "bytes": 2548,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 64,
+    "width": 64
+  },
+  "outputPath": "generated/fields/approved/field_river_edge-5e42ba2aa43e70a4.png",
+  "outputSha256": "5e42ba2aa43e70a46bbf999b30441ddb18ee8ab8afcd4fa9b5ef0c628e90b81b",
+  "productionRecipe": {
+    "assetId": "field.river_edge",
+    "backgroundRemoval": {
+      "autoKey": null,
+      "cleanup": {
+        "alphaCutoff": 0,
+        "componentMinPixels": 1,
+        "resizeKernel": "nearest",
+        "targetMaxHeight": 64,
+        "targetMaxWidth": 64
+      },
+      "despill": false,
+      "keyColor": null,
+      "method": "none",
+      "opaqueThreshold": 255,
+      "softMatte": false,
+      "transparentThreshold": 0
+    },
+    "canvas": {
+      "baselineY": 63,
+      "height": 64,
+      "width": 64
+    },
+    "generationPromptPath": "review/prompts/wave1b-fields/field_river_edge.txt",
+    "generationPromptSha256": "ec9b9e69050c7feb4a3abbeda6742e90fdd5b8c70f597e9ad3092739fdad91aa",
+    "generator": "codex-imagegen-built-in",
+    "inputReferences": [
+      {
+        "id": "world_visual_master",
+        "role": "global-style",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_field_harbor_docks_tiles",
+        "role": "primary-subject",
+        "sha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580"
+      }
+    ],
+    "method": "imagegen",
+    "orientationContract": "land occupies the top; water occupies the bottom; shoreline runs left-to-right",
+    "outputSha256": "5e42ba2aa43e70a46bbf999b30441ddb18ee8ab8afcd4fa9b5ef0c628e90b81b",
+    "referenceImages": [
+      {
+        "id": "world_visual_master",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_field_harbor_docks_tiles",
+        "sha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580"
+      }
+    ],
+    "scaleClass": "medium",
+    "source": {
+      "cropRect": null,
+      "height": 1254,
+      "path": "tmp/imagegen/wave1b-fields/raw/field_river_edge.png",
+      "sha256": "92eb09d2e6a7cbfdb25481d50d1f165e019549e8e026ac1efaa4e991befed6d1",
+      "width": 1254
+    },
+    "sourceSnapshot": {
+      "height": 1254,
+      "path": "generated/fields/approved/source-92eb09d2e6a7cbfdb25481d50d1f165e019549e8e026ac1efaa4e991befed6d1.source-original.png",
+      "sha256": "92eb09d2e6a7cbfdb25481d50d1f165e019549e8e026ac1efaa4e991befed6d1",
+      "width": 1254
+    },
+    "subjectBbox": {
+      "height": 64,
+      "width": 64,
+      "x": 0,
+      "y": 0
+    },
+    "toolMode": "built-in",
+    "transformSteps": [
+      "full-frame",
+      "nearest-downscale",
+      "palette-quantize"
+    ],
+    "waveId": "wave1b-fields"
+  },
+  "promptHash": "d24cb3ba481285038ffff0edc27ce7410cef258517c133c25c0ba5a1e669e0bd",
+  "provenanceKey": "818bd750b4b387e27d96ab6dfae1ef4aad0b190becb9f8c0ef84143db8ca8349",
+  "provider": "manual-import",
+  "referenceImageHashes": [
+    "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+    "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580"
+  ],
+  "referenceImageIds": [
+    "world_visual_master",
+    "intake_20260713_field_harbor_docks_tiles"
+  ],
+  "sourceFormat": "png",
+  "sourcePath": "generated/fields/pending/field_river_edge-34cc72afa526e55d.source.png",
+  "sourceSha256": "34cc72afa526e55d50b2bf17a92cfeba256953bac79ad93ec19761472484672e",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

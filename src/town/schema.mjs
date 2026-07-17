@@ -398,8 +398,8 @@ export function makeEvidence() {
  * entrance cell. Buildings never overlap each other, and the entrance is a
  * walkable tile (see WALKABLE_TILE_TYPES) immediately outside the footprint on
  * the side named by `direction`. A building is placed ONLY for a facility the
- * TownModel reports present, plus the always-present town_hall and the gate —
- * never for a facility the model says is absent (evidence honesty).
+ * TownModel reports present. town_hall is always present; gate is placed only
+ * when an entrypoint was observed — never for an absent facility (evidence honesty).
  * @typedef {Object} TownBuilding
  * @property {string} id - unique, regeneration-stable building id
  * @property {string} facilityKind - one of FACILITY_KINDS (the facility this building renders)
@@ -451,18 +451,20 @@ export function makeEvidence() {
  */
 
 /**
- * The layout self-check produced by ./validator.mjs. `ok` is the single gate: it
- * MUST be false whenever any issue has severity 'error' (see
- * VALIDATION_SEVERITIES) OR any of the three hard-invariant booleans (walkable,
- * importantBuildingsReachable, noOverlap) is false. densityScore is the fraction
- * of the map covered by building footprints (0..1), used to keep the town from
- * being too sparse or too cramped.
+ * The layout self-check produced by ./validator.mjs. `ok` is the single structural
+ * gate: it MUST be false whenever any issue has severity 'error' (see
+ * VALIDATION_SEVERITIES), or walkable / noOverlap is false. A repository with no
+ * observed entrypoint is a legitimate uninhabitable town rather than malformed
+ * geometry: importantBuildingsReachable is false and a REACHABLE warning records
+ * that reachability could not be established, while `ok` may remain true.
+ * densityScore is the fraction of the map covered by building footprints (0..1),
+ * used to keep the town from being too sparse or too cramped.
  * @typedef {Object} TownLayoutValidation
- * @property {boolean} ok - overall pass/fail; false if any 'error' issue or any hard invariant below is false
+ * @property {boolean} ok - structural pass/fail; false if any 'error' issue, walkable=false, or noOverlap=false
  * @property {Array<{ code: string, message: string, severity: string }>} issues - findings; severity is one of VALIDATION_SEVERITIES
  * @property {number} densityScore - building-footprint coverage of the map, 0..1
  * @property {boolean} walkable - every road cell is walkable and the roads form a connected network
- * @property {boolean} importantBuildingsReachable - every required facility's entrance is reachable via roads
+ * @property {boolean} importantBuildingsReachable - every required facility is reachable from an observed gate; false when no gate exists
  * @property {boolean} noOverlap - no two building footprints overlap, and no footprint sits on a blocked tile
  */
 
@@ -474,7 +476,7 @@ export function makeEvidence() {
  * randomness source is the seeded PRNG in ./rng.mjs; nothing in generation may
  * use Date.now / new Date / Math.random. EVIDENCE HONESTY carries over from the
  * TownModel: a building is placed only for a facility the model reports present
- * (plus the always-present town_hall and the gate), never for an absent one.
+ * (including the always-present town_hall; gate only when observed), never for an absent one.
  * @typedef {Object} TownLayout
  * @property {string} townId - stable id for this generated town
  * @property {string} repoFingerprint - stable fingerprint of the scanned repository (determinism key part)
@@ -482,7 +484,7 @@ export function makeEvidence() {
  * @property {string} seed - deterministic PRNG seed string driving every placement (determinism key part)
  * @property {TownTileMap} map - the tile-grid terrain map
  * @property {TownDistrict[]} districts - rectangular zones grouping related buildings
- * @property {TownBuilding[]} buildings - placed buildings (one per present facility, plus town_hall and gate)
+ * @property {TownBuilding[]} buildings - placed buildings (one per present facility; town_hall always, gate only when observed)
  * @property {TownRoad[]} roads - walkable roads connecting building entrances
  * @property {TownNpc[]} npcs - placed NPCs
  * @property {TownProp[]} props - placed decorative / interactive props

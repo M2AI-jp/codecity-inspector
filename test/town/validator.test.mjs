@@ -156,7 +156,6 @@ test('NO_OVERLAP: two overlapping building footprints fail with ok:false', () =>
   assert.equal(result.ok, false);
   assert.equal(result.noOverlap, false);
   assert.ok(result.issues.some((i) => i.code === 'NO_OVERLAP' && i.severity === 'error'));
-  assert.ok(result.issues.every((i) => i.code === 'NO_OVERLAP'), 'this corruption should trip nothing else');
 });
 
 test('ENTRANCE_CLEAR: a blocked (non-walkable) entrance tile fails with ok:false', () => {
@@ -169,6 +168,37 @@ test('ENTRANCE_CLEAR: a blocked (non-walkable) entrance tile fails with ok:false
   assert.ok(result.issues.some((i) =>
     i.code === 'ENTRANCE_CLEAR' && i.severity === 'error' && i.message.includes('building-well')
   ));
+});
+
+test('ENTRANCE_CLEAR: a remote entrance cannot pass merely because its tile is walkable', () => {
+  const layout = structuredClone(baselineLayout());
+  const inn = buildingById(layout, 'building-inn');
+  const road = layout.roads.find((candidate) => candidate.fromBuildingId === inn.id || candidate.toBuildingId === inn.id);
+  const remote = road.tiles.find(([x, y]) => (
+    Math.abs(x - inn.entrance.x) + Math.abs(y - inn.entrance.y) >= 2
+    && !layout.buildings.some((building) => {
+      const width = building.footprint.widthTiles;
+      const height = building.footprint.heightTiles;
+      return x >= building.x && x < building.x + width && y >= building.y && y < building.y + height;
+    })
+  ));
+  assert.ok(remote, 'fixture must expose a remote walkable road tile');
+  [inn.entrance.x, inn.entrance.y] = remote;
+
+  const result = validateLayout(layout);
+  assert.equal(result.ok, false);
+  assert.ok(result.issues.some((entry) => entry.code === 'ENTRANCE_CLEAR' && /not immediately outside/.test(entry.message)));
+});
+
+test('ENTRANCE_CLEAR: the entrance direction must name the footprint side it touches', () => {
+  const layout = structuredClone(baselineLayout());
+  const inn = buildingById(layout, 'building-inn');
+  const alternatives = ['up', 'down', 'left', 'right'].filter((direction) => direction !== inn.entrance.direction);
+  inn.entrance.direction = alternatives[0];
+
+  const result = validateLayout(layout);
+  assert.equal(result.ok, false);
+  assert.ok(result.issues.some((entry) => entry.code === 'ENTRANCE_CLEAR' && /not immediately outside/.test(entry.message)));
 });
 
 test('disconnected facility: dropping a main facility\'s only road fails REACHABLE and WALKABLE, not NO_OVERLAP/DOCK_ON_WATER', () => {
@@ -339,11 +369,48 @@ test('validateLayout never throws on null, undefined, or structurally malformed 
   }
 });
 
-test('a layout with no buildings at all fails REACHABLE ("no gate") rather than throwing or silently passing', () => {
-  const result = validateLayout({ map: { widthTiles: 5, heightTiles: 5, tileSize: 16, terrain: [] }, buildings: [], roads: [], npcs: [], props: [] });
-  assert.equal(result.ok, false);
+test('a structurally valid layout with no gate is adoptable but records reachability as unestablished', () => {
+  const terrain = Array.from({ length: 5 }, () => Array(5).fill('grass'));
+  const result = validateLayout({
+    townId: 'empty-town', repoFingerprint: 'a'.repeat(64), generatorVersion: '1.1.0', seed: '',
+    map: { widthTiles: 5, heightTiles: 5, tileSize: 16, terrain },
+    districts: [], buildings: [], roads: [], npcs: [], props: [], connections: []
+  });
+  assert.equal(result.ok, true);
   assert.equal(result.importantBuildingsReachable, false);
-  assert.ok(result.issues.some((i) => i.code === 'REACHABLE' && /no gate/.test(i.message)));
+  assert.ok(result.issues.some((i) => i.code === 'REACHABLE' && i.severity === 'warning' && /no gate/.test(i.message)));
+});
+
+test('malformed entity entries and missing layout collections cannot be filtered into a passing layout', () => {
+  const terrain = Array.from({ length: 2 }, () => Array(2).fill('grass'));
+  const base = {
+    townId: 'structure-test', repoFingerprint: 'b'.repeat(64), generatorVersion: '1.1.0', seed: 'test',
+    map: { widthTiles: 2, heightTiles: 2, tileSize: 16, terrain },
+    districts: [], buildings: [], roads: [], npcs: [], props: [], connections: []
+  };
+  for (const field of ['districts', 'buildings', 'roads', 'npcs', 'props', 'connections']) {
+    const malformed = { ...base, [field]: [null] };
+    const result = validateLayout(malformed);
+    assert.equal(result.ok, false, `${field}=[null] must fail structural validation`);
+    assert.ok(result.issues.some((entry) => entry.code === 'STRUCTURE' && entry.severity === 'error'));
+  }
+  const missingCollections = validateLayout({ map: base.map, buildings: [], roads: [], npcs: [], props: [] });
+  assert.equal(missingCollections.ok, false);
+  assert.ok(missingCollections.issues.some((entry) => entry.code === 'STRUCTURE' && /districts/.test(entry.message)));
+});
+
+test('missing or malformed deterministic identity fields fail structural validation', () => {
+  const layout = structuredClone(baselineLayout());
+  delete layout.townId;
+  layout.repoFingerprint = 'not-a-digest';
+  layout.generatorVersion = '';
+  layout.seed = 42;
+
+  const result = validateLayout(layout);
+  assert.equal(result.ok, false);
+  for (const field of ['townId', 'repoFingerprint', 'generatorVersion', 'seed']) {
+    assert.ok(result.issues.some((entry) => entry.code === 'STRUCTURE' && entry.message.includes(field)), field);
+  }
 });
 
 // --- grounding: the real sample/tiny-town repository ---------------------------

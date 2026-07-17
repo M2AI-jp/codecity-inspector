@@ -1,0 +1,184 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-15T04:37:04.863Z",
+    "approvedPath": "generated/characters/approved/character_guildmaster-17bb295857231bb7.png",
+    "approvedSha256": "17bb295857231bb7675c85a53f02c1824339bb3611a2f2249e4990f4f8bf1a74",
+    "note": "Required 78 batch approval cb4aa5f67c91a329c140f4a09bdc39b960ccce8a76334957066d7c0e83540042",
+    "reviewer": "human"
+  },
+  "assetId": "character.guildmaster",
+  "category": "character",
+  "createdAt": "2026-07-14T09:00:00.000Z",
+  "dryRun": false,
+  "id": "gen_import_054db4499615a214062c",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 96x120.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_b2bff6255f9e4939e835",
+  "manualImport": true,
+  "metadataPath": "generated/characters/approved/character_guildmaster-17bb295857231bb7.json",
+  "outputInspection": {
+    "bytes": 3207,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 120,
+    "width": 96
+  },
+  "outputPath": "generated/characters/approved/character_guildmaster-17bb295857231bb7.png",
+  "outputSha256": "17bb295857231bb7675c85a53f02c1824339bb3611a2f2249e4990f4f8bf1a74",
+  "productionRecipe": {
+    "assetId": "character.guildmaster",
+    "backgroundRemoval": {
+      "autoKey": "border",
+      "cleanup": {
+        "alphaCutoff": 96,
+        "componentMinPixels": 64,
+        "resizeKernel": "nearest",
+        "targetMaxHeight": 32,
+        "targetMaxWidth": 22
+      },
+      "despill": true,
+      "keyColor": null,
+      "method": "official-chroma-key-helper",
+      "opaqueThreshold": 110,
+      "softMatte": true,
+      "transparentThreshold": 35
+    },
+    "canvas": {
+      "baselineY": 119,
+      "height": 120,
+      "width": 96
+    },
+    "generationPromptPath": "review/prompts/wave1c-characters/guildmaster.txt",
+    "generationPromptSha256": "c5785366daeb949c199d62434c395d8a0fc65e446461c6bf41dabc08711375b0",
+    "generator": "codex-imagegen-built-in",
+    "inputReferences": [
+      {
+        "id": "world_visual_master",
+        "role": "global-style",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "character_visual_master",
+        "role": "primary-subject",
+        "sha256": "78436f089e03ae6fb15605ccaeae12513cd9393dd0e3355d4ef6df04bfb430ea"
+      }
+    ],
+    "method": "imagegen",
+    "outputSha256": "17bb295857231bb7675c85a53f02c1824339bb3611a2f2249e4990f4f8bf1a74",
+    "referenceImages": [
+      {
+        "id": "world_visual_master",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "character_visual_master",
+        "sha256": "78436f089e03ae6fb15605ccaeae12513cd9393dd0e3355d4ef6df04bfb430ea"
+      }
+    ],
+    "scaleClass": "tiny",
+    "source": {
+      "cropRect": null,
+      "height": 1122,
+      "path": "tmp/imagegen/wave1c-characters/raw/guildmaster.png",
+      "sha256": "5349476318cd3a5267683fb6bf14ebc0312cec315d87a059311815572b6ac3ca",
+      "width": 1402
+    },
+    "sourceSnapshot": {
+      "height": 1122,
+      "path": "generated/characters/approved/source-5349476318cd3a5267683fb6bf14ebc0312cec315d87a059311815572b6ac3ca.source-original.png",
+      "sha256": "5349476318cd3a5267683fb6bf14ebc0312cec315d87a059311815572b6ac3ca",
+      "width": 1402
+    },
+    "spriteContract": {
+      "allowEnlargement": false,
+      "commonFootBaseline": true,
+      "frame": {
+        "height": 40,
+        "width": 24
+      },
+      "normalizedColumnOrder": [
+        "front",
+        "back",
+        "left",
+        "right"
+      ],
+      "normalizedColumnSources": [
+        0,
+        1,
+        3,
+        2
+      ],
+      "partialAlphaPixels": 0,
+      "resizeKernel": "nearest",
+      "rowOrder": [
+        "idle",
+        "walk1",
+        "walk2"
+      ],
+      "sourceColumnOrderObserved": [
+        "front",
+        "back",
+        "right",
+        "left"
+      ],
+      "visibleBboxHeight": {
+        "class": "adult",
+        "max": 32,
+        "min": 28,
+        "target": 30
+      }
+    },
+    "subjectBbox": {
+      "height": 110,
+      "width": 86,
+      "x": 5,
+      "y": 10
+    },
+    "toolMode": "built-in",
+    "transformSteps": [
+      "full-frame",
+      "chroma-key-remove",
+      "cell-extract",
+      "shared-scale-normalize",
+      "nearest-downscale",
+      "hard-alpha",
+      "column-reorder",
+      "palette-quantize"
+    ],
+    "waveId": "wave1c-characters"
+  },
+  "promptHash": "3af1a2acacf29027af5fb6e666cbd945185c21ade66bef0dee8416f2981cb995",
+  "provenanceKey": "054db4499615a214062c5b795ee2304b54fd18e96be6cca3ecda0b863ccfb647",
+  "provider": "manual-import",
+  "referenceImageHashes": [
+    "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+    "78436f089e03ae6fb15605ccaeae12513cd9393dd0e3355d4ef6df04bfb430ea"
+  ],
+  "referenceImageIds": [
+    "world_visual_master",
+    "character_visual_master"
+  ],
+  "sourceFormat": "png",
+  "sourcePath": "generated/characters/pending/character_guildmaster-aacaffa9f4027f1f.source.png",
+  "sourceSha256": "aacaffa9f4027f1f0352d592996f36ea79ec3be989c337974405807c19c9144b",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

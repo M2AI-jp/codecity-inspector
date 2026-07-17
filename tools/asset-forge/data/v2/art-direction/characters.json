@@ -1,0 +1,289 @@
+{
+  "schemaVersion": 2,
+  "requiredSetId": "fable5-v2",
+  "waveId": "A",
+  "category": "character",
+  "assetCount": 7,
+  "assets": [
+    {
+      "id": "character.player",
+      "category": "character",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Adult repository inspector in a long navy field coat with cream scarf, cross-body satchel, and brass badge",
+        "materials": ["navy wool", "cream knit", "brown leather", "hammered brass", "off-white paper"],
+        "dominantColors": ["deep navy", "cream", "chestnut leather"],
+        "accentColors": ["brass gold", "clear teal notebook tab"],
+        "shapeLanguage": "Long coat tails and bright scarf frame an upright readable inspector silhouette",
+        "distinguishingFeatures": ["Round brass inspector badge sits high on the left lapel", "Teal-tabbed notebook travels from the right satchel into both hands during work"],
+        "distinguishFrom": [{"assetId": "character.town_clerk", "reason": "Player wears a long navy travel coat and cross-body field satchel; clerk wears a burgundy waistcoat and carries a rigid civic ledger."}],
+        "composition": "Keep head, scarf, badge, satchel strap, hands, coat hem, and both boots separated within every 48 by 96 frame",
+        "groundContact": "Both boot soles share the common baseline; walk frames alternate planted heel and lifted toe without sliding shadow",
+        "negativeConstraints": ["No sword or combat armor", "No face hidden by hood", "No baked exclamation mark", "No change of satchel shoulder between directions"],
+        "frameContent": [
+          {"frameId": "idle_1", "visualContent": "Balanced stance with notebook stowed, right hand near satchel flap, and cream scarf hanging still"},
+          {"frameId": "idle_2", "visualContent": "Small breathing rise, scarf tip shifts one pixel cluster, and brass badge remains fixed on left lapel"},
+          {"frameId": "walk_1", "visualContent": "Left boot plants forward, right arm counters, navy coat tail opens, and satchel stays against right hip"},
+          {"frameId": "walk_2", "visualContent": "Weight passes over both boots, coat tails narrow, cream scarf settles, and satchel strap stays taut"},
+          {"frameId": "walk_3", "visualContent": "Right boot plants forward, left arm counters, opposite coat tail opens, and badge remains visible"},
+          {"frameId": "walk_4", "visualContent": "Returning pass step closes the coat tails and prepares the next left-foot plant without foot glide"},
+          {"frameId": "talk_1", "visualContent": "Left hand opens at chest height while right hand steadies the satchel and posture leans toward listener"},
+          {"frameId": "talk_2", "visualContent": "Open left hand lowers, head gives a restrained nod, and scarf and coat keep the same orientation"},
+          {"frameId": "work_1", "visualContent": "Teal-tabbed inspection notebook is open in the left hand while right hand raises a short brass pencil"},
+          {"frameId": "work_2", "visualContent": "Brass pencil marks one line in the open notebook as gaze drops and both boots remain planted"}
+        ],
+        "characterContent": {
+          "outfit": "Long deep-navy field coat, cream knitted scarf, chestnut cross-body satchel, dark trousers, and sturdy brown boots",
+          "roleTool": "Teal-tabbed inspection notebook and short brass pencil",
+          "directionConsistency": "Badge remains on anatomical left lapel, satchel on anatomical right hip, scarf knot centered, and coat split visible in front, back, left, and right rows",
+          "actionContent": {
+            "idle": "Calm alert breathing with notebook stowed and the badge held as the brightest upper-body marker",
+            "walk": "Four-phase deliberate field stride with alternating boot plants, counter-swinging arms, coat tails, and stable satchel",
+            "talk": "One open-hand explanation followed by a small attentive nod while keeping eye line on the listener",
+            "work": "Open the teal-tabbed notebook, raise the brass pencil, then record a concrete finding on the page"
+          }
+        }
+      }
+    },
+    {
+      "id": "character.town_clerk",
+      "category": "character",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Adult civic clerk in a burgundy waistcoat and cream sleeves carrying a rigid green ledger and silver quill",
+        "materials": ["burgundy wool", "cream linen", "green bookcloth", "silver metal", "black leather"],
+        "dominantColors": ["burgundy", "cream", "ledger green"],
+        "accentColors": ["silver quill", "amber sleeve buttons"],
+        "shapeLanguage": "Neat short waistcoat, square ledger, and tucked elbows create an orderly civic silhouette",
+        "distinguishingFeatures": ["Rigid green ledger is held flat against the left forearm", "Silver quill is tucked behind the right ear until the work action"],
+        "distinguishFrom": [{"assetId": "character.player", "reason": "Clerk has a short burgundy waistcoat, cream sleeves, and rigid ledger; player has a long navy coat, scarf, and field satchel."}],
+        "composition": "Keep ledger corners, quill, cream sleeves, waistcoat points, and black shoes distinct at native frame size",
+        "groundContact": "Small black shoes share the fixed baseline; clerk's shorter administrative steps never hover above the contact shadow",
+        "negativeConstraints": ["No traveling satchel", "No hood or helmet", "No readable writing on ledger cover", "No weapon-like quill proportions"],
+        "frameContent": [
+          {"frameId": "idle_1", "visualContent": "Green ledger rests against left forearm, right hand folds over its lower edge, and quill remains behind ear"},
+          {"frameId": "idle_2", "visualContent": "Clerk straightens shoulders and adjusts the ledger corner while burgundy waistcoat points remain still"},
+          {"frameId": "walk_1", "visualContent": "Left shoe advances in a short brisk step as both elbows secure the square ledger against the torso"},
+          {"frameId": "walk_2", "visualContent": "Feet pass beneath the cream sleeves and ledger tilts slightly inward without changing carried side"},
+          {"frameId": "walk_3", "visualContent": "Right shoe advances while burgundy waistcoat hem shifts and the silver quill stays fixed behind ear"},
+          {"frameId": "walk_4", "visualContent": "Clerk returns to a narrow passing stance and levels the green ledger before the next stride"},
+          {"frameId": "talk_1", "visualContent": "Right index finger indicates one closed ledger corner while eyebrows lift in a welcoming explanation"},
+          {"frameId": "talk_2", "visualContent": "Right palm opens toward the town route and the ledger remains secured along the left forearm"},
+          {"frameId": "work_1", "visualContent": "Green ledger opens across the left forearm and the silver quill moves from ear to right hand"},
+          {"frameId": "work_2", "visualContent": "Silver quill writes a short ledger stroke while head bends and cream sleeve braces the open pages"}
+        ],
+        "characterContent": {
+          "outfit": "Burgundy wool waistcoat over rolled cream linen sleeves, dark knee-length trousers, black shoes, and amber sleeve buttons",
+          "roleTool": "Rigid green civic ledger with a short silver quill",
+          "directionConsistency": "Ledger stays on anatomical left forearm, quill begins behind anatomical right ear, and waistcoat points and cream sleeves match in front, back, left, and right rows",
+          "actionContent": {
+            "idle": "Orderly ledger-holding posture with a small shoulder straightening and no wandering prop positions",
+            "walk": "Short brisk four-step route movement while both elbows keep the civic ledger stable against the body",
+            "talk": "Indicate a ledger corner, then open the free palm toward the tour route in a welcoming civic gesture",
+            "work": "Open the green ledger, retrieve the silver quill from behind the ear, and enter a line in the civic record"
+          }
+        }
+      }
+    },
+    {
+      "id": "character.gatekeeper",
+      "category": "character",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Broad adult gatekeeper in an ochre hoodless mantle and charcoal tunic with a large carved passage token",
+        "materials": ["ochre felt", "charcoal wool", "carved oak", "black iron", "brown leather"],
+        "dominantColors": ["ochre", "charcoal", "oak brown"],
+        "accentColors": ["black iron", "small amber token inset"],
+        "shapeLanguage": "Broad mantle shoulders and a round palm-sized token create a stable threshold-guardian shape",
+        "distinguishingFeatures": ["Carved oak passage token has a square center hole with amber inset", "Heavy black key ring hangs at the left belt but is never used as a weapon"],
+        "distinguishFrom": [{"assetId": "character.mob.townsfolk_male", "reason": "Gatekeeper has broad ochre mantle, square-holed passage token, and key ring; townsfolk wears a teal cap and carries a rectangular crate."}],
+        "composition": "Preserve the square token hole, mantle width, key ring, gloved hands, and grounded boots in every facing",
+        "groundContact": "Wide brown boots remain planted on the shared baseline; walking weight shifts heavily without enlarging the shadow",
+        "negativeConstraints": ["No closed-face helmet", "No spear or sword", "No readable gate label", "No token changing hands between direction rows"],
+        "frameContent": [
+          {"frameId": "idle_1", "visualContent": "Broad stance with passage token resting at right belt, left thumb near key ring, and mantle draping evenly"},
+          {"frameId": "idle_2", "visualContent": "Gatekeeper scans slightly toward the road, ochre mantle edge shifts, and boots remain firmly planted"},
+          {"frameId": "walk_1", "visualContent": "Left boot steps with measured weight while right hand steadies the round token at the belt"},
+          {"frameId": "walk_2", "visualContent": "Body passes forward, broad mantle compresses at center, and black key ring swings one small arc"},
+          {"frameId": "walk_3", "visualContent": "Right boot steps while opposite mantle corner opens and the square token hole stays readable"},
+          {"frameId": "walk_4", "visualContent": "Weight returns through the narrow pass pose as token and key ring settle on their assigned sides"},
+          {"frameId": "talk_1", "visualContent": "Left gloved hand points through the gate while right hand lifts the token to waist height"},
+          {"frameId": "talk_2", "visualContent": "Pointing hand opens into a permissive palm and the raised token turns square hole toward listener"},
+          {"frameId": "work_1", "visualContent": "Both hands raise the carved passage token to chest height for a careful face-on inspection"},
+          {"frameId": "work_2", "visualContent": "Token rotates a quarter turn to show its edge and amber inset while eyes follow the carving"}
+        ],
+        "characterContent": {
+          "outfit": "Broad ochre felt mantle without hood, charcoal wool tunic, brown leather belt, dark gloves, and wide brown boots",
+          "roleTool": "Round carved-oak passage token with square hole and amber inset",
+          "directionConsistency": "Token hangs on anatomical right, iron key ring on anatomical left, mantle clasp stays centered, and ochre shoulder width matches front, back, left, and right rows",
+          "actionContent": {
+            "idle": "Hold a broad threshold stance and briefly scan the road while token and keys remain on assigned belt sides",
+            "walk": "Measured four-phase patrol stride with heavy boot plants, a restrained key-ring swing, and secured token",
+            "talk": "Point through the gate, then turn an open palm and square-holed token toward the arriving inspector",
+            "work": "Raise the wooden passage token, inspect its face, and rotate it once to check the carved edge and inset"
+          }
+        }
+      }
+    },
+    {
+      "id": "character.dojo_inspector",
+      "category": "character",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Lean adult test witness in an indigo over-jacket and gray training trousers carrying a brass-marked measuring baton",
+        "materials": ["indigo cotton", "gray canvas", "pale ash wood", "brass bands", "white cord"],
+        "dominantColors": ["indigo", "stone gray", "pale ash"],
+        "accentColors": ["brass measurement bands", "white wrist cord"],
+        "shapeLanguage": "Lean upright posture and one straight calibrated baton convey precision rather than combat",
+        "distinguishingFeatures": ["Three brass bands divide the pale ash baton into measured sections", "White witness cord loops once around the left wrist and baton heel"],
+        "distinguishFrom": [{"assetId": "character.dojo_student", "reason": "Inspector wears indigo outer jacket and uses a brass-marked measuring baton; student wears cream practice clothing and uses a padded blue striker."}],
+        "composition": "Keep baton length below shoulder height, show all three brass bands, and separate indigo sleeves from gray trousers",
+        "groundContact": "Flat cloth shoes meet the common baseline; demonstration lunges retain one planted rear foot and compact shadow",
+        "negativeConstraints": ["No sharpened blade", "No attack impact flash", "No martial-arts rank text", "No baton longer than the character"],
+        "frameContent": [
+          {"frameId": "idle_1", "visualContent": "Measuring baton stands vertical beside right leg, white wrist cord slack, and lean shoulders remain square"},
+          {"frameId": "idle_2", "visualContent": "Right thumb checks the lowest brass band while head tilts toward the practice target"},
+          {"frameId": "walk_1", "visualContent": "Left foot advances and the short calibrated baton angles backward along the right side"},
+          {"frameId": "walk_2", "visualContent": "Passing stance brings baton parallel to the thigh and white wrist cord into a shallow curve"},
+          {"frameId": "walk_3", "visualContent": "Right foot advances as baton angles forward and indigo jacket hem moves opposite the step"},
+          {"frameId": "walk_4", "visualContent": "Feet return through center and all three brass bands stay distinct on the settling baton"},
+          {"frameId": "talk_1", "visualContent": "Left palm marks an observed point while right hand holds the measured baton horizontally below chest"},
+          {"frameId": "talk_2", "visualContent": "Left index separates a second point in the air and baton returns to a neutral diagonal"},
+          {"frameId": "work_1", "visualContent": "Inspector takes a short measured lunge and draws the banded baton back toward the target"},
+          {"frameId": "work_2", "visualContent": "Baton stops squarely at target height with rear foot planted and no exaggerated impact effect"}
+        ],
+        "characterContent": {
+          "outfit": "Indigo cotton over-jacket, stone-gray canvas training trousers, flat dark shoes, and white witness cord at left wrist",
+          "roleTool": "Pale ash measuring baton divided by three brass calibration bands",
+          "directionConsistency": "Baton remains in anatomical right hand, white cord on anatomical left wrist, and three brass bands and jacket overlap stay physical in front, back, left, and right rows",
+          "actionContent": {
+            "idle": "Stand precisely with baton vertical, then check its lowest calibration band while watching the target",
+            "walk": "Carry the short baton beside the thigh through four controlled steps with cord and jacket responding consistently",
+            "talk": "Use the free hand to separate two evidence points while the calibrated baton stays below chest height",
+            "work": "Demonstrate one measured lunge and stop the brass-banded baton at the target without combat exaggeration"
+          }
+        }
+      }
+    },
+    {
+      "id": "character.mob.townsfolk_male",
+      "category": "character",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Adult working resident in teal knit cap and rust-brown vest carrying a small rope-handled cargo crate",
+        "materials": ["teal wool", "rust-brown canvas", "cream linen", "pine wood", "hemp rope"],
+        "dominantColors": ["rust brown", "cream", "teal"],
+        "accentColors": ["pale pine", "red neckerchief"],
+        "shapeLanguage": "Rolled sleeves, compact cap, and a rectangular waist-high crate make a practical working silhouette",
+        "distinguishingFeatures": ["Teal knit cap has one folded square patch above the right ear", "Small pine crate uses two looped rope handles and a diagonal corner brace"],
+        "distinguishFrom": [{"assetId": "character.gatekeeper", "reason": "Townsfolk has rolled cream sleeves, teal cap, and rectangular cargo crate; gatekeeper has an ochre mantle and round passage token."}],
+        "composition": "Keep cap patch, red neckerchief, rolled sleeves, crate brace, rope loops, and boots readable in each frame",
+        "groundContact": "Work boots share the common baseline; lifting and setting the crate changes hand height but never foot contact",
+        "negativeConstraints": ["No official badge", "No gate keys", "No crate larger than torso", "No readable shipping marks"],
+        "frameContent": [
+          {"frameId": "idle_1", "visualContent": "Hands rest at sides, empty crate strap loop hangs from belt, and teal cap patch faces assigned side"},
+          {"frameId": "idle_2", "visualContent": "Resident rolls one cream sleeve higher and glances toward the nearest active street route"},
+          {"frameId": "walk_1", "visualContent": "Left boot steps forward, rust vest opens slightly, and empty rope loops swing at the belt"},
+          {"frameId": "walk_2", "visualContent": "Weight passes under a level torso while red neckerchief and rolled sleeves remain separated"},
+          {"frameId": "walk_3", "visualContent": "Right boot steps forward and the opposite empty rope loop swings below the rust vest"},
+          {"frameId": "walk_4", "visualContent": "Passing stance settles both rope loops and preserves the teal cap patch on anatomical right"},
+          {"frameId": "talk_1", "visualContent": "Right thumb gestures back along the traveled route while left palm stays open at belt height"},
+          {"frameId": "talk_2", "visualContent": "Both hands briefly outline a small box shape before dropping toward the work position"},
+          {"frameId": "work_1", "visualContent": "Resident bends knees and grips both rope handles of the braced pine crate at ground level"},
+          {"frameId": "work_2", "visualContent": "Small crate is lifted to waist height and set squarely with its diagonal brace facing the viewer"}
+        ],
+        "characterContent": {
+          "outfit": "Teal patched knit cap, rust-brown canvas vest, rolled cream linen sleeves, red neckerchief, dark trousers, and work boots",
+          "roleTool": "Small pine cargo crate with diagonal brace and twin hemp-rope handles",
+          "directionConsistency": "Cap patch stays above anatomical right ear, red neckerchief stays centered, and rope loops and rolled sleeves remain consistent in front, back, left, and right rows",
+          "actionContent": {
+            "idle": "Adjust one rolled sleeve and glance toward local activity with empty crate handles secured at the belt",
+            "walk": "Casual four-step resident route motion with work-boot plants, vest movement, and restrained rope-loop swing",
+            "talk": "Gesture back along the traveled route, then outline the compact crate size with both hands",
+            "work": "Bend with planted boots, grip both rope handles, lift the braced pine crate, and set it squarely at waist height"
+          }
+        }
+      }
+    },
+    {
+      "id": "character.mob.townsfolk_female",
+      "category": "character",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Adult garden-tending resident in moss shawl and plum skirt carrying a small copper watering can and hand trowel",
+        "materials": ["moss wool", "plum linen", "cream cotton", "hammered copper", "dark wood"],
+        "dominantColors": ["moss green", "plum", "cream"],
+        "accentColors": ["copper orange", "cornflower blue ribbon"],
+        "shapeLanguage": "Triangular shawl, full practical skirt, and curved watering-can handle form a soft lived-in silhouette",
+        "distinguishingFeatures": ["Blue ribbon ties the moss shawl only at the left shoulder", "Small copper watering can has a short round rose and dark wooden top handle"],
+        "distinguishFrom": [{"assetId": "character.town_clerk", "reason": "Garden resident wears a moss shawl and plum skirt with watering can; clerk wears a burgundy waistcoat and carries a rigid green ledger."}],
+        "composition": "Separate shawl point, blue ribbon, copper can handle, trowel, skirt hem, and shoes within the native silhouette",
+        "groundContact": "Low brown shoes share the common baseline; tending crouch keeps both feet visible and skirt clear of the ground shadow",
+        "negativeConstraints": ["No civic ledger", "No oversized flower bouquet", "No water splash covering the body", "No ribbon switching shoulders"],
+        "frameContent": [
+          {"frameId": "idle_1", "visualContent": "Copper can hangs from right hand, trowel rests at left belt, and moss shawl point lies centered over plum skirt"},
+          {"frameId": "idle_2", "visualContent": "Resident checks the watering rose, lifts the can slightly, and blue shoulder ribbon stays visible"},
+          {"frameId": "walk_1", "visualContent": "Left shoe advances, copper can swings slightly backward, and plum skirt opens at the stride"},
+          {"frameId": "walk_2", "visualContent": "Passing step levels the can, shawl point settles, and trowel remains secured at left belt"},
+          {"frameId": "walk_3", "visualContent": "Right shoe advances as copper can swings forward and the opposite skirt fold opens"},
+          {"frameId": "walk_4", "visualContent": "Feet return through center while can handle, ribbon, and trowel settle on their assigned sides"},
+          {"frameId": "talk_1", "visualContent": "Left hand indicates a low flower patch while right hand keeps the watering can beside the skirt"},
+          {"frameId": "talk_2", "visualContent": "Left palm rises in a reflective gesture and head turns back toward the listener"},
+          {"frameId": "work_1", "visualContent": "Resident crouches, places trowel beside the flowers, and tips the copper can toward the roots"},
+          {"frameId": "work_2", "visualContent": "A narrow controlled water arc reaches the patch while left hand steadies one stem above the soil"}
+        ],
+        "characterContent": {
+          "outfit": "Triangular moss-wool shawl tied by blue ribbon at left shoulder, cream blouse, plum linen skirt, and low brown shoes",
+          "roleTool": "Small hammered-copper watering can with round rose plus a dark-handled trowel",
+          "directionConsistency": "Blue ribbon stays on anatomical left shoulder, watering can in anatomical right hand, trowel at left belt, and shawl point remains centered in front, back, left, and right rows",
+          "actionContent": {
+            "idle": "Hold the copper can at the right side and briefly inspect its watering rose while trowel remains belted",
+            "walk": "Gentle four-phase town route stride with controlled can swing, alternating skirt folds, and stable shawl",
+            "talk": "Indicate the low flower patch, then raise an open reflective palm while keeping the can below waist",
+            "work": "Crouch beside the patch, set the trowel, tip a narrow water arc to the roots, and steady one flower stem"
+          }
+        }
+      }
+    },
+    {
+      "id": "character.dojo_student",
+      "category": "character",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Adult dojo learner in cream wrap jacket and rust-red belt holding a short blue-padded practice striker",
+        "materials": ["cream cotton", "rust-red canvas", "blue padded cloth", "pale ash wood", "black rubber"],
+        "dominantColors": ["cream", "rust red", "soft blue"],
+        "accentColors": ["pale ash grip", "black sole"],
+        "shapeLanguage": "Compact training stance, wrapped jacket overlap, and short padded tool read as learner practice",
+        "distinguishingFeatures": ["Blue padded striker is short and blunt with two cream tie bands", "Rust-red belt ends differ in length and hang at the anatomical left hip"],
+        "distinguishFrom": [{"assetId": "character.dojo_inspector", "reason": "Student wears cream training clothes and uses a blue padded striker; inspector wears indigo and uses a straight brass-calibrated baton."}],
+        "composition": "Keep padded head, tie bands, jacket overlap, unequal belt ends, hands, and flat shoes separated in all frames",
+        "groundContact": "Flat black soles use the common baseline; two practice strikes pivot around a consistently planted rear foot",
+        "negativeConstraints": ["No sharp weapon edge", "No brass measurement bands", "No impact explosion", "No belt ends swapping anatomical side"],
+        "frameContent": [
+          {"frameId": "idle_1", "visualContent": "Student holds blue padded striker down at right side, feet shoulder-width, and unequal red belt ends hang left"},
+          {"frameId": "idle_2", "visualContent": "Hands adjust the two cream striker ties while wrapped jacket overlap stays closed and orderly"},
+          {"frameId": "walk_1", "visualContent": "Left foot advances and short padded striker angles safely backward below the right elbow"},
+          {"frameId": "walk_2", "visualContent": "Passing stance brings striker parallel to thigh while longer belt end swings a restrained arc"},
+          {"frameId": "walk_3", "visualContent": "Right foot advances and striker angles forward as opposite cream jacket hem opens slightly"},
+          {"frameId": "walk_4", "visualContent": "Feet return through center, padded head lowers, and both red belt ends settle at left hip"},
+          {"frameId": "talk_1", "visualContent": "Student raises left hand in a brief question while right hand keeps the padded striker pointed down"},
+          {"frameId": "talk_2", "visualContent": "Left hand returns to the striker grip and head nods once toward the practice target"},
+          {"frameId": "work_1", "visualContent": "First controlled strike moves blue padded head toward the dummy with rear right foot planted"},
+          {"frameId": "work_2", "visualContent": "Second consistent strike lands from the opposite angle while rear left foot anchors and belt ends trail"}
+        ],
+        "characterContent": {
+          "outfit": "Cream cotton wrap jacket and trousers, rust-red canvas belt with unequal ends at left hip, and flat black-soled shoes",
+          "roleTool": "Short pale-ash practice striker with blue padded head and two cream tie bands",
+          "directionConsistency": "Striker begins in anatomical right hand, long belt end stays on anatomical left hip, and jacket overlap and padded proportions match in front, back, left, and right rows",
+          "actionContent": {
+            "idle": "Hold a ready but relaxed stance, then check both cream ties on the short blue padded striker",
+            "walk": "Carry the blunt tool safely below elbow through four steps while belt ends and jacket hems react consistently",
+            "talk": "Raise one questioning hand, then nod toward the practice target and return both hands to the safe grip",
+            "work": "Perform two controlled dummy strikes from opposite angles with a clearly planted rear foot and no combat impact effect"
+          }
+        }
+      }
+    }
+  ]
+}

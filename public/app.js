@@ -1,909 +1,1251 @@
-// public/app.js — CodeCity Inspector placeholder frontend.
-//
-// Vanilla browser JS, no build step, no dependencies, no image assets. Fetches
-// GET /api/town and renders it four ways: a procedurally-drawn pixel-grid town
-// canvas, a habitability panel (incl. the "誰も住めません" headline), a
-// building-details panel that splits a facility's evidence into observed /
-// inferred / unknown, and the 5-tab 接続者ギルド roster modal.
-//
-// CSP contract (server sends: script-src 'self'; style-src 'self'; no
-// unsafe-inline): this file is loaded as an external <script src="/app.js">,
-// never writes el.style.* and sets no style attributes — every visual state is
-// a class or the [hidden] attribute, owned by styles.css. The ONLY per-node
-// geometry it sets is the canvas drawing-buffer resolution (canvas.width /
-// canvas.height IDL properties) plus 2D canvas drawing, which CSP does not
-// govern. The JP vocabulary below is mirrored from src/town/schema.mjs because
-// that module lives outside the served public/ root and cannot be imported.
+import {
+  FACILITY_ANCHORS,
+  PLAYER_START_NODE_ID,
+  WORLD_EFFECTS,
+  WORLD_MAP,
+  WORLD_NPCS,
+  WORLD_PROPS,
+  WORLD_STRUCTURES,
+  WORLD_DISTRICTS,
+  auditWorldMap,
+  computeWorldCamera,
+  createInterpolatedMovement,
+  directionBetweenPoints,
+  districtForPoint,
+  groundAssetAt as worldGroundAssetAt,
+  groundTransformAt as worldGroundTransformAt,
+  nearestFacilityAnchor,
+  nearestNavigationNode,
+  navigationEdgeBetween,
+  navigationNodeById,
+  nextNodeForDirection,
+  sampleInterpolatedMovement,
+  screenToWorld,
+  shortestNavigationPath,
+  worldToScreen
+} from './world-runtime.mjs';
+import {
+  SITE_CANVAS,
+  SITE_RENDER_LAYERS,
+  authoredTilePlacement,
+  auditRuntimeAssetUsage,
+  auditSiteRecipes,
+  characterFrameRect,
+  effectFrameRect,
+  groundAssetAt,
+  groundTransformAt,
+  loadForgeAssetImages,
+  nearestSiteNode,
+  nextSiteNodeForDirection,
+  screenToSite,
+  shortestSitePath,
+  snowPixelOverlaysAt,
+  siteNodeById,
+  siteRecipeById,
+  siteRecipesForFacility
+} from './site-runtime.mjs';
 
-'use strict';
-
-// ---------------------------------------------------------------------------
-// Vocabulary mirrored from src/town/schema.mjs (frozen contract).
-// ---------------------------------------------------------------------------
-
-const FACILITY_LABELS = {
-  inn: '宿屋', pub: '酒場', guild: '接続者ギルド', town_hall: '役場',
-  dock: '船着場', warehouse: '倉庫', well: '井戸', workshop: '工房',
-  dojo: '道場', watchtower: '見張り台', house: '住宅', shop: '商店',
-  ruin: '廃屋', gate: '門'
+const elements = {
+  canvas: document.getElementById('world-canvas'),
+  loading: document.getElementById('world-loading'),
+  assetError: document.getElementById('asset-error'),
+  assetErrorText: document.getElementById('asset-error-text'),
+  help: document.getElementById('world-help'),
+  status: document.getElementById('world-status'),
+  districtBanner: document.getElementById('district-banner'),
+  interactionPrompt: document.getElementById('interaction-prompt'),
+  interactionPromptText: document.getElementById('interaction-prompt-text'),
+  journeyKicker: document.getElementById('journey-kicker'),
+  journeyTitle: document.getElementById('journey-title'),
+  journeyCopy: document.getElementById('journey-copy'),
+  journeySteps: {
+    walk: document.getElementById('journey-step-walk'),
+    route: document.getElementById('journey-step-route'),
+    evidence: document.getElementById('journey-step-evidence'),
+    return: document.getElementById('journey-step-return')
+  },
+  repoName: document.getElementById('repo-name'),
+  levelBadge: document.getElementById('level-badge'),
+  placeLabel: document.getElementById('place-label'),
+  overviewButton: document.getElementById('overview-btn'),
+  backButton: document.getElementById('back-btn'),
+  journalButton: document.getElementById('journal-btn'),
+  journal: document.getElementById('journal-drawer'),
+  journalClose: document.getElementById('journal-close-btn'),
+  drawerRepo: document.getElementById('drawer-repo'),
+  drawerHabitability: document.getElementById('drawer-habitability'),
+  drawerLocation: document.getElementById('drawer-location'),
+  facilityEmpty: document.getElementById('facility-empty'),
+  facilityDetail: document.getElementById('facility-detail'),
+  facilityDistrict: document.getElementById('facility-district'),
+  facilityName: document.getElementById('facility-name'),
+  facilityKind: document.getElementById('facility-kind'),
+  facilityPresence: document.getElementById('facility-presence'),
+  facilityCount: document.getElementById('facility-count'),
+  evidenceObserved: document.getElementById('evidence-observed'),
+  evidenceInferred: document.getElementById('evidence-inferred'),
+  evidenceUnknown: document.getElementById('evidence-unknown'),
+  siteEnterButton: document.getElementById('site-enter-btn'),
+  siteChoice: document.getElementById('site-choice-panel'),
+  siteChoiceTitle: document.getElementById('site-choice-title'),
+  siteChoiceButtons: document.getElementById('site-choice-buttons'),
+  siteChoiceClose: document.getElementById('site-choice-close-btn')
 };
 
-const GUILD_TABS = ['なかま', 'うけつけ', 'いらい', 'もちもの', 'じょうたい'];
-const EVIDENCE_LABELS = { observed: '観測', inferred: '推測', unknown: '不明' };
+const context = elements.canvas.getContext('2d', { alpha: false });
+const initialNode = navigationNodeById(PLAYER_START_NODE_ID)
+  ?? nearestNavigationNode(FACILITY_ANCHORS.town_hall.x, FACILITY_ANCHORS.town_hall.y);
+const directionForKey = Object.freeze({
+  ArrowUp: 'up', w: 'up', W: 'up',
+  ArrowDown: 'down', s: 'down', S: 'down',
+  ArrowLeft: 'left', a: 'left', A: 'left',
+  ArrowRight: 'right', d: 'right', D: 'right'
+});
 
-// Kept in sync with src/town/habitability.mjs; the same string is unshifted
-// into reasons[] when !canLive, so we filter it out of the reasons list and
-// show it once, prominently, in its dedicated headline element instead.
-const HEADLINE_CANNOT_LIVE = 'このままだと誰も住めません！';
-
-// One fill per TILE_TYPES id (14); unmapped ids get the loud fallback so a
-// vocabulary drift is visible rather than silent. water/bridge/cliff/stairs also
-// get a procedural pixel pass in drawTerrainDetail() so the elevation + waterway
-// terrain reads at a glance (rippling water, planks over the banks, a rocky rim,
-// stepped treads) without any image assets.
-const TILE_COLORS = {
-  grass: '#4a8f3c', dirt: '#8a6a3f', path: '#c7ac7c', road: '#b89a63',
-  sand: '#e3d2a0', water: '#3a72b0', bridge: '#9c7a4f', stairs: '#cabf99',
-  plaza: '#d8cdb0', floor: '#e9e4d6', wall: '#33302b', rock: '#8a8a86',
-  tree: '#2f6b2a', cliff: '#544b40'
+const state = {
+  town: null,
+  worldReady: false,
+  assets: null,
+  assetError: null,
+  view: 'world',
+  camera: null,
+  anchors: Object.values(FACILITY_ANCHORS),
+  hoveredAnchor: null,
+  selectedAnchor: FACILITY_ANCHORS.dojo,
+  nearbyAnchor: null,
+  worldNodeId: initialNode.id,
+  worldPosition: { x: initialNode.x, y: initialNode.y },
+  worldDirection: 'down',
+  worldMovement: null,
+  worldMovementEdge: null,
+  worldQueue: [],
+  worldHeldDirection: null,
+  worldPendingDirection: null,
+  worldReturn: null,
+  siteRecipe: null,
+  siteNodeId: null,
+  sitePosition: null,
+  siteDirection: 'up',
+  siteMovement: null,
+  siteQueue: [],
+  drawerOpener: null,
+  lastTimestamp: 0,
+  lastFrameAt: -Infinity,
+  lastDistrictId: null,
+  journey: {
+    stage: 'reach_dojo',
+    walked: false,
+    bridgeCrossed: false,
+    stairsUsed: false,
+    evidenceViewed: false,
+    returnedToWorld: false,
+    secondFacilityVisited: false
+  }
 };
-const UNKNOWN_TILE_COLOR = '#b23a9c';
 
-// One tint per FACILITY_KINDS id (14).
-const FACILITY_COLORS = {
-  inn: '#b5651d', pub: '#a4478a', guild: '#6a4fb3', town_hall: '#c9a227',
-  dock: '#2f6f8f', warehouse: '#7a6a4f', well: '#4a90a4', workshop: '#c97a3d',
-  dojo: '#3f7d4f', watchtower: '#5a5a6a', house: '#8fae5f', shop: '#d98c3d',
-  ruin: '#6b6459', gate: '#9c9c9c'
-};
-const UNKNOWN_FACILITY_COLOR = '#b23a9c';
+const FACILITY_ROLES = Object.freeze({
+  town_hall: 'リポジトリ全体', gate: '起動入口', guild: 'ローカル接続',
+  pub: '公開インターフェース', shop: 'パッケージ', inn: 'アプリケーション入口',
+  dock: '配布・デプロイ', dojo: 'テスト', well: '環境変数・秘密情報',
+  workshop: 'ビルド工程', warehouse: 'データ保存', watchtower: 'ログ・監視',
+  house: '通常モジュール', ruin: '古い実装・未使用候補'
+});
 
-// One fill per PROP_KINDS id (12).
-const PROP_COLORS = {
-  well: '#4a90a4', barrel: '#8a5a2f', crate: '#a4783f', signboard: '#caa863',
-  lamp: '#e8c96a', plant: '#4f8f4a', todo_grass: '#c9c15a', scaffold: '#b08a52',
-  fence: '#9c8a6a', flag: '#c94f4f', bench: '#7a5a3f', rubble: '#6b645a'
-};
-const DEFAULT_PROP_COLOR = '#8a7a5f';
-
-// The last three NPC_ROLES are ambient mobs — drawn lighter and smaller than
-// the facility-anchored roles (innkeeper, clerk, inspector, ...).
-const NPC_MOB_ROLES = new Set(['townsfolk', 'traveler', 'child']);
-
-const DIRECTION_VECTORS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
-
-// ---------------------------------------------------------------------------
-// State
-// ---------------------------------------------------------------------------
-
-let currentTown = null;
-let selectedKind = null; // facilityKind driving both the details panel and the canvas outline
-let activeGuildTab = GUILD_TABS[0];
-let guildOpenerEl = null;
-
-// ---------------------------------------------------------------------------
-// DOM cache
-// ---------------------------------------------------------------------------
-
-const el = {};
-
-function cacheDom() {
-  el.repoName = document.getElementById('repo-name');
-  el.seedBadge = document.getElementById('seed-badge');
-  el.seedShort = document.getElementById('seed-short');
-  el.levelBadge = document.getElementById('level-badge');
-  el.levelNum = document.getElementById('level-num');
-  el.levelName = document.getElementById('level-name');
-  el.reloadBtn = document.getElementById('reload-btn');
-  el.openGuildBtn = document.getElementById('open-guild-btn');
-  el.errorBanner = document.getElementById('error-banner');
-  el.canvas = document.getElementById('town-canvas');
-  el.canvasEmptyState = document.getElementById('canvas-empty-state');
-
-  el.cannotLiveHeadline = document.getElementById('cannot-live-headline');
-  el.habLevelText = document.getElementById('hab-level-text');
-  el.habCanLiveText = document.getElementById('hab-can-live-text');
-  el.habBlockersList = document.getElementById('hab-blockers-list');
-  el.habBlockersCount = document.getElementById('hab-blockers-count');
-  el.habWarningsList = document.getElementById('hab-warnings-list');
-  el.habWarningsCount = document.getElementById('hab-warnings-count');
-  el.habPendingList = document.getElementById('hab-pending-list');
-  el.habPendingCount = document.getElementById('hab-pending-count');
-  el.habReasonsList = document.getElementById('hab-reasons-list');
-
-  el.buildingDetailsEmpty = document.getElementById('building-details-empty');
-  el.buildingDetailsContent = document.getElementById('building-details-content');
-  el.bdFacilityLabel = document.getElementById('bd-facility-label');
-  el.bdFacilityKind = document.getElementById('bd-facility-kind');
-  el.bdFacilityPresent = document.getElementById('bd-facility-present');
-  el.bdFacilityCount = document.getElementById('bd-facility-count');
-  el.bdBuildingState = document.getElementById('bd-building-state');
-  el.bdEvidenceObserved = document.getElementById('bd-evidence-observed');
-  el.bdEvidenceInferred = document.getElementById('bd-evidence-inferred');
-  el.bdEvidenceUnknown = document.getElementById('bd-evidence-unknown');
-  el.facilityList = document.getElementById('facility-list');
-
-  el.guildModal = document.getElementById('guild-modal');
-  el.guildBackdrop = document.getElementById('guild-backdrop');
-  el.guildCloseBtn = document.getElementById('guild-close-btn');
-  el.guildUnavailable = document.getElementById('guild-unavailable');
-  el.guildBody = document.getElementById('guild-body');
-  el.guildTabs = Array.from(document.querySelectorAll('.guild-tab'));
-  el.guildTabpanels = Array.from(document.querySelectorAll('.guild-tabpanel'));
+function announce(message) {
+  elements.status.textContent = '';
+  window.requestAnimationFrame(() => { elements.status.textContent = message; });
 }
 
-// ---------------------------------------------------------------------------
-// Bootstrap
-// ---------------------------------------------------------------------------
-
-function init() {
-  cacheDom();
-  el.reloadBtn.addEventListener('click', loadTown);
-  el.openGuildBtn.addEventListener('click', () => {
-    if (currentTown) openGuildModal(currentTown.model, el.openGuildBtn);
-  });
-  el.canvas.addEventListener('click', onCanvasClick);
-  el.guildBackdrop.addEventListener('click', closeGuildModal);
-  el.guildCloseBtn.addEventListener('click', closeGuildModal);
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !el.guildModal.hidden) closeGuildModal();
-  });
-  for (const tabBtn of el.guildTabs) {
-    tabBtn.addEventListener('click', () => selectGuildTab(tabBtn.dataset.tab));
+function facilityState(facility) {
+  if ((facility?.evidence?.observed?.length ?? 0) > 0) {
+    return Object.freeze({ id: 'observed', label: '観測済み', color: '#9dcc88', symbol: '●' });
   }
-  wireGuildTabKeyboardNav();
-  loadTown();
-}
-
-async function loadTown() {
-  showError(null);
-  el.reloadBtn.disabled = true;
-  try {
-    let response;
-    try {
-      response = await fetch('/api/town', { headers: { Accept: 'application/json' }, cache: 'no-store' });
-    } catch {
-      throw new Error('サーバーに接続できませんでした（/api/town）。');
-    }
-    if (!response.ok) throw new Error(`サーバーがエラーを返しました（HTTP ${response.status}）。`);
-    const town = await response.json();
-    if (!isValidTown(town)) throw new Error('/api/town の応答形式がこの画面の想定と一致しません。');
-    currentTown = town;
-    renderAll(town);
-  } catch (err) {
-    currentTown = null;
-    showError(`町の読み込みに失敗しました: ${err && err.message ? err.message : err}`);
-  } finally {
-    el.reloadBtn.disabled = false;
+  if ((facility?.evidence?.inferred?.length ?? 0) > 0) {
+    return Object.freeze({ id: 'inferred', label: '推測あり', color: '#f0c968', symbol: '▲' });
   }
+  return Object.freeze({ id: 'unknown', label: '未確認', color: '#a9b8ca', symbol: '?' });
 }
 
-function isValidTown(town) {
-  return Boolean(
-    town && town.schemaVersion === 1 &&
-    town.habitability && town.model && Array.isArray(town.model.facilities) &&
-    town.layout && town.layout.map && Array.isArray(town.layout.map.terrain) &&
-    Array.isArray(town.layout.buildings)
-  );
-}
-
-function showError(message) {
-  if (!message) {
-    el.errorBanner.hidden = true;
-    el.errorBanner.textContent = '';
+function announceWorldArrival() {
+  const anchor = state.nearbyAnchor;
+  if (anchor) {
+    const status = facilityState(facilityForAnchor(anchor));
+    announce(`${anchor.label}の入口に到着しました（${status.label}）。EnterまたはSpaceで調べられます。`);
     return;
   }
-  el.errorBanner.hidden = false;
-  el.errorBanner.textContent = message;
+  announce(`${districtLabel(state.worldPosition)}に到着しました。次の金色の足あとを選べます。`);
 }
 
-function renderAll(town) {
-  renderHeader(town);
-  drawTown(town.layout);
-  renderHabitabilityPanel(town.habitability);
-  renderFacilityList(town.model);
-  selectKind(null);
-
-  const pubPresent = Boolean(findFacility(town.model, 'pub') && findFacility(town.model, 'pub').present);
-  el.openGuildBtn.disabled = !pubPresent;
-
-  el.canvasEmptyState.hidden = (town.layout.buildings || []).length > 0;
+function evidenceCount(facility) {
+  return ['observed', 'inferred', 'unknown']
+    .reduce((total, key) => total + (facility?.evidence?.[key]?.length ?? 0), 0);
 }
 
-function renderHeader(town) {
-  el.repoName.textContent = (town.repository && town.repository.name) || '(不明なリポジトリ)';
-  const seed = String(town.seed == null ? '' : town.seed);
-  el.seedShort.textContent = seed.length > 10 ? `${seed.slice(0, 10)}…` : (seed || '----');
-  el.seedBadge.title = seed ? `full seed: ${seed}` : '';
-
-  const level = (town.habitability && town.habitability.level) || 0;
-  el.levelBadge.dataset.level = String(level);
-  el.levelNum.textContent = String(level);
-  el.levelName.textContent = (town.habitability && town.habitability.levelName) || '-';
-}
-
-function findFacility(model, kind) {
-  return (model && model.facilities ? model.facilities : []).find((f) => f.kind === kind) || null;
-}
-
-function findBuildingByKind(layout, kind) {
-  if (kind == null) return null;
-  return (layout && layout.buildings ? layout.buildings : []).find((b) => b.facilityKind === kind) || null;
-}
-
-// ===========================================================================
-// Habitability panel (reads town.habitability)
-// ===========================================================================
-
-function renderHabitabilityPanel(hab) {
-  if (!hab) return;
-
-  el.cannotLiveHeadline.hidden = hab.canLive !== false;
-
-  el.habLevelText.textContent = `Lv.${hab.level} ${hab.levelName || ''}`.trim();
-  el.habCanLiveText.textContent = hab.canLive ? '住める' : '住めない';
-  el.habCanLiveText.className = hab.canLive ? 'hab-can-live-yes' : 'hab-can-live-no';
-
-  // The cannot-live headline owns HEADLINE_CANNOT_LIVE, so drop it from reasons.
-  const reasons = (Array.isArray(hab.reasons) ? hab.reasons : []).filter((r) => r !== HEADLINE_CANNOT_LIVE);
-
-  renderHabList(el.habBlockersList, hab.blockers, '(ブロッカーなし)');
-  renderHabList(el.habWarningsList, hab.warnings, '(警告なし)');
-  renderHabList(el.habPendingList, hab.pendingInspections, '(検査待ちなし)');
-  renderHabList(el.habReasonsList, reasons, '(理由なし)');
-
-  el.habBlockersCount.textContent = String((hab.blockers || []).length);
-  el.habWarningsCount.textContent = String((hab.warnings || []).length);
-  el.habPendingCount.textContent = String((hab.pendingInspections || []).length);
-}
-
-function renderHabList(ulEl, items, emptyText) {
-  ulEl.textContent = '';
-  const list = Array.isArray(items) ? items : [];
-  if (list.length === 0) {
-    const li = document.createElement('li');
-    li.className = 'hab-list-empty';
-    li.textContent = emptyText;
-    ulEl.appendChild(li);
-    return;
+function humanizeEvidence(value) {
+  const text = String(value);
+  const patterns = [
+    [/^(\d+) test file\(s\) observed: (.+)\.$/, (match) => `${match[1]}件のテストファイルを観測しました: ${match[2]}`],
+    [/^package\.json declares a "test" script\.$/, () => 'package.json に test スクリプトが宣言されています。'],
+    [/^(\d+) source\/test association\(s\) inferred from direct imports or unique filename matching\.$/, (match) => `直接importまたは一意なファイル名から、${match[1]}件のソース／テスト対応を推測しました。`],
+    [/^whether these tests currently pass was not executed; target-repo tests are never run by this tool\. Untested is not broken\.$/, () => 'テストが現在成功するかは未確認です。対象コードは実行しておらず、未テストを故障とは判定しません。'],
+    [/^repository "([^"]+)" was scanned\.$/, (match) => `リポジトリ「${match[1]}」を読み取り専用で観測しました。`],
+    [/^(\d+) of (\d+) discovered file\(s\) were scanned\.$/, (match) => `発見した${match[2]}ファイルのうち${match[1]}ファイルを静的に読み取りました。`],
+    [/^git commit history, issues, and releases were not read; only static file contents were scanned\.$/, () => 'commit履歴・Issue・Releaseは読んでいません。静的なファイル内容だけを観測しました。'],
+    [/^no external code-gen contractor reports were supplied\.$/, () => '外部コード生成ワーカーの報告は入力されていません。'],
+    [/^no observed or inferred signal for "([^"]+)" was found in this scan\.$/, () => 'この検査では、この施設を示す観測・推測が見つかりませんでした。'],
+    [/^entrypoint "([^"]+)" resolved via ([^.]+)\.$/, (match) => `入口「${match[1]}」を ${match[2]} から観測しました。`],
+    [/^whether the entrance actually starts successfully when run is unknown; this tool never executes target code\.$/, () => '入口が実行時に正常起動するかは未確認です。対象コードは実行していません。']
+  ];
+  for (const [pattern, format] of patterns) {
+    const match = text.match(pattern);
+    if (match) return format(match);
   }
-  for (const item of list) {
-    const li = document.createElement('li');
-    li.textContent = typeof item === 'string' ? item : String(item);
-    ulEl.appendChild(li);
+  return text;
+}
+
+function facilityForAnchor(anchor) {
+  return state.town?.model?.facilities?.find((facility) => facility.kind === anchor?.kind) ?? null;
+}
+
+function districtLabel(point) {
+  return districtForPoint(point?.x, point?.y, WORLD_DISTRICTS)?.label ?? '街道';
+}
+
+function evidenceItems(target, items, emptyLabel) {
+  target.replaceChildren();
+  const values = Array.isArray(items) && items.length > 0 ? items : [emptyLabel];
+  for (const value of values) {
+    const item = document.createElement('li');
+    item.textContent = humanizeEvidence(value);
+    target.append(item);
   }
 }
 
-// ===========================================================================
-// Facility list + building details (reads town.model.facilities, town.layout)
-// ===========================================================================
-
-function renderFacilityList(model) {
-  el.facilityList.textContent = '';
-  for (const facility of (model && model.facilities ? model.facilities : [])) {
-    const li = document.createElement('li');
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.dataset.kind = facility.kind;
-    btn.dataset.present = String(Boolean(facility.present));
-    btn.addEventListener('click', () => {
-      selectKind(facility.kind);
-      if (facility.kind === 'pub' && facility.present) openGuildModal(model, btn);
-    });
-
-    const label = document.createElement('span');
-    label.textContent = `${FACILITY_LABELS[facility.kind] || facility.kind} (${facility.kind})`;
-    const count = document.createElement('span');
-    count.className = 'fl-count';
-    count.textContent = facility.present ? `x${facility.count || 0}` : 'なし';
-
-    btn.appendChild(label);
-    btn.appendChild(count);
-    li.appendChild(btn);
-    el.facilityList.appendChild(li);
-  }
+function selectedFacility() {
+  return facilityForAnchor(state.selectedAnchor);
 }
 
-// Single selection path shared by canvas clicks and facility-list clicks.
-function selectKind(kind) {
-  selectedKind = kind;
-  renderBuildingDetails(kind);
-  syncFacilityListSelection();
-  if (currentTown) drawTown(currentTown.layout);
-}
-
-function syncFacilityListSelection() {
-  for (const btn of el.facilityList.querySelectorAll('button')) {
-    if (btn.dataset.kind === selectedKind) btn.setAttribute('aria-current', 'true');
-    else btn.removeAttribute('aria-current');
-  }
-}
-
-function renderBuildingDetails(kind) {
-  const facility = kind == null ? null : findFacility(currentTown && currentTown.model, kind);
-  if (!facility) {
-    el.buildingDetailsEmpty.hidden = false;
-    el.buildingDetailsContent.hidden = true;
-    return;
-  }
-  el.buildingDetailsEmpty.hidden = true;
-  el.buildingDetailsContent.hidden = false;
-
-  el.bdFacilityLabel.textContent = FACILITY_LABELS[facility.kind] || facility.kind;
-  el.bdFacilityKind.textContent = facility.kind;
-  el.bdFacilityPresent.textContent = facility.present ? 'あり' : 'なし';
-  el.bdFacilityCount.textContent = String(facility.count || 0);
-
-  const building = findBuildingByKind(currentTown && currentTown.layout, kind);
-  el.bdBuildingState.textContent = building ? (building.state || '-') : '（この街に建物なし）';
-
-  const evidence = facility.evidence || { observed: [], inferred: [], unknown: [] };
-  renderEvidenceList(el.bdEvidenceObserved, evidence.observed);
-  renderEvidenceList(el.bdEvidenceInferred, evidence.inferred);
-  renderEvidenceList(el.bdEvidenceUnknown, evidence.unknown);
-}
-
-function renderEvidenceList(ulEl, items) {
-  ulEl.textContent = '';
-  const list = Array.isArray(items) ? items : [];
-  if (list.length === 0) {
-    const li = document.createElement('li');
-    li.textContent = '(なし)';
-    ulEl.appendChild(li);
-    return;
-  }
-  for (const item of list) {
-    const li = document.createElement('li');
-    li.textContent = typeof item === 'string' ? item : JSON.stringify(item);
-    ulEl.appendChild(li);
-  }
-}
-
-// ===========================================================================
-// 接続者ギルド roster modal (reads town.model.guild[tab])
-// ===========================================================================
-
-function openGuildModal(model, openerEl) {
-  const pubFacility = findFacility(model, 'pub');
-  const pubPresent = Boolean(pubFacility && pubFacility.present);
-
-  guildOpenerEl = openerEl || document.activeElement;
-  el.guildModal.hidden = false;
-
-  if (!pubPresent || !model || !model.guild) {
-    el.guildUnavailable.hidden = false;
-    el.guildBody.hidden = true;
-    el.guildCloseBtn.focus();
-    return;
-  }
-
-  el.guildUnavailable.hidden = true;
-  el.guildBody.hidden = false;
-
-  for (const tab of GUILD_TABS) renderGuildTab(tab, model.guild[tab]);
-  selectGuildTab(activeGuildTab || GUILD_TABS[0]);
-  el.guildCloseBtn.focus();
-}
-
-function closeGuildModal() {
-  el.guildModal.hidden = true;
-  if (guildOpenerEl && typeof guildOpenerEl.focus === 'function') guildOpenerEl.focus();
-  guildOpenerEl = null;
-}
-
-function selectGuildTab(tabName) {
-  activeGuildTab = tabName;
-  for (const btn of el.guildTabs) {
-    const isActive = btn.dataset.tab === tabName;
-    btn.setAttribute('aria-selected', String(isActive));
-    btn.tabIndex = isActive ? 0 : -1;
-  }
-  for (const panel of el.guildTabpanels) {
-    panel.hidden = panel.dataset.tabpanel !== tabName;
-  }
-}
-
-function wireGuildTabKeyboardNav() {
-  const tabs = el.guildTabs;
-  tabs.forEach((btn, index) => {
-    btn.addEventListener('keydown', (e) => {
-      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
-      e.preventDefault();
-      const nextIndex = e.key === 'ArrowRight'
-        ? (index + 1) % tabs.length
-        : (index - 1 + tabs.length) % tabs.length;
-      tabs[nextIndex].focus();
-      selectGuildTab(tabs[nextIndex].dataset.tab);
-    });
-  });
-}
-
-function renderGuildTab(tabName, items) {
-  const panel = el.guildTabpanels.find((p) => p.dataset.tabpanel === tabName);
-  if (!panel) return;
-  const listEl = panel.querySelector('.guild-item-list');
-  listEl.textContent = '';
-
-  const list = Array.isArray(items) ? items : [];
-  if (list.length === 0) {
-    const li = document.createElement('li');
-    li.className = 'guild-empty';
-    li.textContent = '(この街ではまだ登録がありません)';
-    listEl.appendChild(li);
-    return;
-  }
-  for (const item of list) {
-    listEl.appendChild(tabName === 'もちもの' ? renderGuildBelongingItem(item) : renderGuildItem(item));
-  }
-}
-
-function evidenceBadge(evidenceClass) {
-  const cls = ['observed', 'inferred', 'unknown'].includes(evidenceClass) ? evidenceClass : 'unknown';
-  const span = document.createElement('span');
-  span.className = `evidence-badge evidence-badge-${cls}`;
-  span.textContent = EVIDENCE_LABELS[cls];
-  return span;
-}
-
-// Generic renderer for なかま {name,type} / うけつけ {path,name,kind} /
-// いらい {label,direction,note} / じょうたい {label,value,note}. Probes common
-// field names so it stays correct across all four real shapes (see
-// src/town/detect.mjs) without hard-coding one of them.
-function renderGuildItem(item) {
-  const li = document.createElement('li');
-  li.className = 'guild-item';
-  if (!item || typeof item !== 'object') {
-    li.textContent = String(item);
-    return li;
-  }
-
-  const primary = document.createElement('div');
-  primary.className = 'guild-item-primary';
-
-  const nameSpan = document.createElement('span');
-  nameSpan.className = 'guild-item-name';
-  nameSpan.textContent = String(item.name || item.label || item.path || '(不明な項目)');
-  primary.appendChild(nameSpan);
-
-  if (item.value !== undefined && item.value !== null && item.value !== '') {
-    const valueSpan = document.createElement('span');
-    valueSpan.className = 'guild-item-value';
-    valueSpan.textContent = `：${item.value}`;
-    primary.appendChild(valueSpan);
-  }
-
-  primary.appendChild(evidenceBadge(item.evidenceClass));
-  li.appendChild(primary);
-
-  const secondaryParts = [];
-  if (item.type) secondaryParts.push(item.type);
-  if (item.kind) secondaryParts.push(item.kind);
-  if (item.direction) secondaryParts.push(item.direction);
-  if (item.path && item.name) secondaryParts.push(item.path);
-  if (secondaryParts.length > 0) {
-    const secondary = document.createElement('div');
-    secondary.className = 'guild-item-secondary';
-    secondary.textContent = secondaryParts.join(' / ');
-    li.appendChild(secondary);
-  }
-
-  if (item.note) {
-    const note = document.createElement('div');
-    note.className = 'guild-item-note';
-    note.textContent = item.note;
-    li.appendChild(note);
-  }
-  return li;
-}
-
-// もちもの items are { category, items: string[], evidenceClass, note } — the
-// nested string items render as chips under the category header.
-function renderGuildBelongingItem(item) {
-  const li = document.createElement('li');
-  li.className = 'guild-item';
-  if (!item || typeof item !== 'object') {
-    li.textContent = String(item);
-    return li;
-  }
-
-  const primary = document.createElement('div');
-  primary.className = 'guild-item-primary';
-  const nameSpan = document.createElement('span');
-  nameSpan.className = 'guild-item-name';
-  nameSpan.textContent = String(item.category || '(不明なカテゴリ)');
-  primary.appendChild(nameSpan);
-  primary.appendChild(evidenceBadge(item.evidenceClass));
-  li.appendChild(primary);
-
-  if (item.note) {
-    const note = document.createElement('div');
-    note.className = 'guild-item-note';
-    note.textContent = item.note;
-    li.appendChild(note);
-  }
-
-  const chipItems = Array.isArray(item.items) ? item.items : [];
-  if (chipItems.length > 0) {
-    const chips = document.createElement('div');
-    chips.className = 'guild-item-chips';
-    for (const chipText of chipItems) {
-      const chip = document.createElement('span');
-      chip.className = 'guild-item-chip';
-      chip.textContent = String(chipText);
-      chips.appendChild(chip);
-    }
-    li.appendChild(chips);
-  }
-  return li;
-}
-
-// ===========================================================================
-// Canvas town rendering (reads town.layout) — procedural, no image assets
-// ===========================================================================
-
-// FNV-1a-ish hash for stable per-tile dithering only (never layout logic).
-function hash(text) {
-  let value = 2166136261;
-  for (let i = 0; i < text.length; i += 1) {
-    value ^= text.charCodeAt(i);
-    value = Math.imul(value, 16777619);
-  }
-  return value >>> 0;
-}
-
-function clamp8(n) { return Math.max(0, Math.min(255, n)); }
-
-// Lighten (amount>0) / darken (amount<0) a #rrggbb color by amount in -1..1.
-function shade(hex, amount) {
-  const n = parseInt(hex.slice(1), 16);
-  const r = clamp8(((n >> 16) & 255) + Math.round(255 * amount));
-  const g = clamp8(((n >> 8) & 255) + Math.round(255 * amount));
-  const b = clamp8((n & 255) + Math.round(255 * amount));
-  return `rgb(${r}, ${g}, ${b})`;
-}
-
-function drawTown(layout) {
-  const ctx = el.canvas.getContext('2d');
-  const map = layout && layout.map;
-  if (!map || !Array.isArray(map.terrain)) {
-    el.canvas.width = 1;
-    el.canvas.height = 1;
-    return;
-  }
-  const tileSize = map.tileSize || 16;
-  const width = map.widthTiles * tileSize;
-  const height = map.heightTiles * tileSize;
-  if (el.canvas.width !== width) el.canvas.width = width;
-  if (el.canvas.height !== height) el.canvas.height = height;
-  ctx.imageSmoothingEnabled = false;
-  ctx.clearRect(0, 0, width, height);
-
-  drawTerrain(ctx, map, tileSize);
-  drawRoadsOverlay(ctx, layout.roads || [], tileSize);
-  for (const building of layout.buildings || []) {
-    drawBuilding(ctx, building, tileSize, building.facilityKind === selectedKind);
-  }
-  drawProps(ctx, layout.props || [], tileSize);
-  drawNpcs(ctx, layout.npcs || [], tileSize);
-
-  el.canvas.setAttribute('aria-label', ariaSummary(currentTown));
-}
-
-// Tiles that get an extra procedural pass on top of their flat base fill so the
-// waterway + elevation terrain reads without image assets. Everything else is a
-// plain dithered square.
-const DETAILED_TILES = new Set(['water', 'bridge', 'cliff', 'stairs']);
-
-function terrainTypeAt(terrain, x, y) {
-  const row = terrain[y];
-  return row ? row[x] : undefined;
-}
-
-function drawTerrain(ctx, map, tileSize) {
-  const terrain = map.terrain;
-  for (let y = 0; y < terrain.length; y += 1) {
-    const row = terrain[y] || [];
-    for (let x = 0; x < row.length; x += 1) {
-      const type = row[x];
-      const base = TILE_COLORS[type] || UNKNOWN_TILE_COLOR;
-      const px = x * tileSize;
-      const py = y * tileSize;
-      const dither = (hash(`${x},${y},${type}`) & 3) === 0;
-      ctx.fillStyle = dither ? shade(base, -0.05) : base;
-      ctx.fillRect(px, py, tileSize, tileSize);
-      if (DETAILED_TILES.has(type)) {
-        drawTerrainDetail(ctx, terrain, x, y, type, px, py, tileSize, base);
-      }
-    }
-  }
-}
-
-// Placeholder pixel detailing for terrain tiles that carry meaning beyond a flat
-// colour. Every mark is an axis-aligned fillRect (no images, no blur) so the art
-// stays crisp when CSS upscales the canvas. CSP is unaffected: this is 2D canvas
-// drawing, not element styling.
-function drawTerrainDetail(ctx, terrain, x, y, type, px, py, ts, base) {
-  if (type === 'water') { drawWaterTile(ctx, x, y, px, py, ts, base); return; }
-  if (type === 'bridge') { drawBridgeTile(ctx, terrain, x, y, px, py, ts, base); return; }
-  if (type === 'cliff') { drawCliffTile(ctx, x, y, px, py, ts, base); return; }
-  if (type === 'stairs') { drawStairsTile(ctx, terrain, x, y, px, py, ts, base); }
-}
-
-// Water: two faint lighter ripple dashes so the blue reads as moving water.
-function drawWaterTile(ctx, x, y, px, py, ts, base) {
-  const crest = shade(base, 0.16);
-  const thick = Math.max(1, Math.round(ts * 0.09));
-  const half = Math.max(2, Math.round(ts * 0.5));
-  const shift = (hash(`${x},${y},wave`) & 1) ? half : 0;
-  ctx.fillStyle = crest;
-  ctx.fillRect(px + shift, py + Math.round(ts * 0.3), half, thick);
-  ctx.fillRect(px + (shift ? 0 : half), py + Math.round(ts * 0.64), half, thick);
-}
-
-// Bridge: tan deck planks with the blue water it spans peeking out along the two
-// banks. Orientation follows whichever axis the adjacent water runs on, so a
-// deck always shows water on exactly the sides it bridges (the generator lays a
-// full column/row of water, so a bridge tile's neighbours on that line ARE
-// water).
-function drawBridgeTile(ctx, terrain, x, y, px, py, ts, base) {
-  const seam = shade(base, -0.32);
-  const sheen = shade(base, 0.16);
-  const bank = Math.max(1, Math.round(ts * 0.16));
-  const step = Math.max(2, Math.round(ts / 4));
-  // Water gap runs top<->bottom unless it is strictly on the east/west axis.
-  const spanVertical =
-    terrainTypeAt(terrain, x, y - 1) === 'water' ||
-    terrainTypeAt(terrain, x, y + 1) === 'water' ||
-    !(terrainTypeAt(terrain, x - 1, y) === 'water' ||
-      terrainTypeAt(terrain, x + 1, y) === 'water');
-
-  ctx.fillStyle = TILE_COLORS.water;
-  if (spanVertical) {
-    ctx.fillRect(px, py, ts, bank);              // water at the top bank
-    ctx.fillRect(px, py + ts - bank, ts, bank);  // ... and the bottom bank
-    for (let sx = px + step; sx < px + ts; sx += step) {
-      ctx.fillStyle = seam;
-      ctx.fillRect(sx, py + bank, 1, ts - bank * 2);      // plank seam
-      ctx.fillStyle = sheen;
-      ctx.fillRect(sx + 1, py + bank, 1, ts - bank * 2);  // plank sheen
-    }
-  } else {
-    ctx.fillRect(px, py, bank, ts);              // water on the left bank
-    ctx.fillRect(px + ts - bank, py, bank, ts);  // ... and the right bank
-    for (let sy = py + step; sy < py + ts; sy += step) {
-      ctx.fillStyle = seam;
-      ctx.fillRect(px + bank, sy, ts - bank * 2, 1);
-      ctx.fillStyle = sheen;
-      ctx.fillRect(px + bank, sy + 1, ts - bank * 2, 1);
-    }
-  }
-}
-
-// Cliff: a dark rock block with a sunlit top lip and a shadowed foot so it reads
-// as a raised, non-walkable edge, plus one deterministic crack in the face.
-function drawCliffTile(ctx, x, y, px, py, ts, base) {
-  const lip = Math.max(1, Math.round(ts * 0.22));
-  ctx.fillStyle = shade(base, 0.2);
-  ctx.fillRect(px, py, ts, lip);                 // sunlit top rim
-  ctx.fillStyle = shade(base, -0.3);
-  ctx.fillRect(px, py + ts - lip, ts, lip);      // shadow at the foot
-  const cx = px + 2 + (hash(`${x},${y},crack`) % Math.max(1, ts - 4));
-  ctx.fillStyle = shade(base, -0.45);
-  ctx.fillRect(cx, py + lip, 1, ts - lip * 2);   // crack in the rock face
-}
-
-// Stairs: light treads split by dark risers. The step lines run parallel to the
-// adjacent cliff edge (the generator seats a stairs tile on a plateau rim), so
-// the flight visibly climbs toward the cliff; horizontal by default.
-function drawStairsTile(ctx, terrain, x, y, px, py, ts, base) {
-  const riser = shade(base, -0.32);
-  const tread = shade(base, 0.18);
-  const steps = 4;
-  // Cliff along the E/W neighbours means an east-west rim -> horizontal steps.
-  const horizontal =
-    terrainTypeAt(terrain, x - 1, y) === 'cliff' ||
-    terrainTypeAt(terrain, x + 1, y) === 'cliff' ||
-    !(terrainTypeAt(terrain, x, y - 1) === 'cliff' ||
-      terrainTypeAt(terrain, x, y + 1) === 'cliff');
-  for (let i = 1; i < steps; i += 1) {
-    if (horizontal) {
-      const yy = py + Math.round((ts * i) / steps);
-      ctx.fillStyle = tread;
-      ctx.fillRect(px, yy - 1, ts, 1);
-      ctx.fillStyle = riser;
-      ctx.fillRect(px, yy, ts, 1);
-    } else {
-      const xx = px + Math.round((ts * i) / steps);
-      ctx.fillStyle = tread;
-      ctx.fillRect(xx - 1, py, 1, ts);
-      ctx.fillStyle = riser;
-      ctx.fillRect(xx, py, 1, ts);
-    }
-  }
-}
-
-// A worn wheel-rut along each road polyline, on top of the plain road terrain.
-function drawRoadsOverlay(ctx, roads, tileSize) {
-  ctx.save();
-  ctx.strokeStyle = 'rgba(74, 62, 42, 0.35)';
-  ctx.lineWidth = Math.max(1, Math.round(tileSize * 0.12));
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  for (const road of roads) {
-    const tiles = road && road.tiles;
-    if (!tiles || tiles.length === 0) continue;
-    ctx.beginPath();
-    tiles.forEach(([x, y], i) => {
-      const cx = x * tileSize + tileSize / 2;
-      const cy = y * tileSize + tileSize / 2;
-      if (i === 0) ctx.moveTo(cx, cy); else ctx.lineTo(cx, cy);
-    });
-    ctx.stroke();
-  }
-  ctx.restore();
-}
-
-function drawHatching(ctx, px, py, pw, ph) {
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(px, py, pw, ph);
-  ctx.clip();
-  ctx.strokeStyle = 'rgba(0, 0, 0, 0.32)';
-  ctx.lineWidth = 1;
-  for (let d = -ph; d < pw + ph; d += 5) {
-    ctx.beginPath();
-    ctx.moveTo(px + d, py);
-    ctx.lineTo(px + d + ph, py + ph);
-    ctx.stroke();
-  }
-  ctx.restore();
-}
-
-function drawBuilding(ctx, building, tileSize, isSelected) {
-  const footprint = building.footprint || { widthTiles: 1, heightTiles: 1 };
-  const px = building.x * tileSize;
-  const py = building.y * tileSize;
-  const pw = footprint.widthTiles * tileSize;
-  const ph = footprint.heightTiles * tileSize;
-  const fill = FACILITY_COLORS[building.facilityKind] || UNKNOWN_FACILITY_COLOR;
-
-  ctx.save();
-  if (building.state === 'vacant') ctx.globalAlpha = 0.55; // "not lit yet", never "broken"
-  ctx.fillStyle = fill;
-  ctx.fillRect(px, py, pw, ph);
-  ctx.restore();
-
-  if (building.state === 'ruined' || building.state === 'under_construction') {
-    drawHatching(ctx, px, py, pw, ph);
-  }
-
-  ctx.strokeStyle = isSelected ? '#ffe066' : shade(fill, -0.35);
-  ctx.lineWidth = isSelected ? 3 : 1;
-  ctx.strokeRect(px + ctx.lineWidth / 2, py + ctx.lineWidth / 2, pw - ctx.lineWidth, ph - ctx.lineWidth);
-
-  if (building.state === 'busy') {
-    ctx.fillStyle = '#fff2b0';
-    ctx.font = `${Math.max(8, Math.round(tileSize * 0.5))}px sans-serif`;
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'top';
-    ctx.fillText('*', px + pw - 2, py + 1);
-  }
-
-  const label = FACILITY_LABELS[building.facilityKind] || building.facilityKind;
-  const fontSize = Math.max(7, Math.min(14, Math.floor(Math.min(pw, ph) * 0.42)));
-  ctx.font = `${fontSize}px sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.lineWidth = Math.max(1, Math.round(fontSize * 0.18));
-  ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
-  ctx.strokeText(label, px + pw / 2, py + ph / 2);
-  ctx.fillStyle = '#fbf6e8';
-  ctx.fillText(label, px + pw / 2, py + ph / 2);
-
-  if (building.entrance) drawEntranceMarker(ctx, building.entrance, tileSize);
-}
-
-function drawEntranceMarker(ctx, entrance, tileSize) {
-  const ex = entrance.x * tileSize;
-  const ey = entrance.y * tileSize;
-  ctx.fillStyle = '#f4d27a';
-  ctx.fillRect(ex + 1, ey + 1, tileSize - 2, tileSize - 2);
-  ctx.strokeStyle = '#8a6a2f';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(ex + 0.5, ey + 0.5, tileSize - 1, tileSize - 1);
-
-  // Chevron pointing the way the door faces (toward the walkable side).
-  const [dx, dy] = DIRECTION_VECTORS[entrance.direction] || [0, 1];
-  const cx = ex + tileSize / 2;
-  const cy = ey + tileSize / 2;
-  const size = tileSize * 0.24;
-  ctx.fillStyle = '#5a3f1f';
-  ctx.beginPath();
-  ctx.moveTo(cx + dx * size, cy + dy * size);
-  ctx.lineTo(cx - dy * size * 0.7 - dx * size * 0.2, cy + dx * size * 0.7 - dy * size * 0.2);
-  ctx.lineTo(cx + dy * size * 0.7 - dx * size * 0.2, cy - dx * size * 0.7 - dy * size * 0.2);
-  ctx.closePath();
-  ctx.fill();
-}
-
-function drawProps(ctx, props, tileSize) {
-  const size = Math.max(3, Math.round(tileSize * 0.4));
-  for (const prop of props) {
-    const cx = prop.x * tileSize + tileSize / 2;
-    const cy = prop.y * tileSize + tileSize / 2;
-    ctx.fillStyle = PROP_COLORS[prop.kind] || DEFAULT_PROP_COLOR;
-    ctx.fillRect(cx - size / 2, cy - size / 2, size, size);
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(cx - size / 2 + 0.5, cy - size / 2 + 0.5, size - 1, size - 1);
-  }
-}
-
-function drawNpcs(ctx, npcs, tileSize) {
-  for (const npc of npcs) {
-    const isMob = NPC_MOB_ROLES.has(npc.role);
-    const cx = npc.x * tileSize + tileSize / 2;
-    const cy = npc.y * tileSize + tileSize / 2;
-    const radius = tileSize * (isMob ? 0.2 : 0.3);
-    ctx.beginPath();
-    ctx.fillStyle = isMob ? '#fff3d6' : '#f2c14e';
-    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
-    const [dx, dy] = DIRECTION_VECTORS[npc.facing] || [0, 1];
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.lineTo(cx + dx * radius * 1.4, cy + dy * radius * 1.4);
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
-    ctx.stroke();
-  }
-}
-
-// Pointer -> tile coordinates, correct regardless of how CSS scales the canvas.
-function tileFromEvent(canvas, tileSize, event) {
-  const rect = canvas.getBoundingClientRect();
-  if (rect.width === 0 || rect.height === 0) return null;
-  const px = (event.clientX - rect.left) * (canvas.width / rect.width);
-  const py = (event.clientY - rect.top) * (canvas.height / rect.height);
-  const x = Math.floor(px / tileSize);
-  const y = Math.floor(py / tileSize);
-  if (x < 0 || y < 0) return null;
-  return { x, y };
-}
-
-function buildingAtTile(layout, x, y) {
-  for (const b of layout.buildings || []) {
-    const fp = b.footprint || { widthTiles: 1, heightTiles: 1 };
-    if (x >= b.x && x < b.x + fp.widthTiles && y >= b.y && y < b.y + fp.heightTiles) return b;
-  }
+function journeyTargetAnchor() {
+  if (['reach_dojo', 'inspect_dojo', 'return_world'].includes(state.journey.stage)) return FACILITY_ANCHORS.dojo;
+  if (state.journey.stage === 'reach_house') return FACILITY_ANCHORS.house;
   return null;
 }
 
-function onCanvasClick(evt) {
-  const layout = currentTown && currentTown.layout;
-  if (!layout || !layout.map) return;
-  const tile = tileFromEvent(el.canvas, layout.map.tileSize || 16, evt);
-  if (!tile) return;
-  const building = buildingAtTile(layout, tile.x, tile.y);
-  selectKind(building ? building.facilityKind : null);
-  if (building && building.facilityKind === 'pub') {
-    openGuildModal(currentTown.model, el.canvas);
+function markJourneySteps() {
+  const routeDone = state.journey.bridgeCrossed && state.journey.stairsUsed;
+  const values = {
+    walk: { done: state.journey.walked, current: !state.journey.walked },
+    route: { done: routeDone, current: state.journey.walked && !routeDone },
+    evidence: { done: state.journey.evidenceViewed, current: routeDone && !state.journey.evidenceViewed },
+    return: { done: state.journey.secondFacilityVisited, current: state.journey.evidenceViewed && !state.journey.secondFacilityVisited }
+  };
+  for (const [key, value] of Object.entries(values)) {
+    elements.journeySteps[key].classList.toggle('is-done', value.done);
+    elements.journeySteps[key].classList.toggle('is-current', value.current);
   }
 }
 
-function ariaSummary(town) {
-  if (!town) return '町の地図。';
-  const { repository, habitability, layout } = town;
-  const map = layout.map;
-  const buildings = layout.buildings || [];
-  const npcs = layout.npcs || [];
-  const buildingNote = buildings.length === 0 ? '建物なし' : `建物${buildings.length}棟`;
-  return `${(repository && repository.name) || ''} の街並み。` +
-    `${map.widthTiles}×${map.heightTiles}タイル、${buildingNote}、NPC${npcs.length}体。` +
-    `到達レベル Lv.${habitability.level}「${habitability.levelName}」（${habitability.canLive ? '居住可' : '居住不可'}）。`;
+function updateJourney() {
+  const messages = {
+    reach_dojo: ['最初の調査', '橋と階段の先、道場へ', '金色の足あとを追って、テストの状態を調べましょう。'],
+    inspect_dojo: ['道場に到着', '入口の奥で根拠を開く', '光る入口まで歩き、Enterで観測・推測・未確認を開きます。'],
+    return_world: ['根拠を確認', '街へ戻る', '閉じる／Escで街へ戻り、次の施設へ向かいましょう。'],
+    reach_house: ['次の調査', '森の住宅へ向かう', '街へ戻れました。金色の足あとを追って別の施設へ。'],
+    complete: ['調査の一周を完了', '街は自由に歩けます', 'ほかの施設も、入口から同じ方法で根拠を調べられます。']
+  };
+  const [kicker, title, copy] = messages[state.journey.stage] ?? messages.reach_dojo;
+  elements.journeyKicker.textContent = kicker;
+  elements.journeyTitle.textContent = title;
+  elements.journeyCopy.textContent = copy;
+  markJourneySteps();
+  draw(state.lastTimestamp);
 }
 
-document.addEventListener('DOMContentLoaded', init);
+function updateInteractionPrompt() {
+  if (state.view === 'site') {
+    const nearEvidence = currentSiteNearEvidence();
+    elements.interactionPrompt.hidden = !nearEvidence;
+    elements.interactionPromptText.textContent = nearEvidence ? '観測・推測・未確認の根拠を開く' : '';
+    return;
+  }
+  const anchor = state.nearbyAnchor;
+  elements.interactionPrompt.hidden = !anchor;
+  if (anchor) {
+    const facility = facilityForAnchor(anchor);
+    const status = facilityState(facility).label;
+    elements.interactionPromptText.textContent = `${anchor.label}を調べる · ${status}`;
+  }
+}
+
+function updateFacilityDetail() {
+  const anchor = state.selectedAnchor;
+  const facility = selectedFacility();
+  elements.facilityEmpty.hidden = Boolean(anchor && facility);
+  elements.facilityDetail.hidden = !anchor || !facility;
+  if (!anchor || !facility) return;
+  elements.facilityDistrict.textContent = state.view === 'site'
+    ? state.siteRecipe.label
+    : districtLabel(anchor);
+  elements.facilityName.textContent = anchor.label;
+  elements.facilityKind.textContent = FACILITY_ROLES[facility.kind] ?? facility.kind;
+  elements.facilityPresence.textContent = `${facilityState(facility).symbol} ${facilityState(facility).label}`;
+  elements.facilityCount.textContent = String(evidenceCount(facility));
+  evidenceItems(elements.evidenceObserved, facility.evidence?.observed, '観測された根拠はありません。');
+  evidenceItems(elements.evidenceInferred, facility.evidence?.inferred, '推測された根拠はありません。');
+  evidenceItems(elements.evidenceUnknown, facility.evidence?.unknown, '未確認事項はありません。');
+  const routes = siteRecipesForFacility(facility.kind);
+  elements.siteEnterButton.hidden = state.view === 'site' || routes.length === 0;
+  elements.siteEnterButton.textContent = routes.length > 1
+    ? '4つの調査区画から選ぶ'
+    : facility.present === true ? 'この施設を歩いて調べる' : '未確認区画を歩いて根拠を見る';
+}
+
+function currentPlaceLabel() {
+  if (state.view === 'site') return state.siteRecipe?.label ?? '検査場所';
+  if (state.view === 'overview') return '街の全景';
+  return districtLabel(state.worldPosition);
+}
+
+function updateSummary() {
+  const name = state.town?.repository?.name || '検査情報を取得できませんでした';
+  const habitability = state.town?.habitability;
+  elements.repoName.textContent = name;
+  elements.levelBadge.textContent = Number.isInteger(habitability?.level) ? `Lv.${habitability.level}` : 'Lv.-';
+  elements.placeLabel.textContent = currentPlaceLabel();
+  elements.drawerRepo.textContent = name;
+  elements.drawerHabitability.textContent = habitability
+    ? `${habitability.canLive ? '住めます' : '要整備'} · ${habitability.levelName}`
+    : '未確認';
+  elements.drawerLocation.textContent = currentPlaceLabel();
+  elements.overviewButton.setAttribute('aria-pressed', String(state.view === 'overview'));
+  elements.overviewButton.textContent = state.view === 'overview' ? '街へ戻る' : '街を見渡す';
+  elements.backButton.hidden = state.view !== 'site';
+}
+
+function openJournal(opener = document.activeElement) {
+  state.drawerOpener = opener instanceof HTMLElement ? opener : elements.journalButton;
+  elements.journal.hidden = false;
+  elements.journalButton.setAttribute('aria-expanded', 'true');
+  updateFacilityDetail();
+  elements.journalClose.focus();
+}
+
+function closeJournal({ restoreFocus = true } = {}) {
+  if (elements.journal.hidden) return;
+  elements.journal.hidden = true;
+  elements.journalButton.setAttribute('aria-expanded', 'false');
+  if (restoreFocus && state.drawerOpener?.isConnected) state.drawerOpener.focus();
+}
+
+function closeSiteChoice({ restoreFocus = true } = {}) {
+  if (elements.siteChoice.hidden) return;
+  elements.siteChoice.hidden = true;
+  elements.siteChoiceButtons.replaceChildren();
+  if (restoreFocus) elements.canvas.focus();
+}
+
+function showSiteChoice(recipes) {
+  if (!state.assets || recipes.length === 0) return;
+  elements.siteChoiceButtons.replaceChildren();
+  elements.siteChoiceTitle.textContent = recipes.length > 1 ? '森につながる4つの住宅区画' : '調査区画';
+  for (const recipe of recipes) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'site-choice-button';
+    button.textContent = recipe.label;
+    button.addEventListener('click', () => enterSite(recipe.id));
+    elements.siteChoiceButtons.append(button);
+  }
+  elements.siteChoice.hidden = false;
+  elements.siteChoiceButtons.querySelector('button')?.focus();
+}
+
+function openCurrentEvidence() {
+  if (state.view === 'site' && state.siteRecipe?.facilityKind === 'dojo') {
+    state.journey.evidenceViewed = true;
+    state.journey.stage = 'return_world';
+    updateJourney();
+  }
+  openJournal(elements.canvas);
+}
+
+function resizeCanvas() {
+  const bounds = elements.canvas.getBoundingClientRect();
+  const width = Math.max(1, Math.round(bounds.width));
+  const height = Math.max(1, Math.round(bounds.height));
+  if (elements.canvas.width !== width) elements.canvas.width = width;
+  if (elements.canvas.height !== height) elements.canvas.height = height;
+  draw(state.lastTimestamp);
+}
+
+function worldCamera() {
+  const camera = computeWorldCamera({
+    mode: state.view === 'world' ? 'follow' : 'overview',
+    viewportWidth: elements.canvas.width,
+    viewportHeight: elements.canvas.height,
+    focusX: state.worldPosition.x,
+    focusY: state.worldPosition.y,
+    worldWidth: WORLD_MAP.width,
+    worldHeight: WORLD_MAP.height
+  });
+  if (state.view !== 'world') return camera;
+  const scale = 1.4;
+  const sourceWidth = Math.min(WORLD_MAP.width, elements.canvas.width / scale);
+  const sourceHeight = Math.min(WORLD_MAP.height, elements.canvas.height / scale);
+  const sourceX = Math.max(0, Math.min(WORLD_MAP.width - sourceWidth, state.worldPosition.x - sourceWidth / 2));
+  const sourceY = Math.max(0, Math.min(WORLD_MAP.height - sourceHeight, state.worldPosition.y - sourceHeight / 2));
+  return Object.freeze({
+    ...camera,
+    scale,
+    sourceX,
+    sourceY,
+    sourceWidth,
+    sourceHeight,
+    destX: (elements.canvas.width - sourceWidth * scale) / 2,
+    destY: (elements.canvas.height - sourceHeight * scale) / 2,
+    destWidth: sourceWidth * scale,
+    destHeight: sourceHeight * scale
+  });
+}
+
+function roundedRectangle(x, y, width, height, radius) {
+  const r = Math.min(radius, width / 2, height / 2);
+  context.beginPath();
+  context.moveTo(x + r, y);
+  context.arcTo(x + width, y, x + width, y + height, r);
+  context.arcTo(x + width, y + height, x, y + height, r);
+  context.arcTo(x, y + height, x, y, r);
+  context.arcTo(x, y, x + width, y, r);
+  context.closePath();
+}
+
+function drawWorldAnchor(anchor, active, target, timestamp) {
+  const screen = worldToScreen(state.camera, anchor);
+  if (!screen) return;
+  if (screen.x < -130 || screen.y < -80 || screen.x > elements.canvas.width + 130 || screen.y > elements.canvas.height + 80) return;
+  const facility = facilityForAnchor(anchor);
+  const status = facilityState(facility);
+  const pulse = target ? 4 + Math.sin(timestamp / 180) * 3 : 0;
+  const radius = (active ? 17 : 12) + pulse;
+  const glow = context.createRadialGradient(screen.x, screen.y, 1, screen.x, screen.y, radius + 12);
+  glow.addColorStop(0, target ? 'rgba(255, 239, 168, .94)' : `${status.color}cc`);
+  glow.addColorStop(0.42, target ? 'rgba(240, 201, 104, .52)' : `${status.color}55`);
+  glow.addColorStop(1, 'rgba(240, 201, 104, 0)');
+  context.fillStyle = glow;
+  context.beginPath();
+  context.arc(screen.x, screen.y, radius + 12, 0, Math.PI * 2);
+  context.fill();
+
+  context.strokeStyle = target ? '#fff0ad' : status.color;
+  context.lineWidth = target ? 2 : 1;
+  context.beginPath();
+  context.arc(screen.x, screen.y, active ? 8 : 5, 0, Math.PI * 2);
+  context.stroke();
+
+  const label = `${status.symbol} ${anchor.label}`;
+  context.font = '700 11px system-ui, sans-serif';
+  const labelWidth = Math.ceil(context.measureText(label).width) + 16;
+  const labelX = screen.x - labelWidth / 2;
+  const labelY = screen.y - (target ? 48 : 37);
+  roundedRectangle(labelX, labelY, labelWidth, 23, 7);
+  context.fillStyle = target ? 'rgba(44, 34, 12, .96)' : 'rgba(8, 13, 8, .88)';
+  context.fill();
+  context.strokeStyle = target ? '#f5d77e' : `${status.color}aa`;
+  context.stroke();
+  context.fillStyle = target ? '#fff1bd' : '#eee7d4';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.fillText(label, screen.x, labelY + 12);
+  if (target) {
+    context.fillStyle = '#f5d77e';
+    context.beginPath();
+    context.moveTo(screen.x, labelY + 31);
+    context.lineTo(screen.x - 6, labelY + 25);
+    context.lineTo(screen.x + 6, labelY + 25);
+    context.closePath();
+    context.fill();
+  }
+}
+
+function movementFrame(movement, timestamp) {
+  if (!movement) return 'idle';
+  return Math.floor(timestamp / 130) % 2 === 0 ? 'walk1' : 'walk2';
+}
+
+function drawCharacter(image, direction, frame, feetX, feetY) {
+  const source = characterFrameRect(direction, frame);
+  context.drawImage(image, source.x, source.y, source.width, source.height, feetX - 12, feetY - 40, 24, 40);
+}
+
+function drawWorldGroundTile(images, cellX, cellY) {
+  const assetId = worldGroundAssetAt(cellX, cellY);
+  if (!assetId) return;
+  const pixelX = cellX * WORLD_MAP.cellSize;
+  const pixelY = cellY * WORLD_MAP.cellSize;
+  if (['field.tree', 'field.rock'].includes(assetId)) {
+    context.drawImage(images.get('field.grass'), pixelX, pixelY, 64, 64);
+  }
+  const transform = worldGroundTransformAt(cellX, cellY);
+  context.save();
+  context.translate(pixelX + 32, pixelY + 32);
+  context.rotate((transform?.quarterTurns ?? 0) * Math.PI / 2);
+  if (transform?.flipX) context.scale(-1, 1);
+  context.drawImage(images.get(assetId), -32, -32, 64, 64);
+  context.restore();
+}
+
+function worldPlacement(entry) {
+  return {
+    x: entry.x * WORLD_MAP.cellSize + (entry.offsetX ?? 0),
+    y: entry.y * WORLD_MAP.cellSize + (entry.offsetY ?? 0),
+    depth: entry.y * WORLD_MAP.cellSize + WORLD_MAP.cellSize + (entry.offsetY ?? 0)
+  };
+}
+
+function drawWorldProp(images, entry) {
+  const placement = worldPlacement(entry);
+  context.save();
+  context.translate(placement.x + 32, placement.y + 32);
+  if (entry.flipX) context.scale(-1, 1);
+  context.drawImage(images.get(entry.assetId), -32, -32, 64, 64);
+  context.restore();
+}
+
+function drawWorldRouteGuidance(timestamp) {
+  const target = journeyTargetAnchor();
+  if (!target || state.view !== 'world') return;
+  const path = shortestNavigationPath(state.worldNodeId, target.nodeId);
+  for (let index = 1; index < path.length; index += 1) {
+    const node = path[index];
+    const previous = path[index - 1];
+    const edge = navigationEdgeBetween(previous.id, node.id);
+    const pulse = 0.74 + Math.sin(timestamp / 180 + index * 0.65) * 0.2;
+    context.globalAlpha = pulse;
+    context.fillStyle = edge?.type === 'bridge' ? '#9ed8e6' : edge?.type === 'stairs' ? '#fff0ae' : '#efca69';
+    context.beginPath();
+    context.ellipse(node.x, node.y - 3, edge?.type === 'walk' ? 4 : 7, edge?.type === 'walk' ? 3 : 5, 0, 0, Math.PI * 2);
+    context.fill();
+  }
+  context.globalAlpha = 1;
+}
+
+function drawWorldPlayer(images, timestamp) {
+  context.save();
+  const aura = context.createRadialGradient(
+    state.worldPosition.x, state.worldPosition.y - 7, 3,
+    state.worldPosition.x, state.worldPosition.y - 7, 29
+  );
+  aura.addColorStop(0, 'rgba(151, 231, 235, .42)');
+  aura.addColorStop(1, 'rgba(151, 231, 235, 0)');
+  context.fillStyle = aura;
+  context.beginPath();
+  context.arc(state.worldPosition.x, state.worldPosition.y - 7, 29, 0, Math.PI * 2);
+  context.fill();
+  context.fillStyle = 'rgba(5, 9, 5, .65)';
+  context.beginPath();
+  context.ellipse(state.worldPosition.x, state.worldPosition.y - 2, 12, 6, 0, 0, Math.PI * 2);
+  context.fill();
+  context.strokeStyle = '#9ee8ed';
+  context.lineWidth = 3;
+  context.beginPath();
+  context.ellipse(state.worldPosition.x, state.worldPosition.y - 2, 15, 8, 0, 0, Math.PI * 2);
+  context.stroke();
+  drawCharacter(
+    images.get('character.player'),
+    state.worldDirection,
+    movementFrame(state.worldMovement, timestamp),
+    state.worldPosition.x,
+    state.worldPosition.y
+  );
+  context.fillStyle = '#b5f2f1';
+  context.beginPath();
+  context.moveTo(state.worldPosition.x, state.worldPosition.y - 49);
+  context.lineTo(state.worldPosition.x - 5, state.worldPosition.y - 57);
+  context.lineTo(state.worldPosition.x + 5, state.worldPosition.y - 57);
+  context.closePath();
+  context.fill();
+  context.font = '800 10px system-ui, sans-serif';
+  roundedRectangle(state.worldPosition.x - 24, state.worldPosition.y - 77, 48, 19, 6);
+  context.fillStyle = 'rgba(7, 16, 15, .94)';
+  context.fill();
+  context.strokeStyle = '#9ee8ed';
+  context.lineWidth = 1;
+  context.stroke();
+  context.fillStyle = '#d9ffff';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.fillText('あなた', state.worldPosition.x, state.worldPosition.y - 67);
+  context.restore();
+}
+
+function drawWorld(timestamp) {
+  state.camera = worldCamera();
+  const images = state.assets.images;
+  context.setTransform(1, 0, 0, 1, 0, 0);
+  context.imageSmoothingEnabled = false;
+  const backdrop = context.createLinearGradient(0, 0, elements.canvas.width, elements.canvas.height);
+  backdrop.addColorStop(0, '#34452a');
+  backdrop.addColorStop(1, '#111a11');
+  context.fillStyle = backdrop;
+  context.fillRect(0, 0, elements.canvas.width, elements.canvas.height);
+  context.save();
+  context.beginPath();
+  context.rect(state.camera.destX, state.camera.destY, state.camera.destWidth, state.camera.destHeight);
+  context.clip();
+  context.translate(state.camera.destX - state.camera.sourceX * state.camera.scale, state.camera.destY - state.camera.sourceY * state.camera.scale);
+  context.scale(state.camera.scale, state.camera.scale);
+
+  const firstColumn = Math.max(0, Math.floor(state.camera.sourceX / WORLD_MAP.cellSize));
+  const lastColumn = Math.min(WORLD_MAP.columns - 1, Math.ceil((state.camera.sourceX + state.camera.sourceWidth) / WORLD_MAP.cellSize));
+  const firstRow = Math.max(0, Math.floor(state.camera.sourceY / WORLD_MAP.cellSize));
+  const lastRow = Math.min(WORLD_MAP.rows - 1, Math.ceil((state.camera.sourceY + state.camera.sourceHeight) / WORLD_MAP.cellSize));
+  for (let y = firstRow; y <= lastRow; y += 1) {
+    for (let x = firstColumn; x <= lastColumn; x += 1) drawWorldGroundTile(images, x, y);
+  }
+
+  drawWorldRouteGuidance(timestamp);
+  for (const entry of WORLD_PROPS.filter((item) => item.layer === 'rear')) drawWorldProp(images, entry);
+
+  const depthItems = [
+    ...WORLD_STRUCTURES.map((entry, index) => ({ type: 'structure', entry, depth: entry.baselineY, index })),
+    ...WORLD_PROPS.filter((item) => !['rear', 'front'].includes(item.layer)).map((entry, index) => ({
+      type: 'prop', entry, depth: worldPlacement(entry).depth, index
+    })),
+    ...WORLD_NPCS.map((entry, index) => ({ type: 'npc', entry, depth: entry.y * 64 + 52, index })),
+    { type: 'player', entry: null, depth: state.worldPosition.y, index: 0 }
+  ].sort((left, right) => left.depth - right.depth
+    || ({ structure: 0, prop: 1, npc: 2, player: 3 }[left.type] - { structure: 0, prop: 1, npc: 2, player: 3 }[right.type])
+    || left.index - right.index);
+
+  for (const item of depthItems) {
+    if (item.type === 'structure') {
+      const facility = item.entry.facilityKind ? facilityForAnchor(FACILITY_ANCHORS[item.entry.facilityKind]) : null;
+      context.save();
+      context.fillStyle = 'rgba(3, 7, 3, .38)';
+      context.beginPath();
+      context.ellipse(item.entry.x + 128, item.entry.baselineY - 6, 105, 18, 0, 0, Math.PI * 2);
+      context.fill();
+      context.globalAlpha = item.entry.facilityKind && facility?.present !== true ? 0.78 : 1;
+      context.drawImage(images.get(item.entry.assetId), item.entry.x, item.entry.y, 256, 256);
+      context.restore();
+    } else if (item.type === 'prop') drawWorldProp(images, item.entry);
+    else if (item.type === 'npc') {
+      const facility = item.entry.facilityKind ? facilityForAnchor(FACILITY_ANCHORS[item.entry.facilityKind]) : null;
+      const feetX = item.entry.x * 64 + 32 + (item.entry.offsetX ?? 0) * 1.75;
+      const feetY = item.entry.y * 64 + 52;
+      context.save();
+      if (item.entry.facilityKind && facility?.present !== true) context.globalAlpha = 0.58;
+      drawCharacter(images.get(item.entry.assetId), item.entry.direction ?? 'down', 'idle', feetX, feetY);
+      context.restore();
+      if (item.entry.facilityKind && facility?.present !== true) {
+        context.fillStyle = '#a9b8ca';
+        context.beginPath();
+        context.arc(feetX, feetY - 47, 7, 0, Math.PI * 2);
+        context.fill();
+        context.fillStyle = '#111820';
+        context.font = '800 9px system-ui, sans-serif';
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText('?', feetX, feetY - 47);
+      }
+    } else drawWorldPlayer(images, timestamp);
+  }
+
+  for (const entry of WORLD_PROPS.filter((item) => item.layer === 'front')) drawWorldProp(images, entry);
+  const effectFrame = effectFrameRect(Math.floor(timestamp / 160));
+  for (const entry of WORLD_EFFECTS) {
+    context.drawImage(
+      images.get(entry.assetId),
+      effectFrame.x, effectFrame.y, effectFrame.width, effectFrame.height,
+      entry.x * 64 + 16, entry.y * 64 + 16, 32, 32
+    );
+  }
+  context.restore();
+
+  const target = journeyTargetAnchor();
+  for (const anchor of state.anchors) {
+    const active = anchor.kind === state.selectedAnchor?.kind || anchor.kind === state.nearbyAnchor?.kind;
+    drawWorldAnchor(anchor, active, anchor.kind === target?.kind, timestamp);
+  }
+}
+
+function drawSite(timestamp) {
+  const recipe = state.siteRecipe;
+  const images = state.assets.images;
+  const scale = Math.min(elements.canvas.width / SITE_CANVAS.width, elements.canvas.height / SITE_CANVAS.height);
+  const camera = Object.freeze({
+    scale,
+    destX: (elements.canvas.width - SITE_CANVAS.width * scale) / 2,
+    destY: (elements.canvas.height - SITE_CANVAS.height * scale) / 2,
+    destWidth: SITE_CANVAS.width * scale,
+    destHeight: SITE_CANVAS.height * scale,
+    viewportWidth: elements.canvas.width,
+    viewportHeight: elements.canvas.height
+  });
+  state.camera = camera;
+  context.setTransform(1, 0, 0, 1, 0, 0);
+  const backdrop = context.createRadialGradient(
+    elements.canvas.width / 2, elements.canvas.height / 2, 20,
+    elements.canvas.width / 2, elements.canvas.height / 2, Math.max(elements.canvas.width, elements.canvas.height)
+  );
+  backdrop.addColorStop(0, '#34452b');
+  backdrop.addColorStop(1, '#0d140d');
+  context.fillStyle = backdrop;
+  context.fillRect(0, 0, elements.canvas.width, elements.canvas.height);
+  context.imageSmoothingEnabled = false;
+  context.setTransform(camera.scale, 0, 0, camera.scale, camera.destX, camera.destY);
+  context.save();
+  context.beginPath();
+  context.rect(0, 0, SITE_CANVAS.width, SITE_CANVAS.height);
+  context.clip();
+
+  const terrainUnderlay = new Set([
+    'field.bridge_stone', 'field.bridge_wood', 'field.cliff', 'field.cobblestone',
+    'field.dirt_path', 'field.dock_floor', 'field.fence_wood', 'field.plaza',
+    'field.river_edge', 'field.road_corner', 'field.road_edge', 'field.road_intersection',
+    'field.stairs_stone', 'field.wall_stone', 'field.water'
+  ]);
+  const featureOverlays = new Set(['field.tree', 'field.rock']);
+  const drawGroundPass = (underlayPass) => {
+    for (let y = 0; y < SITE_CANVAS.rows; y += 1) {
+      for (let x = 0; x < SITE_CANVAS.columns; x += 1) {
+        const assetId = groundAssetAt(recipe, x, y);
+        if (terrainUnderlay.has(assetId) !== underlayPass) continue;
+        if (featureOverlays.has(assetId)) {
+          context.drawImage(images.get('field.grass'), x * 64, y * 64, 64, 64);
+        }
+        const transform = groundTransformAt(recipe, x, y);
+        context.save();
+        context.translate(x * 64 + 32, y * 64 + 32);
+        context.rotate(transform.quarterTurns * Math.PI / 2);
+        if (transform.flipX) context.scale(-1, 1);
+        context.drawImage(images.get(assetId), -32, -32, 64, 64);
+        context.restore();
+      }
+    }
+  };
+  const drawTile = (entry) => {
+    const placement = authoredTilePlacement(entry);
+    context.save();
+    context.translate(placement.x + 32, placement.y + 32);
+    if (placement.flipX) context.scale(-1, 1);
+    context.drawImage(images.get(entry.assetId), -32, -32, 64, 64);
+    context.restore();
+  };
+
+  // SITE_RENDER_LAYERS is the declared painter's order. Tree/rock cells first
+  // receive grass and then their transparent terrain-feature overlay.
+  if (SITE_RENDER_LAYERS[0] === 'ground') drawGroundPass(false);
+  if (SITE_RENDER_LAYERS[1] === 'terrain-underlay') drawGroundPass(true);
+  for (let y = 0; y < SITE_CANVAS.rows; y += 1) for (let x = 0; x < SITE_CANVAS.columns; x += 1) {
+    for (const drift of snowPixelOverlaysAt(recipe, x, y)) {
+      context.fillStyle = drift.color;
+      for (const rectangle of drift.rectangles) {
+        context.fillRect(x * 64 + rectangle.x, y * 64 + rectangle.y, rectangle.width, rectangle.height);
+      }
+    }
+  }
+
+  const evidencePath = shortestSitePath(recipe, state.siteNodeId, recipe.evidenceNodeId);
+  for (let index = 1; index < evidencePath.length; index += 1) {
+    const node = evidencePath[index];
+    context.globalAlpha = 0.66 + Math.sin(timestamp / 170 + index) * 0.2;
+    context.fillStyle = '#f1cc6c';
+    context.beginPath();
+    context.ellipse(node.x * 64 + 32, node.y * 64 + 36, 5, 3, 0, 0, Math.PI * 2);
+    context.fill();
+  }
+  context.globalAlpha = 1;
+  const evidenceNode = siteNodeById(recipe, recipe.evidenceNodeId);
+  if (evidenceNode) {
+    const pulse = 9 + Math.sin(timestamp / 160) * 3;
+    context.strokeStyle = '#ffe7a0';
+    context.lineWidth = 2;
+    context.beginPath();
+    context.arc(evidenceNode.x * 64 + 32, evidenceNode.y * 64 + 47, pulse, 0, Math.PI * 2);
+    context.stroke();
+  }
+  for (const entry of recipe.rearDecor) drawTile(entry);
+
+  const depthItems = [
+    ...recipe.structures.map((entry, index) => ({ type: 'structure', entry, depth: entry.baselineY, index })),
+    ...recipe.props.map((entry, index) => ({
+      type: 'prop', entry, depth: authoredTilePlacement(entry).depth, index
+    })),
+    ...recipe.npcs.map((entry, index) => ({ type: 'npc', entry, depth: entry.y * 64 + 52, index })),
+    { type: 'player', entry: null, depth: state.sitePosition.y * 64 + 52, index: 0 }
+  ].sort((left, right) => left.depth - right.depth
+    || ({ structure: 0, prop: 1, npc: 2, player: 3 }[left.type] - { structure: 0, prop: 1, npc: 2, player: 3 }[right.type])
+    || left.index - right.index);
+  for (const item of depthItems) {
+    if (item.type === 'structure') {
+      context.drawImage(images.get(item.entry.assetId), item.entry.x, item.entry.y, item.entry.width, item.entry.height);
+    } else if (item.type === 'prop') drawTile(item.entry);
+    else if (item.type === 'npc') {
+      drawCharacter(images.get(item.entry.assetId), item.entry.direction, 'idle', item.entry.x * 64 + 32, item.entry.y * 64 + 52);
+    } else {
+      context.fillStyle = 'rgba(5, 9, 5, .64)';
+      context.beginPath();
+      context.ellipse(state.sitePosition.x * 64 + 32, state.sitePosition.y * 64 + 50, 13, 6, 0, 0, Math.PI * 2);
+      context.fill();
+      context.strokeStyle = '#ffe28a';
+      context.lineWidth = 2;
+      context.beginPath();
+      context.ellipse(state.sitePosition.x * 64 + 32, state.sitePosition.y * 64 + 50, 16, 8, 0, 0, Math.PI * 2);
+      context.stroke();
+      drawCharacter(
+        images.get('character.player'),
+        state.siteDirection,
+        movementFrame(state.siteMovement, timestamp),
+        state.sitePosition.x * 64 + 32,
+        state.sitePosition.y * 64 + 52
+      );
+      const playerX = state.sitePosition.x * 64 + 32;
+      const playerY = state.sitePosition.y * 64 + 52;
+      context.font = '800 10px system-ui, sans-serif';
+      roundedRectangle(playerX - 24, playerY - 76, 48, 19, 6);
+      context.fillStyle = 'rgba(7, 16, 15, .94)';
+      context.fill();
+      context.strokeStyle = '#9ee8ed';
+      context.lineWidth = 1;
+      context.stroke();
+      context.fillStyle = '#d9ffff';
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+      context.fillText('あなた', playerX, playerY - 66);
+    }
+  }
+  for (const entry of recipe.frontOccluders) drawTile(entry);
+  const effectFrame = effectFrameRect(Math.floor(timestamp / 160));
+  for (const entry of recipe.effects) {
+    context.drawImage(
+      images.get(entry.assetId),
+      effectFrame.x, effectFrame.y, effectFrame.width, effectFrame.height,
+      entry.x * 64 + 16, entry.y * 64 + 16, 32, 32
+    );
+  }
+  context.restore();
+  context.setTransform(1, 0, 0, 1, 0, 0);
+
+  const facility = facilityForAnchor(FACILITY_ANCHORS[recipe.facilityKind]);
+  const status = facilityState(facility);
+  const label = `${status.symbol} ${status.label} · ${FACILITY_ROLES[recipe.facilityKind] ?? recipe.facilityKind}`;
+  context.font = '700 11px system-ui, sans-serif';
+  const width = Math.ceil(context.measureText(label).width) + 18;
+  roundedRectangle(camera.destX + 12, camera.destY + 12, width, 25, 7);
+  context.fillStyle = 'rgba(8, 13, 8, .9)';
+  context.fill();
+  context.strokeStyle = status.color;
+  context.stroke();
+  context.fillStyle = '#f5edda';
+  context.textAlign = 'left';
+  context.textBaseline = 'middle';
+  context.fillText(label, camera.destX + 21, camera.destY + 25);
+}
+
+function draw(timestamp = 0) {
+  if (!state.worldReady || !state.assets || !context) return;
+  if (state.view === 'site' && state.assets && state.siteRecipe) drawSite(timestamp);
+  else drawWorld(timestamp);
+}
+
+function updateNearbyAnchor() {
+  state.nearbyAnchor = nearestFacilityAnchor(
+    state.worldPosition.x,
+    state.worldPosition.y,
+    state.anchors,
+    46
+  );
+  if (state.nearbyAnchor) state.selectedAnchor = state.nearbyAnchor;
+  updateFacilityDetail();
+  updateInteractionPrompt();
+}
+
+function updateDistrictBanner() {
+  const district = districtForPoint(state.worldPosition.x, state.worldPosition.y, WORLD_DISTRICTS);
+  if (!district || district.id === state.lastDistrictId) return;
+  state.lastDistrictId = district.id;
+  elements.districtBanner.textContent = district.label;
+  elements.districtBanner.hidden = false;
+  window.clearTimeout(state.districtBannerTimer);
+  state.districtBannerTimer = window.setTimeout(() => { elements.districtBanner.hidden = true; }, 1300);
+}
+
+function startNextWorldSegment(timestamp) {
+  if (state.worldMovement || state.worldQueue.length === 0) return;
+  const target = state.worldQueue.shift();
+  const fromId = state.worldNodeId;
+  const edge = navigationEdgeBetween(fromId, target.id);
+  if (!edge) {
+    state.worldQueue = [];
+    return;
+  }
+  const distance = Math.hypot(target.x - state.worldPosition.x, target.y - state.worldPosition.y);
+  state.worldDirection = directionBetweenPoints(state.worldPosition, target, state.worldDirection);
+  state.worldNodeId = target.id;
+  state.worldMovementEdge = edge.type;
+  state.worldMovement = createInterpolatedMovement(state.worldPosition, target, timestamp, Math.max(105, Math.min(165, distance * 2)));
+  state.journey.walked = true;
+  markJourneySteps();
+  elements.canvas.dataset.moving = 'true';
+}
+
+function queueWorldPath(path, timestamp = performance.now()) {
+  state.worldQueue = path.slice(1);
+  const started = state.worldQueue.length > 0;
+  startNextWorldSegment(timestamp);
+  return started;
+}
+
+function startNextSiteSegment(timestamp) {
+  if (state.siteMovement || state.siteQueue.length === 0) return;
+  const target = state.siteQueue.shift();
+  state.siteDirection = directionBetweenPoints(state.sitePosition, target, state.siteDirection);
+  state.siteNodeId = target.id;
+  state.siteMovement = createInterpolatedMovement(state.sitePosition, target, timestamp, 135);
+}
+
+function queueSitePath(path, timestamp = performance.now()) {
+  state.siteQueue = path.slice(1);
+  startNextSiteSegment(timestamp);
+}
+
+function updateMovements(timestamp) {
+  if (state.worldMovement) {
+    const sample = sampleInterpolatedMovement(state.worldMovement, timestamp);
+    state.worldPosition = { x: sample.x, y: sample.y };
+    state.worldDirection = sample.direction;
+    if (sample.done) {
+      state.worldPosition = { ...state.worldMovement.to };
+      state.worldMovement = null;
+      if (state.worldMovementEdge === 'bridge') state.journey.bridgeCrossed = true;
+      if (state.worldMovementEdge === 'stairs') state.journey.stairsUsed = true;
+      state.worldMovementEdge = null;
+      updateNearbyAnchor();
+      updateDistrictBanner();
+      updateSummary();
+      updateJourney();
+      if (state.worldQueue.length > 0) startNextWorldSegment(timestamp);
+      else {
+        delete elements.canvas.dataset.moving;
+        const queuedDirection = state.worldPendingDirection ?? state.worldHeldDirection;
+        state.worldPendingDirection = null;
+        if (queuedDirection) moveWorldDirection(queuedDirection, timestamp);
+        else announceWorldArrival();
+      }
+    }
+  }
+  if (state.siteMovement) {
+    const sample = sampleInterpolatedMovement(state.siteMovement, timestamp);
+    state.sitePosition = { x: sample.x, y: sample.y };
+    state.siteDirection = sample.direction;
+    if (sample.done) {
+      state.sitePosition = { ...state.siteMovement.to };
+      state.siteMovement = null;
+      updateInteractionPrompt();
+      if (state.siteQueue.length > 0) startNextSiteSegment(timestamp);
+    }
+  }
+}
+
+function animationTick(timestamp) {
+  if (timestamp - state.lastFrameAt < 40) {
+    window.requestAnimationFrame(animationTick);
+    return;
+  }
+  state.lastFrameAt = timestamp;
+  state.lastTimestamp = timestamp;
+  updateMovements(timestamp);
+  draw(timestamp);
+  window.requestAnimationFrame(animationTick);
+}
+
+function canPlay() {
+  if (state.assets) return true;
+  announce(state.assetError
+    ? '承認済み必須素材を利用できないため、代替素材では開始しません。'
+    : '承認済み必須素材を準備しています。');
+  return false;
+}
+
+function beginWorldExploration() {
+  if (!canPlay()) return false;
+  state.view = 'world';
+  elements.canvas.dataset.mode = 'world';
+  updateNearbyAnchor();
+  updateSummary();
+  return true;
+}
+
+function toggleOverview() {
+  if (state.view === 'site') returnToWorld();
+  state.view = state.view === 'overview' ? 'world' : 'overview';
+  state.worldMovement = null;
+  state.worldMovementEdge = null;
+  state.worldQueue = [];
+  state.worldHeldDirection = null;
+  state.worldPendingDirection = null;
+  delete elements.canvas.dataset.moving;
+  elements.canvas.dataset.mode = state.view;
+  updateSummary();
+  draw(state.lastTimestamp);
+  announce(state.view === 'overview' ? '街の全景を表示しました。' : '歩いていた場所へ戻りました。');
+}
+
+function moveWorldDirection(direction, timestamp = performance.now()) {
+  if (!beginWorldExploration()) return;
+  if (state.worldMovement) {
+    state.worldPendingDirection = direction;
+    return;
+  }
+  const next = nextNodeForDirection(state.worldNodeId, direction);
+  state.worldDirection = direction;
+  if (next.id !== state.worldNodeId) queueWorldPath([nearestNavigationNode(state.worldPosition.x, state.worldPosition.y), next], timestamp);
+  else draw(state.lastTimestamp);
+}
+
+function moveSiteDirection(direction) {
+  if (state.siteMovement) {
+    state.siteQueue = [];
+    return;
+  }
+  const next = nextSiteNodeForDirection(state.siteRecipe, state.siteNodeId, direction);
+  state.siteDirection = direction;
+  if (next?.id !== state.siteNodeId) queueSitePath([siteNodeById(state.siteRecipe, state.siteNodeId), next]);
+}
+
+function currentSiteNearEvidence() {
+  const evidence = siteNodeById(state.siteRecipe, state.siteRecipe?.evidenceNodeId);
+  return evidence && Math.hypot(evidence.x - state.sitePosition.x, evidence.y - state.sitePosition.y) <= 1.05;
+}
+
+function tryEnterSelectedFacility() {
+  const anchor = state.nearbyAnchor;
+  const facility = facilityForAnchor(anchor);
+  if (!anchor) {
+    announce('施設名の表示がある入口まで移動してください。');
+    return;
+  }
+  state.selectedAnchor = anchor;
+  const recipes = siteRecipesForFacility(facility?.kind ?? anchor.kind);
+  if (recipes.length === 1) enterSite(recipes[0].id);
+  else showSiteChoice(recipes);
+}
+
+function enterSite(siteId) {
+  const recipe = siteRecipeById(siteId);
+  if (!recipe || !canPlay()) return;
+  const anchor = FACILITY_ANCHORS[recipe.facilityKind];
+  if (!anchor) return;
+  state.worldReturn = {
+    nodeId: state.worldNodeId,
+    position: { ...state.worldPosition },
+    direction: state.worldDirection,
+    selectedKind: state.selectedAnchor?.kind ?? recipe.facilityKind
+  };
+  state.siteRecipe = recipe;
+  state.siteNodeId = recipe.playerStartNodeId;
+  const start = siteNodeById(recipe, recipe.playerStartNodeId);
+  state.sitePosition = { x: start.x, y: start.y };
+  state.siteDirection = 'up';
+  state.siteMovement = null;
+  state.siteQueue = [];
+  state.selectedAnchor = anchor;
+  state.view = 'site';
+  if (recipe.facilityKind === 'dojo' && state.journey.stage === 'reach_dojo') state.journey.stage = 'inspect_dojo';
+  if (recipe.facilityKind === 'house' && state.journey.stage === 'reach_house') {
+    state.journey.secondFacilityVisited = true;
+    state.journey.stage = 'complete';
+  }
+  elements.canvas.dataset.mode = 'site';
+  closeJournal({ restoreFocus: false });
+  closeSiteChoice({ restoreFocus: false });
+  updateFacilityDetail();
+  updateSummary();
+  updateInteractionPrompt();
+  updateJourney();
+  elements.canvas.focus();
+  const facility = facilityForAnchor(anchor);
+  const prefix = facility?.present === true ? '' : '未確認区画の';
+  announce(`${prefix}${recipe.label}に入りました。光る入口まで歩くと根拠を確認できます。`);
+}
+
+function returnToWorld() {
+  if (state.view !== 'site') return;
+  const saved = state.worldReturn;
+  state.siteRecipe = null;
+  state.sitePosition = null;
+  state.siteMovement = null;
+  state.siteQueue = [];
+  state.view = 'world';
+  if (saved) {
+    state.worldNodeId = saved.nodeId;
+    state.worldPosition = { ...saved.position };
+    state.worldDirection = saved.direction;
+    state.selectedAnchor = state.anchors.find((anchor) => anchor.kind === saved.selectedKind) ?? state.selectedAnchor;
+  }
+  if (state.journey.evidenceViewed && !state.journey.returnedToWorld) {
+    state.journey.returnedToWorld = true;
+    state.journey.stage = 'reach_house';
+    state.selectedAnchor = FACILITY_ANCHORS.house;
+  } else if (state.journey.stage === 'inspect_dojo') state.journey.stage = 'reach_dojo';
+  elements.canvas.dataset.mode = 'world';
+  updateNearbyAnchor();
+  updateSummary();
+  updateInteractionPrompt();
+  updateJourney();
+  elements.canvas.focus();
+  announce(state.journey.stage === 'reach_house' ? '街へ戻りました。次は森の住宅へ向かいます。' : '同じ街道の位置へ戻りました。');
+}
+
+function canvasPoint(event) {
+  const bounds = elements.canvas.getBoundingClientRect();
+  return {
+    x: (event.clientX - bounds.left) * (elements.canvas.width / Math.max(1, bounds.width)),
+    y: (event.clientY - bounds.top) * (elements.canvas.height / Math.max(1, bounds.height))
+  };
+}
+
+function handleCanvasClick(event) {
+  if (!state.worldReady || !state.camera || !canPlay()) return;
+  const screen = canvasPoint(event);
+  if (state.view === 'site') {
+    const point = screenToSite(state.camera, screen);
+    if (!point) return;
+    const target = nearestSiteNode(state.siteRecipe, point.x / 64, point.y / 64);
+    const path = shortestSitePath(state.siteRecipe, state.siteNodeId, target.id);
+    if (state.siteMovement) state.siteQueue = path.slice(1);
+    else queueSitePath(path);
+    elements.canvas.focus();
+    return;
+  }
+  const world = screenToWorld(state.camera, screen);
+  if (!world || !beginWorldExploration()) return;
+  const target = nearestNavigationNode(world.x, world.y);
+  const path = shortestNavigationPath(state.worldNodeId, target.id);
+  const anchor = nearestFacilityAnchor(world.x, world.y, state.anchors, 52 / state.camera.scale);
+  if (anchor) state.selectedAnchor = anchor;
+  const started = queueWorldPath(path);
+  updateFacilityDetail();
+  elements.canvas.focus();
+  if (started) {
+    announce(anchor ? `${anchor.label}へ向かっています。近くでEnterまたはSpaceを押してください。` : `${districtLabel(target)}へ移動しています。`);
+  } else announceWorldArrival();
+}
+
+function handleCanvasMove(event) {
+  if (!state.worldReady || state.view === 'site' || !state.camera) return;
+  const world = screenToWorld(state.camera, canvasPoint(event));
+  const next = world ? nearestFacilityAnchor(world.x, world.y, state.anchors, 44 / state.camera.scale) : null;
+  if (next?.kind === state.hoveredAnchor?.kind) return;
+  state.hoveredAnchor = next;
+  elements.canvas.title = next?.label ?? '';
+  draw(state.lastTimestamp);
+}
+
+function handleCanvasKey(event) {
+  const direction = directionForKey[event.key];
+  if (direction) {
+    event.preventDefault();
+    if (state.view === 'site') moveSiteDirection(direction);
+    else {
+      state.worldHeldDirection = direction;
+      moveWorldDirection(direction);
+    }
+    return;
+  }
+  if (!['Enter', ' '].includes(event.key)) return;
+  event.preventDefault();
+  if (state.view === 'site') {
+    if (currentSiteNearEvidence()) openCurrentEvidence();
+    else announce('施設の奥まで歩くと、根拠を確認できます。');
+  } else if (beginWorldExploration()) tryEnterSelectedFacility();
+}
+
+async function loadTown() {
+  try {
+    const response = await fetch('/api/town/legacy', {
+      headers: { Accept: 'application/json' },
+      cache: 'no-store'
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    state.town = await response.json();
+    updateNearbyAnchor();
+  } catch {
+    state.town = null;
+    state.nearbyAnchor = null;
+    announce('検査情報を取得できませんでした。施設は未確認として表示します。');
+  }
+  updateSummary();
+  updateFacilityDetail();
+}
+
+async function loadAssets() {
+  try {
+    const siteAudit = auditSiteRecipes();
+    const usageAudit = auditRuntimeAssetUsage();
+    const worldAudit = auditWorldMap();
+    if (!siteAudit.ok || !usageAudit.ok || !worldAudit.ok) throw new Error('街の地理または素材の検証に失敗しました。');
+    state.assets = await loadForgeAssetImages();
+    state.worldReady = true;
+    elements.loading.hidden = true;
+    resizeCanvas();
+    updateNearbyAnchor();
+    updateDistrictBanner();
+    updateJourney();
+  } catch (error) {
+    state.assets = null;
+    state.worldReady = false;
+    state.assetError = error;
+    elements.loading.hidden = true;
+    elements.assetErrorText.textContent = error?.message || '承認済み素材を読み込めません。';
+    elements.assetError.hidden = false;
+    announce('街を開けませんでした。承認済み素材を確認してください。');
+  }
+}
+
+elements.canvas.addEventListener('click', handleCanvasClick);
+elements.canvas.addEventListener('mousemove', handleCanvasMove);
+elements.canvas.addEventListener('mouseleave', () => {
+  state.hoveredAnchor = null;
+  elements.canvas.title = '';
+  draw(state.lastTimestamp);
+});
+elements.canvas.addEventListener('keydown', handleCanvasKey);
+window.addEventListener('keyup', (event) => {
+  const direction = directionForKey[event.key];
+  if (direction && state.worldHeldDirection === direction) state.worldHeldDirection = null;
+});
+elements.overviewButton.addEventListener('click', toggleOverview);
+elements.backButton.addEventListener('click', returnToWorld);
+elements.journalButton.addEventListener('click', () => openJournal(elements.journalButton));
+elements.journalClose.addEventListener('click', () => closeJournal());
+elements.siteEnterButton.addEventListener('click', () => {
+  const facility = selectedFacility();
+  const kind = facility?.kind ?? state.selectedAnchor?.kind;
+  if (!kind) return;
+  const recipes = siteRecipesForFacility(kind);
+  if (recipes.length === 1) enterSite(recipes[0].id);
+  else showSiteChoice(recipes);
+});
+elements.siteChoiceClose.addEventListener('click', () => closeSiteChoice());
+window.addEventListener('resize', resizeCanvas);
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return;
+  if (!elements.siteChoice.hidden) closeSiteChoice();
+  else if (!elements.journal.hidden) closeJournal();
+  else if (state.view === 'site') returnToWorld();
+  else if (state.view === 'overview') toggleOverview();
+});
+
+elements.canvas.dataset.mode = 'world';
+updateSummary();
+updateFacilityDetail();
+updateJourney();
+window.requestAnimationFrame(animationTick);
+
+Promise.allSettled([loadTown(), loadAssets()]).then(() => {
+  if (!state.worldReady) return;
+  elements.canvas.focus();
+  announce('街が開きました。矢印キー、WASD、または金色の道のクリックで歩けます。');
+});

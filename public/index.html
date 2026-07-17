@@ -3,201 +3,122 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>CodeCity Inspector — 街</title>
+    <title>CodeCity Inspector — コードの街を歩いて調べる</title>
+    <link rel="icon" href="data:,">
     <link rel="stylesheet" href="/styles.css">
   </head>
   <body>
-    <div class="app-shell">
-      <header class="app-header">
-        <div class="repo-info">
-          <h1 id="repo-name" class="repo-name">読み込み中…</h1>
-          <button id="seed-badge" type="button" class="seed-badge" title="">
-            seed: <span id="seed-short">----</span>
-          </button>
+    <div class="game-shell">
+      <header class="game-hud">
+        <div class="hud-identity">
+          <h1 id="repo-name">読み込み中…</h1>
+          <span id="level-badge" class="level-badge">Lv.-</span>
+          <span id="place-label" class="place-label">旧市街</span>
         </div>
-
-        <div id="level-badge" class="level-badge" data-level="0" aria-live="polite">
-          <span class="level-badge-num">Lv.<span id="level-num">0</span></span>
-          <span id="level-name" class="level-badge-name">-</span>
-        </div>
-
-        <div class="header-actions">
-          <button id="open-guild-btn" type="button" class="btn btn-guild" disabled>
-            接続者ギルド
-          </button>
-          <button id="reload-btn" type="button" class="btn btn-reload">
-            再読み込み
-          </button>
+        <div class="hud-actions">
+          <button id="back-btn" type="button" class="hud-button" hidden>街へ戻る</button>
+          <button id="overview-btn" type="button" class="hud-button" aria-pressed="false">街を見渡す</button>
+          <button id="journal-btn" type="button" class="hud-button" aria-controls="journal-drawer" aria-expanded="false">根拠を見る</button>
         </div>
       </header>
 
-      <div id="error-banner" class="error-banner" hidden role="alert"></div>
+      <main class="world-stage" aria-labelledby="world-heading">
+        <h2 id="world-heading" class="visually-hidden">CodeCityの世界</h2>
+        <canvas id="world-canvas" tabindex="0"
+          aria-label="CodeCityの街。矢印キーまたはWASD、道のクリックで歩き、EnterまたはSpaceで施設を調べます。"></canvas>
+        <div id="world-loading" class="world-message" role="status">
+          <span class="loading-mark" aria-hidden="true">⌂</span>
+          <strong>コードの街を開いています</strong>
+          <span>道と施設を読み込んでいます…</span>
+        </div>
+        <div id="asset-error" class="world-message world-fallback" role="alert" hidden>
+          <strong>街を開けませんでした。</strong>
+          <span id="asset-error-text">承認済み素材を確認して再読み込みしてください。</span>
+        </div>
 
-      <main class="app-main">
-        <section class="canvas-section" aria-labelledby="canvas-heading">
-          <h2 id="canvas-heading" class="visually-hidden">町の地図</h2>
-
-          <div id="canvas-empty-state" class="canvas-empty-state" hidden>
-            この街にはまだ建物がありません（layout.buildings が空です）。地形だけを表示しています。
-          </div>
-
-          <div class="canvas-wrap">
-            <canvas
-              id="town-canvas"
-              width="240"
-              height="240"
-              tabindex="0"
-              aria-label="町の地図。読み込み中です。"
-            ></canvas>
-          </div>
-
-          <p class="canvas-hint">建物をクリックすると詳細を表示します。酒場（紫）をクリックすると接続者ギルドが開きます。</p>
-
-          <ul class="legend" aria-hidden="true">
-            <li><span class="legend-swatch legend-swatch-building"></span>建物</li>
-            <li><span class="legend-swatch legend-swatch-pub"></span>酒場</li>
-            <li><span class="legend-swatch legend-swatch-entrance"></span>入口</li>
-            <li><span class="legend-swatch legend-swatch-npc"></span>NPC</li>
-            <li><span class="legend-swatch legend-swatch-prop"></span>小物</li>
-          </ul>
+        <section id="journey-card" class="journey-card" aria-labelledby="journey-title">
+          <p id="journey-kicker" class="journey-kicker">最初の調査</p>
+          <h2 id="journey-title">橋と階段の先、道場へ</h2>
+          <p id="journey-copy">金色の足あとを追って、テストの状態を調べましょう。</p>
+          <ol class="journey-progress" aria-label="街の調査の進み具合">
+            <li id="journey-step-walk"><span>1</span>歩く</li>
+            <li id="journey-step-route"><span>2</span>橋・階段</li>
+            <li id="journey-step-evidence"><span>3</span>根拠</li>
+            <li id="journey-step-return"><span>4</span>次の施設</li>
+          </ol>
         </section>
 
-        <aside class="side-panels">
-          <section id="habitability-panel" class="panel habitability-panel" aria-labelledby="habitability-heading">
-            <h2 id="habitability-heading">住みやすさ</h2>
-
-            <div id="cannot-live-headline" class="cannot-live-headline" hidden>
-              このままだと誰も住めません！
-            </div>
-
-            <dl class="hab-summary">
-              <div class="hab-summary-row">
-                <dt>レベル</dt>
-                <dd id="hab-level-text">-</dd>
-              </div>
-              <div class="hab-summary-row">
-                <dt>居住可否</dt>
-                <dd id="hab-can-live-text">-</dd>
-              </div>
-            </dl>
-
-            <div class="hab-group hab-group-blockers">
-              <h3>ブロッカー <span id="hab-blockers-count" class="count-badge">0</span></h3>
-              <ul id="hab-blockers-list" class="hab-list"></ul>
-            </div>
-
-            <div class="hab-group hab-group-warnings">
-              <h3>警告（汚れ） <span id="hab-warnings-count" class="count-badge">0</span></h3>
-              <ul id="hab-warnings-list" class="hab-list"></ul>
-            </div>
-
-            <div class="hab-group hab-group-pending">
-              <h3>検査待ち <span id="hab-pending-count" class="count-badge">0</span></h3>
-              <p class="hab-group-note">外部の工務店（LLM）による自己申告です。まだ確認された成果ではありません。</p>
-              <ul id="hab-pending-list" class="hab-list"></ul>
-            </div>
-
-            <div class="hab-group hab-group-reasons">
-              <h3>判定理由</h3>
-              <ul id="hab-reasons-list" class="hab-list"></ul>
-            </div>
-          </section>
-
-          <section id="building-details-panel" class="panel building-details-panel" aria-labelledby="building-details-heading">
-            <h2 id="building-details-heading">建物情報</h2>
-
-            <div id="building-details-empty" class="building-details-empty">
-              建物をクリックするか、下の一覧から選んでください。
-            </div>
-
-            <div id="building-details-content" class="building-details-content" hidden>
-              <h3 id="bd-facility-label">-</h3>
-              <dl class="bd-stats">
-                <div class="bd-stats-row">
-                  <dt>種別</dt>
-                  <dd id="bd-facility-kind">-</dd>
-                </div>
-                <div class="bd-stats-row">
-                  <dt>存在</dt>
-                  <dd id="bd-facility-present">-</dd>
-                </div>
-                <div class="bd-stats-row">
-                  <dt>件数</dt>
-                  <dd id="bd-facility-count">-</dd>
-                </div>
-                <div class="bd-stats-row">
-                  <dt>状態</dt>
-                  <dd id="bd-building-state">-</dd>
-                </div>
-              </dl>
-
-              <div class="evidence-groups">
-                <div class="evidence-group evidence-observed">
-                  <h4>観測 (observed)</h4>
-                  <ul id="bd-evidence-observed" class="evidence-list"></ul>
-                </div>
-                <div class="evidence-group evidence-inferred">
-                  <h4>推測 (inferred)</h4>
-                  <ul id="bd-evidence-inferred" class="evidence-list"></ul>
-                </div>
-                <div class="evidence-group evidence-unknown">
-                  <h4>不明 (unknown)</h4>
-                  <ul id="bd-evidence-unknown" class="evidence-list"></ul>
-                </div>
-              </div>
-            </div>
-
-            <h3 class="facility-list-heading">施設一覧</h3>
-            <ul id="facility-list" class="facility-list"></ul>
-          </section>
-        </aside>
+        <div id="district-banner" class="district-banner" hidden aria-live="polite"></div>
+        <div id="interaction-prompt" class="interaction-prompt" hidden>
+          <span class="prompt-key">Enter</span>
+          <span id="interaction-prompt-text">施設を調べる</span>
+        </div>
+        <div id="world-help" class="world-help" aria-label="操作方法">
+          <span><kbd>WASD</kbd><kbd>矢印</kbd> 歩く</span>
+          <span><kbd>クリック</kbd> 道を選ぶ</span>
+          <span><kbd>Enter</kbd> 調べる</span>
+        </div>
+        <div id="world-status" class="visually-hidden" role="status" aria-live="polite"></div>
       </main>
     </div>
 
-    <div id="guild-modal" class="guild-modal" hidden>
-      <button id="guild-backdrop" type="button" class="guild-backdrop" aria-label="接続者ギルドを閉じる"></button>
-
-      <div class="guild-panel" role="dialog" aria-modal="true" aria-labelledby="guild-modal-title">
-        <header class="guild-panel-header">
-          <h2 id="guild-modal-title">接続者ギルド</h2>
-          <button id="guild-close-btn" type="button" class="btn-close" aria-label="閉じる">×</button>
-        </header>
-
-        <div id="guild-unavailable" class="guild-unavailable" hidden>
-          酒場がありません。
+    <section id="site-choice-panel" class="site-choice" hidden role="dialog" aria-modal="true" aria-labelledby="site-choice-title">
+      <header>
+        <div>
+          <p class="drawer-kicker">近くの調査区画</p>
+          <h2 id="site-choice-title">検査場所を選ぶ</h2>
         </div>
+        <button id="site-choice-close-btn" type="button" class="drawer-close" aria-label="検査場所の選択を閉じる">×</button>
+      </header>
+      <div id="site-choice-buttons" class="site-choice-buttons"></div>
+    </section>
 
-        <div id="guild-body" class="guild-body">
-          <nav class="guild-tabs" role="tablist" aria-label="接続者ギルドのタブ">
-            <button type="button" role="tab" class="guild-tab" data-tab="なかま" id="guild-tabbtn-nakama" aria-controls="guild-tabpanel-nakama" aria-selected="true">なかま</button>
-            <button type="button" role="tab" class="guild-tab" data-tab="うけつけ" id="guild-tabbtn-uketsuke" aria-controls="guild-tabpanel-uketsuke" aria-selected="false" tabindex="-1">うけつけ</button>
-            <button type="button" role="tab" class="guild-tab" data-tab="いらい" id="guild-tabbtn-irai" aria-controls="guild-tabpanel-irai" aria-selected="false" tabindex="-1">いらい</button>
-            <button type="button" role="tab" class="guild-tab" data-tab="もちもの" id="guild-tabbtn-mochimono" aria-controls="guild-tabpanel-mochimono" aria-selected="false" tabindex="-1">もちもの</button>
-            <button type="button" role="tab" class="guild-tab" data-tab="じょうたい" id="guild-tabbtn-jotai" aria-controls="guild-tabpanel-jotai" aria-selected="false" tabindex="-1">じょうたい</button>
-          </nav>
-
-          <div class="guild-tabpanels">
-            <p class="guild-tabpanel-note">各項目は evidenceClass（観測 / 推測 / 不明）を正直に表示します。</p>
-            <div role="tabpanel" id="guild-tabpanel-nakama" class="guild-tabpanel" data-tabpanel="なかま" aria-labelledby="guild-tabbtn-nakama">
-              <ul class="guild-item-list"></ul>
-            </div>
-            <div role="tabpanel" id="guild-tabpanel-uketsuke" class="guild-tabpanel" data-tabpanel="うけつけ" aria-labelledby="guild-tabbtn-uketsuke" hidden>
-              <ul class="guild-item-list"></ul>
-            </div>
-            <div role="tabpanel" id="guild-tabpanel-irai" class="guild-tabpanel" data-tabpanel="いらい" aria-labelledby="guild-tabbtn-irai" hidden>
-              <ul class="guild-item-list"></ul>
-            </div>
-            <div role="tabpanel" id="guild-tabpanel-mochimono" class="guild-tabpanel" data-tabpanel="もちもの" aria-labelledby="guild-tabbtn-mochimono" hidden>
-              <ul class="guild-item-list"></ul>
-            </div>
-            <div role="tabpanel" id="guild-tabpanel-jotai" class="guild-tabpanel" data-tabpanel="じょうたい" aria-labelledby="guild-tabbtn-jotai" hidden>
-              <ul class="guild-item-list"></ul>
-            </div>
-          </div>
+    <aside id="journal-drawer" class="journal-drawer" hidden aria-labelledby="journal-title">
+      <header class="drawer-header">
+        <div>
+          <p class="drawer-kicker">リポジトリから得た根拠</p>
+          <h2 id="journal-title">観測・推測・未確認</h2>
         </div>
-      </div>
-    </div>
+        <button id="journal-close-btn" type="button" class="drawer-close" aria-label="検査記録を閉じる">×</button>
+      </header>
 
-    <script src="/app.js" defer></script>
+      <section class="drawer-summary" aria-label="街の概要">
+        <dl>
+          <div><dt>街</dt><dd id="drawer-repo">-</dd></div>
+          <div><dt>街の状態</dt><dd id="drawer-habitability">-</dd></div>
+          <div><dt>現在地</dt><dd id="drawer-location">旧市街</dd></div>
+        </dl>
+      </section>
+
+      <section id="facility-empty" class="drawer-card">
+        <h3>施設の入口へ向かいましょう</h3>
+        <p>入口は街の中で名前と状態が表示されています。近づいてEnterを押すと、その施設がある／ない根拠を確認できます。</p>
+      </section>
+
+      <section id="facility-detail" class="drawer-card" hidden>
+        <p id="facility-district" class="drawer-kicker"></p>
+        <h3 id="facility-name">-</h3>
+        <dl class="facility-stats">
+          <div><dt>街での役割</dt><dd id="facility-kind">-</dd></div>
+          <div><dt>状態</dt><dd id="facility-presence">-</dd></div>
+          <div><dt>根拠件数</dt><dd id="facility-count">-</dd></div>
+        </dl>
+        <button id="site-enter-btn" type="button" class="site-enter-button">この施設を歩いて調べる</button>
+        <div class="evidence-group evidence-observed">
+          <h4><span aria-hidden="true">●</span> 観測 — ファイルから確認</h4>
+          <ul id="evidence-observed"></ul>
+        </div>
+        <div class="evidence-group evidence-inferred">
+          <h4><span aria-hidden="true">▲</span> 推測 — 観測から導出</h4>
+          <ul id="evidence-inferred"></ul>
+        </div>
+        <div class="evidence-group evidence-unknown">
+          <h4><span aria-hidden="true">?</span> 未確認 — 実行せず保留</h4>
+          <ul id="evidence-unknown"></ul>
+        </div>
+      </section>
+    </aside>
+
+    <script type="module" src="/app.js"></script>
   </body>
 </html>

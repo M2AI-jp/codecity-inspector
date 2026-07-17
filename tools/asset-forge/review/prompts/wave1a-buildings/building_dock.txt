@@ -1,0 +1,9 @@
+Use case: stylized-concept
+Asset type: production game building sprite source for CodeCity Inspector
+Input images: Image 1 is the global world/palette/pixel-density reference; Image 2 is the direct harbor/dock architecture and materials reference.
+Primary request: create one distinct late-medieval HARBOR DOCK FACILITY, suitable for later downsampling to a 256x256 transparent master.
+Scene/backdrop: perfectly flat solid #ff00ff chroma-key background for local background removal.
+Subject: one complete compact timber dockmaster building with an attached short wooden loading pier, a clearly readable front entrance facing the walkable foreground, warm amber windows, dark blue-green roof tiles, weathered beams, bollards, ropes and a few barrels. No water, boat, people, or separate neighboring structures.
+Style/medium: dense crisp top-down three-quarter pixel art, preserving the references' fine pixel clusters, scale, palette, harbor wood/stone texture, and lighting.
+Composition/framing: single unified facility centered, coherent three-quarter/top-down perspective, generous padding, entire roof, entrance and pier footprint visible, consistent baseline.
+Constraints: background must be one uniform #ff00ff color with no shadows, gradients, texture, reflections, floor plane, or lighting variation. Crisp silhouette. Do not use #ff00ff in the subject. No cast shadow, contact shadow, rectangular ground pad, scene background, neighboring examples, specimen-sheet layout, labels, letters, watermark, characters, water, or cropped edges. Do not simplify into an icon.

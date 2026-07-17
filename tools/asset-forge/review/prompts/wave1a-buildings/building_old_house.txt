@@ -1,0 +1,9 @@
+Use case: stylized-concept
+Asset type: production game building sprite source for CodeCity Inspector
+Input images: Image 1 is the global world/palette/pixel-density reference; Image 2 is the direct aged/legacy-house family, roof, timber, masonry and vegetation reference.
+Primary request: create one distinct OLD LATE-MEDIEVAL HOUSE that is aged but still habitable, suitable for later downsampling and placement as a medium scale-class 256x256 transparent master.
+Scene/backdrop: perfectly flat solid #ff00ff chroma-key background for local background removal.
+Subject: one complete crooked two-story old house with a clearly readable front entrance facing the walkable foreground, weathered blue-green tiled roof with repaired sections, warm dim windows, dark aged timber frame, uneven stone base, ivy and moss, braced wall and sagging but intact porch. No people, smoke, fire, or detached scenery.
+Style/medium: dense crisp top-down three-quarter pixel art, matching the references' fine pixel clusters, palette, pixel density, weathered materials, vegetation, and warm lighting.
+Composition/framing: one old house centered, coherent three-quarter/top-down perspective, generous padding, entire roof and footprint visible, stable baseline.
+Constraints: one uniform #ff00ff background with no shadows, gradients, texture, reflections, floor plane, lighting variation, or smoke. Crisp silhouette. Do not use #ff00ff in the subject. No cast/contact shadow, rectangular ground pad, neighboring examples, specimen sheet, labels, text, watermark, characters, or cropped edges. Must be intact and habitable but visibly old; not a ruin, dark recolor, or duplicate of another house.

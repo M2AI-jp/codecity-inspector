@@ -1,0 +1,8 @@
+Use case: stylized-concept
+Asset type: production 64x64 directional terrain master source for CodeCity Inspector
+Input images: Image 1 is the global world style, palette, camera, and pixel-density reference; Image 2 is the direct approved harbor, water, shoreline, and stone-edge reference.
+Primary request: create one river-edge transition tile in the canonical orientation: LAND occupies the TOP edge and WATER occupies the BOTTOM edge.
+Subject: a readable horizontal irregular stone-and-earth riverbank across the middle, mossy cobbles and sparse grass on the upper land, deep blue moving water below; the shoreline meets both left and right edges at exactly the same height and width so neighboring river-edge tiles connect.
+Style/medium: dense crisp late-medieval fantasy top-down three-quarter pixel art matching CodeCity's water highlights, stone scale, palette, and upper-left lighting.
+Composition/framing: one square terrain tile filling the entire image; top edge is continuous land, bottom edge continuous water, left/right boundary alignment identical; designed for nearest-neighbor downsampling to 64x64.
+Constraints: no bridge, dock, boat, building, person, prop, border, frame, margin, tile grid, multiple variants, text, labels, arrows, watermark, blur, painterly water, or enlarged pixels.

@@ -1,0 +1,141 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-15T04:36:59.107Z",
+    "approvedPath": "generated/buildings/approved/building_guild-14649f026c987b1a.png",
+    "approvedSha256": "14649f026c987b1a4532ceeb7444508602e049472143209bf9bd4cd36823cb6c",
+    "note": "Required 78 batch approval cb4aa5f67c91a329c140f4a09bdc39b960ccce8a76334957066d7c0e83540042",
+    "reviewer": "human"
+  },
+  "assetId": "building.guild",
+  "category": "building",
+  "createdAt": "2026-07-14T00:00:00.000Z",
+  "dryRun": false,
+  "id": "gen_import_9f266b7cd3a7b5677dab",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 256x256.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_9443e3cba2ca0df9164b",
+  "manualImport": true,
+  "metadataPath": "generated/buildings/approved/building_guild-14649f026c987b1a.json",
+  "outputInspection": {
+    "bytes": 78071,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 256,
+    "width": 256
+  },
+  "outputPath": "generated/buildings/approved/building_guild-14649f026c987b1a.png",
+  "outputSha256": "14649f026c987b1a4532ceeb7444508602e049472143209bf9bd4cd36823cb6c",
+  "productionRecipe": {
+    "assetId": "building.guild",
+    "backgroundRemoval": {
+      "autoKey": "border",
+      "cleanup": {
+        "alphaCutoff": 16,
+        "componentMinPixels": 128,
+        "resizeKernel": "nearest",
+        "targetMaxHeight": 210,
+        "targetMaxWidth": 218
+      },
+      "despill": true,
+      "keyColor": null,
+      "method": "official-chroma-key-helper",
+      "opaqueThreshold": 220,
+      "softMatte": true,
+      "transparentThreshold": 12
+    },
+    "canvas": {
+      "baselineY": 244,
+      "height": 256,
+      "width": 256
+    },
+    "generationPromptPath": "review/prompts/wave1a-buildings/building_guild.txt",
+    "generationPromptSha256": "a32567e784c4779c06de380b46f88d1abbb88d83100d3c1aa5d313b493e95842",
+    "generator": "codex-imagegen-built-in",
+    "inputReferences": [
+      {
+        "id": "world_visual_master",
+        "role": "global-style",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_building_guild_variant_01",
+        "role": "primary-subject",
+        "sha256": "e6d0904d6b2ac1af8ebf8d01df1662ccab49489ead967e0e244f4db6135701c9"
+      }
+    ],
+    "method": "imagegen",
+    "outputSha256": "14649f026c987b1a4532ceeb7444508602e049472143209bf9bd4cd36823cb6c",
+    "referenceImages": [
+      {
+        "id": "world_visual_master",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_building_guild_variant_01",
+        "sha256": "e6d0904d6b2ac1af8ebf8d01df1662ccab49489ead967e0e244f4db6135701c9"
+      }
+    ],
+    "scaleClass": "large",
+    "source": {
+      "comparisonRect": {
+        "height": 590,
+        "width": 975,
+        "x": 160,
+        "y": 0
+      },
+      "cropRect": null,
+      "height": 1070,
+      "path": "tmp/imagegen/wave1a/raw/building_guild.png",
+      "sha256": "e5281851d906c6f6d238d91315111eff92350c94506c0ab100f7aac3ec60d5ec",
+      "width": 1470
+    },
+    "sourceSnapshot": {
+      "height": 1070,
+      "path": "generated/buildings/approved/source-e5281851d906c6f6d238d91315111eff92350c94506c0ab100f7aac3ec60d5ec.source-original.png",
+      "sha256": "e5281851d906c6f6d238d91315111eff92350c94506c0ab100f7aac3ec60d5ec",
+      "width": 1470
+    },
+    "subjectBbox": {
+      "height": 163,
+      "width": 218,
+      "x": 19,
+      "y": 82
+    },
+    "toolMode": "built-in",
+    "waveId": "wave1a-buildings"
+  },
+  "promptHash": "982d62b89c3c4cc3d545275bc615cf17f677c1ce407197b368e8f8974cded63b",
+  "provenanceKey": "9f266b7cd3a7b5677dab8b8b32c8d009c0c3f6636a2d86575367c2d6c9c2532d",
+  "provider": "manual-import",
+  "referenceImageHashes": [
+    "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+    "e6d0904d6b2ac1af8ebf8d01df1662ccab49489ead967e0e244f4db6135701c9"
+  ],
+  "referenceImageIds": [
+    "world_visual_master",
+    "intake_20260713_building_guild_variant_01"
+  ],
+  "sourceFormat": "png",
+  "sourcePath": "generated/buildings/pending/building_guild-14649f026c987b1a.source.png",
+  "sourceSha256": "14649f026c987b1a4532ceeb7444508602e049472143209bf9bd4cd36823cb6c",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

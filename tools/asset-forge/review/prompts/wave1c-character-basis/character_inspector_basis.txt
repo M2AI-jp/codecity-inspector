@@ -1,0 +1,9 @@
+Create one production reference spritesheet for CodeCity Inspector, using Image 1 as the only visual reference and matching its established late-medieval town world, small-headed map-scale proportions, dense deliberate pixel clusters, crisp hard pixel edges, and restrained blue-green, stone-gray, brown, and warm lantern palette.
+
+SUBJECT: one late-medieval town inspector archetype, practical and readable rather than heroic: slim vertical silhouette, small head, teal-blue inspector coat or tabard, warm brown leather satchel, dark boots, compact ledger or inspection tool, understated cap or short hair. The same character and clothing must remain consistent in every cell.
+
+LAYOUT CONTRACT: exactly a 4-column by 3-row spritesheet on a perfectly uniform solid #ff00ff background. Columns, left to right: front, back, left, right. Rows, top to bottom: neutral standing/idle, walk pose A, walk pose B. Every one of the 12 cells must be clearly separable and centered in an equal cell, with consistent feet baseline, scale, silhouette, lighting, palette, and anatomy. Walking poses must alternate legs and arms while preserving identity. Side views must be true left/right directional views; back view must clearly face away.
+
+PIXEL CONTRACT: authentic newly authored pixel art with compact clusters and no anti-aliasing, no semi-transparent edges, no blur, no painterly texture, no smooth vector-like curves, no enlarged old pixels, no soft shadows. Make the character legible when each frame is later nearest-neighbor reduced to 24x40 pixels. Keep generous #ff00ff separation between cells and keep all sprite pixels fully inside their cells.
+
+Do not include text, letters, numbers, labels, legends, UI panels, borders, grid lines, multiple characters, weapons, modern clothing, anime eyes, oversized head, rounded chibi body, environmental scenery, floor, vignette, watermark, signature, or any color variation in the #ff00ff background.

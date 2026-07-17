@@ -1,8 +1,16 @@
 # CodeCity Inspector
 
-JavaScript / TypeScript のリポジトリを読み取り専用で点検し、ファイルを建物、ローカルimportを道に見立てた「住める街」のデータモデルへ変換するMac向けローカルツールです。未解決の接続、循環依存、テストとの対応、生活インフラ（入口・DB・env・ログ・テスト・配布経路など）の有無を、元ファイルへ戻れる根拠と一緒に確認できます。
+JavaScript / TypeScript のリポジトリを読み取り専用で点検し、ファイルを建物、ローカルimportを道に見立てた「住める街」のデータモデルへ変換するMac向けローカルツールです。未解決の接続、循環依存、テストとの対応、生活インフラ（入口・DB・env・ログ・テスト・配布経路など）の有無を、根拠と一緒に確認できます。
 
-> 現在はMVPのバックエンドです。ピクセルアートで街を実際に描画するフロントエンドと、その画像アセットは削除済みで、後日あらためて作り直します。今動くのは、街のデータモデル・住める街レベルの判定・決定論的なレイアウト生成・検証（役場検査）と、それを取り出すCLI / HTTP APIです。完成した因果関係を証明するツールでも、署名済みのMacアプリでもありません。
+> **現在の製品状態（2026-07-18）:** `--open` と `CodeCity.command` は、`/fable5-v2/preview.html` のリポジトリ駆動・seed決定的な4地区ゲームを開きます。WorldPlanの実在する建物とfactを、意味の合う旧市街・港湾・雪原・森林の場面スロットへ割り当てます。宿屋Prefabがある場合だけ同一マップ上で入室・屋根開閉・店主との会話が有効になり、閉鎖Prefabと対応看板がある場合だけ「未到達・要確認」を表示します。背景地形・道路・構図は高品質な固定シーンテンプレートであり、WorldPlanの自由な街路形状を描くものではありません。`/` の従来版と、Wave A全109素材を要求する `/fable5-v2/` の厳格atlas版も比較用に残しています。
+
+78点はプロジェクト所有者がChatGPT Proで生成した素材として制作来歴と採用を確認済みです。素材を読み込めない場合、runtimeは理由を表示して停止し、旧素材や代替描画へ戻りません。権利・法令適合性をソフトウェアが自動保証するものではありません。完成した因果関係を証明するツールでも、署名済みのMacアプリでもありません。
+
+`public/fable5-v2/assets/` の新規7点は、2026-07-18にプロジェクト所有者の指示でCodex内蔵の画像生成を使って制作し、このプレビューへ採用したものです。独立した法務・権利確認は行っていません。ルートのMIT Licenseはコードの利用条件であり、生成画像の権利・第三者権利への適合を自動的に保証するものではありません。
+
+Fable5の生成経路は、`静的な読み取り専用検査 → RepositorySemanticModel → PrefabCatalog → seed付きWorldPlan → renderer` です。意味モデルは検査で見つかった既存ファイルの役割だけを補い、ファイル、観測事実、座標、当たり判定、イベントを発明できません。座標と移動可能性は再現可能な生成器とvalidatorが決めます。現在は決定論的heuristicと、ローカルまたは利用者が明示的に許可したLLM候補を受け取る境界まで実装済みで、外部LLM/APIへの送信は行いません。
+
+ここでいう既存アセットはPNGだけではありません。`PrefabCatalog` は、外観画像、アニメーション、SE、衝突形状、入口と室内、近接表示、会話・調査イベントを1つのゲーム部品として束ねます。最初の縦断実装では、到達可能なserviceを「入室可能な宿屋」、入口から未到達で未検証のmoduleを「閉鎖・要確認の建物」へ割り当てます。後者は壊れた看板を表示しますが、死んだコードや故障とは断定しません。
 
 ## 必要なもの
 
@@ -36,7 +44,7 @@ node src/generate-town.mjs --repo "/path/to/your/repository" --out ./town.layout
 
 - `--repo` を省略すると同梱の `sample/tiny-town` を点検します。
 - `--seed` を省略すると、リポジトリの状態から求めたfingerprintがそのままseedになります。コードが変わらなければ、再実行しても同じ `town.layout.json` になります。
-- `--out` を省略すると実行時のカレントディレクトリの `./town.layout.json` に書き出します。指定しない限り、点検対象リポジトリの中には書き込みません。
+- `--out` を省略すると実行時のカレントディレクトリの `./town.layout.json` に書き出します。点検対象リポジトリの内側は明示指定しても拒否し、シンボリックリンク経由で内側へ戻る出力先も拒否します。
 - `--print` を付けると、レイアウトJSON全体を標準出力にも書き出します。
 
 ### サーバーを起動してAPIで見る
@@ -51,16 +59,23 @@ node src/server.mjs --repo "/path/to/your/repository" --open
 
 標準では `http://127.0.0.1:4173` で待ち受けます。別のポートが必要なら `--port 4174` のように指定できます。`CodeCity.command` をダブルクリックする、またはFinder上でリポジトリのフォルダを1つドラッグ＆ドロップしても、同じサーバーが起動します（`CodeCity.command` は依存が無ければ日本語で案内して停止し、自動インストールやネットワークアクセスはしません）。
 
-ブラウザには現在、最小限のプレースホルダー（バックエンドの状態ページ）が開きます。ピクセルアートで街を描画する画面は、フロントエンド再構築まで一時的にありません。中身を確認するには、次のエンドポイントを直接開くかcurlしてください。
+`--open` を付けるか `CodeCity.command` を使うと、新しい4地区ゲームを直接開きます。ブラウザの `/` には比較用の `/api/town/legacy` 技術検証版が残っています。
+
+新規アートの4地区ゲームは `/fable5-v2/preview.html` で遊べます。矢印キー・WASD・クリックまたはタッチで歩き、各地にseed決定的に結合された実際のWorldPlan factを調査します。同じ入力とseedなら割当は同一です。宿屋の敷居を越えると同じマップのまま屋根が開き、店主のそばまで歩けます。4地区の巡回後は夜の旧市街へ戻ります。これは固定シーンPrefabへリポジトリ内容を投影するテンプレート生成方式であり、道路や建物座標そのものを自由生成したという主張はしません。
+
+厳格版のFable5候補版は `/fable5-v2/` で確認できます。こちらは `/api/town` のWorldPlan v2を読みますが、承認済みWave A v3 exportが無い／読み込めない間は理由を表示して操作を停止します。生のJSONは次のエンドポイントから確認できます。
+
+従来版のAsset Forge定義は合計110件で、そのゲームに必要な78件は承認・export済み、残り32件は任意の将来拡張です。公開schema v2 manifestを唯一の入口として、17建物、22人物、19地形、18小物、2効果の全78 IDをruntimeから参照します。これはID・byte・寸法・来歴・bindingの技術網羅であり、到達可能なsceneでの意味ある使用、構図、ゲーム性を証明するものではありません。キャラクターは検証済みの方向・動作セルを、エフェクトは宣言済みフレームを切り抜いて描画します。公開契約が揃っていることは、画像の美観や利用権まで自動判定したという意味でもありません。
 
 - `GET /api/city` — scanner / inspectorが読み取った生のインスペクション結果（ファイル、import、循環、テスト対応など）
-- `GET /api/town` — 街モデル・住める街レベル・検証済みレイアウトをまとめたレスポンス（下記）
+- `GET /api/town/legacy` — `/` が使う従来の街モデル・住める街レベル・検証済みレイアウト（下記）
+- `GET /api/town` — `/fable5-v2/` が使うfacts・WorldPlan v2・住める街レベルをまとめたレスポンス
 
 終了するときは、起動時に開いたターミナルで **Control + C** を押します。
 
 ダブルクリックできない場合や、GitHubから取得したファイルをmacOSが初回だけ止める場合は、Finderで `CodeCity.command` をControlキーを押しながらクリックして **開く** を選び、入手元を確認してから許可してください。Mac全体の保護や、フォルダ全体の隔離属性を一括で無効化する必要はありません。
 
-## `/api/town` の中身
+## `/api/town/legacy` の中身
 
 ```json
 {
@@ -94,8 +109,9 @@ node src/server.mjs --repo "/path/to/your/repository" --open
   | 4 | にぎわう街 | 道場（テスト）と見張り台（ログ・監視）が揃った |
   | 5 | 見せたくなる街 | 船着場（配布）も整い、未解決の警告もない |
 
-- `layout` は `src/town/generator.mjs` が生成し `src/town/validator.mjs`（役場検査）が検証・注釈した `TownLayout` そのもので、`layout.validation.ok` が false になる結果は `/api/town` からも返りません（CLIの `town.layout.json` と同じ規約です）。
-- `generatorVersion` + `repoFingerprint`（内部の決定論キー） + `seed` の組が同じであれば、`layout` は常にバイト単位で同一になります。日付やランダム値は一切使いません。同じリポジトリ状態なら、`/api/town` の `layout` と `npm run generate:town` が書き出す `town.layout.json` はバイト単位で一致します。
+- `layout` は `src/town/generator.mjs` が生成し `src/town/validator.mjs`（役場検査）が検証・注釈した `TownLayout` そのもので、`layout.validation.ok` が false になる結果は `/api/town/legacy` からも返りません（CLIの `town.layout.json` と同じ規約です）。
+- 観測できるentrypointが無いリポジトリは、壊れたレイアウトとして500にせず、入口のない街として返します。この場合は構造検査を通したうえで `habitability.canLive=false`、`importantBuildingsReachable=false`、`REACHABLE` warningとなり、画面に「誰も住めません」と理由を表示できます。
+- `generatorVersion` + `repoFingerprint`（内部の決定論キー） + `seed` の組が同じであれば、`layout` は常にバイト単位で同一になります。日付やランダム値は一切使いません。同じリポジトリ状態なら、`/api/town/legacy` の `layout` と `npm run generate:town` が書き出す `town.layout.json` はバイト単位で一致します。
 
 ## 街モデルの読み方（証拠の区分）
 
@@ -117,13 +133,23 @@ node src/server.mjs --repo "/path/to/your/repository" --open
 
 ## プライバシーと安全性
 
-対象リポジトリは読み取り専用のデータとして扱います。対象のコード、テスト、hook、package script、package managerは実行せず、ファイルも変更しません。`npm install` はCodeCity自身のparserを取得する初回準備であり、点検対象のフォルダでは実行しません。解析時にソース本文を外部へ送信せず、サーバーはMac内のループバックアドレス（`127.0.0.1`）だけで待ち受け、ループバックを指さない `Host` ヘッダーは拒否します。`npm run generate:town` が書き出すのは指定した `--out` 先のJSONファイル1つだけで、既定では点検対象リポジトリの外（カレントディレクトリ）に置かれます。詳しくは [SECURITY.md](SECURITY.md) と [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) を参照してください。
+対象リポジトリは読み取り専用のデータとして扱います。対象のコード、テスト、hook、package script、package managerは実行せず、ファイルも変更しません。`npm install` はCodeCity自身のparserを取得する初回準備であり、点検対象のフォルダでは実行しません。解析時にソース本文を外部へ送信せず、サーバーはMac内のループバックアドレス（`127.0.0.1`）だけで待ち受け、ループバックを指さない `Host` ヘッダーは拒否します。`npm run generate:town` が書き出すのは、点検対象の外側にある指定 `--out` 先のJSONファイル1つだけです。出力は同じフォルダの一時ファイルを同期してから置き換え、既存のハードリンク先を経由して対象ファイルを書き換えません。詳しくは [SECURITY.md](SECURITY.md) と [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) を参照してください。
 
 ## 開発者向け
 
 ```sh
 npm ci
 npm run check
+
+# Asset Forgeは独立lockfile・独立依存
+npm ci --prefix tools/asset-forge
+npm run asset:check
+npm run asset:validate
 ```
 
-`npm run check` は、`CodeCity.command` の構文チェック、`src` 配下の各エントリの `node --check`、そして `node --test` によるテストを実行します。直接の実行時依存は `@babel/parser` 1件です。対象リポジトリ側で `npm install` やテスト実行を行わないでください。
+Asset Forgeのソースと独立lockfileはnpm配布物にも含まれますが、通常のルート
+`npm install` は任意機能であるAjv/Sharpを自動導入しません。ソースcheckout・npm配布物の
+どちらでも、Asset Forgeを使う前にNode.js 20.9以上で
+`npm ci --prefix tools/asset-forge` を明示的に実行してください。
+
+`npm run check` は、`CodeCity.command` の構文チェック、`src` 配下の各エントリの `node --check`、そしてルートテストを実行します。Asset Forgeは `tools/asset-forge/` 内でAjvとSharpを使い、mock、dry-run、job pack、manual import、画像処理、human-only promote guard、approved-only exportを独立テストします。`codex-subscription` は安全性・課金境界を確認できるローカルコマンドが無いため unavailable stub のままです。OpenAI API、API key、paid fallbackはありません。対象リポジトリ側で `npm install` やテスト実行を行わないでください。

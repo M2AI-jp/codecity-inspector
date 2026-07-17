@@ -1,0 +1,142 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-15T04:37:19.132Z",
+    "approvedPath": "generated/objects/approved/object_blue_flag-96876238dec26ac1.png",
+    "approvedSha256": "96876238dec26ac159ad7b56cfa33761cd4a9251cd8614bfdb0f93f8ea1d4a29",
+    "note": "Required 78 batch approval cb4aa5f67c91a329c140f4a09bdc39b960ccce8a76334957066d7c0e83540042",
+    "reviewer": "human"
+  },
+  "assetId": "object.blue_flag",
+  "category": "object",
+  "createdAt": "2026-07-14T10:00:00.000Z",
+  "dryRun": false,
+  "id": "gen_import_e22e7b284f700117bd74",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 64x64.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_baa217a2c35daca545c4",
+  "manualImport": true,
+  "metadataPath": "generated/objects/approved/object_blue_flag-96876238dec26ac1.json",
+  "outputInspection": {
+    "bytes": 960,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 64,
+    "width": 64
+  },
+  "outputPath": "generated/objects/approved/object_blue_flag-96876238dec26ac1.png",
+  "outputSha256": "96876238dec26ac159ad7b56cfa33761cd4a9251cd8614bfdb0f93f8ea1d4a29",
+  "productionRecipe": {
+    "assetId": "object.blue_flag",
+    "backgroundRemoval": {
+      "autoKey": "border",
+      "cleanup": {
+        "alphaCutoff": 128,
+        "componentMinPixels": 1,
+        "resizeKernel": "nearest",
+        "targetMaxHeight": 60,
+        "targetMaxWidth": 60
+      },
+      "despill": true,
+      "keyColor": null,
+      "method": "official-chroma-key-helper",
+      "opaqueThreshold": 110,
+      "softMatte": true,
+      "transparentThreshold": 35
+    },
+    "canvas": {
+      "baselineY": 63,
+      "height": 64,
+      "width": 64
+    },
+    "generationPromptPath": "review/prompts/wave1d-objects-effects/blue_flag.txt",
+    "generationPromptSha256": "68b08daa781aa5bf95ae1ee4e3a5307f9a11d3f2fc37cfa0a0da44de50051115",
+    "generator": "codex-imagegen-built-in",
+    "inputReferences": [
+      {
+        "id": "world_visual_master",
+        "role": "global-style",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_object_status_markers",
+        "role": "primary-subject",
+        "sha256": "e3d2f177bf10bc07d1362251d8aa80d490fc6f58999d24b06a66c34a177e1d1b"
+      }
+    ],
+    "method": "imagegen",
+    "outputSha256": "96876238dec26ac159ad7b56cfa33761cd4a9251cd8614bfdb0f93f8ea1d4a29",
+    "referenceImages": [
+      {
+        "id": "world_visual_master",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_object_status_markers",
+        "sha256": "e3d2f177bf10bc07d1362251d8aa80d490fc6f58999d24b06a66c34a177e1d1b"
+      }
+    ],
+    "scaleClass": "tiny",
+    "source": {
+      "cropRect": null,
+      "height": 1254,
+      "path": "tmp/imagegen/wave1d-objects-effects/raw/blue_flag.png",
+      "sha256": "7977ddd4885e235a171bc37cbeb8cfe4eec5b132b70c4b0f689cd1464c108825",
+      "width": 1254
+    },
+    "sourceSnapshot": {
+      "height": 1254,
+      "path": "generated/objects/approved/source-7977ddd4885e235a171bc37cbeb8cfe4eec5b132b70c4b0f689cd1464c108825.source-original.png",
+      "sha256": "7977ddd4885e235a171bc37cbeb8cfe4eec5b132b70c4b0f689cd1464c108825",
+      "width": 1254
+    },
+    "subjectBbox": {
+      "height": 60,
+      "width": 34,
+      "x": 15,
+      "y": 4
+    },
+    "toolMode": "built-in",
+    "transformSteps": [
+      "full-frame",
+      "chroma-key-remove",
+      "nearest-downscale",
+      "hard-alpha",
+      "palette-quantize"
+    ],
+    "waveId": "wave1d-objects-effects"
+  },
+  "promptHash": "422bce337d2a5cb66102734f96e2bbcccf619563899e5015ad3ba6f6496f4e41",
+  "provenanceKey": "e22e7b284f700117bd74fcf5778763817381a3dff36eb02c0f296392352d7420",
+  "provider": "manual-import",
+  "referenceImageHashes": [
+    "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+    "e3d2f177bf10bc07d1362251d8aa80d490fc6f58999d24b06a66c34a177e1d1b"
+  ],
+  "referenceImageIds": [
+    "world_visual_master",
+    "intake_20260713_object_status_markers"
+  ],
+  "sourceFormat": "png",
+  "sourcePath": "generated/objects/pending/object_blue_flag-73f22fe067446faf.source.png",
+  "sourceSha256": "73f22fe067446fafefacf187c3e231583023090aa94f5ee707e4d894ab5f2c8c",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

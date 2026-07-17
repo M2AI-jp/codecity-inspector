@@ -1,0 +1,1274 @@
+{
+  "$schema": "../../schemas/asset-catalog.schema.json",
+  "schemaVersion": 1,
+  "category": "field",
+  "assets": [
+    {
+      "id": "field.cobblestone",
+      "category": "field",
+      "displayName": "Cobblestone",
+      "gameMeaning": "Required field art for field.cobblestone.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/fields/00_common_field_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "intake_20260713_field_cobblestone_roads"
+      ],
+      "output": {
+        "kind": "tileset",
+        "preferredFormat": "png",
+        "background": "transparent",
+        "needsTransparency": true,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "tileSize": 64,
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "tags": [
+        "field",
+        "cobblestone"
+      ],
+      "constraints": {
+        "must": [
+          "single mossy irregular rock cluster with a readable natural silhouette",
+          "transparent corners and transparent space around the subject",
+          "hard pixel-art alpha edge with the subject contained inside the 64x64 canvas",
+          "terrain feature overlay that remains readable when composited over field.grass"
+        ],
+        "mustNot": [
+          "opaque square or green ground tile",
+          "matte, halo, scene background, or drop shadow",
+          "round pebble or regular geometric rock",
+          "characters",
+          "labels",
+          "soft antialiasing"
+        ]
+      },
+      "reviewChecklist": [
+        "四隅が完全に透明で不透明な四角がないか",
+        "草地へ重ねても緑のマットや縁取りが見えないか",
+        "苔むした不規則な岩塊として読めるか",
+        "64x64の中で小さすぎず、周囲の透明余白を保っているか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "tile",
+        "semanticKind": "cobblestone",
+        "drawLayer": "object",
+        "runtimeBindings": [
+          {
+            "vocabulary": "TILE_TYPES",
+            "id": "road"
+          }
+        ],
+        "coverage": "mapped"
+      }
+    },
+  {
+    "id": "field.dirt_path",
+      "category": "field",
+      "displayName": "Dirt Path",
+      "gameMeaning": "Required field art for field.dirt_path.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/fields/00_common_field_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "intake_20260713_field_cobblestone_roads"
+      ],
+      "output": {
+        "kind": "tileset",
+        "preferredFormat": "png",
+      "background": "scene",
+      "needsTransparency": false,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "tileSize": 64,
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "tags": [
+        "field",
+        "dirt_path"
+      ],
+      "constraints": {
+        "must": [
+        "64x64 opaque repeatable compacted-earth ground tile",
+        "readable larger soil patches, embedded stones, shallow footprints, moss, and leaf litter",
+        "deliberate low-frequency pixel clusters rather than random grain",
+        "non-directional walkable woodland path"
+        ],
+        "mustNot": [
+        "transparent pixels or object-overlay treatment",
+        "uniform brown grain, TV noise, or high-frequency static",
+        "directional border, square frame, or isolated central object",
+          "characters",
+          "labels",
+          "soft antialiasing"
+        ]
+      },
+      "reviewChecklist": [
+      "64x64実寸で踏み固めた土・大小の石・苔・落葉が読めるか",
+      "茶色い粒状ノイズや単色の静電ノイズに見えないか",
+      "四辺を反復しても継ぎ目や四角い枠が目立たないか",
+      "キャラクターや建物の輪郭を邪魔しないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "tile",
+        "semanticKind": "dirt_path",
+      "drawLayer": "ground",
+        "runtimeBindings": [
+          {
+            "vocabulary": "TILE_TYPES",
+            "id": "path"
+          },
+          {
+            "vocabulary": "TILE_TYPES",
+            "id": "dirt"
+          }
+        ],
+        "coverage": "mapped"
+      }
+    },
+    {
+      "id": "field.grass",
+      "category": "field",
+      "displayName": "Grass",
+      "gameMeaning": "Required field art for field.grass.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/fields/00_common_field_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "intake_20260713_field_stairs_bridges_cliffs"
+      ],
+      "output": {
+        "kind": "tileset",
+        "preferredFormat": "png",
+        "background": "scene",
+        "needsTransparency": false,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "tileSize": 64,
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "tags": [
+        "field",
+        "grass"
+      ],
+      "constraints": {
+      "must": [
+        "64x64 opaque repeatable dark woodland floor",
+        "deep moss green, muted leaf litter, and readable small foliage clusters",
+        "larger deliberate pixel shapes rather than random grain",
+        "walkability meaning remains visible"
+        ],
+        "mustNot": [
+        "brown particle noise, TV static, or large empty bare-soil areas",
+        "characters",
+          "labels",
+          "soft antialiasing"
+        ]
+      },
+      "reviewChecklist": [
+      "64x64実寸で深緑の苔・落葉・小葉が読めるか",
+      "茶色い粒状ノイズや大きな裸地に見えないか",
+      "継ぎ目が目立たず、建物・道・キャラクターが読めるか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "tile",
+        "semanticKind": "grass",
+        "drawLayer": "ground",
+        "runtimeBindings": [
+          {
+            "vocabulary": "TILE_TYPES",
+            "id": "grass"
+          }
+        ],
+        "coverage": "exact"
+      }
+    },
+    {
+      "id": "field.snow",
+      "category": "field",
+      "displayName": "Snow",
+      "gameMeaning": "Required walkable snow terrain for the production snow-quarter site.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/fields/00_common_field_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "intake_20260713_field_stairs_bridges_cliffs"
+      ],
+      "output": {
+        "kind": "tileset",
+        "preferredFormat": "png",
+        "background": "scene",
+        "needsTransparency": false,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "tileSize": 64,
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "tags": [
+        "field",
+        "snow"
+      ],
+      "constraints": {
+      "must": [
+        "64x64 seamless tile with all four edges fully tileable",
+        "blue-grey wind-swept snow from a medieval town street",
+        "broad snowdrifts, shallow footprints, frost ridges, and icy shadow shapes at map scale",
+        "larger deliberate pixel clusters rather than random grain",
+          "non-directional walkable ground",
+          "low-saturation dense pixel art matching the world board snow district"
+        ],
+        "mustNot": [
+          "characters",
+          "buildings",
+          "labels",
+        "white or blue TV noise, static speckles, or uniform random grain",
+          "directional tracks or borders",
+          "soft antialiasing"
+        ]
+      },
+      "reviewChecklist": [
+      "64x64実寸で青灰色の吹き溜まり・足跡・氷の陰影が大きな形として読めるか",
+      "白青のTVノイズや粒状の静電ノイズに見えないか",
+      "継ぎ目が目立たず、建物・道・キャラクターが読めるか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "tile",
+        "semanticKind": "snow",
+        "drawLayer": "ground",
+        "runtimeBindings": [
+          {
+            "vocabulary": "TILE_TYPES",
+            "id": "snow"
+          }
+        ],
+        "coverage": "exact"
+      }
+    },
+    {
+      "id": "field.water",
+      "category": "field",
+      "displayName": "Water",
+      "gameMeaning": "Required field art for field.water.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/fields/00_common_field_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "intake_20260713_field_harbor_docks_tiles"
+      ],
+      "output": {
+        "kind": "tileset",
+        "preferredFormat": "png",
+        "background": "scene",
+        "needsTransparency": false,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "tileSize": 64,
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "tags": [
+        "field",
+        "water"
+      ],
+      "constraints": {
+        "must": [
+          "tile-aligned edges",
+          "repeatable texture",
+          "walkability meaning remains visible"
+        ],
+        "mustNot": [
+          "characters",
+          "labels",
+          "soft antialiasing"
+        ]
+      },
+      "reviewChecklist": [
+        "継ぎ目が目立たないか",
+        "接続方向が読めるか",
+        "地形の意味が変わっていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "tile",
+        "semanticKind": "water",
+        "drawLayer": "ground",
+        "runtimeBindings": [
+          {
+            "vocabulary": "TILE_TYPES",
+            "id": "water"
+          }
+        ],
+        "coverage": "exact"
+      }
+    },
+    {
+      "id": "field.river_edge",
+      "category": "field",
+      "displayName": "River Edge",
+      "gameMeaning": "Required field art for field.river_edge.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/fields/00_common_field_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "intake_20260713_field_harbor_docks_tiles"
+      ],
+      "output": {
+        "kind": "tileset",
+        "preferredFormat": "png",
+        "background": "scene",
+        "needsTransparency": false,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "tileSize": 64,
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "tags": [
+        "field",
+        "river_edge"
+      ],
+      "constraints": {
+        "must": [
+          "tile-aligned edges",
+          "repeatable texture",
+          "walkability meaning remains visible",
+          "quarterTurns=0 canonical orientation has the dry bank on the top (north) edge"
+        ],
+        "mustNot": [
+          "characters",
+          "labels",
+          "soft antialiasing"
+        ]
+      },
+      "reviewChecklist": [
+        "継ぎ目が目立たないか",
+        "接続方向が読めるか",
+        "地形の意味が変わっていないか",
+        "quarterTurns=0 で乾いた岸が上（北）にあるか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "tile",
+        "semanticKind": "river_edge",
+        "drawLayer": "ground",
+        "runtimeBindings": [
+          {
+            "vocabulary": "TILE_TYPES",
+            "id": "water"
+          }
+        ],
+        "coverage": "mapped"
+      }
+    },
+    {
+      "id": "field.bridge_stone",
+      "category": "field",
+      "displayName": "Bridge Stone",
+      "gameMeaning": "Required field art for field.bridge_stone.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/fields/00_common_field_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "intake_20260713_field_stairs_bridges_cliffs"
+      ],
+      "output": {
+        "kind": "tileset",
+        "preferredFormat": "png",
+        "background": "scene",
+        "needsTransparency": false,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "tileSize": 64,
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "tags": [
+        "field",
+        "bridge_stone"
+      ],
+      "constraints": {
+        "must": [
+          "tile-aligned edges",
+          "repeatable texture",
+          "walkability meaning remains visible",
+          "quarterTurns=0 canonical orientation has the bridge deck left-to-right (east-west) over water north-to-south"
+        ],
+        "mustNot": [
+          "characters",
+          "labels",
+          "soft antialiasing"
+        ]
+      },
+      "reviewChecklist": [
+        "継ぎ目が目立たないか",
+        "接続方向が読めるか",
+        "地形の意味が変わっていないか",
+        "quarterTurns=0 で橋桁が左右（東西）、水面が上下（南北）に通るか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "tile",
+        "semanticKind": "bridge_stone",
+        "drawLayer": "ground",
+        "runtimeBindings": [
+          {
+            "vocabulary": "TILE_TYPES",
+            "id": "bridge"
+          }
+        ],
+        "coverage": "mapped"
+      }
+    },
+    {
+      "id": "field.bridge_wood",
+      "category": "field",
+      "displayName": "Bridge Wood",
+      "gameMeaning": "Required field art for field.bridge_wood.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/fields/00_common_field_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "intake_20260713_field_harbor_docks_tiles"
+      ],
+      "output": {
+        "kind": "tileset",
+        "preferredFormat": "png",
+        "background": "scene",
+        "needsTransparency": false,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "tileSize": 64,
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "tags": [
+        "field",
+        "bridge_wood"
+      ],
+      "constraints": {
+        "must": [
+          "tile-aligned edges",
+          "repeatable texture",
+          "walkability meaning remains visible",
+          "quarterTurns=0 canonical orientation has the bridge deck left-to-right (east-west) over water north-to-south"
+        ],
+        "mustNot": [
+          "characters",
+          "labels",
+          "soft antialiasing"
+        ]
+      },
+      "reviewChecklist": [
+        "継ぎ目が目立たないか",
+        "接続方向が読めるか",
+        "地形の意味が変わっていないか",
+        "quarterTurns=0 で橋桁が左右（東西）、水面が上下（南北）に通るか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "tile",
+        "semanticKind": "bridge_wood",
+        "drawLayer": "ground",
+        "runtimeBindings": [
+          {
+            "vocabulary": "TILE_TYPES",
+            "id": "bridge"
+          }
+        ],
+        "coverage": "mapped"
+      }
+    },
+    {
+      "id": "field.stairs_stone",
+      "category": "field",
+      "displayName": "Stairs Stone",
+      "gameMeaning": "Required field art for field.stairs_stone.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/fields/00_common_field_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "intake_20260713_field_stairs_bridges_cliffs"
+      ],
+      "output": {
+        "kind": "tileset",
+        "preferredFormat": "png",
+        "background": "scene",
+        "needsTransparency": false,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "tileSize": 64,
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "tags": [
+        "field",
+        "stairs_stone"
+      ],
+      "constraints": {
+        "must": [
+          "tile-aligned edges",
+          "repeatable texture",
+          "walkability meaning remains visible"
+        ],
+        "mustNot": [
+          "characters",
+          "labels",
+          "soft antialiasing"
+        ]
+      },
+      "reviewChecklist": [
+        "継ぎ目が目立たないか",
+        "接続方向が読めるか",
+        "地形の意味が変わっていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "tile",
+        "semanticKind": "stairs_stone",
+        "drawLayer": "ground",
+        "runtimeBindings": [
+          {
+            "vocabulary": "TILE_TYPES",
+            "id": "stairs"
+          }
+        ],
+        "coverage": "mapped"
+      }
+    },
+    {
+      "id": "field.cliff",
+      "category": "field",
+      "displayName": "Cliff",
+      "gameMeaning": "Required field art for field.cliff.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/fields/00_common_field_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "intake_20260713_field_stairs_bridges_cliffs"
+      ],
+      "output": {
+        "kind": "tileset",
+        "preferredFormat": "png",
+        "background": "scene",
+        "needsTransparency": false,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "tileSize": 64,
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "tags": [
+        "field",
+        "cliff"
+      ],
+      "constraints": {
+        "must": [
+          "tile-aligned edges",
+          "repeatable texture",
+          "walkability meaning remains visible"
+        ],
+        "mustNot": [
+          "characters",
+          "labels",
+          "soft antialiasing"
+        ]
+      },
+      "reviewChecklist": [
+        "継ぎ目が目立たないか",
+        "接続方向が読めるか",
+        "地形の意味が変わっていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "tile",
+        "semanticKind": "cliff",
+        "drawLayer": "ground",
+        "runtimeBindings": [
+          {
+            "vocabulary": "TILE_TYPES",
+            "id": "cliff"
+          }
+        ],
+        "coverage": "exact"
+      }
+    },
+    {
+      "id": "field.wall_stone",
+      "category": "field",
+      "displayName": "Wall Stone",
+      "gameMeaning": "Required field art for field.wall_stone.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/fields/00_common_field_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "intake_20260713_field_stairs_bridges_cliffs"
+      ],
+      "output": {
+        "kind": "tileset",
+        "preferredFormat": "png",
+        "background": "scene",
+        "needsTransparency": false,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "tileSize": 64,
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "tags": [
+        "field",
+        "wall_stone"
+      ],
+      "constraints": {
+        "must": [
+          "tile-aligned edges",
+          "repeatable texture",
+          "walkability meaning remains visible"
+        ],
+        "mustNot": [
+          "characters",
+          "labels",
+          "soft antialiasing"
+        ]
+      },
+      "reviewChecklist": [
+        "継ぎ目が目立たないか",
+        "接続方向が読めるか",
+        "地形の意味が変わっていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "tile",
+        "semanticKind": "wall_stone",
+        "drawLayer": "ground",
+        "runtimeBindings": [
+          {
+            "vocabulary": "TILE_TYPES",
+            "id": "wall"
+          }
+        ],
+        "coverage": "mapped"
+      }
+    },
+    {
+      "id": "field.fence_wood",
+      "category": "field",
+      "displayName": "Fence Wood",
+      "gameMeaning": "Required field art for field.fence_wood.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/fields/00_common_field_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "intake_20260713_field_stairs_bridges_cliffs"
+      ],
+      "output": {
+        "kind": "tileset",
+        "preferredFormat": "png",
+        "background": "scene",
+        "needsTransparency": false,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "tileSize": 64,
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "tags": [
+        "field",
+        "fence_wood"
+      ],
+      "constraints": {
+        "must": [
+          "tile-aligned edges",
+          "repeatable texture",
+          "walkability meaning remains visible"
+        ],
+        "mustNot": [
+          "characters",
+          "labels",
+          "soft antialiasing"
+        ]
+      },
+      "reviewChecklist": [
+        "継ぎ目が目立たないか",
+        "接続方向が読めるか",
+        "地形の意味が変わっていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "prop",
+        "semanticKind": "fence_wood",
+        "drawLayer": "object",
+        "runtimeBindings": [
+          {
+            "vocabulary": "PROP_KINDS",
+            "id": "fence"
+          }
+        ],
+        "coverage": "mapped"
+      }
+    },
+    {
+      "id": "field.dock_floor",
+      "category": "field",
+      "displayName": "Dock Floor",
+      "gameMeaning": "Required field art for field.dock_floor.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/fields/00_common_field_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "intake_20260713_field_harbor_docks_tiles"
+      ],
+      "output": {
+        "kind": "tileset",
+        "preferredFormat": "png",
+        "background": "scene",
+        "needsTransparency": false,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "tileSize": 64,
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "tags": [
+        "field",
+        "dock_floor"
+      ],
+      "constraints": {
+        "must": [
+          "tile-aligned edges",
+          "repeatable texture",
+          "walkability meaning remains visible"
+        ],
+        "mustNot": [
+          "characters",
+          "labels",
+          "soft antialiasing"
+        ]
+      },
+      "reviewChecklist": [
+        "継ぎ目が目立たないか",
+        "接続方向が読めるか",
+        "地形の意味が変わっていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "tile",
+        "semanticKind": "dock_floor",
+        "drawLayer": "ground",
+        "runtimeBindings": [
+          {
+            "vocabulary": "TILE_TYPES",
+            "id": "floor"
+          }
+        ],
+        "coverage": "mapped"
+      }
+    },
+    {
+      "id": "field.plaza",
+      "category": "field",
+      "displayName": "Plaza",
+      "gameMeaning": "Required field art for field.plaza.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/fields/00_common_field_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "intake_20260713_field_cobblestone_roads"
+      ],
+      "output": {
+        "kind": "tileset",
+        "preferredFormat": "png",
+        "background": "scene",
+        "needsTransparency": false,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "tileSize": 64,
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "tags": [
+        "field",
+        "plaza"
+      ],
+      "constraints": {
+        "must": [
+          "tile-aligned edges",
+          "repeatable texture",
+          "walkability meaning remains visible"
+        ],
+        "mustNot": [
+          "characters",
+          "labels",
+          "soft antialiasing"
+        ]
+      },
+      "reviewChecklist": [
+        "継ぎ目が目立たないか",
+        "接続方向が読めるか",
+        "地形の意味が変わっていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "tile",
+        "semanticKind": "plaza",
+        "drawLayer": "ground",
+        "runtimeBindings": [
+          {
+            "vocabulary": "TILE_TYPES",
+            "id": "plaza"
+          }
+        ],
+        "coverage": "exact"
+      }
+    },
+    {
+      "id": "field.road_corner",
+      "category": "field",
+      "displayName": "Road Corner",
+      "gameMeaning": "Required field art for field.road_corner.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/fields/00_common_field_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "intake_20260713_field_cobblestone_roads"
+      ],
+      "output": {
+        "kind": "tileset",
+        "preferredFormat": "png",
+        "background": "scene",
+        "needsTransparency": false,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "tileSize": 64,
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "tags": [
+        "field",
+        "road_corner"
+      ],
+      "constraints": {
+        "must": [
+          "tile-aligned edges",
+          "repeatable texture",
+          "walkability meaning remains visible",
+          "quarterTurns=0 canonical orientation connects road up and right (north + east)"
+        ],
+        "mustNot": [
+          "characters",
+          "labels",
+          "soft antialiasing"
+        ]
+      },
+      "reviewChecklist": [
+        "継ぎ目が目立たないか",
+        "接続方向が読めるか",
+        "地形の意味が変わっていないか",
+        "quarterTurns=0 で道が上＋右（北＋東）へ接続するか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "tile",
+        "semanticKind": "road_corner",
+        "drawLayer": "ground",
+        "runtimeBindings": [
+          {
+            "vocabulary": "TILE_TYPES",
+            "id": "road"
+          }
+        ],
+        "coverage": "mapped"
+      }
+    },
+    {
+      "id": "field.road_edge",
+      "category": "field",
+      "displayName": "Road Edge",
+      "gameMeaning": "Required field art for field.road_edge.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/fields/00_common_field_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "intake_20260713_field_cobblestone_roads"
+      ],
+      "output": {
+        "kind": "tileset",
+        "preferredFormat": "png",
+        "background": "scene",
+        "needsTransparency": false,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "tileSize": 64,
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "tags": [
+        "field",
+        "road_edge"
+      ],
+      "constraints": {
+        "must": [
+          "tile-aligned edges",
+          "repeatable texture",
+          "walkability meaning remains visible",
+          "quarterTurns=0 canonical orientation connects the road up (north)"
+        ],
+        "mustNot": [
+          "characters",
+          "labels",
+          "soft antialiasing"
+        ]
+      },
+      "reviewChecklist": [
+        "継ぎ目が目立たないか",
+        "接続方向が読めるか",
+        "地形の意味が変わっていないか",
+        "quarterTurns=0 で道が上（北）へ接続するか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "tile",
+        "semanticKind": "road_edge",
+        "drawLayer": "ground",
+        "runtimeBindings": [
+          {
+            "vocabulary": "TILE_TYPES",
+            "id": "road"
+          }
+        ],
+        "coverage": "mapped"
+      }
+    },
+    {
+      "id": "field.road_intersection",
+      "category": "field",
+      "displayName": "Road Intersection",
+      "gameMeaning": "Required field art for field.road_intersection.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/fields/00_common_field_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "intake_20260713_field_cobblestone_roads"
+      ],
+      "output": {
+        "kind": "tileset",
+        "preferredFormat": "png",
+        "background": "scene",
+        "needsTransparency": false,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "tileSize": 64,
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "tags": [
+        "field",
+        "road_intersection"
+      ],
+      "constraints": {
+        "must": [
+          "tile-aligned edges",
+          "repeatable texture",
+          "walkability meaning remains visible"
+        ],
+        "mustNot": [
+          "characters",
+          "labels",
+          "soft antialiasing"
+        ]
+      },
+      "reviewChecklist": [
+        "継ぎ目が目立たないか",
+        "接続方向が読めるか",
+        "地形の意味が変わっていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "tile",
+        "semanticKind": "road_intersection",
+        "drawLayer": "ground",
+        "runtimeBindings": [
+          {
+            "vocabulary": "TILE_TYPES",
+            "id": "road"
+          }
+        ],
+        "coverage": "mapped"
+      }
+    },
+    {
+      "id": "field.sand",
+      "category": "field",
+      "displayName": "Sand",
+      "gameMeaning": "Optional future enhancement for field.sand; the current harbor is complete without it.",
+      "required": false,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/fields/00_common_field_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "intake_20260713_field_harbor_docks_tiles"
+      ],
+      "output": {
+        "kind": "tileset",
+        "preferredFormat": "png",
+        "background": "scene",
+        "needsTransparency": false,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "tileSize": 64,
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "tags": [
+        "field",
+        "sand"
+      ],
+      "constraints": {
+        "must": [
+          "tile-aligned edges",
+          "repeatable texture",
+          "walkability meaning remains visible"
+        ],
+        "mustNot": [
+          "characters",
+          "labels",
+          "soft antialiasing"
+        ]
+      },
+      "reviewChecklist": [
+        "継ぎ目が目立たないか",
+        "接続方向が読めるか",
+        "地形の意味が変わっていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "tile",
+        "semanticKind": "sand",
+        "drawLayer": "ground",
+        "runtimeBindings": [],
+        "coverage": "future"
+      }
+    },
+    {
+      "id": "field.rock",
+      "category": "field",
+      "displayName": "Rock",
+      "gameMeaning": "Required field art for field.rock.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/fields/00_common_field_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "intake_20260713_field_stairs_bridges_cliffs"
+      ],
+      "output": {
+        "kind": "tileset",
+        "preferredFormat": "png",
+        "background": "scene",
+        "needsTransparency": false,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "tileSize": 64,
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "tags": [
+        "field",
+        "rock"
+      ],
+      "constraints": {
+        "must": [
+          "tile-aligned edges",
+          "repeatable texture",
+          "walkability meaning remains visible"
+        ],
+        "mustNot": [
+          "characters",
+          "labels",
+          "soft antialiasing"
+        ]
+      },
+      "reviewChecklist": [
+        "継ぎ目が目立たないか",
+        "接続方向が読めるか",
+        "地形の意味が変わっていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "tile",
+        "semanticKind": "rock",
+        "drawLayer": "ground",
+        "runtimeBindings": [
+          {
+            "vocabulary": "TILE_TYPES",
+            "id": "rock"
+          }
+        ],
+        "coverage": "exact"
+      }
+    },
+    {
+      "id": "field.tree",
+      "category": "field",
+      "displayName": "Tree",
+      "gameMeaning": "Required field art for field.tree.",
+      "required": true,
+      "promptFiles": [
+        "prompts/common/pixel-art-style.md",
+        "prompts/fields/00_common_field_style.md",
+        "prompts/common/reward-fraud-rules.md"
+      ],
+      "defaultReferenceIds": [
+        "world_visual_master",
+        "intake_20260713_field_stairs_bridges_cliffs"
+      ],
+      "output": {
+        "kind": "tileset",
+        "preferredFormat": "png",
+        "background": "scene",
+        "needsTransparency": false,
+        "needsTrim": false
+      },
+      "pixelArt": {
+        "tileSize": 64,
+        "scalePreview": 4,
+        "nearestNeighbor": true,
+        "allowAntiAlias": false
+      },
+      "tags": [
+        "field",
+        "tree"
+      ],
+      "constraints": {
+        "must": [
+          "tile-aligned edges",
+          "repeatable texture",
+          "walkability meaning remains visible"
+        ],
+        "mustNot": [
+          "characters",
+          "labels",
+          "soft antialiasing"
+        ]
+      },
+      "reviewChecklist": [
+        "継ぎ目が目立たないか",
+        "接続方向が読めるか",
+        "地形の意味が変わっていないか"
+      ],
+      "gameBinding": {
+        "rendererCategory": "tile",
+        "semanticKind": "tree",
+        "drawLayer": "ground",
+        "runtimeBindings": [
+          {
+            "vocabulary": "TILE_TYPES",
+            "id": "tree"
+          }
+        ],
+        "coverage": "exact"
+      }
+    }
+  ]
+}

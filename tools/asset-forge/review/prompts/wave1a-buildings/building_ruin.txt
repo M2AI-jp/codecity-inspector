@@ -1,0 +1,9 @@
+Use case: stylized-concept
+Asset type: production game building sprite source for CodeCity Inspector
+Input images: Image 1 is the global world/palette/pixel-density reference; Image 2 is the direct ruined-house family, broken masonry, roof, timber and vegetation reference.
+Primary request: create one distinct LATE-MEDIEVAL BUILDING RUIN, suitable for later downsampling and placement as a medium scale-class 256x256 transparent master.
+Scene/backdrop: perfectly flat solid #ff00ff chroma-key background for local background removal.
+Subject: one complete readable ruined building footprint with a still-recognizable front entrance opening facing the walkable foreground, partially collapsed blue-green tiled roof, broken timber frame, cracked stone walls, exposed interior beams, moss and vines, a small rubble pile kept attached to the footprint. No people, smoke, fire, or intact neighboring structure.
+Style/medium: dense crisp top-down three-quarter pixel art, matching the references' fine pixel clusters, palette, pixel density, masonry weathering, vegetation, and lighting.
+Composition/framing: one ruin centered, coherent three-quarter/top-down perspective, generous padding, entire broken roof and footprint visible, stable baseline.
+Constraints: one uniform #ff00ff background with no shadows, gradients, texture, reflections, floor plane, or lighting variation. Crisp silhouette. Do not use #ff00ff in the subject. No cast/contact shadow, rectangular ground pad, scene background, neighboring examples, specimen sheet, labels, text, watermark, characters, smoke, fire, or cropped edges. Must be structurally ruined, not merely a dark/recolored house.

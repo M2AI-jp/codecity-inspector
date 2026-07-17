@@ -1,0 +1,9 @@
+Use case: stylized-concept
+Asset type: production game building sprite source for CodeCity Inspector
+Input images: Image 1 is the global world/palette/pixel-density reference; Image 2 is the direct humble hut/house family, roof, timber, stone and vegetation reference.
+Primary request: create one distinct HUMBLE LATE-MEDIEVAL HUT, suitable for later downsampling and placement as a small scale-class 256x256 transparent master.
+Scene/backdrop: perfectly flat solid #ff00ff chroma-key background for local background removal.
+Subject: one complete tiny single-story hut with a clearly readable front entrance facing the walkable foreground, an uneven dark blue-green shingle roof with a small patched section, warm single window, rough timber walls on a low mossy stone base, compact lean-to and stacked firewood attached to the wall. No people.
+Style/medium: dense crisp top-down three-quarter pixel art, matching the references' fine pixel clusters, palette, pixel density, weathering, moss, and warm lighting.
+Composition/framing: one small hut centered, coherent three-quarter/top-down perspective, generous padding, entire roof and footprint visible, stable baseline.
+Constraints: one uniform #ff00ff background with no shadows, gradients, texture, reflections, floor plane, lighting variation, or smoke. Crisp silhouette. Do not use #ff00ff in the subject. No cast/contact shadow, rectangular ground pad, neighboring examples, specimen sheet, labels, text, watermark, characters, or cropped edges. Must be smaller and rougher than small house/shop/pub, not a ruined building or recolor.

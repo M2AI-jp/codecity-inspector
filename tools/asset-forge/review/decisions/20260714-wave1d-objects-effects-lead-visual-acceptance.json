@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "decisionId": "20260714-wave1d-objects-effects-lead-visual-acceptance",
+  "waveId": "wave1d-objects-effects",
+  "decision": "visually-accepted-pending-formal-promotion",
+  "reviewer": "lead",
+  "reviewedAt": "2026-07-14",
+  "candidateCount": 20,
+  "reviewedArtifacts": [
+    "review/wave1d-objects-effects-objects-native.png",
+    "review/wave1d-objects-effects-objects-role-4x.png",
+    "review/wave1d-objects-effects-effects-all-frames-native.png",
+    "review/wave1d-objects-effects-effects-all-frames-4x.png",
+    "review/wave1d-crop-overlays/"
+  ],
+  "observed": [
+    "Lead visually accepted all eighteen normalized object candidates and both normalized effect candidates.",
+    "Lead confirmed clean transparency, distinct object semantics, single-crate versus stacked-crates separation, clean signboard isolation, and medieval construction-sign language.",
+    "Lead confirmed both four-frame effects are ordered and readable in native and four-times QA sheets."
+  ],
+  "limits": [
+    "This is visual acceptance only and does not create a production approval.",
+    "Formal promotion, export, and runtime integration remain separate Lead actions."
+  ]
+}

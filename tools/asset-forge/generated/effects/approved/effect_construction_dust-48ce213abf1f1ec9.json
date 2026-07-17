@@ -1,0 +1,228 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-15T04:37:10.463Z",
+    "approvedPath": "generated/effects/approved/effect_construction_dust-48ce213abf1f1ec9.png",
+    "approvedSha256": "48ce213abf1f1ec970b55f02ed4faf9888e5e1ea4348669ea093557d8814510c",
+    "note": "Required 78 batch approval cb4aa5f67c91a329c140f4a09bdc39b960ccce8a76334957066d7c0e83540042",
+    "reviewer": "human"
+  },
+  "assetId": "effect.construction_dust",
+  "category": "effect",
+  "createdAt": "2026-07-14T10:00:00.000Z",
+  "dryRun": false,
+  "id": "gen_import_be744fc1da2fc642db69",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 128x32.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_bcd216116acc5f34dbff",
+  "manualImport": true,
+  "metadataPath": "generated/effects/approved/effect_construction_dust-48ce213abf1f1ec9.json",
+  "outputInspection": {
+    "bytes": 1037,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 32,
+    "width": 128
+  },
+  "outputPath": "generated/effects/approved/effect_construction_dust-48ce213abf1f1ec9.png",
+  "outputSha256": "48ce213abf1f1ec970b55f02ed4faf9888e5e1ea4348669ea093557d8814510c",
+  "productionRecipe": {
+    "assetId": "effect.construction_dust",
+    "backgroundRemoval": {
+      "autoKey": "border",
+      "cleanup": {
+        "alphaCutoff": 128,
+        "componentMinPixels": 1,
+        "resizeKernel": "nearest",
+        "targetMaxHeight": 28,
+        "targetMaxWidth": 28
+      },
+      "despill": true,
+      "keyColor": null,
+      "method": "official-chroma-key-helper",
+      "opaqueThreshold": 110,
+      "softMatte": true,
+      "transparentThreshold": 35
+    },
+    "canvas": {
+      "baselineY": 31,
+      "height": 32,
+      "width": 128
+    },
+    "effectContract": {
+      "alignment": "bottom",
+      "allowEnlargement": false,
+      "frame": {
+        "height": 32,
+        "width": 32
+      },
+      "frameOrder": [
+        "frame_1",
+        "frame_2",
+        "frame_3",
+        "frame_4"
+      ],
+      "grid": {
+        "columns": 4,
+        "rows": 1
+      },
+      "partialAlphaPixels": 0,
+      "resizeKernel": "nearest",
+      "segmentation": "explicit-transparent-gutters",
+      "sharedScale": 0.07272727272727272,
+      "sourceSlices": [
+        {
+          "frame": 1,
+          "rect": {
+            "height": 887,
+            "width": 443,
+            "x": 0,
+            "y": 0
+          },
+          "transparentMargins": {
+            "bottom": 310,
+            "left": 110,
+            "right": 114,
+            "top": 463
+          }
+        },
+        {
+          "frame": 2,
+          "rect": {
+            "height": 887,
+            "width": 444,
+            "x": 443,
+            "y": 0
+          },
+          "transparentMargins": {
+            "bottom": 307,
+            "left": 40,
+            "right": 119,
+            "top": 299
+          }
+        },
+        {
+          "frame": 3,
+          "rect": {
+            "height": 887,
+            "width": 443,
+            "x": 887,
+            "y": 0
+          },
+          "transparentMargins": {
+            "bottom": 302,
+            "left": 1,
+            "right": 57,
+            "top": 290
+          }
+        },
+        {
+          "frame": 4,
+          "rect": {
+            "height": 887,
+            "width": 444,
+            "x": 1330,
+            "y": 0
+          },
+          "transparentMargins": {
+            "bottom": 301,
+            "left": 69,
+            "right": 107,
+            "top": 399
+          }
+        }
+      ]
+    },
+    "generationPromptPath": "review/prompts/wave1d-objects-effects/construction_dust.txt",
+    "generationPromptSha256": "1968b1b6dce4fd4d0dce555ea35f8f6dc24a27d78dca7ca98e9c028cd1ce4570",
+    "generator": "codex-imagegen-built-in",
+    "inputReferences": [
+      {
+        "id": "world_visual_master",
+        "role": "global-style",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_object_status_markers",
+        "role": "primary-subject",
+        "sha256": "e3d2f177bf10bc07d1362251d8aa80d490fc6f58999d24b06a66c34a177e1d1b"
+      }
+    ],
+    "method": "imagegen",
+    "outputSha256": "48ce213abf1f1ec970b55f02ed4faf9888e5e1ea4348669ea093557d8814510c",
+    "referenceImages": [
+      {
+        "id": "world_visual_master",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_object_status_markers",
+        "sha256": "e3d2f177bf10bc07d1362251d8aa80d490fc6f58999d24b06a66c34a177e1d1b"
+      }
+    ],
+    "scaleClass": "tiny",
+    "source": {
+      "cropRect": null,
+      "height": 887,
+      "path": "tmp/imagegen/wave1d-objects-effects/raw/construction_dust.png",
+      "sha256": "b676d8a0edcd9b272665edc08426cb0871d9a5d768f12e63215172436ed5a5ca",
+      "width": 1774
+    },
+    "sourceSnapshot": {
+      "height": 887,
+      "path": "generated/effects/approved/source-b676d8a0edcd9b272665edc08426cb0871d9a5d768f12e63215172436ed5a5ca.source-original.png",
+      "sha256": "b676d8a0edcd9b272665edc08426cb0871d9a5d768f12e63215172436ed5a5ca",
+      "width": 1774
+    },
+    "subjectBbox": {
+      "height": 21,
+      "width": 112,
+      "x": 9,
+      "y": 11
+    },
+    "toolMode": "built-in",
+    "transformSteps": [
+      "full-frame",
+      "chroma-key-remove",
+      "cell-extract",
+      "shared-scale-normalize",
+      "nearest-downscale",
+      "hard-alpha",
+      "palette-quantize"
+    ],
+    "waveId": "wave1d-objects-effects"
+  },
+  "promptHash": "ac8a2c0dc64ba9b07e32606698e259f334b300b95acce26c7ff60d9eef396704",
+  "provenanceKey": "be744fc1da2fc642db6979672346746dad0b721ccd165213f6254689a2a852d5",
+  "provider": "manual-import",
+  "referenceImageHashes": [
+    "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+    "e3d2f177bf10bc07d1362251d8aa80d490fc6f58999d24b06a66c34a177e1d1b"
+  ],
+  "referenceImageIds": [
+    "world_visual_master",
+    "intake_20260713_object_status_markers"
+  ],
+  "sourceFormat": "png",
+  "sourcePath": "generated/effects/pending/effect_construction_dust-79f615693bd28b5e.source.png",
+  "sourceSha256": "79f615693bd28b5e9c4c75a1ee559a9fdec58da42c2c8205dfd9d677e7a7ce44",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

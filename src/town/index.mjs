@@ -28,14 +28,14 @@ import { collectSignals } from './signals.mjs';
 import { buildTownModel } from './detect.mjs';
 import { assessHabitability } from './habitability.mjs';
 
-// Imported for buildTownPayload()'s layout assembly below, which mirrors the
-// CLI's buildTownArtifact (src/generate-town.mjs) step for step so the server's
-// /api/town `layout` is byte-identical to town.layout.json for the same
-// repository + seed. Used internally only; intentionally NOT re-exported.
+// The legacy TownLayout imports remain available to this barrel while the CLI
+// artifact path is retired separately; the server payload below uses WorldPlan.
 import { repoFingerprint, defaultSeed } from './rng.mjs';
 import { generateLayout } from './generator.mjs';
-import { annotateLayout } from './validator.mjs';
+import { annotateLayout, validateLayout } from './validator.mjs';
 import { GENERATOR_VERSION } from './schema.mjs';
+import { generateWorldPlan } from './world-plan-generator.mjs';
+import { annotateWorldPlan } from './world-plan-validator.mjs';
 
 // --- re-exported public surface ---------------------------------------------
 
@@ -62,6 +62,14 @@ export { isConnectionBuilding, buildTownModel } from './detect.mjs';
 
 // Habitability scoring of a TownModel.
 export { assessHabitability } from './habitability.mjs';
+export { validateLayout };
+export { validateWorldPlan } from './world-plan-validator.mjs';
+export {
+  REPOSITORY_SEMANTIC_MODEL_VERSION,
+  REPOSITORY_SEMANTIC_ROLES,
+  normalizeRepositorySemanticModel
+} from './repository-semantic-model.mjs';
+export { PREFAB_CATALOG, PREFAB_IDS, getPrefab } from './prefab-catalog.mjs';
 
 // --- orchestrator -----------------------------------------------------------
 
@@ -89,38 +97,16 @@ export async function buildTown(repoPath, inspection) {
 // --- server payload assembler -----------------------------------------------
 
 /**
- * Assemble the frozen GET /api/town response body for one already-inspected
- * repository. Runs buildTown() for the TownModel + habitability, then generates
- * and validates the spatial layout with the exact same steps and seed rule as
- * the CLI's buildTownArtifact (src/generate-town.mjs): repoFingerprint -> seed
- * (the repository fingerprint unless overridden) -> generateLayout with
- * GENERATOR_VERSION -> annotateLayout. The returned `layout` is therefore
- * byte-for-byte identical to town.layout.json for the same repository + seed.
+ * Assemble the frozen legacy TownLayout payload used by the approved-78
+ * release channel. This path remains deliberately separate from WorldPlan v2:
+ * neither renderer receives the other renderer's payload or asset vocabulary.
  *
- * The caller supplies an inspection it already produced (src/server.mjs shares
- * one inspection between /api/city and /api/town), so the read-only target
- * repository is not scanned twice and its code is never executed. buildTown /
- * generateLayout / annotateLayout are pure and deterministic (seeded PRNG only;
- * no wall-clock or Math.random), so identical inputs always yield an identical
- * payload.
- *
- * @param {string} repoPath - repository root (read only, never executed); used
- *   only to re-collect read-only signals inside buildTown.
- * @param {object} inspection - src/inspector.mjs buildInspection(scan) output (schemaVersion 2)
- * @param {{ seed?: string|null }} [options] - `seed` overrides the default
- *   repository-fingerprint seed (mirrors generate-town.mjs's --seed); omit for
- *   the deterministic default.
- * @returns {Promise<{
- *   schemaVersion: 1,
- *   repository: { name: string },
- *   generatorVersion: string,
- *   seed: string,
- *   habitability: import('./schema.mjs').Habitability,
- *   model: { facilities: object[], guild: object, external: object, summary: object },
- *   layout: import('./schema.mjs').TownLayout
- * }>}
+ * @param {string} repoPath - repository root (read only, never executed)
+ * @param {object} inspection - already-produced static inspection
+ * @param {{ seed?: string|null }} [options] - optional deterministic seed
+ * @returns {Promise<{schemaVersion: 1, repository: {name: string}, generatorVersion: string, seed: string, habitability: object, model: object, layout: object}>}
  */
-export async function buildTownPayload(repoPath, inspection, options = {}) {
+export async function buildLegacyTownPayload(repoPath, inspection, options = {}) {
   const { model, habitability } = await buildTown(repoPath, inspection);
   const fingerprint = repoFingerprint(inspection);
   const seed = options.seed == null ? defaultSeed(inspection) : String(options.seed);
@@ -131,6 +117,9 @@ export async function buildTownPayload(repoPath, inspection, options = {}) {
     generatorVersion: GENERATOR_VERSION,
     repoFingerprint: fingerprint
   }));
+  if (layout.validation?.ok !== true) {
+    throw new Error('Generated legacy town layout failed validation');
+  }
   return {
     schemaVersion: 1,
     repository: { name: inspection?.repository?.name ?? '' },
@@ -144,5 +133,48 @@ export async function buildTownPayload(repoPath, inspection, options = {}) {
       summary: model.summary
     },
     layout
+  };
+}
+
+/**
+ * Assemble GET /api/town v2 for one already-inspected repository. The payload
+ * intentionally contains only what the renderer consumes: repository identity,
+ * habitability, structured facts, and one fully resolved WorldPlan. TownModel is
+ * an input to generation rather than a second competing frontend data model.
+ *
+ * The caller supplies an inspection it already produced (src/server.mjs shares
+ * one inspection between /api/city and /api/town), so the read-only target
+ * repository is not scanned twice and its code is never executed. Generation
+ * and validation are pure and deterministic, so identical inputs produce a
+ * byte-identical payload.
+ *
+ * @param {string} repoPath - repository root (read only, never executed); used
+ *   only to re-collect read-only signals inside buildTown.
+ * @param {object} inspection - src/inspector.mjs buildInspection(scan) output (schemaVersion 2)
+ * @param {{ seed?: string|null, semanticAnnotations?: object[] }} [options] -
+ *   `seed` overrides the stable repository-name world seed. Candidate semantic
+ *   annotations may classify inspected files, but cannot add files, observed
+ *   evidence, placement, collision, or game behavior.
+ * @returns {Promise<{schemaVersion: 2, repository: {name: string}, habitability: object, facts: object[], worldPlan: object}>}
+ */
+export async function buildTownPayload(repoPath, inspection, options = {}) {
+  const { model, habitability } = await buildTown(repoPath, inspection);
+  const worldPlan = annotateWorldPlan(generateWorldPlan({
+    inspection,
+    model,
+    ...(options.semanticAnnotations == null
+      ? {}
+      : { semanticAnnotations: options.semanticAnnotations }),
+    ...(options.seed == null ? {} : { seed: String(options.seed) })
+  }), { inspection });
+  if (worldPlan.validation?.ok !== true) {
+    throw new Error('Generated WorldPlan failed validation');
+  }
+  return {
+    schemaVersion: 2,
+    repository: { name: inspection?.repository?.name ?? '' },
+    habitability,
+    facts: worldPlan.facts,
+    worldPlan
   };
 }

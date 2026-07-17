@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { parseCliArgs, startServer } from '../src/server.mjs';
+import { buildLegacyTownPayload, buildTownPayload } from '../src/town/index.mjs';
 
 function rawRequest(port, requestPath, method = 'GET', headers = {}) {
   return new Promise((resolve, reject) => {
@@ -22,15 +23,18 @@ function rawRequest(port, requestPath, method = 'GET', headers = {}) {
   });
 }
 
-async function serverFixture() {
+async function serverFixture({ withEntrypoint = true } = {}) {
   const workspace = await mkdtemp(path.join(os.tmpdir(), 'codecity-server-'));
   const repo = path.join(workspace, 'repo');
   const publicRoot = path.join(workspace, 'public');
   await mkdir(path.join(repo, 'src'), { recursive: true });
   await mkdir(publicRoot, { recursive: true });
   await writeFile(path.join(repo, 'src', 'index.js'), "export const secret = 'SOURCE_MUST_NOT_LEAK';\n");
+  if (withEntrypoint) await writeFile(path.join(repo, 'package.json'), '{"main":"src/index.js"}\n');
   await writeFile(path.join(publicRoot, 'index.html'), '<h1>CodeCity</h1>');
   await writeFile(path.join(publicRoot, 'app.js'), 'document.body.dataset.ready = "yes";');
+  await writeFile(path.join(publicRoot, 'world-runtime.mjs'), 'export const ready = true;');
+  await writeFile(path.join(publicRoot, 'site-runtime.mjs'), 'export const sitesReady = true;');
   const outside = path.join(workspace, 'outside.txt');
   await writeFile(outside, 'OUTSIDE_SECRET');
   await symlink(outside, path.join(publicRoot, 'leak.txt'));
@@ -67,9 +71,15 @@ test('serves the city report and assets on loopback without source bodies', asyn
   assert.equal(head.status, 200);
   assert.equal(head.body, '');
   assert.match(head.headers['content-type'], /text\/javascript/);
+  const moduleHead = await rawRequest(port, '/world-runtime.mjs', 'HEAD');
+  assert.equal(moduleHead.status, 200);
+  assert.match(moduleHead.headers['content-type'], /text\/javascript/);
+  const siteModuleHead = await rawRequest(port, '/site-runtime.mjs', 'HEAD');
+  assert.equal(siteModuleHead.status, 200);
+  assert.match(siteModuleHead.headers['content-type'], /text\/javascript/);
 });
 
-test('serves the town model, habitability, and validated layout without leaking source', async (t) => {
+test('serves the exact WorldPlan v2 payload without leaking source', async (t) => {
   const fixture = await serverFixture();
   const running = await startServer({ ...fixture, repoPath: fixture.repo, port: 0 });
   t.after(running.close);
@@ -81,24 +91,26 @@ test('serves the town model, habitability, and validated layout without leaking 
   assert.equal(api.body.includes('SOURCE_MUST_NOT_LEAK'), false);
 
   const town = JSON.parse(api.body);
-  assert.equal(town.schemaVersion, 1);
+  assert.deepEqual(Object.keys(town), [
+    'schemaVersion', 'repository', 'habitability', 'facts', 'worldPlan'
+  ]);
+  assert.equal(town.schemaVersion, 2);
   assert.equal(town.repository.name, 'repo');
-  assert.equal(typeof town.generatorVersion, 'string');
-  assert.equal(typeof town.seed, 'string');
-
-  assert.equal(Array.isArray(town.model.facilities), true);
-  assert.equal(typeof town.model.guild, 'object');
-  assert.equal(typeof town.model.external, 'object');
-  assert.equal(typeof town.model.summary, 'object');
 
   assert.equal(Number.isInteger(town.habitability.level), true);
   assert.equal(town.habitability.level >= 0 && town.habitability.level <= 5, true);
   assert.equal(typeof town.habitability.levelName, 'string');
   assert.equal(typeof town.habitability.canLive, 'boolean');
 
-  assert.equal(Array.isArray(town.layout.buildings), true);
-  assert.equal(typeof town.layout.validation, 'object');
-  assert.notEqual(town.layout.validation, null);
+  assert.equal(Array.isArray(town.facts), true);
+  assert.equal(town.facts.length, town.worldPlan.facts.length);
+  assert.equal(town.worldPlan.schemaVersion, 2);
+  assert.equal(typeof town.worldPlan.seed, 'string');
+  assert.equal(typeof town.worldPlan.generatorVersion, 'string');
+  assert.equal(Array.isArray(town.worldPlan.buildings), true);
+  assert.equal(typeof town.worldPlan.validation, 'object');
+  assert.notEqual(town.worldPlan.validation, null);
+  assert.equal(town.worldPlan.validation.ok, true);
 
   // Deterministic: an unchanged repository yields a byte-identical payload.
   const repeat = await rawRequest(port, '/api/town');
@@ -113,6 +125,142 @@ test('serves the town model, habitability, and validated layout without leaking 
 
   const post = await rawRequest(port, '/api/town', 'POST');
   assert.equal(post.status, 405);
+});
+
+test('serves the isolated deterministic legacy TownLayout without leaking source', async (t) => {
+  const fixture = await serverFixture();
+  const running = await startServer({ ...fixture, repoPath: fixture.repo, port: 0 });
+  t.after(running.close);
+  const port = running.server.address().port;
+
+  const api = await rawRequest(port, '/api/town/legacy');
+  assert.equal(api.status, 200);
+  assert.match(api.headers['content-type'], /application\/json/);
+  assert.equal(api.body.includes('SOURCE_MUST_NOT_LEAK'), false);
+  const town = JSON.parse(api.body);
+  assert.deepEqual(Object.keys(town), [
+    'schemaVersion', 'repository', 'generatorVersion', 'seed', 'habitability', 'model', 'layout'
+  ]);
+  assert.equal(town.schemaVersion, 1);
+  assert.equal(town.repository.name, 'repo');
+  assert.equal(town.layout.validation.ok, true);
+  assert.equal(Array.isArray(town.model.facilities), true);
+  assert.equal(Object.hasOwn(town, 'worldPlan'), false);
+
+  const repeat = await rawRequest(port, '/api/town/legacy');
+  assert.equal(repeat.body, api.body);
+  const head = await rawRequest(port, '/api/town/legacy', 'HEAD');
+  assert.equal(head.status, 200);
+  assert.equal(head.body, '');
+  assert.match(head.headers['content-type'], /application\/json/);
+});
+
+test('legacy endpoint revalidates layout instead of trusting a forged embedded verdict', async (t) => {
+  const fixture = await serverFixture();
+  const running = await startServer({
+    ...fixture,
+    repoPath: fixture.repo,
+    port: 0,
+    legacyTownPayloadBuilder: async (repoPath, inspection) => {
+      const payload = structuredClone(await buildLegacyTownPayload(repoPath, inspection));
+      payload.layout.buildings[1].x = payload.layout.buildings[0].x;
+      payload.layout.buildings[1].y = payload.layout.buildings[0].y;
+      assert.equal(payload.layout.validation.ok, true);
+      return payload;
+    }
+  });
+  t.after(running.close);
+
+  const response = await rawRequest(running.server.address().port, '/api/town/legacy');
+  assert.equal(response.status, 500);
+  assert.equal(response.body, 'Unable to generate legacy town\n');
+  assert.equal(response.body.includes('validation'), false);
+});
+
+test('legacy endpoint fails closed on a cross-channel payload', async (t) => {
+  const fixture = await serverFixture();
+  const running = await startServer({
+    ...fixture,
+    repoPath: fixture.repo,
+    port: 0,
+    legacyTownPayloadBuilder: async () => ({
+      schemaVersion: 2,
+      worldPlan: { validation: { ok: true } }
+    })
+  });
+  t.after(running.close);
+
+  const response = await rawRequest(running.server.address().port, '/api/town/legacy');
+  assert.equal(response.status, 500);
+  assert.equal(response.body, 'Unable to generate legacy town\n');
+  assert.equal(response.body.includes('validation'), false);
+});
+
+test('refuses to return a town payload whose WorldPlan did not pass validation', async (t) => {
+  const fixture = await serverFixture();
+  const running = await startServer({
+    ...fixture,
+    repoPath: fixture.repo,
+    port: 0,
+    townPayloadBuilder: async () => ({
+      schemaVersion: 2,
+      worldPlan: { validation: { ok: false } }
+    })
+  });
+  t.after(running.close);
+
+  const response = await rawRequest(running.server.address().port, '/api/town');
+  assert.equal(response.status, 500);
+  assert.equal(response.body, 'Unable to generate town\n');
+  assert.equal(response.body.includes('validation'), false);
+
+  const head = await rawRequest(running.server.address().port, '/api/town', 'HEAD');
+  assert.equal(head.status, 500);
+  assert.equal(head.body, '');
+});
+
+test('revalidates the WorldPlan and requires the top-level facts to be its exact fact table', async (t) => {
+  const fixture = await serverFixture();
+  let requestIndex = 0;
+  const running = await startServer({
+    ...fixture,
+    repoPath: fixture.repo,
+    port: 0,
+    townPayloadBuilder: async (repoPath, inspection) => {
+      const payload = structuredClone(await buildTownPayload(repoPath, inspection));
+      if (requestIndex++ === 0) {
+        const fileBuilding = payload.worldPlan.buildings.find(({ files }) => files.length > 0);
+        fileBuilding.rooms = [];
+      } else {
+        payload.facts = [];
+      }
+      return payload;
+    }
+  });
+  t.after(running.close);
+  const port = running.server.address().port;
+
+  const forgedVerdict = await rawRequest(port, '/api/town');
+  assert.equal(forgedVerdict.status, 500);
+  assert.equal(forgedVerdict.body, 'Unable to generate town\n');
+
+  const mismatchedFacts = await rawRequest(port, '/api/town');
+  assert.equal(mismatchedFacts.status, 500);
+  assert.equal(mismatchedFacts.body, 'Unable to generate town\n');
+});
+
+test('a repository with buildings but no entrypoint returns an honest uninhabitable town', async (t) => {
+  const fixture = await serverFixture({ withEntrypoint: false });
+  const running = await startServer({ ...fixture, repoPath: fixture.repo, port: 0 });
+  t.after(running.close);
+
+  const response = await rawRequest(running.server.address().port, '/api/town');
+  assert.equal(response.status, 200);
+  const town = JSON.parse(response.body);
+  assert.equal(town.habitability.canLive, false);
+  assert.ok(town.habitability.blockers.some((entry) => /入口/.test(entry)));
+  assert.equal(town.worldPlan.validation.ok, true);
+  assert.ok(town.worldPlan.validation.issues.some((entry) => entry.code === 'REACHABLE' && entry.severity === 'warning'));
 });
 
 test('rescans the repository after each completed city request and recovers from scan errors', async (t) => {

@@ -1,0 +1,141 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-15T04:37:11.847Z",
+    "approvedPath": "generated/fields/approved/field_cliff-4089488794d9e6af.png",
+    "approvedSha256": "4089488794d9e6af1ff61246f206e6ba666f40f6cad510fc297f41aa9d6cafa6",
+    "note": "Required 78 batch approval cb4aa5f67c91a329c140f4a09bdc39b960ccce8a76334957066d7c0e83540042",
+    "reviewer": "human"
+  },
+  "assetId": "field.cliff",
+  "category": "field",
+  "createdAt": "2026-07-14T00:00:00.000Z",
+  "dryRun": false,
+  "id": "gen_import_e11d3f678d47a1db4e16",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 64x64.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_8bb53cdc36f6caa5e70e",
+  "manualImport": true,
+  "metadataPath": "generated/fields/approved/field_cliff-4089488794d9e6af.json",
+  "outputInspection": {
+    "bytes": 2943,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 64,
+    "width": 64
+  },
+  "outputPath": "generated/fields/approved/field_cliff-4089488794d9e6af.png",
+  "outputSha256": "4089488794d9e6af1ff61246f206e6ba666f40f6cad510fc297f41aa9d6cafa6",
+  "productionRecipe": {
+    "assetId": "field.cliff",
+    "backgroundRemoval": {
+      "autoKey": null,
+      "cleanup": {
+        "alphaCutoff": 0,
+        "componentMinPixels": 1,
+        "resizeKernel": "nearest",
+        "targetMaxHeight": 64,
+        "targetMaxWidth": 64
+      },
+      "despill": false,
+      "keyColor": null,
+      "method": "none",
+      "opaqueThreshold": 255,
+      "softMatte": false,
+      "transparentThreshold": 0
+    },
+    "canvas": {
+      "baselineY": 63,
+      "height": 64,
+      "width": 64
+    },
+    "generationPromptPath": "review/prompts/wave1b-fields/field_cliff.txt",
+    "generationPromptSha256": "de8dd93602da955510441e8465dba0a04be893a110aff6c0586a6763a96defcc",
+    "generator": "codex-imagegen-built-in",
+    "inputReferences": [
+      {
+        "id": "world_visual_master",
+        "role": "global-style",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_field_stairs_bridges_cliffs",
+        "role": "primary-subject",
+        "sha256": "24e899bfb25552aa96e453a74e574337fc65481791fa572accdd8758615387bd"
+      }
+    ],
+    "method": "imagegen",
+    "orientationContract": "upper plateau at top; vertical cliff face descends toward bottom",
+    "outputSha256": "4089488794d9e6af1ff61246f206e6ba666f40f6cad510fc297f41aa9d6cafa6",
+    "referenceImages": [
+      {
+        "id": "world_visual_master",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_field_stairs_bridges_cliffs",
+        "sha256": "24e899bfb25552aa96e453a74e574337fc65481791fa572accdd8758615387bd"
+      }
+    ],
+    "scaleClass": "medium",
+    "source": {
+      "cropRect": null,
+      "height": 1254,
+      "path": "tmp/imagegen/wave1b-fields/raw/field_cliff.png",
+      "sha256": "1bec429f906e01f15836c674be430fa96cb186a763d8d3dc91c13e00cc6d1d43",
+      "width": 1254
+    },
+    "sourceSnapshot": {
+      "height": 1254,
+      "path": "generated/fields/approved/source-1bec429f906e01f15836c674be430fa96cb186a763d8d3dc91c13e00cc6d1d43.source-original.png",
+      "sha256": "1bec429f906e01f15836c674be430fa96cb186a763d8d3dc91c13e00cc6d1d43",
+      "width": 1254
+    },
+    "subjectBbox": {
+      "height": 64,
+      "width": 64,
+      "x": 0,
+      "y": 0
+    },
+    "toolMode": "built-in",
+    "transformSteps": [
+      "full-frame",
+      "nearest-downscale",
+      "palette-quantize"
+    ],
+    "waveId": "wave1b-fields"
+  },
+  "promptHash": "d24cb3ba481285038ffff0edc27ce7410cef258517c133c25c0ba5a1e669e0bd",
+  "provenanceKey": "e11d3f678d47a1db4e16f03d8f68dc7effbb7a01da24906a83cd8f5cbb240612",
+  "provider": "manual-import",
+  "referenceImageHashes": [
+    "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+    "24e899bfb25552aa96e453a74e574337fc65481791fa572accdd8758615387bd"
+  ],
+  "referenceImageIds": [
+    "world_visual_master",
+    "intake_20260713_field_stairs_bridges_cliffs"
+  ],
+  "sourceFormat": "png",
+  "sourcePath": "generated/fields/pending/field_cliff-9bce6e4a5b812998.source.png",
+  "sourceSha256": "9bce6e4a5b81299851c100a31f01181319c4cecfebe463d41744511a832d2f16",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

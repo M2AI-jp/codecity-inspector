@@ -1,0 +1,9 @@
+Use case: stylized-concept
+Asset type: production game structure sprite source for CodeCity Inspector
+Input images: Image 1 is the global world/palette/pixel-density reference; Image 2 is the direct fortified gate, marker, ironwork, and masonry reference.
+Primary request: create one distinct late-medieval TOWN GATE structure, suitable for later downsampling to a 256x256 transparent building canvas.
+Scene/backdrop: perfectly flat solid #ff00ff chroma-key background for local background removal.
+Subject: one complete freestanding fortified stone-and-timber gatehouse segment with a clearly readable open walkable entrance facing the foreground, dark blue-green tiled cap roofs on two short stone towers, heavy open wooden doors with iron fittings, warm lanterns, mossy stonework. No connected long wall, people, flags, text, or scenery.
+Style/medium: dense crisp top-down three-quarter pixel art, matching the references' fine pixel clusters, palette, scale, ironwork, stone texture, moss and warm lighting.
+Composition/framing: one unified gate centered, coherent three-quarter/top-down perspective, generous padding, entire towers and walkable opening visible, stable baseline.
+Constraints: one uniform #ff00ff background with no shadows, gradients, texture, reflections, floor plane, or lighting variation. Crisp silhouette. Do not use #ff00ff in the subject. No cast/contact shadow, rectangular ground pad, neighboring examples, specimen sheet, labels, letters, watermark, characters, closed/blocked entrance, or cropped edges.
