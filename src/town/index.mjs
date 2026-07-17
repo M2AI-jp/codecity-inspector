@@ -32,7 +32,7 @@ import { assessHabitability } from './habitability.mjs';
 // artifact path is retired separately; the server payload below uses WorldPlan.
 import { repoFingerprint, defaultSeed } from './rng.mjs';
 import { generateLayout } from './generator.mjs';
-import { annotateLayout } from './validator.mjs';
+import { annotateLayout, validateLayout } from './validator.mjs';
 import { GENERATOR_VERSION } from './schema.mjs';
 import { generateWorldPlan } from './world-plan-generator.mjs';
 import { annotateWorldPlan } from './world-plan-validator.mjs';
@@ -62,6 +62,7 @@ export { isConnectionBuilding, buildTownModel } from './detect.mjs';
 
 // Habitability scoring of a TownModel.
 export { assessHabitability } from './habitability.mjs';
+export { validateLayout };
 export { validateWorldPlan } from './world-plan-validator.mjs';
 
 // --- orchestrator -----------------------------------------------------------
@@ -88,6 +89,46 @@ export async function buildTown(repoPath, inspection) {
 }
 
 // --- server payload assembler -----------------------------------------------
+
+/**
+ * Assemble the frozen legacy TownLayout payload used by the approved-78
+ * release channel. This path remains deliberately separate from WorldPlan v2:
+ * neither renderer receives the other renderer's payload or asset vocabulary.
+ *
+ * @param {string} repoPath - repository root (read only, never executed)
+ * @param {object} inspection - already-produced static inspection
+ * @param {{ seed?: string|null }} [options] - optional deterministic seed
+ * @returns {Promise<{schemaVersion: 1, repository: {name: string}, generatorVersion: string, seed: string, habitability: object, model: object, layout: object}>}
+ */
+export async function buildLegacyTownPayload(repoPath, inspection, options = {}) {
+  const { model, habitability } = await buildTown(repoPath, inspection);
+  const fingerprint = repoFingerprint(inspection);
+  const seed = options.seed == null ? defaultSeed(inspection) : String(options.seed);
+  const layout = annotateLayout(generateLayout({
+    model,
+    habitability,
+    seed,
+    generatorVersion: GENERATOR_VERSION,
+    repoFingerprint: fingerprint
+  }));
+  if (layout.validation?.ok !== true) {
+    throw new Error('Generated legacy town layout failed validation');
+  }
+  return {
+    schemaVersion: 1,
+    repository: { name: inspection?.repository?.name ?? '' },
+    generatorVersion: GENERATOR_VERSION,
+    seed,
+    habitability,
+    model: {
+      facilities: model.facilities,
+      guild: model.guild,
+      external: model.external,
+      summary: model.summary
+    },
+    layout
+  };
+}
 
 /**
  * Assemble GET /api/town v2 for one already-inspected repository. The payload

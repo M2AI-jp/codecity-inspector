@@ -19,7 +19,7 @@ import {
   terrainFrame,
   validateForgeManifest,
   verifyForgeManifestDigests
-} from '../public/site-runtime.mjs';
+} from '../public/fable5-v2/site-runtime.mjs';
 import { canonicalJson, sha256 } from '../tools/asset-forge/src/hashing.mjs';
 import { validateWith } from '../tools/asset-forge/src/schemas.mjs';
 import { readWaveADefinitions } from '../tools/asset-forge/src/v2/definition-builder.mjs';
@@ -606,7 +606,7 @@ test('fetch path verifies release trust and sheet helpers obey formal definition
   });
 });
 
-test('WorldPlan asset collection remains exact and production UI exposes hardened paths', async () => {
+test('WorldPlan asset collection remains exact and isolated Fable5 v2 UI exposes hardened paths', async () => {
   assert.deepEqual(collectWorldPlanAssetIds({
     terrain: [{ assetId: 'terrain.grass' }],
     buildings: [{ assetId: 'building.town_hall', overlays: ['overlay.ivy.s'] }],
@@ -619,11 +619,11 @@ test('WorldPlan asset collection remains exact and production UI exposes hardene
   ]);
   assert.throws(() => collectWorldPlanAssetIds({ terrain: [{ assetId: '../unsafe.png' }] }), ForgeAssetError);
   const [app, world, site, html, css] = await Promise.all([
-    readFile(new URL('../public/app.js', import.meta.url), 'utf8'),
-    readFile(new URL('../public/world-runtime.mjs', import.meta.url), 'utf8'),
-    readFile(new URL('../public/site-runtime.mjs', import.meta.url), 'utf8'),
-    readFile(new URL('../public/index.html', import.meta.url), 'utf8'),
-    readFile(new URL('../public/styles.css', import.meta.url), 'utf8')
+    readFile(new URL('../public/fable5-v2/app.js', import.meta.url), 'utf8'),
+    readFile(new URL('../public/fable5-v2/world-runtime.mjs', import.meta.url), 'utf8'),
+    readFile(new URL('../public/fable5-v2/site-runtime.mjs', import.meta.url), 'utf8'),
+    readFile(new URL('../public/fable5-v2/index.html', import.meta.url), 'utf8'),
+    readFile(new URL('../public/fable5-v2/styles.css', import.meta.url), 'utf8')
   ]);
   assert.doesNotMatch(`${app}\n${world}`, /localeCompare/);
   assert.match(app, /visibleDepthEntries/);
@@ -633,10 +633,10 @@ test('WorldPlan asset collection remains exact and production UI exposes hardene
   assert.match(site, /128 globally unique/);
 });
 
-test('production interaction code keeps five mechanics and progressive-loading UX distinct', async () => {
+test('isolated Fable5 v2 interaction code keeps five mechanics and progressive-loading UX distinct', async () => {
   const [app, html] = await Promise.all([
-    readFile(new URL('../public/app.js', import.meta.url), 'utf8'),
-    readFile(new URL('../public/index.html', import.meta.url), 'utf8')
+    readFile(new URL('../public/fable5-v2/app.js', import.meta.url), 'utf8'),
+    readFile(new URL('../public/fable5-v2/index.html', import.meta.url), 'utf8')
   ]);
   assert.match(app, /performLedgerInteraction/);
   assert.match(app, /kind: 'entry-tags'.*\bindex: 0/s);

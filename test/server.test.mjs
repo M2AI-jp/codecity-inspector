@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { parseCliArgs, startServer } from '../src/server.mjs';
-import { buildTownPayload } from '../src/town/index.mjs';
+import { buildLegacyTownPayload, buildTownPayload } from '../src/town/index.mjs';
 
 function rawRequest(port, requestPath, method = 'GET', headers = {}) {
   return new Promise((resolve, reject) => {
@@ -125,6 +125,75 @@ test('serves the exact WorldPlan v2 payload without leaking source', async (t) =
 
   const post = await rawRequest(port, '/api/town', 'POST');
   assert.equal(post.status, 405);
+});
+
+test('serves the isolated deterministic legacy TownLayout without leaking source', async (t) => {
+  const fixture = await serverFixture();
+  const running = await startServer({ ...fixture, repoPath: fixture.repo, port: 0 });
+  t.after(running.close);
+  const port = running.server.address().port;
+
+  const api = await rawRequest(port, '/api/town/legacy');
+  assert.equal(api.status, 200);
+  assert.match(api.headers['content-type'], /application\/json/);
+  assert.equal(api.body.includes('SOURCE_MUST_NOT_LEAK'), false);
+  const town = JSON.parse(api.body);
+  assert.deepEqual(Object.keys(town), [
+    'schemaVersion', 'repository', 'generatorVersion', 'seed', 'habitability', 'model', 'layout'
+  ]);
+  assert.equal(town.schemaVersion, 1);
+  assert.equal(town.repository.name, 'repo');
+  assert.equal(town.layout.validation.ok, true);
+  assert.equal(Array.isArray(town.model.facilities), true);
+  assert.equal(Object.hasOwn(town, 'worldPlan'), false);
+
+  const repeat = await rawRequest(port, '/api/town/legacy');
+  assert.equal(repeat.body, api.body);
+  const head = await rawRequest(port, '/api/town/legacy', 'HEAD');
+  assert.equal(head.status, 200);
+  assert.equal(head.body, '');
+  assert.match(head.headers['content-type'], /application\/json/);
+});
+
+test('legacy endpoint revalidates layout instead of trusting a forged embedded verdict', async (t) => {
+  const fixture = await serverFixture();
+  const running = await startServer({
+    ...fixture,
+    repoPath: fixture.repo,
+    port: 0,
+    legacyTownPayloadBuilder: async (repoPath, inspection) => {
+      const payload = structuredClone(await buildLegacyTownPayload(repoPath, inspection));
+      payload.layout.buildings[1].x = payload.layout.buildings[0].x;
+      payload.layout.buildings[1].y = payload.layout.buildings[0].y;
+      assert.equal(payload.layout.validation.ok, true);
+      return payload;
+    }
+  });
+  t.after(running.close);
+
+  const response = await rawRequest(running.server.address().port, '/api/town/legacy');
+  assert.equal(response.status, 500);
+  assert.equal(response.body, 'Unable to generate legacy town\n');
+  assert.equal(response.body.includes('validation'), false);
+});
+
+test('legacy endpoint fails closed on a cross-channel payload', async (t) => {
+  const fixture = await serverFixture();
+  const running = await startServer({
+    ...fixture,
+    repoPath: fixture.repo,
+    port: 0,
+    legacyTownPayloadBuilder: async () => ({
+      schemaVersion: 2,
+      worldPlan: { validation: { ok: true } }
+    })
+  });
+  t.after(running.close);
+
+  const response = await rawRequest(running.server.address().port, '/api/town/legacy');
+  assert.equal(response.status, 500);
+  assert.equal(response.body, 'Unable to generate legacy town\n');
+  assert.equal(response.body.includes('validation'), false);
 });
 
 test('refuses to return a town payload whose WorldPlan did not pass validation', async (t) => {

@@ -1,294 +1,137 @@
-export const FORGE_MANIFEST_URL = '/assets/forge/v3/manifest.json';
-export const REQUIRED_SET_ID = 'fable5-v2';
-export const WAVE_A_ASSET_COUNT = 109;
-export const WAVE_A_ASSET_IDS = Object.freeze(`terrain.grass
-terrain.snow
-terrain.dirt
-terrain.cobble
-terrain.plaza
-terrain.deck
-terrain.water
-terrain.cliff
-terrain.road
-overlay.flowers.a
-overlay.flowers.b
-overlay.flowers.c
-overlay.pebbles.a
-overlay.pebbles.b
-overlay.pebbles.c
-structure.bridge_stone
-structure.bridge_wood
-structure.stairs_stone
-structure.fence
-structure.wall_stone
-structure.tree.a
-structure.tree.b
-structure.tree.c
-structure.rock.a
-structure.rock.b
-structure.rock.c
-structure.stone_lantern
-structure.pier
-structure.well
-structure.barricade
-structure.signpost_broken
-structure.cycle_wellcurb
-structure.ferry_shelter
-structure.searoute_marker
-structure.survey_plot
-building.gate
-building.town_hall
-building.dojo
-building.inn
-building.warehouse
-building.dock
-building.guild
-building.pub
-building.shop
-building.workshop
-building.watchtower
-building.ruin
-building.house_s
-building.house_m
-building.house_old
-building.hut
-building.rowhouse_s
-building.rowhouse_l
-building.survey_tower
-overlay.ivy.s
-overlay.ivy.m
-overlay.ivy.l
-overlay.scaffold.s
-overlay.scaffold.m
-overlay.scaffold.l
-overlay.snowcap.s
-overlay.snowcap.m
-overlay.snowcap.l
-overlay.snowcap.xl
-overlay.tarp
-interior.floor_wood
-interior.floor_stone
-interior.wall_trim
-prop.lamp
-prop.streetlight
-prop.signboard
-prop.notice_board
-prop.warning_stake
-prop.barrel
-prop.crate
-prop.bench
-prop.table
-prop.chair
-prop.counter
-prop.shelf
-prop.desk_ledger
-prop.bed
-prop.hearth
-prop.training_dummy
-prop.practice_target
-prop.lantern_warning
-character.player
-character.town_clerk
-character.gatekeeper
-character.dojo_inspector
-character.mob.townsfolk_male
-character.mob.townsfolk_female
-character.dojo_student
-effect.water_ripple
-effect.construction_dust
-effect.window_glow
-effect.discovery_glint
-ui.dialogue_window
-ui.choice_button
-ui.speech_bubble
-ui.journal_book
-ui.evidence_panel
-ui.facility_icons
-ui.evidence_icons
-ui.key_prompts
-ui.touch_action
-ui.cursor
-ui.footstep
-ui.town_crest`.split('\n').sort());
+export const FORGE_MANIFEST_URL = '/assets/forge/manifest.json';
+export const SITE_CANVAS = Object.freeze({ width: 768, height: 512, columns: 12, rows: 8, cellSize: 64 });
 
-const PINNED_LEGACY = Object.freeze({
-  recordSha256: 'caf19944245818a481659e757675e78907db543fd1aab82ca4947b068499e8c4',
-  dispositionDigest: '5e03f0885b97ec9421ada3cbe52846aec91f2f85e2d928465798df902df4b92d',
-  freezeDigest: '733142d2868070fb8c4d95382426f725090dea7aa29314672cfd847dbc18fa5f',
-  assetIdsSha256: '1035cfc0c269a6c6f40f99655c030aaf5f91cb1de217aad0fed6bbf67cfb0065'
-});
-const PINNED_REFERENCE_AUTHORIZATION_SHA256 = '6f02d72f10711ecf50c9d525a7762431f2548252f8071d9035c425f1c8e32f14';
-
-export const FORGE_RELEASE_TRUST = Object.freeze({
-  ...PINNED_LEGACY,
-  referenceAuthorizationSha256: PINNED_REFERENCE_AUTHORIZATION_SHA256,
-  approvalDigest: null,
-  planDigest: null,
-  selectionDigest: null,
-  evidenceCoverageDigest: null,
-  cellAuditDigest: null,
-  artifactSetDigest: null,
-  assetBindingDigest: null
-});
-
-const SHA256 = /^[a-f0-9]{64}$/;
-const BLOB_PATH = /^\/assets\/forge\/v3\/blobs\/[a-f0-9]{64}\.png$/;
-const ASSET_ID = /^(character|building|terrain|overlay|structure|interior|prop|ui|effect)\.[a-z0-9_]+(?:\.[a-z0-9_]+)*$/;
-const LEGACY_ASSET_ID = /^(building|character|field|object|effect)\.[a-z0-9_]+(?:\.[a-z0-9_]+)*$/;
-const SUCCESSOR_ASSET_ID = /^(building|character|terrain|structure|prop|effect)\.[a-z0-9_]+(?:\.[a-z0-9_]+)*$/;
-
-function isRecord(value) {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-}
-
-function positiveInteger(value) {
-  return Number.isInteger(value) && value > 0;
-}
-
-function compareCodeUnits(left, right) {
-  return left < right ? -1 : left > right ? 1 : 0;
-}
-
-function exactKeys(value, expected, label, issues) {
-  if (!isRecord(value)) {
-    issues.push(`${label} must be an object`);
-    return false;
-  }
-  const actual = Object.keys(value).sort(compareCodeUnits);
-  const wanted = [...expected].sort(compareCodeUnits);
-  if (actual.length !== wanted.length || actual.some((key, index) => key !== wanted[index])) {
-    issues.push(`${label} must contain exactly: ${wanted.join(', ')}`);
-    return false;
-  }
-  return true;
-}
-
-function allowedKeys(value, allowed, label, issues) {
-  if (!isRecord(value)) {
-    issues.push(`${label} must be an object`);
-    return false;
-  }
-  const allowedSet = new Set(allowed);
-  const extras = Object.keys(value).filter((key) => !allowedSet.has(key));
-  if (extras.length > 0) issues.push(`${label} contains unsupported fields: ${extras.join(', ')}`);
-  return extras.length === 0;
-}
-
-const DEFINITION_KEYS = Object.freeze([
-  'visualContractVersion', 'id', 'category', 'displayName', 'gameMeaning', 'required',
-  'promptFiles', 'defaultReferenceIds', 'output', 'pixelArt', 'sprites', 'states',
-  'characterSpriteContract', 'outputSize', 'placementSpace', 'perspective', 'lighting',
-  'scaleClass', 'pivot', 'baseline', 'footprint', 'entrance', 'collision', 'occlusion',
-  'roofMask', 'windowAnchors', 'inspectionGates', 'autotileContract', 'buildingLayerContract',
-  'productionDecision', 'usage', 'palette', 'silhouette', 'variants', 'acceptance',
-  'artDirection', 'priority', 'tags', 'constraints', 'reviewChecklist', 'gameBinding'
-]);
-const DEFINITION_CORE = Object.freeze([
-  'id', 'category', 'displayName', 'gameMeaning', 'required', 'promptFiles',
-  'defaultReferenceIds', 'output', 'pixelArt', 'tags', 'constraints', 'reviewChecklist', 'gameBinding'
-]);
-const DEFINITION_V2 = Object.freeze([
-  'outputSize', 'placementSpace', 'perspective', 'lighting', 'scaleClass', 'pivot', 'baseline',
-  'footprint', 'entrance', 'collision', 'occlusion', 'roofMask', 'windowAnchors',
-  'inspectionGates', 'productionDecision', 'usage', 'palette', 'silhouette', 'variants',
-  'acceptance', 'artDirection', 'priority'
+const BUILDING_IDS = Object.freeze([
+  'building.dock', 'building.dojo', 'building.gate', 'building.guild',
+  'building.house.medium', 'building.house.small', 'building.hut', 'building.inn',
+  'building.old_house', 'building.pub', 'building.ruin', 'building.shop',
+  'building.town_hall', 'building.warehouse', 'building.watchtower',
+  'building.well', 'building.workshop'
 ]);
 
-function nonemptyStrings(value, { minimum = 0, unique = false } = {}) {
-  return Array.isArray(value) && value.length >= minimum
-    && value.every((entry) => typeof entry === 'string' && entry.length > 0)
-    && (!unique || new Set(value).size === value.length);
+const FIELD_IDS = Object.freeze([
+  'field.bridge_stone', 'field.bridge_wood', 'field.cliff', 'field.cobblestone',
+  'field.dirt_path', 'field.dock_floor', 'field.fence_wood', 'field.grass',
+  'field.plaza', 'field.river_edge', 'field.road_corner', 'field.road_edge',
+  'field.road_intersection', 'field.rock', 'field.snow', 'field.stairs_stone',
+  'field.tree', 'field.wall_stone', 'field.water'
+]);
+
+const CHARACTER_IDS = Object.freeze([
+  'character.dock_ferryman', 'character.dojo_inspector', 'character.gatekeeper',
+  'character.guildmaster', 'character.innkeeper', 'character.mob.artisan',
+  'character.mob.child', 'character.mob.delivery_person', 'character.mob.dock_worker',
+  'character.mob.elder', 'character.mob.inn_guest', 'character.mob.merchant',
+  'character.mob.tavern_guest', 'character.mob.townsfolk_female',
+  'character.mob.townsfolk_male', 'character.mob.traveler', 'character.player',
+  'character.tavern_master', 'character.town_clerk', 'character.warehouse_keeper',
+  'character.watchtower_guard', 'character.workshop_artisan'
+]);
+
+const OBJECT_IDS = Object.freeze([
+  'object.barrel', 'object.bench', 'object.blue_flag', 'object.construction_sign',
+  'object.crate', 'object.flowerbed', 'object.grass_patch', 'object.lamp',
+  'object.notice_board', 'object.red_flag', 'object.rubble', 'object.signboard',
+  'object.stacked_crates', 'object.streetlight', 'object.unverified_tag',
+  'object.warning_stake', 'object.well', 'object.yellow_flag'
+]);
+
+const EFFECT_IDS = Object.freeze(['effect.construction_dust', 'effect.water_ripple']);
+
+export const REQUIRED_ASSET_IDS = Object.freeze([
+  ...BUILDING_IDS,
+  ...CHARACTER_IDS,
+  ...EFFECT_IDS,
+  ...FIELD_IDS,
+  ...OBJECT_IDS
+].sort());
+
+const EXPECTED_CATEGORY_COUNTS = Object.freeze({ building: 17, character: 22, effect: 2, field: 19, object: 18 });
+const DIRECTION_COLUMNS = Object.freeze({ down: 0, up: 1, left: 2, right: 3 });
+const FRAME_ROWS = Object.freeze({ idle: 0, walk1: 1, walk2: 2 });
+
+function deepFreeze(value, seen = new WeakSet()) {
+  if (!value || typeof value !== 'object' || seen.has(value)) return value;
+  seen.add(value);
+  for (const child of Object.values(value)) deepFreeze(child, seen);
+  return Object.freeze(value);
 }
 
-function validateAssetDefinition(definition, asset, issues) {
-  const label = `${asset.assetId}.definition`;
-  if (!allowedKeys(definition, DEFINITION_KEYS, label, issues)) return;
-  for (const key of [...DEFINITION_CORE, ...DEFINITION_V2]) {
-    if (!Object.hasOwn(definition, key)) issues.push(`${label}.${key} is required by visual contract v2`);
+function expectedContract(assetId) {
+  if (assetId.startsWith('building.')) {
+    return { category: 'building', kind: 'single', width: 256, height: 256, logicalWidth: 256, logicalHeight: 256 };
   }
-  if (definition.visualContractVersion !== 2) issues.push(`${label}.visualContractVersion must be 2`);
-  if (definition.id !== asset.assetId || definition.category !== asset.category) issues.push(`${label} identity mismatch`);
-  if (typeof definition.displayName !== 'string' || !definition.displayName) issues.push(`${label}.displayName is required`);
-  if (typeof definition.gameMeaning !== 'string' || !definition.gameMeaning) issues.push(`${label}.gameMeaning is required`);
-  if (definition.required !== true) issues.push(`${label}.required must be true for Wave A`);
-  if (!nonemptyStrings(definition.promptFiles, { minimum: 1, unique: true })
-    || definition.promptFiles.some((entry) => !/^prompts\/[a-z0-9_/-]+\.md$/.test(entry))) {
-    issues.push(`${label}.promptFiles is invalid`);
+  if (assetId.startsWith('field.')) {
+    return { category: 'field', kind: 'tileset', width: 64, height: 64, tileSize: 64 };
   }
-  if (!nonemptyStrings(definition.defaultReferenceIds, { unique: true })) issues.push(`${label}.defaultReferenceIds is invalid`);
-  exactKeys(definition.output, ['kind', 'preferredFormat', 'background', 'needsTransparency', 'needsTrim'], `${label}.output`, issues);
-  if (definition.output?.preferredFormat !== 'png' || definition.output?.background !== 'transparent'
-    || definition.output?.needsTransparency !== true || definition.output?.needsTrim !== false) {
-    issues.push(`${label}.output must use the transparent PNG Wave A contract`);
+  if (assetId.startsWith('character.')) {
+    return {
+      category: 'character', kind: 'spritesheet', width: 96, height: 120,
+      logicalWidth: 24, logicalHeight: 40,
+      grid: { columns: 4, rows: 3, frameWidth: 24, frameHeight: 40 }
+    };
   }
-  allowedKeys(definition.pixelArt, ['logicalSpriteSize', 'tileSize', 'scalePreview', 'nearestNeighbor', 'allowAntiAlias'], `${label}.pixelArt`, issues);
-  if (definition.pixelArt?.nearestNeighbor !== true || definition.pixelArt?.allowAntiAlias !== false) {
-    issues.push(`${label}.pixelArt must use hard nearest-neighbor pixels`);
+  if (assetId.startsWith('object.')) {
+    return { category: 'object', kind: 'single', width: 64, height: 64, logicalWidth: 64, logicalHeight: 64 };
   }
-  if (!positiveInteger(definition.outputSize?.width) || !positiveInteger(definition.outputSize?.height)) issues.push(`${label}.outputSize is invalid`);
-  if (definition.perspective !== 'three-quarter-overhead' || definition.lighting !== 'upper-left-twilight') {
-    issues.push(`${label} projection or lighting contract is invalid`);
-  }
-  if (!isRecord(definition.placementSpace) || !isRecord(definition.pivot)
-    || !isRecord(definition.baseline) || !isRecord(definition.footprint)
-    || !isRecord(definition.collision) || !isRecord(definition.occlusion)
-    || !isRecord(definition.inspectionGates) || !isRecord(definition.productionDecision)
-    || !isRecord(definition.usage) || !isRecord(definition.palette)
-    || !isRecord(definition.acceptance) || !isRecord(definition.artDirection)
-    || !isRecord(definition.gameBinding)) issues.push(`${label} is missing a required structured v2 contract`);
-  if (!Array.isArray(definition.windowAnchors) || !nonemptyStrings(definition.variants, { minimum: 1, unique: true })
-    || !nonemptyStrings(definition.tags, { unique: true })
-    || !nonemptyStrings(definition.reviewChecklist, { minimum: 1 })) issues.push(`${label} list contracts are invalid`);
-  exactKeys(definition.constraints, ['must', 'mustNot'], `${label}.constraints`, issues);
-  if (!Array.isArray(definition.constraints?.must) || !Array.isArray(definition.constraints?.mustNot)) issues.push(`${label}.constraints is invalid`);
-  exactKeys(definition.priority, ['requiredSetId', 'wave'], `${label}.priority`, issues);
-  if (definition.priority?.requiredSetId !== REQUIRED_SET_ID || definition.priority?.wave !== 'A') issues.push(`${label}.priority is not Wave A`);
-  if (asset.category === 'building') {
-    const roles = definition.buildingLayerContract?.artifacts?.map(({ role }) => role);
-    if (definition.output?.kind !== 'layered-building' || roles?.length !== 2 || roles[0] !== 'base' || roles[1] !== 'roof') {
-      issues.push(`${label} must contain the atomic base + roof definition contract`);
-    }
-  }
-  if (asset.category === 'character' && definition.characterSpriteContract?.version !== 2) {
-    issues.push(`${label} must contain characterSpriteContract v2`);
-  }
-}
-
-function hasExactValues(value, expected) {
-  return Object.entries(expected).every(([key, candidate]) => value?.[key] === candidate);
-}
-
-function canonicalJson(value) {
-  const normalize = (item) => {
-    if (Array.isArray(item)) return item.map(normalize);
-    if (item && typeof item === 'object') {
-      return Object.fromEntries(Object.keys(item).sort(compareCodeUnits).map((key) => [key, normalize(item[key])]));
-    }
-    return item;
+  return {
+    category: 'effect', kind: 'spritesheet', width: 128, height: 32,
+    logicalWidth: 32, logicalHeight: 32,
+    grid: { columns: 4, rows: 1, frameWidth: 32, frameHeight: 32 }
   };
-  return `${JSON.stringify(normalize(value), null, 2)}\n`;
 }
 
-function asBytes(value) {
-  if (value instanceof Uint8Array) return value;
-  if (value instanceof ArrayBuffer) return new Uint8Array(value);
-  if (ArrayBuffer.isView(value)) return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
-  if (typeof value === 'string') return new TextEncoder().encode(value);
-  throw new TypeError('SHA-256 input must be bytes or text');
+export const ASSET_CONTRACTS = deepFreeze(Object.fromEntries(
+  REQUIRED_ASSET_IDS.map((assetId) => [assetId, expectedContract(assetId)])
+));
+
+function sameGrid(left, right) {
+  return left?.columns === right.columns && left?.rows === right.rows
+    && left?.frameWidth === right.frameWidth && left?.frameHeight === right.frameHeight;
 }
 
-export async function sha256Hex(value) {
-  if (!globalThis.crypto?.subtle) throw new ForgeAssetError('SHA-256 verification is unavailable; play has been stopped.');
-  const digest = await globalThis.crypto.subtle.digest('SHA-256', asBytes(value));
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
-}
-
-function dimensionsFor(asset, role) {
-  if (asset.category === 'building') {
-    const layer = asset.definition?.buildingLayerContract?.artifacts?.find((entry) => entry.role === role);
-    if (positiveInteger(layer?.outputSize?.width) && positiveInteger(layer?.outputSize?.height)) return layer.outputSize;
+export function validateForgeManifest(manifest) {
+  const issues = [];
+  if (!manifest || typeof manifest !== 'object' || Array.isArray(manifest)) {
+    return deepFreeze({ ok: false, issues: ['manifest is not an object'], assetCount: 0 });
   }
-  return asset.definition?.outputSize ?? null;
+  if (manifest.schemaVersion !== 2) issues.push('schemaVersion must be 2');
+  if (manifest.complete !== true) issues.push('complete must be true');
+  if (!Array.isArray(manifest.missingAssets) || manifest.missingAssets.length !== 0) issues.push('missingAssets must be empty');
+  if (!Array.isArray(manifest.missingBindings) || manifest.missingBindings.length !== 0) issues.push('missingBindings must be empty');
+  if (!Array.isArray(manifest.assets)) issues.push('assets must be an array');
+  const assets = Array.isArray(manifest.assets) ? manifest.assets : [];
+  if (assets.length !== REQUIRED_ASSET_IDS.length) issues.push('assets must contain exactly 78 entries');
+  const ids = assets.map((entry) => entry?.assetId);
+  if (new Set(ids).size !== ids.length) issues.push('asset IDs must be unique');
+  const missing = REQUIRED_ASSET_IDS.filter((id) => !ids.includes(id));
+  const unexpected = ids.filter((id) => !REQUIRED_ASSET_IDS.includes(id));
+  if (missing.length) issues.push(`required asset IDs are missing: ${missing.join(', ')}`);
+  if (unexpected.length) issues.push(`unexpected asset IDs are present: ${unexpected.join(', ')}`);
+
+  const categoryCounts = {};
+  for (const entry of assets) {
+    const contract = ASSET_CONTRACTS[entry?.assetId];
+    if (!contract) continue;
+    categoryCounts[entry.category] = (categoryCounts[entry.category] ?? 0) + 1;
+    if (entry.category !== contract.category) issues.push(`${entry.assetId}: category mismatch`);
+    if (typeof entry.publicPath !== 'string'
+      || !/^\/assets\/forge\/v[0-9]+\/[a-f0-9]+\/[a-z0-9_]+\.png$/.test(entry.publicPath)) {
+      issues.push(`${entry.assetId}: invalid publicPath`);
+    }
+    if (!/^[a-f0-9]{64}$/.test(entry.sha256 ?? '')) issues.push(`${entry.assetId}: invalid sha256`);
+    const spec = entry.renderSpec;
+    if (spec?.kind !== contract.kind) issues.push(`${entry.assetId}: render kind mismatch`);
+    if (contract.tileSize && spec?.tileSize !== contract.tileSize) issues.push(`${entry.assetId}: tile size mismatch`);
+    if (contract.logicalWidth && (spec?.logicalSize?.width !== contract.logicalWidth
+      || spec?.logicalSize?.height !== contract.logicalHeight)) issues.push(`${entry.assetId}: logical size mismatch`);
+    if (contract.grid && !sameGrid(spec?.sprites?.grid, contract.grid)) issues.push(`${entry.assetId}: sprite grid mismatch`);
+    if (spec?.nearestNeighbor !== true || spec?.allowAntiAlias !== false) issues.push(`${entry.assetId}: pixel rendering contract mismatch`);
+  }
+  for (const [category, count] of Object.entries(EXPECTED_CATEGORY_COUNTS)) {
+    if ((categoryCounts[category] ?? 0) !== count) issues.push(`${category}: expected ${count} assets`);
+  }
+  return deepFreeze({ ok: issues.length === 0, issues, assetCount: assets.length, missing, unexpected, categoryCounts });
 }
 
 export class ForgeAssetError extends Error {
@@ -299,712 +142,826 @@ export class ForgeAssetError extends Error {
   }
 }
 
-export function validateForgeManifest(manifest, { requiredAssetIds = [] } = {}) {
-  const issues = [];
-  if (!isRecord(manifest)) return { ok: false, issues: ['manifest must be an object'] };
-  exactKeys(manifest, [
-    'schemaVersion', 'scope', 'requiredSet', 'completeForDeclaredWaves', 'fullFable5SetComplete',
-    'bundleSetDigest', 'waveAApprovalEvidence', 'legacyMigration', 'assets'
-  ], 'manifest', issues);
-  if (manifest.schemaVersion !== 3) issues.push('asset manifest schemaVersion must be 3');
-  if (manifest.scope !== 'wave-a-only-not-full-fable5-set') issues.push('asset manifest must be the Wave A-only scope');
-  if (manifest.completeForDeclaredWaves !== true) issues.push('asset manifest is not complete for its declared waves');
-  if (manifest.fullFable5SetComplete !== false) issues.push('Wave A export must not claim the full Fable5 set');
-  if (!SHA256.test(manifest.bundleSetDigest ?? '')) issues.push('asset manifest has no valid bundle set digest');
-  exactKeys(manifest.requiredSet, ['id', 'waveIds', 'assetCount', 'minimumOutputPngCount'], 'requiredSet', issues);
-  if (!isRecord(manifest.requiredSet) || manifest.requiredSet.id !== REQUIRED_SET_ID) {
-    issues.push(`requiredSet.id must be ${REQUIRED_SET_ID}`);
+export function createAssetResolver(manifest) {
+  const validation = validateForgeManifest(manifest);
+  if (!validation.ok) {
+    throw new ForgeAssetError('承認済み必須素材78件の公開マニフェストが不完全です。代替素材は使用しません。', validation.issues);
   }
-  if (!Array.isArray(manifest.requiredSet?.waveIds)
-    || manifest.requiredSet.waveIds.length !== 1
-    || manifest.requiredSet.waveIds[0] !== 'A') {
-    issues.push('requiredSet.waveIds must be exactly ["A"]');
-  }
-  if (manifest.requiredSet?.assetCount !== WAVE_A_ASSET_COUNT) {
-    issues.push(`requiredSet.assetCount must be exactly ${WAVE_A_ASSET_COUNT}`);
-  }
-  if (manifest.requiredSet?.minimumOutputPngCount !== 128) issues.push('requiredSet.minimumOutputPngCount must be exactly 128');
-  if (!Array.isArray(manifest.assets)) {
-    issues.push('manifest.assets must be an array');
-    return { ok: false, issues };
-  }
-  if (manifest.assets.length !== WAVE_A_ASSET_COUNT) issues.push(`manifest.assets must contain exactly ${WAVE_A_ASSET_COUNT} assets`);
-
-  const evidenceKeys = [
-    'approvalDigest', 'planDigest', 'selectionDigest', 'legacyDispositionDigest',
-    'referenceAuthorizationSha256', 'evidenceCoverageDigest', 'cellAuditDigest', 'artifactSetDigest',
-    'requiredAssetCount', 'outputPngCount', 'declaredLogicalSlotCount', 'semanticCellCount',
-    'expectedNonemptySemanticCellCount', 'expectedTransparentSemanticCellCount', 'reservedTransparentCellCount'
-  ];
-  exactKeys(manifest.waveAApprovalEvidence, evidenceKeys, 'waveAApprovalEvidence', issues);
-  const evidence = manifest.waveAApprovalEvidence;
-  for (const key of evidenceKeys.slice(0, 8)) {
-    if (!SHA256.test(evidence?.[key] ?? '')) issues.push(`waveAApprovalEvidence.${key} must be a SHA-256 digest`);
-  }
-  if (evidence?.referenceAuthorizationSha256 !== PINNED_REFERENCE_AUTHORIZATION_SHA256) {
-    issues.push('Wave A reference authorization does not match the reviewed release authorization');
-  }
-  if (!hasExactValues(evidence, {
-    requiredAssetCount: 109,
-    outputPngCount: 128,
-    declaredLogicalSlotCount: 771,
-    semanticCellCount: 708,
-    expectedNonemptySemanticCellCount: 696,
-    expectedTransparentSemanticCellCount: 12,
-    reservedTransparentCellCount: 63
-  })) {
-    issues.push('Wave A approval counts do not match the approved 109-asset/128-PNG/771-slot contract');
-  }
-
-  exactKeys(manifest.legacyMigration, ['recordSha256', 'record'], 'legacyMigration', issues);
-  if (!SHA256.test(manifest.legacyMigration?.recordSha256 ?? '')) issues.push('legacyMigration.recordSha256 must be a SHA-256 digest');
-  if (manifest.legacyMigration?.recordSha256 !== PINNED_LEGACY.recordSha256) {
-    issues.push('legacyMigration.recordSha256 does not match the frozen legacy release contract');
-  }
-  const migration = manifest.legacyMigration?.record;
-  exactKeys(migration, [
-    'schemaVersion', 'contract', 'legacyRequiredSet', 'legacyFreezeDigest', 'counts',
-    'waveARemakes', 'waveBRemakes', 'retired', 'dispositionDigest'
-  ], 'legacyMigration.record', issues);
-  if (migration?.schemaVersion !== 1 || migration?.contract !== 'fable5-legacy-disposition-v1') {
-    issues.push('legacy migration contract must be fable5-legacy-disposition-v1 schema 1');
-  }
-  exactKeys(migration?.legacyRequiredSet, ['id', 'assetCount', 'assetIdsSha256'], 'legacyRequiredSet', issues);
-  if (!hasExactValues(migration?.legacyRequiredSet, { id: 'legacy-approved-78', assetCount: 78 })
-    || !SHA256.test(migration?.legacyRequiredSet?.assetIdsSha256 ?? '')) {
-    issues.push('legacyRequiredSet must bind the frozen approved 78 assets');
-  }
-  if (migration?.legacyRequiredSet?.assetIdsSha256 !== PINNED_LEGACY.assetIdsSha256) {
-    issues.push('legacyRequiredSet asset IDs differ from the frozen legacy catalog');
-  }
-  exactKeys(migration?.counts, ['keep', 'remake', 'retire', 'waveARemake', 'waveBRemake'], 'legacy counts', issues);
-  if (!hasExactValues(migration?.counts, { keep: 0, remake: 65, retire: 13, waveARemake: 45, waveBRemake: 20 })) {
-    issues.push('legacy disposition counts do not match the frozen 0/65/13 migration');
-  }
-  if (!SHA256.test(migration?.legacyFreezeDigest ?? '') || !SHA256.test(migration?.dispositionDigest ?? '')) {
-    issues.push('legacy migration digests are missing');
-  }
-  if (migration?.legacyFreezeDigest !== PINNED_LEGACY.freezeDigest
-    || migration?.dispositionDigest !== PINNED_LEGACY.dispositionDigest
-    || evidence?.legacyDispositionDigest !== PINNED_LEGACY.dispositionDigest) {
-    issues.push('legacy migration does not match the pinned freeze and disposition');
-  }
-  const waveARemakes = Array.isArray(migration?.waveARemakes) ? migration.waveARemakes : [];
-  const waveBRemakes = Array.isArray(migration?.waveBRemakes) ? migration.waveBRemakes : [];
-  const retired = Array.isArray(migration?.retired) ? migration.retired : [];
-  for (const [key, count, entries] of [['waveARemakes', 45, waveARemakes], ['waveBRemakes', 20, waveBRemakes]]) {
-    if (entries.length !== count) issues.push(`${key} must contain exactly ${count} entries`);
-    for (const [index, entry] of entries.entries()) {
-      exactKeys(entry, ['legacyAssetId', 'successorAssetId'], `${key}[${index}]`, issues);
-      if (!LEGACY_ASSET_ID.test(entry?.legacyAssetId ?? '') || !SUCCESSOR_ASSET_ID.test(entry?.successorAssetId ?? '')) {
-        issues.push(`${key}[${index}] is invalid`);
-      }
-    }
-  }
-  const legacyDispositionIds = [
-    ...waveARemakes.map((entry) => entry?.legacyAssetId),
-    ...waveBRemakes.map((entry) => entry?.legacyAssetId),
-    ...retired
-  ];
-  if (retired.length !== 13
-    || retired.some((assetId) => !LEGACY_ASSET_ID.test(assetId ?? ''))
-    || new Set(legacyDispositionIds).size !== 78) {
-    issues.push('legacy retired assets must contain exactly 13 unique IDs');
-  }
-  for (const entry of waveARemakes) {
-    if (!WAVE_A_ASSET_IDS.includes(entry.successorAssetId)) issues.push(`Wave A legacy successor is not in Wave A: ${entry.successorAssetId}`);
-  }
-
-  const assetIds = new Set();
-  const auditTotals = {
-    declaredLogicalSlotCount: 0,
-    semanticCellCount: 0,
-    expectedNonemptySemanticCellCount: 0,
-    expectedTransparentSemanticCellCount: 0,
-    reservedTransparentCellCount: 0
-  };
-  let outputPngCount = 0;
-  const artifactPaths = new Set();
-  const artifactHashes = new Set();
-  for (const [assetIndex, asset] of manifest.assets.entries()) {
-    exactKeys(asset, [
-      'assetId', 'category', 'definitionSha256', 'bundleDigest', 'generationRecordDigest',
-      'definition', 'cellAudit', 'artifacts'
-    ], `assets[${assetIndex}]`, issues);
-    if (!isRecord(asset) || typeof asset.assetId !== 'string' || !ASSET_ID.test(asset.assetId)) {
-      issues.push('every manifest asset needs a valid Fable5 assetId');
-      continue;
-    }
-    if (asset.assetId !== WAVE_A_ASSET_IDS[assetIndex]) {
-      issues.push(`assets[${assetIndex}] must be ${WAVE_A_ASSET_IDS[assetIndex]}`);
-    }
-    if (assetIds.has(asset.assetId)) issues.push(`duplicate assetId: ${asset.assetId}`);
-    assetIds.add(asset.assetId);
-    const category = asset.assetId.split('.')[0];
-    if (asset.category !== category || asset.definition?.category !== category) issues.push(`${asset.assetId} has a mismatched category`);
-    if (!SHA256.test(asset.definitionSha256 ?? '')) issues.push(`${asset.assetId} has an invalid definition digest`);
-    if (!SHA256.test(asset.bundleDigest ?? '')) issues.push(`${asset.assetId} has an invalid approval bundle digest`);
-    if (!SHA256.test(asset.generationRecordDigest ?? '')) issues.push(`${asset.assetId} has an invalid generation record digest`);
-    if (!isRecord(asset.definition) || asset.definition.id !== asset.assetId) issues.push(`${asset.assetId} has a mismatched definition`);
-    if (isRecord(asset.definition)) validateAssetDefinition(asset.definition, asset, issues);
-    exactKeys(asset.cellAudit, [
-      'declaredLogicalSlotCount', 'semanticCellCount', 'expectedNonemptySemanticCellCount',
-      'expectedTransparentSemanticCellCount', 'reservedTransparentCellCount', 'cellAuditDigest'
-    ], `${asset.assetId}.cellAudit`, issues);
-    const audit = asset.cellAudit;
-    if (!SHA256.test(audit?.cellAuditDigest ?? '')) issues.push(`${asset.assetId} has an invalid cell audit digest`);
-    for (const key of Object.keys(auditTotals)) {
-      const maximum = key === 'expectedTransparentSemanticCellCount' || key === 'reservedTransparentCellCount' ? 16 : 80;
-      if (!Number.isInteger(audit?.[key]) || audit[key] < 0 || audit[key] > maximum) {
-        issues.push(`${asset.assetId}.cellAudit.${key} must be an integer from 0 to ${maximum}`);
-      }
-      else auditTotals[key] += audit[key];
-    }
-    if (audit?.declaredLogicalSlotCount !== audit?.semanticCellCount + audit?.reservedTransparentCellCount
-      || audit?.semanticCellCount !== audit?.expectedNonemptySemanticCellCount + audit?.expectedTransparentSemanticCellCount
-      || !(audit?.semanticCellCount > 0)) {
-      issues.push(`${asset.assetId} has inconsistent cell audit counts`);
-    }
-    const expectedRoles = asset.category === 'building' ? ['base', 'roof'] : ['primary'];
-    const roles = Array.isArray(asset.artifacts) ? asset.artifacts.map((artifact) => artifact?.role) : [];
-    if (roles.length !== expectedRoles.length || roles.some((role, index) => role !== expectedRoles[index])) {
-      issues.push(`${asset.assetId} must declare ${expectedRoles.join(' + ')} artifacts in order`);
-      continue;
-    }
-    for (const artifact of asset.artifacts) {
-      exactKeys(artifact, ['role', 'sha256', 'publicPath'], `${asset.assetId}:${artifact?.role ?? 'unknown'}`, issues);
-      if (!SHA256.test(artifact.sha256 ?? '')) issues.push(`${asset.assetId}:${artifact.role} has an invalid digest`);
-      if (!BLOB_PATH.test(artifact.publicPath ?? '')) issues.push(`${asset.assetId}:${artifact.role} has an unsafe public path`);
-      if (artifact.publicPath !== `/assets/forge/v3/blobs/${artifact.sha256}.png`) {
-        issues.push(`${asset.assetId}:${artifact.role} path does not match its content digest`);
-      }
-      if (artifactPaths.has(artifact.publicPath)) issues.push(`duplicate artifact path: ${artifact.publicPath}`);
-      if (artifactHashes.has(artifact.sha256)) issues.push(`duplicate artifact SHA-256: ${artifact.sha256}`);
-      artifactPaths.add(artifact.publicPath);
-      artifactHashes.add(artifact.sha256);
-      const expectedSize = dimensionsFor(asset, artifact.role);
-      if (!positiveInteger(expectedSize?.width) || !positiveInteger(expectedSize?.height)) {
-        issues.push(`${asset.assetId}:${artifact.role} has no approved output dimensions`);
-      }
-    }
-    if (asset.category === 'building' && asset.artifacts?.[0]?.sha256 === asset.artifacts?.[1]?.sha256) {
-      issues.push(`${asset.assetId} base and roof must be distinct approved PNGs`);
-    }
-    outputPngCount += asset.artifacts?.length ?? 0;
-  }
-  if (outputPngCount !== 128 || artifactPaths.size !== 128 || artifactHashes.size !== 128) {
-    issues.push('manifest must declare exactly 128 globally unique approved PNG paths and hashes');
-  }
-  for (const key of Object.keys(auditTotals)) {
-    if (auditTotals[key] !== evidence?.[key]) issues.push(`cell audit total ${key} does not match Wave A evidence`);
-  }
-  for (const assetId of new Set(requiredAssetIds)) {
-    if (!assetIds.has(assetId)) issues.push(`WorldPlan requires missing approved asset: ${assetId}`);
-  }
-  return { ok: issues.length === 0, issues, assetIds };
-}
-
-function withoutKey(value, key) {
-  return Object.fromEntries(Object.entries(value).filter(([candidate]) => candidate !== key));
-}
-
-export async function createForgeTrustPolicy({
-  approval,
-  planCore,
-  selection,
-  referenceAuthorization,
-  legacyMigration,
-  bundleApprovals
-}) {
-  const issues = [];
-  if (![approval, planCore, selection, referenceAuthorization, legacyMigration].every(isRecord)
-    || !Array.isArray(bundleApprovals)) {
-    throw new ForgeAssetError('Release trust records are incomplete.');
-  }
-  const selectionDigest = await sha256Hex(canonicalJson(withoutKey(selection, 'selectionDigest')));
-  const planDigest = await sha256Hex(canonicalJson(planCore));
-  const referenceAuthorizationSha256 = await sha256Hex(canonicalJson(referenceAuthorization));
-  const evidenceCoverageDigest = await sha256Hex(canonicalJson({
-    contract: 'fable5-wave-a-evidence-coverage-v3',
-    assets: (approval.assets ?? []).map(({ assetId, visualEvidenceDigest }) => ({ assetId, visualEvidenceDigest }))
-  }));
-  const cellAuditDigest = await sha256Hex(canonicalJson({
-    contract: 'fable5-wave-a-cell-audit-set-v3',
-    assets: (approval.assets ?? []).map(({ assetId, cellAudit }) => ({ assetId, cellAudit }))
-  }));
-  const artifactSetDigest = await sha256Hex(canonicalJson({
-    contract: 'fable5-wave-a-artifact-set-v3',
-    assets: (approval.assets ?? []).map(({ assetId, artifacts }) => ({ assetId, artifacts }))
-  }));
-  const approvalDigest = await sha256Hex(canonicalJson(withoutKey(approval, 'approvalDigest')));
-  const recordSha256 = await sha256Hex(canonicalJson(legacyMigration));
-  const dispositionDigest = await sha256Hex(canonicalJson(withoutKey(legacyMigration, 'dispositionDigest')));
-
-  const selectedIds = (selection.assets ?? []).map(({ assetId }) => assetId);
-  const planIds = (planCore.assets ?? []).map(({ assetId }) => assetId);
-  const approvalIds = (approval.assets ?? []).map(({ assetId }) => assetId);
-  const hasCanonicalWaveAOrder = (assetIds) => assetIds.length === WAVE_A_ASSET_COUNT
-    && assetIds.every((assetId, index) => assetId === WAVE_A_ASSET_IDS[index]);
-  if (![selectedIds, planIds, approvalIds].every(hasCanonicalWaveAOrder)) {
-    issues.push('selection, plan, and approval must share the exact canonical 109 asset set and release order');
-  }
-  const exactCounts = {
-    requiredAssetCount: 109,
-    outputPngCount: 128,
-    declaredLogicalSlotCount: 771,
-    semanticCellCount: 708,
-    expectedNonemptySemanticCellCount: 696,
-    expectedTransparentSemanticCellCount: 12,
-    reservedTransparentCellCount: 63
-  };
-  for (const [label, record] of [['selection', selection], ['plan', planCore], ['approval', approval]]) {
-    if (!hasExactValues(record, exactCounts)) issues.push(`${label} does not match the exact Wave A counts`);
-  }
-  const bundleByAsset = new Map(bundleApprovals.map((bundle) => [bundle?.assetId, bundle]));
-  if (bundleApprovals.length !== WAVE_A_ASSET_COUNT || bundleByAsset.size !== WAVE_A_ASSET_COUNT) {
-    issues.push('bundle approvals must contain exactly one record for each Wave A asset');
-  }
-  const blueprintById = new Map((selection.sceneBlueprints ?? []).map((blueprint) => [blueprint.id, blueprint]));
-  const bindingAssets = [];
-  const approvedPaths = new Set();
-  const artifactHashes = new Set();
-  const generationIds = new Set();
-  for (let index = 0; index < WAVE_A_ASSET_COUNT; index += 1) {
-    const selected = selection.assets?.[index];
-    const planned = planCore.assets?.[index];
-    const approved = approval.assets?.[index];
-    if (![selected, planned, approved].every(isRecord)) continue;
-    const bundle = bundleByAsset.get(approved.assetId);
-    const selectedArtifacts = selected.artifacts ?? [];
-    const plannedArtifacts = planned.sourceArtifacts ?? [];
-    const approvedArtifacts = approved.artifacts ?? [];
-    const expectedRoles = approved.assetId.startsWith('building.') ? ['base', 'roof'] : ['primary'];
-    if (selected.generationId !== planned.pendingGenerationId
-      || selected.generationId !== approved.pendingGenerationId
-      || selected.pendingGenerationRecordDigest !== planned.pendingGenerationRecordDigest
-      || selected.pendingGenerationRecordDigest !== approved.pendingGenerationRecordDigest
-      || selected.definitionSha256 !== planned.definitionSha256
-      || selected.definitionSha256 !== approved.definitionSha256) {
-      issues.push(`${approved.assetId} selection, plan, and approval identities do not match`);
-    }
-    if (generationIds.has(selected.generationId)) issues.push(`${approved.assetId} reuses a generation id`);
-    generationIds.add(selected.generationId);
-    if (selectedArtifacts.length !== expectedRoles.length
-      || selectedArtifacts.some((artifact, artifactIndex) => artifact.role !== expectedRoles[artifactIndex])
-      || plannedArtifacts.length !== selectedArtifacts.length
-      || plannedArtifacts.some((artifact, artifactIndex) => canonicalJson(artifact) !== canonicalJson(selectedArtifacts[artifactIndex]))
-      || approvedArtifacts.length !== selectedArtifacts.length
-      || approvedArtifacts.some((artifact, artifactIndex) => artifact.role !== selectedArtifacts[artifactIndex].role
-        || artifact.sha256 !== selectedArtifacts[artifactIndex].sha256)) {
-      issues.push(`${approved.assetId} artifact membership differs across selection, plan, and approval`);
-    }
-    const visualBlueprints = (selected.visualReview?.ensemble ?? []).map(({ blueprintId }) => blueprintById.get(blueprintId));
-    if (visualBlueprints.some((blueprint) => !blueprint)) {
-      issues.push(`${approved.assetId} visual review points to a missing scene blueprint`);
-    } else {
-      const visualEvidenceDigest = await sha256Hex(canonicalJson({
-        visualReview: selected.visualReview,
-        sceneBlueprints: visualBlueprints
-      }));
-      if (planned.visualEvidenceDigest !== visualEvidenceDigest || approved.visualEvidenceDigest !== visualEvidenceDigest) {
-        issues.push(`${approved.assetId} visual evidence digest is not bound to selection blueprints`);
-      }
-    }
-    const calculatedCellAuditDigest = await sha256Hex(canonicalJson({
-      contract: 'fable5-cell-audit-v3',
-      ...withoutKey(approved.cellAudit ?? {}, 'cellAuditDigest')
-    }));
-    if (approved.cellAudit?.cellAuditDigest !== calculatedCellAuditDigest
-      || canonicalJson(planned.cellAudit) !== canonicalJson(approved.cellAudit)) {
-      issues.push(`${approved.assetId} cell audit is not canonical across plan and approval`);
-    }
-    if (!isRecord(bundle)) {
-      issues.push(`${approved.assetId} has no matching bundle approval`);
-    } else {
-      const canonicalBundle = {
-        contract: 'fable5-asset-bundle-v3',
-        assetId: bundle.assetId,
-        category: bundle.category,
-        definitionSha256: bundle.definitionSha256,
-        generationRecordDigest: bundle.generationRecordDigest,
-        artifacts: bundle.artifacts
-      };
-      const calculatedBundleDigest = await sha256Hex(canonicalJson(canonicalBundle));
-      const strippedBundleArtifacts = (bundle.artifacts ?? []).map(({ role, approvedPath, sha256 }) => ({ role, approvedPath, sha256 }));
-      if (bundle.bundleDigest !== calculatedBundleDigest || approved.bundleDigest !== calculatedBundleDigest
-        || bundle.definitionSha256 !== approved.definitionSha256
-        || bundle.generationRecordDigest !== approved.pendingGenerationRecordDigest
-        || bundle.reviewer !== approval.reviewer || bundle.note !== approval.note || bundle.approvedAt !== approval.approvedAt
-        || canonicalJson(strippedBundleArtifacts) !== canonicalJson(approvedArtifacts)
-        || (bundle.artifacts ?? []).some((artifact) => artifact.generationId !== approved.pendingGenerationId)) {
-        issues.push(`${approved.assetId} does not match its canonical bundle approval`);
-      }
-    }
-    for (const artifact of approvedArtifacts) {
-      if (approvedPaths.has(artifact.approvedPath) || artifactHashes.has(artifact.sha256)) {
-        issues.push(`${approved.assetId} reuses an approved artifact path or hash`);
-      }
-      approvedPaths.add(artifact.approvedPath);
-      artifactHashes.add(artifact.sha256);
-      if (!artifact.approvedPath?.startsWith(`${approval.bundleDirectory}/`)) {
-        issues.push(`${approved.assetId} artifact escapes the approved bundle directory`);
-      }
-    }
-    bindingAssets.push({
-      assetId: approved.assetId,
-      definitionSha256: approved.definitionSha256,
-      bundleDigest: approved.bundleDigest,
-      generationRecordDigest: approved.pendingGenerationRecordDigest,
-      cellAuditDigest: approved.cellAudit?.cellAuditDigest,
-      artifacts: approvedArtifacts.map(({ role, sha256 }) => ({ role, sha256 }))
-    });
-  }
-  if (approvedPaths.size !== 128 || artifactHashes.size !== 128) {
-    issues.push('approval must bind exactly 128 globally unique artifact paths and hashes');
-  }
-  const assetBindingDigest = await sha256Hex(canonicalJson({
-    contract: 'fable5-game-export-asset-bindings-v3',
-    assets: bindingAssets.sort((left, right) => compareCodeUnits(left.assetId, right.assetId))
-  }));
-
-  const expectedApproval = {
-    approvalDigest,
-    planDigest,
-    selectionDigest,
-    referenceAuthorizationSha256,
-    evidenceCoverageDigest,
-    cellAuditDigest,
-    artifactSetDigest,
-    legacyDispositionDigest: legacyMigration.dispositionDigest
-  };
-  for (const [key, expectedValue] of Object.entries(expectedApproval)) {
-    if (approval[key] !== expectedValue) issues.push(`approval.${key} does not match its canonical release record`);
-  }
-  if (selection.selectionDigest !== selectionDigest) issues.push('selection.selectionDigest mismatch');
-  if (selection.legacyDispositionDigest !== legacyMigration.dispositionDigest) issues.push('selection is not bound to the legacy disposition');
-  if (planCore.selectionDigest !== selectionDigest
-    || planCore.legacyDispositionDigest !== legacyMigration.dispositionDigest
-    || planCore.referenceAuthorizationSha256 !== referenceAuthorizationSha256) {
-    issues.push('approval plan is not bound to selection, legacy, and reference authorization');
-  }
-  if (approval.bundleDirectory !== `generated/v3/wave-bundles/${planDigest}`) issues.push('approval bundleDirectory does not match planDigest');
-  if (recordSha256 !== PINNED_LEGACY.recordSha256
-    || dispositionDigest !== PINNED_LEGACY.dispositionDigest
-    || legacyMigration.legacyFreezeDigest !== PINNED_LEGACY.freezeDigest
-    || legacyMigration.legacyRequiredSet?.assetIdsSha256 !== PINNED_LEGACY.assetIdsSha256) {
-    issues.push('legacy trust record differs from the pinned release contract');
-  }
-  if (referenceAuthorizationSha256 !== PINNED_REFERENCE_AUTHORIZATION_SHA256) {
-    issues.push('reference authorization differs from the reviewed release record');
-  }
-  if (issues.length > 0) throw new ForgeAssetError('Release trust records could not be verified.', issues);
+  const byId = new Map(manifest.assets.map((entry) => [entry.assetId, deepFreeze(structuredClone(entry))]));
   return Object.freeze({
-    ...PINNED_LEGACY,
-    approvalDigest,
-    planDigest,
-    selectionDigest,
-    referenceAuthorizationSha256,
-    evidenceCoverageDigest,
-    cellAuditDigest,
-    artifactSetDigest,
-    assetBindingDigest
+    manifest: deepFreeze(structuredClone(manifest)),
+    get(assetId) {
+      const entry = byId.get(assetId);
+      if (!entry) throw new ForgeAssetError(`必須素材 ${assetId} が公開マニフェストにありません。代替素材は使用しません。`);
+      return entry;
+    },
+    has: (assetId) => byId.has(assetId),
+    ids: Object.freeze([...byId.keys()].sort())
   });
 }
 
-export async function verifyForgeManifestDigests(manifest, { trustPolicy = FORGE_RELEASE_TRUST } = {}) {
-  const validation = validateForgeManifest(manifest);
-  if (!validation.ok) throw new ForgeAssetError('Approved Fable5 assets are incomplete; play has been stopped.', validation.issues);
-
-  const issues = [];
-  const expected = async (actual, content, label) => {
-    const calculated = await sha256Hex(canonicalJson(content));
-    if (actual !== calculated) issues.push(`${label} does not match its canonical content`);
-  };
-  const migration = manifest.legacyMigration.record;
-  await expected(manifest.legacyMigration.recordSha256, migration, 'legacyMigration.recordSha256');
-  await expected(migration.dispositionDigest, withoutKey(migration, 'dispositionDigest'), 'legacy dispositionDigest');
-  if (manifest.waveAApprovalEvidence.legacyDispositionDigest !== migration.dispositionDigest) {
-    issues.push('Wave A approval is not bound to the frozen legacy disposition');
-  }
-  for (const asset of manifest.assets) {
-    await expected(asset.definitionSha256, asset.definition, `${asset.assetId}.definitionSha256`);
-  }
-  for (const [policyKey, evidenceKey = policyKey] of [
-    ['approvalDigest'], ['planDigest'], ['selectionDigest'], ['referenceAuthorizationSha256'],
-    ['evidenceCoverageDigest'], ['cellAuditDigest'], ['artifactSetDigest']
-  ]) {
-    if (!SHA256.test(trustPolicy?.[policyKey] ?? '')) issues.push(`release trust is not pinned for ${policyKey}`);
-    else if (manifest.waveAApprovalEvidence[evidenceKey] !== trustPolicy[policyKey]) {
-      issues.push(`waveAApprovalEvidence.${evidenceKey} differs from the pinned release trust`);
-    }
-  }
-  const assetBindingDigest = await sha256Hex(canonicalJson({
-    contract: 'fable5-game-export-asset-bindings-v3',
-    assets: manifest.assets.map((asset) => ({
-      assetId: asset.assetId,
-      definitionSha256: asset.definitionSha256,
-      bundleDigest: asset.bundleDigest,
-      generationRecordDigest: asset.generationRecordDigest,
-      cellAuditDigest: asset.cellAudit.cellAuditDigest,
-      artifacts: asset.artifacts.map(({ role, sha256 }) => ({ role, sha256 }))
-    }))
-  }));
-  if (!SHA256.test(trustPolicy?.assetBindingDigest ?? '')) issues.push('release trust is not pinned for assetBindingDigest');
-  else if (assetBindingDigest !== trustPolicy.assetBindingDigest) issues.push('game export asset bindings differ from the pinned release trust');
-  if (trustPolicy?.recordSha256 !== PINNED_LEGACY.recordSha256
-    || trustPolicy?.dispositionDigest !== PINNED_LEGACY.dispositionDigest
-    || trustPolicy?.freezeDigest !== PINNED_LEGACY.freezeDigest
-    || trustPolicy?.assetIdsSha256 !== PINNED_LEGACY.assetIdsSha256) {
-    issues.push('release trust does not pin the exact legacy migration');
-  }
-  await expected(manifest.bundleSetDigest, {
-    contract: 'fable5-required-bundle-set-v3',
-    requiredSetId: REQUIRED_SET_ID,
-    waveIds: ['A'],
-    waveAApprovalDigest: manifest.waveAApprovalEvidence.approvalDigest,
-    legacyDispositionDigest: migration.dispositionDigest,
-    bundles: manifest.assets.map(({ assetId, bundleDigest, generationRecordDigest }) => ({
-      assetId, bundleDigest, generationRecordDigest
-    }))
-  }, 'bundleSetDigest');
-  if (issues.length > 0) throw new ForgeAssetError('Approved Fable5 release trust could not be verified; play has been stopped.', issues);
-  return manifest;
-}
-
-function addAssetId(set, candidate, location) {
-  const assetId = typeof candidate === 'string' ? candidate : (isRecord(candidate) ? candidate.assetId : null);
-  if (assetId === null || assetId === undefined) return;
-  if (typeof assetId !== 'string' || !ASSET_ID.test(assetId)) {
-    throw new ForgeAssetError(`WorldPlan contains an invalid asset binding at ${location}.`);
-  }
-  set.add(assetId);
-}
-
-export function collectWorldPlanAssetIds(plan) {
-  const assetIds = new Set(['character.player']);
-  for (const [index, cell] of (plan?.terrain ?? []).entries()) addAssetId(assetIds, cell?.assetId, `terrain[${index}]`);
-  for (const [index, building] of (plan?.buildings ?? []).entries()) {
-    addAssetId(assetIds, building?.assetId, `buildings[${index}]`);
-    for (const [overlayIndex, overlay] of (building?.overlays ?? []).entries()) {
-      addAssetId(assetIds, overlay, `buildings[${index}].overlays[${overlayIndex}]`);
-    }
-  }
-  for (const [index, npc] of (plan?.npcs ?? []).entries()) addAssetId(assetIds, npc?.assetId, `npcs[${index}]`);
-  for (const [index, prop] of (plan?.props ?? []).entries()) addAssetId(assetIds, prop?.assetId, `props[${index}]`);
-  for (const [index, light] of (plan?.lights ?? []).entries()) addAssetId(assetIds, light?.assetId, `lights[${index}]`);
-  return [...assetIds].sort();
-}
-
-export function createAssetResolver(manifest, imageByKey = new Map()) {
-  const validation = validateForgeManifest(manifest);
-  if (!validation.ok) throw new ForgeAssetError('Approved Fable5 assets cannot be used.', validation.issues);
-  const assetById = new Map(manifest.assets.map((asset) => [asset.assetId, asset]));
-  return Object.freeze({
-    manifest,
-    assetById,
-    imageByKey,
-    asset(assetId) {
-      return assetById.get(assetId) ?? null;
-    },
-    definition(assetId) {
-      return assetById.get(assetId)?.definition ?? null;
-    },
-    artifact(assetId, role) {
-      const asset = assetById.get(assetId);
-      const effectiveRole = role ?? (asset?.category === 'building' ? 'base' : 'primary');
-      return asset?.artifacts.find((artifact) => artifact.role === effectiveRole) ?? null;
-    },
-    image(assetId, role) {
-      const asset = assetById.get(assetId);
-      const effectiveRole = role ?? (asset?.category === 'building' ? 'base' : 'primary');
-      return imageByKey.get(`${assetId}:${effectiveRole}`) ?? null;
-    }
-  });
-}
-
-async function defaultArtifactFetcher(url, { fetchImpl = globalThis.fetch } = {}) {
-  if (typeof fetchImpl !== 'function') throw new ForgeAssetError('The approved PNG loader is unavailable.');
-  let response;
-  try {
-    response = await fetchImpl(url, { cache: 'no-store', credentials: 'same-origin' });
-  } catch (error) {
-    throw new ForgeAssetError(`Approved PNG is unreachable: ${url} (${error.message})`);
-  }
-  if (!response?.ok) throw new ForgeAssetError(`Approved PNG is missing: ${url} (${response?.status ?? 'network error'})`);
-  return new Uint8Array(await response.arrayBuffer());
-}
-
-function defaultImageDecoder(bytes, url) {
-  if (typeof Image !== 'function') throw new ForgeAssetError('The browser image loader is unavailable.');
+function imagePromise(entry, imageFactory) {
   return new Promise((resolve, reject) => {
-    const image = new Image();
-    const objectUrl = URL.createObjectURL(new Blob([bytes], { type: 'image/png' }));
+    const image = imageFactory();
     image.decoding = 'async';
-    image.onload = () => {
-      URL.revokeObjectURL(objectUrl);
-      resolve(image);
-    };
-    image.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      reject(new ForgeAssetError(`Approved image could not be decoded: ${url}`));
-    };
-    image.src = objectUrl;
+    image.addEventListener('load', () => {
+      const contract = ASSET_CONTRACTS[entry.assetId];
+      if (image.naturalWidth !== contract.width || image.naturalHeight !== contract.height) {
+        reject(new ForgeAssetError(`${entry.assetId} の画像寸法が完成設計と一致しません。代替素材は使用しません。`));
+        return;
+      }
+      resolve([entry.assetId, image]);
+    }, { once: true });
+    image.addEventListener('error', () => {
+      reject(new ForgeAssetError(`${entry.assetId} を読み込めません。代替素材は使用しません。`));
+    }, { once: true });
+    image.src = entry.publicPath;
   });
 }
 
-function hasPngSignature(bytes) {
-  const signature = [137, 80, 78, 71, 13, 10, 26, 10];
-  return bytes.length >= signature.length && signature.every((byte, index) => bytes[index] === byte);
-}
-
-export async function fetchForgeManifest({
-  manifestUrl = FORGE_MANIFEST_URL,
-  requiredAssetIds = [],
-  trustPolicy = FORGE_RELEASE_TRUST,
-  fetchImpl = globalThis.fetch
+export async function loadForgeAssetImages({
+  fetchImpl = globalThis.fetch,
+  imageFactory = () => new Image(),
+  manifestUrl = FORGE_MANIFEST_URL
 } = {}) {
-  if (typeof fetchImpl !== 'function') throw new ForgeAssetError('The asset manifest loader is unavailable.');
   let response;
   try {
-    response = await fetchImpl(manifestUrl, { cache: 'no-store', credentials: 'same-origin' });
+    response = await fetchImpl(manifestUrl, { headers: { Accept: 'application/json' }, cache: 'no-store' });
   } catch (error) {
-    throw new ForgeAssetError(`Approved Fable5 asset manifest is unreachable: ${error.message}`);
+    throw new ForgeAssetError('承認済み必須素材の公開マニフェストを取得できません。代替素材は使用しません。', [error?.message]);
   }
-  if (!response?.ok) throw new ForgeAssetError(`Approved Fable5 asset manifest is missing (${response?.status ?? 'network error'}).`);
+  if (!response?.ok) {
+    throw new ForgeAssetError(`承認済み必須素材の公開マニフェストを取得できません（HTTP ${response?.status ?? '-'}）。代替素材は使用しません。`);
+  }
   let manifest;
   try {
     manifest = await response.json();
   } catch (error) {
-    throw new ForgeAssetError(`Approved Fable5 asset manifest is not valid JSON: ${error.message}`);
+    throw new ForgeAssetError('承認済み必須素材の公開マニフェストを解析できません。代替素材は使用しません。', [error?.message]);
   }
-  const validation = validateForgeManifest(manifest, { requiredAssetIds });
-  if (!validation.ok) throw new ForgeAssetError('Approved Fable5 assets are incomplete; play has been stopped.', validation.issues);
-  return verifyForgeManifestDigests(manifest, { trustPolicy });
+  const resolver = createAssetResolver(manifest);
+  const loaded = await Promise.all(resolver.ids.map((id) => imagePromise(resolver.get(id), imageFactory)));
+  return Object.freeze({ resolver, images: new Map(loaded) });
 }
 
-export async function loadForgeAssetImages({
-  manifest: suppliedManifest = null,
-  manifestUrl = FORGE_MANIFEST_URL,
-  requiredAssetIds = [],
-  trustPolicy = FORGE_RELEASE_TRUST,
-  fetchImpl = globalThis.fetch,
-  artifactFetcher = defaultArtifactFetcher,
-  imageDecoder = defaultImageDecoder,
-  imageByKey: suppliedImageByKey = new Map(),
-  onImageLoaded = null
-} = {}) {
-  const manifest = suppliedManifest ?? await fetchForgeManifest({ manifestUrl, requiredAssetIds, trustPolicy, fetchImpl });
-  if (suppliedManifest) {
-    const validation = validateForgeManifest(manifest, { requiredAssetIds });
-    if (!validation.ok) throw new ForgeAssetError('Approved Fable5 assets are incomplete; play has been stopped.', validation.issues);
-  }
-  await verifyForgeManifestDigests(manifest, { trustPolicy });
+export const SITE_RENDER_LAYERS = Object.freeze([
+  'ground', 'terrain-underlay', 'rear-decor', 'building', 'y-sorted', 'front-occluders-effects'
+]);
 
-  const required = new Set(requiredAssetIds);
-  const assets = required.size > 0 ? manifest.assets.filter((asset) => required.has(asset.assetId)) : manifest.assets;
-  const imageByKey = suppliedImageByKey;
-  await Promise.all(assets.flatMap((asset) => asset.artifacts.map(async (artifact) => {
-    const key = `${asset.assetId}:${artifact.role}`;
-    if (imageByKey.has(key)) return;
-    let bytes;
-    try {
-      bytes = asBytes(await artifactFetcher(artifact.publicPath, {
-        asset,
-        artifact,
-        fetchImpl
+const ROUTE_FIELD_IDS = new Set([
+  'field.bridge_stone', 'field.bridge_wood', 'field.cobblestone', 'field.dirt_path',
+  'field.dock_floor', 'field.plaza', 'field.road_corner', 'field.road_edge',
+  'field.road_intersection', 'field.snow', 'field.stairs_stone'
+]);
+const BRIDGE_FIELD_IDS = new Set(['field.bridge_stone', 'field.bridge_wood']);
+const BOUNDARY_FIELD_IDS = new Set(['field.cliff', 'field.wall_stone']);
+const FEATURE_FIELD_IDS = new Set(['field.tree', 'field.rock']);
+const VARIED_GROUND_IDS = new Set(['field.grass', 'field.dirt_path', 'field.snow']);
+const MIRROR_SAFE_GROUND_IDS = new Set([
+  'field.cliff', 'field.cobblestone', 'field.dock_floor', 'field.grass',
+  'field.plaza', 'field.rock', 'field.snow', 'field.tree', 'field.wall_stone'
+]);
+const DIRECTIONAL_FIELD_IDS = new Set([
+  'field.bridge_stone', 'field.bridge_wood', 'field.river_edge', 'field.road_corner',
+  'field.road_edge', 'field.stairs_stone'
+]);
+
+function prop(assetId, x, y, offsetX, offsetY, flipX = false) {
+  const entry = { assetId, x, y };
+  if (offsetX !== undefined) entry.offsetX = offsetX;
+  if (offsetY !== undefined) entry.offsetY = offsetY;
+  if (flipX) entry.flipX = true;
+  return entry;
+}
+const WOODLAND_REAR_TREE_LAYOUT = Object.freeze([
+  // Three compact, staggered rear clusters. Their gaps preserve irregular sky/roof silhouettes.
+  [0, 0, 8, 8], [1, 0, -24, 16, true], [0, 1, 16, -16], [1, 1, -8, -8, true],
+  [0, 2, 0, -24, true], [1, 2, -24, -16], [1, 2, 16, -16, true], [0, 2, 16, -8],
+  [4, 0, 8, 8], [5, 0, -16, 16, true], [5, 0, 24, 8], [4, 1, 24, -16, true],
+  [5, 1, -8, -8], [6, 1, -24, 8, true], [4, 2, 16, -24], [5, 2, -16, -16, true],
+  [10, 0, 0, 8], [10, 0, 24, 16, true], [11, 0, -16, 8], [9, 1, 24, -16, true],
+  [10, 1, -8, -8], [11, 1, -24, 8, true], [10, 2, 8, -24], [11, 2, -24, -16, true]
+]);
+const WOODLAND_SIDE_TREE_LAYOUT = Object.freeze([
+  // Two side clusters use only two anchor rows, but their 8px offsets stagger every crown.
+  [0, 3, 8, 16, true], [1, 3, -24, 0], [1, 3, 16, 24, true], [0, 3, 24, 0],
+  [0, 4, 0, -24], [0, 4, 24, -8, true], [1, 4, -16, 8], [1, 4, 24, 24, true],
+  [11, 3, -8, 16], [10, 3, 24, 0, true], [10, 3, -16, 24], [11, 3, -24, 0, true],
+  [11, 4, 0, -24, true], [11, 4, -24, -8], [10, 4, 16, 8, true], [10, 4, -24, 24]
+]);
+const WOODLAND_FRONT_TREE_LAYOUT = Object.freeze([
+  // Two compact foreground clusters leave a broad, uneven break around the playable path.
+  [0, 6, 8, 16, true], [1, 6, -24, 0], [1, 6, 16, 24, true], [2, 6, -24, 8],
+  [0, 7, 0, -24], [0, 7, 24, -8, true], [1, 7, -16, -16], [2, 7, -24, -8, true],
+  [11, 6, -8, 16], [10, 6, 24, 0, true], [10, 6, -16, 24], [9, 6, 24, 8, true],
+  [11, 7, 0, -24, true], [11, 7, -24, -8], [10, 7, 16, -16, true], [9, 7, 24, -8]
+]);
+function woodlandTrees(layout, mirror = false) {
+  return layout.map(([sourceX, y, sourceOffsetX, offsetY, sourceFlipX]) => {
+    const x = mirror ? SITE_CANVAS.columns - 1 - sourceX : sourceX;
+    const offsetX = mirror ? -sourceOffsetX : sourceOffsetX;
+    const flipX = mirror ? !sourceFlipX : sourceFlipX;
+    return prop('field.tree', x, y, offsetX, offsetY, flipX);
+  });
+}
+function npc(assetId, x, y, direction = 'down') { return { assetId, x, y, direction }; }
+function effect(assetId, x, y, context) { return { assetId, x, y, context }; }
+function contextStructure(assetId, x, y, layer = 'depth') {
+  return { assetId, x, y, width: 256, height: 256, baselineY: y + 240, role: 'context', layer };
+}
+
+function inferGroundTransforms(groundMap, groundLegend) {
+  const at = (x, y) => groundLegend[groundMap[y]?.[x]] ?? null;
+  const transforms = {};
+  for (let y = 0; y < groundMap.length; y += 1) {
+    for (let x = 0; x < groundMap[y].length; x += 1) {
+      const assetId = at(x, y);
+      if (VARIED_GROUND_IDS.has(assetId)) {
+        const phase = (x * 3 + y * 5) % 4;
+        transforms[`${x},${y}`] = { quarterTurns: phase >= 2 ? 2 : 0, flipX: phase % 2 === 1 };
+        continue;
+      }
+      if (!DIRECTIONAL_FIELD_IDS.has(assetId)) continue;
+      let quarterTurns = 0;
+      if (assetId === 'field.river_edge') {
+        if (at(x + 1, y) === 'field.water') quarterTurns = 3;
+        else if (at(x - 1, y) === 'field.water') quarterTurns = 1;
+        else if (at(x, y - 1) === 'field.water') quarterTurns = 2;
+      } else if (BRIDGE_FIELD_IDS.has(assetId)) {
+        quarterTurns = at(x - 1, y) === 'field.water' && at(x + 1, y) === 'field.water' ? 1 : 0;
+      } else if (assetId === 'field.stairs_stone') {
+        quarterTurns = BOUNDARY_FIELD_IDS.has(at(x, y - 1)) || BOUNDARY_FIELD_IDS.has(at(x, y + 1)) ? 1 : 0;
+      } else if (assetId === 'field.road_edge') {
+        const horizontal = ROUTE_FIELD_IDS.has(at(x - 1, y)) || ROUTE_FIELD_IDS.has(at(x + 1, y));
+        quarterTurns = horizontal ? 1 : 0;
+      }
+      transforms[`${x},${y}`] = { quarterTurns, flipX: (x + y) % 2 === 1 };
+    }
+  }
+  return transforms;
+}
+
+function centerRoute(left = 2, right = 9) {
+  const cells = [[6, 4], [6, 5], [6, 6], [6, 7]];
+  for (let x = left; x <= right; x += 1) cells.push([x, 6]);
+  const unique = [...new Map(cells.map(([x, y]) => [`${x},${y}`, [x, y]])).values()];
+  return unique.map(([x, y]) => ({ id: `${x},${y}`, x, y }));
+}
+
+function authoredRoute(cells) {
+  return cells.map(([x, y]) => ({ id: `${x},${y}`, x, y }));
+}
+
+function site({
+  id, label, facilityKind, buildingAssetId, buildingX = 256,
+  groundLegend, groundMap, routeLeft = 2, routeRight = 9,
+  routeCells = null, playerStartNodeId = '6,7', evidenceNodeId = '6,4',
+  contextStructures = [], contextSlots = null, groundTransformOverrides = {},
+  rearDecor = [], props = [], npcs = [], frontOccluders = [], effects = []
+}) {
+  const mainBuilding = {
+    assetId: buildingAssetId, x: buildingX, y: 0, width: 256, height: 256,
+    baselineY: 240, role: 'main', layer: 'depth'
+  };
+  const slots = contextSlots ?? [
+    { x: -32, y: -64 }, { x: 544, y: -64 }, { x: 64, y: 176 }, { x: 448, y: 176 }
+  ];
+  const arrangedContexts = contextStructures.map((entry, index) => {
+    const slot = slots[index] ?? { x: entry.x, y: entry.y };
+    return { ...entry, x: slot.x, y: slot.y, baselineY: slot.y + 240 };
+  });
+  return {
+    id, label, facilityKind,
+    building: mainBuilding,
+    structures: [...arrangedContexts, mainBuilding],
+    groundLegend, groundMap,
+    groundTransformMap: { ...inferGroundTransforms(groundMap, groundLegend), ...groundTransformOverrides },
+    rearDecor, props, npcs, frontOccluders, effects,
+    route: routeCells ? authoredRoute(routeCells) : centerRoute(routeLeft, routeRight),
+    playerStartNodeId,
+    evidenceNodeId
+  };
+}
+
+export function groundAssetAt(recipe, x, y) {
+  const key = recipe?.groundMap?.[y]?.[x];
+  return typeof key === 'string' ? recipe.groundLegend?.[key] ?? null : null;
+}
+
+export function groundTransformAt(recipe, x, y) {
+  const transform = recipe?.groundTransformMap?.[`${x},${y}`];
+  if (transform) return Object.freeze({ quarterTurns: transform.quarterTurns, flipX: transform.flipX });
+  const assetId = groundAssetAt(recipe, x, y);
+  if (VARIED_GROUND_IDS.has(assetId)) {
+    const phase = (x * 3 + y * 5) % 4;
+    return Object.freeze({ quarterTurns: phase >= 2 ? 2 : 0, flipX: phase % 2 === 1 });
+  }
+  return Object.freeze({
+    quarterTurns: 0,
+    flipX: MIRROR_SAFE_GROUND_IDS.has(assetId) && (x + y) % 2 === 1
+  });
+}
+
+const SNOW_OVERLAY_COLORS = Object.freeze(['#a7b9ca', '#b0c0cf', '#9fb2c4']);
+
+function deterministicHash(value) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+export function snowPixelOverlaysAt(recipe, x, y) {
+  if (groundAssetAt(recipe, x, y) !== 'field.snow') return Object.freeze([]);
+  const seed = deterministicHash(`${recipe.id}:${x},${y}`);
+  if (seed % 100 >= 28) return Object.freeze([]);
+  const driftCount = 1 + ((seed >>> 7) % 2);
+  const drifts = [];
+  let cursor = seed;
+  for (let driftIndex = 0; driftIndex < driftCount; driftIndex += 1) {
+    cursor = (Math.imul(cursor, 1664525) + 1013904223) >>> 0;
+    const rectangleCount = 2 + ((cursor >>> 5) % 3);
+    const originX = 4 + 2 * ((cursor >>> 9) % 24);
+    const originY = 4 + 2 * ((cursor >>> 14) % 24);
+    const rectangles = [];
+    for (let rectangleIndex = 0; rectangleIndex < rectangleCount; rectangleIndex += 1) {
+      cursor = (Math.imul(cursor, 1664525) + 1013904223) >>> 0;
+      const width = 4 + 2 * ((cursor >>> 3) % 7);
+      const height = 2 + 2 * ((cursor >>> 8) % 3);
+      const offsetX = 2 * (((cursor >>> 13) % 5) - 2);
+      const offsetY = 2 * (((cursor >>> 17) % 3) - 1);
+      rectangles.push(Object.freeze({
+        x: Math.max(0, Math.min(64 - width, originX + offsetX)),
+        y: Math.max(0, Math.min(64 - height, originY + offsetY)),
+        width,
+        height
       }));
-    } catch (error) {
-      if (error instanceof ForgeAssetError) throw error;
-      throw new ForgeAssetError(`${asset.assetId}:${artifact.role} could not be loaded: ${error.message}`);
     }
-    const actualSha256 = await sha256Hex(bytes);
-    if (actualSha256 !== artifact.sha256) {
-      throw new ForgeAssetError(`${asset.assetId}:${artifact.role} bytes do not match the approved SHA-256 digest.`);
-    }
-    if (!hasPngSignature(bytes)) throw new ForgeAssetError(`${asset.assetId}:${artifact.role} is not a PNG.`);
-    let image;
-    try {
-      image = await imageDecoder(bytes, artifact.publicPath, asset, artifact);
-    } catch (error) {
-      if (error instanceof ForgeAssetError) throw error;
-      throw new ForgeAssetError(`${asset.assetId}:${artifact.role} could not be decoded: ${error.message}`);
-    }
-    const expected = dimensionsFor(asset, artifact.role);
-    const width = image?.naturalWidth ?? image?.width;
-    const height = image?.naturalHeight ?? image?.height;
-    if (width !== expected.width || height !== expected.height) {
-      throw new ForgeAssetError(`${asset.assetId}:${artifact.role} is ${width}x${height}; approved size is ${expected.width}x${expected.height}.`);
-    }
-    imageByKey.set(key, image);
-    if (typeof onImageLoaded === 'function') onImageLoaded(asset.assetId, artifact.role);
-  })));
-  return createAssetResolver(manifest, imageByKey);
-}
-
-function numericVariant(variant) {
-  if (Number.isInteger(variant)) return variant;
-  if (typeof variant === 'string' && /^\d+$/.test(variant)) return Number(variant);
-  return null;
-}
-
-export function terrainFrame(definition, variant = 0, timestamp = 0) {
-  const contract = definition?.autotileContract;
-  if (!contract) return null;
-  let tileIndex = null;
-  if (isRecord(variant) && Number.isInteger(variant.tileIndex)) tileIndex = variant.tileIndex;
-  const direct = numericVariant(variant);
-  if (tileIndex === null && direct !== null && direct >= 0 && direct <= 24) tileIndex = direct;
-  const maskMatch = typeof variant === 'string' ? variant.match(/(?:mask|blob)[_:-]?(\d{1,2})/i) : null;
-  const mask = isRecord(variant) && Number.isInteger(variant.mask) ? variant.mask : (maskMatch ? Number(maskMatch[1]) : null);
-  if (tileIndex === null && mask !== null) tileIndex = contract.blob16.find((entry) => entry.mask === mask)?.tileIndex ?? null;
-  if (tileIndex === null && typeof variant === 'string' && /anim/i.test(variant) && contract.animationFrameIndices.length > 0) {
-    tileIndex = contract.animationFrameIndices[Math.floor(timestamp / 360) % contract.animationFrameIndices.length];
+    drifts.push(Object.freeze({
+      color: SNOW_OVERLAY_COLORS[(seed + driftIndex) % SNOW_OVERLAY_COLORS.length],
+      rectangles: Object.freeze(rectangles)
+    }));
   }
-  if (tileIndex === null) {
-    const baseIndex = typeof variant === 'string' ? Number(variant.match(/(?:base|variant)[_:-]?(\d+)/i)?.[1] ?? 0) : 0;
-    tileIndex = contract.baseVariantIndices[Math.abs(baseIndex) % contract.baseVariantIndices.length];
+  return Object.freeze(drifts);
+}
+
+export function authoredTilePlacement(entry) {
+  const offsetX = entry?.offsetX ?? 0;
+  const offsetY = entry?.offsetY ?? 0;
+  const flipX = entry?.flipX === true;
+  const validFlip = entry?.flipX === undefined || typeof entry.flipX === 'boolean';
+  const validGridAndOffset = Number.isInteger(entry?.x) && Number.isInteger(entry?.y)
+    && Number.isInteger(offsetX) && Number.isInteger(offsetY)
+    && offsetX % 8 === 0 && offsetY % 8 === 0
+    && Math.abs(offsetX) <= 24 && Math.abs(offsetY) <= 24
+    && validFlip;
+  const x = validGridAndOffset ? entry.x * SITE_CANVAS.cellSize + offsetX : Number.NaN;
+  const y = validGridAndOffset ? entry.y * SITE_CANVAS.cellSize + offsetY : Number.NaN;
+  const insideCanvas = validGridAndOffset && x >= 0 && y >= 0
+    && x + 64 <= SITE_CANVAS.width && y + 64 <= SITE_CANVAS.height;
+  return Object.freeze({
+    ok: validGridAndOffset && insideCanvas,
+    validGridAndOffset,
+    insideCanvas,
+    offsetX,
+    offsetY,
+    flipX,
+    x,
+    y,
+    depth: y + 64
+  });
+}
+
+export const SITE_RECIPES = deepFreeze([
+  site({
+    id: 'civic_hall', label: '役場庁舎', facilityKind: 'town_hall', buildingAssetId: 'building.town_hall',
+    contextStructures: [contextStructure('building.house.medium', 0, -48), contextStructure('building.guild', 512, -48), contextStructure('building.shop', -176, 128), contextStructure('building.inn', 688, 128)],
+    groundLegend: { W: 'field.wall_stone', t: 'field.stairs_stone', g: 'field.grass', p: 'field.plaza', c: 'field.cobblestone', e: 'field.road_edge' },
+    groundMap: ['WWWWWttWWWWW', 'cggppppppggg', 'ggppppppppgc', 'gcppppppppgg', 'ggpppppppccg', 'gppeeppccppg', 'eeccccccccee', 'gggggccggggc'],
+    rearDecor: [prop('object.blue_flag', 3, 2), prop('object.blue_flag', 8, 2), prop('object.flowerbed', 1, 4), prop('object.flowerbed', 10, 4)],
+    props: [prop('object.notice_board', 2, 5), prop('object.lamp', 4, 5), prop('object.lamp', 8, 5), prop('object.bench', 9, 6), prop('object.bench', 1, 6)],
+    npcs: [npc('character.town_clerk', 7, 4), npc('character.mob.townsfolk_female', 3, 6, 'right')],
+    frontOccluders: [prop('object.grass_patch', 0, 7), prop('object.streetlight', 11, 7)]
+  }),
+  site({
+    id: 'old_town_gate', label: '旧市街の門', facilityKind: 'gate', buildingAssetId: 'building.gate', routeLeft: 3, routeRight: 8,
+    contextStructures: [contextStructure('building.house.medium', 0, -48), contextStructure('building.old_house', 512, -48), contextStructure('building.watchtower', -176, 112), contextStructure('building.warehouse', 688, 112)],
+    groundLegend: { W: 'field.wall_stone', c: 'field.cobblestone', g: 'field.grass', e: 'field.road_edge' },
+    groundMap: ['WWWWWccWWWWW', 'WWWWWccWWWWW', 'cggeecceeggg', 'gggeecceeggc', 'gcgeecceeggg', 'gggeecceecgg', 'cggccccccggg', 'gggggccggggc'],
+    rearDecor: [prop('object.red_flag', 3, 2), prop('object.red_flag', 8, 2), prop('object.warning_stake', 2, 4), prop('object.warning_stake', 9, 4)],
+    props: [prop('object.notice_board', 3, 5), prop('object.streetlight', 9, 5), prop('object.crate', 4, 6), prop('object.bench', 8, 6), prop('object.barrel', 5, 5)],
+    npcs: [npc('character.gatekeeper', 7, 4), npc('character.mob.townsfolk_male', 8, 6, 'left')],
+    frontOccluders: [prop('object.warning_stake', 1, 7), prop('object.warning_stake', 10, 7)]
+  }),
+  site({
+    id: 'guild_hall', label: '接続者ギルド', facilityKind: 'guild', buildingAssetId: 'building.guild',
+    contextStructures: [contextStructure('building.pub', 0, -48), contextStructure('building.shop', 512, -48), contextStructure('building.inn', -176, 128), contextStructure('building.house.medium', 688, 128)],
+    groundLegend: { g: 'field.grass', c: 'field.cobblestone', p: 'field.plaza', i: 'field.road_intersection', e: 'field.road_edge' },
+    groundMap: ['cggccccccggg', 'ggccppppccgc', 'gcpppppppccg', 'gccppppppcgg', 'ggcppppppccg', 'gcccpiipcccc', 'eeccccccccee', 'gggggccggggc'],
+    rearDecor: [prop('object.yellow_flag', 3, 3), prop('object.yellow_flag', 8, 3), prop('object.flowerbed', 2, 4), prop('object.flowerbed', 9, 4)],
+    props: [prop('object.signboard', 5, 4), prop('object.notice_board', 2, 5), prop('object.bench', 9, 5), prop('object.lamp', 4, 6), prop('object.barrel', 9, 6)],
+    npcs: [npc('character.guildmaster', 7, 4), npc('character.mob.townsfolk_male', 3, 6, 'right')],
+    frontOccluders: [prop('object.streetlight', 1, 7), prop('object.streetlight', 10, 7)]
+  }),
+  site({
+    id: 'tavern', label: '酒場裏の石畳路地', facilityKind: 'pub', buildingAssetId: 'building.pub', buildingX: 192,
+    contextStructures: [contextStructure('building.guild', -64, -48), contextStructure('building.shop', 448, -48), contextStructure('building.inn', 640, 112), contextStructure('building.house.small', -192, 128)],
+    groundLegend: { g: 'field.grass', c: 'field.cobblestone', p: 'field.plaza', r: 'field.road_corner' },
+    groundMap: ['cggccccccggg', 'ggccccccccgc', 'gccccppcccgg', 'ggccccppcccg', 'gccccppccggg', 'cgccccccccgg', 'rrccccccccrr', 'gggggccggggc'],
+    rearDecor: [prop('object.lamp', 2, 3), prop('object.lamp', 8, 3), prop('object.barrel', 1, 4), prop('object.barrel', 10, 4)],
+    props: [prop('object.signboard', 5, 4), prop('object.bench', 3, 5), prop('object.barrel', 9, 5), prop('object.lamp', 8, 6)],
+    npcs: [npc('character.tavern_master', 7, 4), npc('character.mob.tavern_guest', 9, 6, 'left'), npc('character.mob.traveler', 3, 6, 'right')],
+    frontOccluders: [prop('object.streetlight', 1, 7), prop('object.stacked_crates', 10, 7)]
+  }),
+  site({
+    id: 'market_shop', label: '市場の商店街', facilityKind: 'shop', buildingAssetId: 'building.shop', buildingX: 320,
+    contextStructures: [contextStructure('building.guild', 0, -48), contextStructure('building.pub', 512, -48), contextStructure('building.house.medium', -176, 128), contextStructure('building.inn', 688, 128)],
+    groundLegend: { g: 'field.grass', p: 'field.plaza', c: 'field.cobblestone', e: 'field.road_edge', i: 'field.road_intersection' },
+    groundMap: ['cggppppppggg', 'ggppccccppgc', 'cppccccccppg', 'gppccccccpgc', 'gppccccccggp', 'cppccccccppg', 'eecccciiccee', 'gggggccggggc'],
+    rearDecor: [prop('object.yellow_flag', 2, 3), prop('object.red_flag', 9, 3), prop('object.flowerbed', 1, 4), prop('object.flowerbed', 10, 4)],
+    props: [prop('object.signboard', 5, 4), prop('object.crate', 2, 5), prop('object.stacked_crates', 9, 5), prop('object.bench', 4, 6), prop('object.barrel', 8, 6)],
+    npcs: [npc('character.mob.merchant', 7, 4), npc('character.mob.delivery_person', 3, 6, 'right'), npc('character.mob.townsfolk_female', 9, 6, 'left')],
+    frontOccluders: [prop('object.crate', 1, 7), prop('object.streetlight', 10, 7)]
+  }),
+  site({
+    id: 'travelers_inn', label: '旅人の宿と前庭', facilityKind: 'inn', buildingAssetId: 'building.inn',
+    contextStructures: [contextStructure('building.house.small', 0, -48), contextStructure('building.pub', 512, -48), contextStructure('building.hut', -176, 128), contextStructure('building.shop', 688, 128)],
+    groundLegend: { T: 'field.tree', g: 'field.grass', f: 'field.fence_wood', d: 'field.dirt_path' },
+    groundMap: ['TTTgggggggTT', 'TgggggggggdT', 'gggfffffgggg', 'dggggggggggg', 'gggddddddggd', 'dggddddddggg', 'ggddddddddgd', 'dggggddggggg'],
+    rearDecor: [prop('object.flowerbed', 2, 3), prop('object.flowerbed', 9, 3), prop('object.grass_patch', 1, 4), prop('object.grass_patch', 10, 4)],
+    props: [prop('object.signboard', 5, 4), prop('object.bench', 3, 5), prop('object.lamp', 9, 5), prop('object.barrel', 8, 6)],
+    npcs: [npc('character.innkeeper', 7, 4), npc('character.mob.inn_guest', 9, 6, 'left'), npc('character.mob.traveler', 3, 6, 'right')],
+    frontOccluders: [prop('object.grass_patch', 1, 7), prop('object.flowerbed', 10, 7)]
+  }),
+  site({
+    id: 'harbor_dock', label: '港の船着場', facilityKind: 'dock', buildingAssetId: 'building.dock', buildingX: 320,
+    contextStructures: [contextStructure('building.warehouse', 64, -64), contextStructure('building.inn', 576, -64), contextStructure('building.pub', -176, 128), contextStructure('building.shop', 688, 128)],
+    contextSlots: [{ x: 448, y: -64 }, { x: 576, y: -64 }, { x: 448, y: 176 }, { x: 640, y: 176 }],
+    groundLegend: { q: 'field.river_edge', w: 'field.water', k: 'field.dock_floor', c: 'field.cobblestone', b: 'field.bridge_wood' },
+    groundMap: ['ccqwkkkkkkkk', 'kcqwkkkkkkkk', 'ccqwkkkkkkkk', 'kcqwkkkkkkkk', 'ccqwkkcckkkk', 'kcqwkkcckkkk', 'cccbcccckkkk', 'ccwwkkcckkkk'],
+    rearDecor: [prop('object.blue_flag', 5, 3), prop('object.blue_flag', 10, 3), prop('object.barrel', 4, 4), prop('object.stacked_crates', 10, 4)],
+    props: [prop('object.signboard', 5, 4), prop('object.stacked_crates', 8, 5), prop('object.crate', 10, 5), prop('object.barrel', 4, 6)],
+    npcs: [npc('character.dock_ferryman', 7, 4), npc('character.mob.dock_worker', 9, 6, 'left'), npc('character.mob.delivery_person', 5, 6, 'right')],
+    frontOccluders: [prop('object.crate', 10, 7), prop('object.lamp', 8, 7)],
+    effects: [effect('effect.water_ripple', 3, 4, 'water')]
+  }),
+  site({
+    id: 'training_yard', label: '段丘の鍛錬場', facilityKind: 'dojo', buildingAssetId: 'building.dojo', buildingX: 320,
+    contextStructures: [contextStructure('building.guild', 0, -64), contextStructure('building.old_house', 512, -64), contextStructure('building.hut', -176, 128), contextStructure('building.watchtower', 688, 128)],
+    groundLegend: { R: 'field.rock', p: 'field.plaza', l: 'field.cliff', t: 'field.stairs_stone', g: 'field.grass', d: 'field.dirt_path', r: 'field.road_corner' },
+    groundMap: ['RRRpppppppRR', 'RRppppppppRg', 'lllllltlllll', 'Rggddddddggg', 'gggddddddggR', 'Rggddddddddg', 'rrddddddddrg', 'gggggddggggR'],
+    rearDecor: [prop('object.red_flag', 2, 3), prop('object.red_flag', 9, 3), prop('object.warning_stake', 1, 4), prop('object.warning_stake', 10, 4)],
+    props: [prop('object.signboard', 5, 4), prop('object.bench', 3, 5), prop('object.warning_stake', 9, 5), prop('object.red_flag', 8, 6), prop('object.rubble', 2, 6), prop('object.bench', 9, 6)],
+    npcs: [npc('character.dojo_inspector', 7, 4), npc('character.mob.child', 3, 6, 'right')],
+    frontOccluders: [prop('object.warning_stake', 1, 7), prop('object.warning_stake', 10, 7)]
+  }),
+  site({
+    id: 'well_square', label: '暮らしの井戸広場', facilityKind: 'well', buildingAssetId: 'building.well',
+    contextStructures: [contextStructure('building.house.small', 0, -64), contextStructure('building.house.medium', 512, -64), contextStructure('building.shop', -176, 128), contextStructure('building.inn', 688, 128)],
+    groundLegend: { g: 'field.grass', p: 'field.plaza', c: 'field.cobblestone', e: 'field.road_edge' },
+    groundMap: ['cggppppppggg', 'ggppppppppgc', 'cppccccccppg', 'gppccccccpgc', 'gppccccccggp', 'cppccccccppg', 'eeccccccccee', 'gggggccggggc'],
+    rearDecor: [prop('object.flowerbed', 2, 3), prop('object.flowerbed', 9, 3), prop('object.blue_flag', 1, 4), prop('object.blue_flag', 10, 4)],
+    props: [prop('object.notice_board', 5, 4), prop('object.well', 2, 5), prop('object.bench', 9, 5), prop('object.lamp', 4, 6), prop('object.barrel', 8, 6)],
+    npcs: [npc('character.mob.townsfolk_female', 7, 4), npc('character.mob.elder', 3, 6, 'right'), npc('character.mob.child', 9, 6, 'left')],
+    frontOccluders: [prop('object.grass_patch', 1, 7), prop('object.flowerbed', 10, 7)]
+  }),
+  site({
+    id: 'artisan_workshop', label: '資材に囲まれた職人の工房', facilityKind: 'workshop', buildingAssetId: 'building.workshop', buildingX: 320,
+    contextStructures: [contextStructure('building.warehouse', 0, -64), contextStructure('building.hut', 512, -64), contextStructure('building.old_house', -176, 128), contextStructure('building.house.small', 688, 128)],
+    groundLegend: { T: 'field.tree', g: 'field.grass', R: 'field.rock', d: 'field.dirt_path' },
+    groundMap: ['TTgggggggggT', 'TgggggggggRT', 'ggRRRggRRggg', 'Rggddddddggg', 'gggddddddggR', 'Tgddddddddgg', 'ggddddddddgR', 'Tggggddggggg'],
+    rearDecor: [prop('object.construction_sign', 2, 3), prop('object.rubble', 9, 3), prop('object.crate', 1, 4), prop('object.stacked_crates', 10, 4)],
+    props: [prop('object.signboard', 5, 4), prop('object.crate', 3, 5), prop('object.rubble', 9, 5), prop('object.warning_stake', 8, 6)],
+    npcs: [npc('character.workshop_artisan', 7, 4), npc('character.mob.artisan', 3, 6, 'right')],
+    frontOccluders: [prop('object.stacked_crates', 1, 7), prop('object.crate', 10, 7)],
+    effects: [effect('effect.construction_dust', 9, 5, 'repair')]
+  }),
+  site({
+    id: 'freight_warehouse', label: '運河沿いの貨物倉庫', facilityKind: 'warehouse', buildingAssetId: 'building.warehouse', buildingX: 320,
+    contextStructures: [contextStructure('building.workshop', 0, -64), contextStructure('building.dock', 512, -64), contextStructure('building.inn', -176, 128), contextStructure('building.shop', 688, 128)],
+    contextSlots: [{ x: 64, y: -64 }, { x: 576, y: -64 }, { x: 512, y: 176 }, { x: 640, y: 176 }],
+    groundLegend: { g: 'field.grass', w: 'field.water', q: 'field.river_edge', k: 'field.dock_floor', c: 'field.cobblestone', B: 'field.bridge_stone' },
+    groundMap: ['gwqkkkkkkkkk', 'gwqkkkkkkkkk', 'gwqkkkkkkkkk', 'gwqkkkkkkkkk', 'gwqkkkcckkkk', 'gwqkkkcckkkk', 'cBcccccckkkk', 'gwwkkkcckkkk'],
+    rearDecor: [prop('object.yellow_flag', 4, 3), prop('object.yellow_flag', 9, 3), prop('object.stacked_crates', 3, 4), prop('object.barrel', 10, 4)],
+    props: [prop('object.signboard', 5, 4), prop('object.stacked_crates', 3, 5), prop('object.crate', 9, 5), prop('object.barrel', 4, 6)],
+    npcs: [npc('character.warehouse_keeper', 7, 4), npc('character.mob.delivery_person', 3, 6, 'right'), npc('character.mob.dock_worker', 9, 6, 'left')],
+    frontOccluders: [prop('object.stacked_crates', 1, 7), prop('object.crate', 10, 7)]
+  }),
+  site({
+    id: 'snow_watch', label: '北壁の見張り台', facilityKind: 'watchtower', buildingAssetId: 'building.watchtower', buildingX: 320,
+    contextStructures: [contextStructure('building.old_house', -160, -104), contextStructure('building.house.small', 96, -112), contextStructure('building.hut', 544, -96), contextStructure('building.warehouse', 656, 128)],
+    contextSlots: [{ x: -160, y: -104 }, { x: 96, y: -112 }, { x: 544, y: -96 }, { x: 656, y: 128 }],
+    groundLegend: { n: 'field.snow', c: 'field.cobblestone' },
+    groundMap: ['nnnnnnnnnnnn', 'nnnnnnnnnnnn', 'nnnnnnnnnnnn', 'nnnnnnnnnnnn', 'nnnnnnncnnnn', 'nnnnnnncnnnn', 'nnnnnnncnnnn', 'nnnnnnncnnnn'],
+    routeCells: [[7, 7], [7, 6], [7, 5], [7, 4]],
+    playerStartNodeId: '7,7',
+    evidenceNodeId: '7,4',
+    rearDecor: [prop('object.blue_flag', 2, 3), prop('object.blue_flag', 9, 3), prop('object.warning_stake', 1, 4), prop('object.warning_stake', 10, 4), prop('object.barrel', 3, 4), prop('object.rubble', 2, 2), prop('object.rubble', 9, 2)],
+    props: [prop('object.unverified_tag', 8, 4), prop('object.bench', 3, 5), prop('object.warning_stake', 9, 5), prop('object.barrel', 2, 6), prop('object.stacked_crates', 9, 6), prop('object.lamp', 8, 6), prop('object.lamp', 4, 6), prop('object.rubble', 1, 5), prop('object.rubble', 10, 5)],
+    npcs: [npc('character.watchtower_guard', 7, 4), npc('character.mob.traveler', 3, 6, 'right')],
+    frontOccluders: [prop('object.rubble', 1, 7), prop('object.blue_flag', 10, 7), prop('object.barrel', 9, 7)]
+  }),
+  site({
+    id: 'small_home', label: '花壇のある小さな家', facilityKind: 'house', buildingAssetId: 'building.house.small',
+    contextStructures: [contextStructure('building.hut', 0, -64), contextStructure('building.old_house', 512, -64), contextStructure('building.house.medium', -176, 128), contextStructure('building.inn', 688, 128)],
+    groundLegend: { T: 'field.tree', g: 'field.grass', f: 'field.fence_wood', d: 'field.dirt_path' },
+    groundMap: ['TTgggggggggT', 'TgggggggggdT', 'gggffffffggd', 'dggggggggggg', 'gggddddddggT', 'Tgddddddddgg', 'ggddddddddgT', 'dggggddggggg'],
+    rearDecor: [prop('object.flowerbed', 2, 3), prop('object.flowerbed', 9, 3), prop('object.grass_patch', 1, 4), prop('object.grass_patch', 10, 4)],
+    props: [prop('object.signboard', 5, 4), prop('object.bench', 3, 5), prop('object.lamp', 9, 5), prop('object.flowerbed', 8, 6), prop('object.bench', 9, 6)],
+    npcs: [npc('character.mob.child', 7, 4), npc('character.mob.townsfolk_female', 3, 6, 'right')],
+    frontOccluders: [prop('object.grass_patch', 1, 7), prop('object.flowerbed', 10, 7)]
+  }),
+  site({
+    id: 'larger_home', label: '石塀のある大きな家', facilityKind: 'house', buildingAssetId: 'building.house.medium', buildingX: 192,
+    contextStructures: [contextStructure('building.house.small', -64, -64), contextStructure('building.shop', 448, -64), contextStructure('building.pub', -192, 128), contextStructure('building.inn', 640, 128)],
+    groundLegend: { g: 'field.grass', c: 'field.cobblestone', p: 'field.plaza', f: 'field.fence_wood', e: 'field.road_edge' },
+    groundMap: ['cggccccccggg', 'ggccppppccgc', 'ggffffffffff', 'cggppppppggg', 'gggppppppggc', 'cgccccccccgg', 'eeccccccccee', 'gggggccggggc'],
+    rearDecor: [prop('object.flowerbed', 2, 3), prop('object.flowerbed', 9, 3), prop('object.streetlight', 1, 4), prop('object.streetlight', 10, 4)],
+    props: [prop('object.notice_board', 5, 4), prop('object.bench', 3, 5), prop('object.lamp', 9, 5), prop('object.barrel', 8, 6), prop('object.flowerbed', 9, 6)],
+    npcs: [npc('character.mob.townsfolk_male', 7, 4), npc('character.mob.elder', 3, 6, 'right')],
+    frontOccluders: [prop('object.grass_patch', 1, 7), prop('object.streetlight', 10, 7)]
+  }),
+  site({
+    id: 'woodland_hut', label: '森の脇道にある小屋', facilityKind: 'house', buildingAssetId: 'building.hut', buildingX: 256,
+    contextStructures: [contextStructure('building.old_house', -128, -80), contextStructure('building.workshop', 608, -48), contextStructure('building.ruin', -176, 144)],
+    contextSlots: [{ x: -128, y: -80 }, { x: 608, y: -48 }, { x: -176, y: 144 }],
+    groundLegend: { g: 'field.grass', R: 'field.rock', d: 'field.dirt_path' },
+    groundMap: ['gggggggggggg', 'gRggggggggRg', 'ggggRggRgggg', 'RggggggggggR', 'gggggddggggg', 'gRgggdggggRg', 'gggggddggggg', 'RgggggdggggR'],
+    routeCells: [[6, 7], [6, 6], [5, 6], [5, 5], [5, 4], [6, 4]],
+    evidenceNodeId: '6,4',
+    rearDecor: [
+      ...woodlandTrees(WOODLAND_REAR_TREE_LAYOUT),
+      prop('object.grass_patch', 2, 0, 8, 8),
+      prop('field.rock', 2, 3, 16, 8), prop('field.rock', 3, 3, -16, 8, true),
+      prop('field.rock', 2, 4, 16, -24, true), prop('field.rock', 3, 4, -16, -24),
+      prop('field.rock', 8, 3, 16, 8, true), prop('field.rock', 9, 4, -16, -24)
+    ],
+    props: [
+      ...woodlandTrees(WOODLAND_SIDE_TREE_LAYOUT),
+      prop('object.signboard', 7, 5, 8, 0), prop('object.bench', 8, 6, -16, 8),
+      prop('object.grass_patch', 3, 2, 8, 8), prop('object.rubble', 8, 2, -8, 8),
+      prop('object.grass_patch', 4, 3, -8, 8), prop('object.grass_patch', 8, 3, 8, -8),
+      prop('object.barrel', 4, 5, 8, -8), prop('object.crate', 9, 5, -8, -8)
+    ],
+    npcs: [npc('character.mob.artisan', 7, 4), npc('character.mob.child', 3, 6, 'right')],
+    frontOccluders: [
+      ...woodlandTrees(WOODLAND_FRONT_TREE_LAYOUT),
+      prop('object.grass_patch', 4, 7, -16, -16), prop('object.grass_patch', 8, 7, 16, -24)
+    ]
+  }),
+  site({
+    id: 'old_residence', label: '旧市街の古い住まい', facilityKind: 'house', buildingAssetId: 'building.old_house', buildingX: 192,
+    contextStructures: [contextStructure('building.house.small', -64, -64), contextStructure('building.pub', 448, -64), contextStructure('building.hut', -192, 128), contextStructure('building.ruin', 640, 128)],
+    groundLegend: { g: 'field.grass', c: 'field.cobblestone', d: 'field.dirt_path', r: 'field.road_corner', e: 'field.road_edge' },
+    groundMap: ['cggccccccggg', 'ggccccccccgc', 'dggggggggggg', 'cggddddddggg', 'gggddddddggc', 'rrddddddddrg', 'eeccccccccee', 'dggggccggggg'],
+    rearDecor: [prop('object.lamp', 2, 3), prop('object.lamp', 9, 3), prop('object.grass_patch', 1, 4), prop('object.grass_patch', 10, 4)],
+    props: [prop('object.signboard', 5, 4), prop('object.bench', 3, 5), prop('object.barrel', 9, 5), prop('object.lamp', 8, 6), prop('object.crate', 4, 6)],
+    npcs: [npc('character.mob.traveler', 7, 4), npc('character.mob.townsfolk_male', 3, 6, 'right')],
+    frontOccluders: [prop('object.streetlight', 1, 7), prop('object.grass_patch', 10, 7)]
+  }),
+  site({
+    id: 'overgrown_ruin', label: '草に侵食された廃屋', facilityKind: 'ruin', buildingAssetId: 'building.ruin',
+    contextStructures: [contextStructure('building.hut', -144, -72), contextStructure('building.old_house', 600, -56), contextStructure('building.workshop', -184, 152)],
+    contextSlots: [{ x: -144, y: -72 }, { x: 600, y: -56 }, { x: -184, y: 152 }],
+    groundLegend: { g: 'field.grass', l: 'field.cliff', R: 'field.rock', d: 'field.dirt_path' },
+    groundMap: ['ggRggggggRgg', 'gglllgggggRg', 'glllgggRgggg', 'gllgggggggRg', 'gglggddggggg', 'gRgggdggggRg', 'gggggddggggg', 'RgggggdggggR'],
+    routeCells: [[6, 7], [6, 6], [5, 6], [5, 5], [5, 4], [6, 4]],
+    rearDecor: [
+      ...woodlandTrees(WOODLAND_REAR_TREE_LAYOUT, true),
+      prop('field.rock', 2, 3, 16, 8), prop('field.rock', 3, 3, -16, 8, true),
+      prop('field.rock', 2, 4, 16, -24, true), prop('field.rock', 3, 4, -16, -24),
+      prop('object.rubble', 4, 2, 16, 8), prop('object.grass_patch', 7, 2, -16, 8)
+    ],
+    props: [
+      ...woodlandTrees(WOODLAND_SIDE_TREE_LAYOUT, true),
+      prop('object.unverified_tag', 7, 4, 8, 0), prop('object.construction_sign', 9, 5, 16, -8),
+      prop('object.grass_patch', 3, 2, 8, 8), prop('object.rubble', 8, 2, -8, 8),
+      prop('object.grass_patch', 8, 3, 8, -8), prop('object.warning_stake', 4, 5, 8, -8),
+      prop('object.rubble', 7, 5, 8, -8), prop('object.rubble', 9, 5, -8, -8)
+    ],
+    npcs: [npc('character.mob.elder', 7, 4), npc('character.mob.artisan', 3, 6, 'right')],
+    frontOccluders: [
+      ...woodlandTrees(WOODLAND_FRONT_TREE_LAYOUT, true),
+      prop('object.grass_patch', 8, 7, 16, -24)
+    ],
+    effects: [effect('effect.construction_dust', 9, 5, 'ruin')]
+  })
+]);
+
+export function siteRecipesForFacility(facilityKind) {
+  return SITE_RECIPES.filter((recipe) => recipe.facilityKind === facilityKind);
+}
+
+export function siteRecipeById(siteId) {
+  return SITE_RECIPES.find((recipe) => recipe.id === siteId) ?? null;
+}
+
+export function collectRuntimeAssetUsage() {
+  const used = new Set(['character.player']);
+  for (const recipe of SITE_RECIPES) {
+    for (const entry of recipe.structures) used.add(entry.assetId);
+    for (let y = 0; y < recipe.groundMap.length; y += 1) {
+      for (let x = 0; x < recipe.groundMap[y].length; x += 1) used.add(groundAssetAt(recipe, x, y));
+    }
+    for (const entry of [...recipe.rearDecor, ...recipe.props, ...recipe.frontOccluders]) used.add(entry.assetId);
+    for (const entry of recipe.npcs) used.add(entry.assetId);
+    for (const entry of recipe.effects) used.add(entry.assetId);
   }
-  if (!Number.isInteger(tileIndex) || tileIndex < 0 || tileIndex >= contract.sheet.columns * contract.sheet.rows) return null;
+  used.delete(null);
+  return Object.freeze([...used].sort());
+}
+
+export function auditRuntimeAssetUsage() {
+  const used = collectRuntimeAssetUsage();
+  const missing = REQUIRED_ASSET_IDS.filter((id) => !used.includes(id));
+  const unexpected = used.filter((id) => !REQUIRED_ASSET_IDS.includes(id));
+  return deepFreeze({ ok: missing.length === 0 && unexpected.length === 0 && used.length === 78, used, missing, unexpected });
+}
+
+function routeIsConnected(route) {
+  const ids = new Set(route.map((node) => node.id));
+  if (ids.size !== route.length || route.length === 0) return false;
+  const visited = new Set([route[0].id]);
+  const queue = [route[0]];
+  while (queue.length) {
+    const node = queue.shift();
+    for (const next of route) {
+      if (visited.has(next.id) || Math.abs(next.x - node.x) + Math.abs(next.y - node.y) !== 1) continue;
+      visited.add(next.id);
+      queue.push(next);
+    }
+  }
+  return visited.size === route.length;
+}
+
+function neighboringGroundAssets(recipe, x, y) {
+  return [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]]
+    .map(([nextX, nextY]) => groundAssetAt(recipe, nextX, nextY));
+}
+
+function groundCellsFor(recipe, assetId) {
+  const cells = [];
+  for (let y = 0; y < SITE_CANVAS.rows; y += 1) {
+    for (let x = 0; x < SITE_CANVAS.columns; x += 1) {
+      if (groundAssetAt(recipe, x, y) === assetId) cells.push([x, y]);
+    }
+  }
+  return cells;
+}
+
+export function auditSiteRecipes() {
+  const issues = [];
+  if (SITE_RECIPES.length !== 17) issues.push('exactly 17 site recipes are required');
+  if (new Set(SITE_RECIPES.map((recipe) => recipe.id)).size !== SITE_RECIPES.length) issues.push('site route IDs must be unique');
+  if (siteRecipesForFacility('house').length !== 4) issues.push('house must expose exactly four neighboring routes');
+  const singletonFacilities = ['town_hall', 'gate', 'guild', 'pub', 'shop', 'inn', 'dock', 'dojo', 'well', 'workshop', 'warehouse', 'watchtower', 'ruin'];
+  for (const facilityKind of singletonFacilities) {
+    if (siteRecipesForFacility(facilityKind).length !== 1) issues.push(`${facilityKind} must have exactly one semantic route`);
+  }
+  for (const recipe of SITE_RECIPES) {
+    if (!Array.isArray(recipe.groundMap) || recipe.groundMap.length !== SITE_CANVAS.rows
+      || recipe.groundMap.some((row) => typeof row !== 'string' || row.length !== SITE_CANVAS.columns)) {
+      issues.push(`${recipe.id}: groundMap must be exactly 8 rows by 12 columns`);
+      continue;
+    }
+    const groundAssets = [];
+    for (let y = 0; y < SITE_CANVAS.rows; y += 1) {
+      for (let x = 0; x < SITE_CANVAS.columns; x += 1) {
+        const assetId = groundAssetAt(recipe, x, y);
+        if (!FIELD_IDS.includes(assetId)) issues.push(`${recipe.id}: groundMap has an unknown legend key at ${x},${y}`);
+        else groundAssets.push(assetId);
+      }
+    }
+    const groundCounts = new Map();
+    for (const assetId of groundAssets) groundCounts.set(assetId, (groundCounts.get(assetId) ?? 0) + 1);
+    const woodland = ['woodland_hut', 'overgrown_ruin'].includes(recipe.id);
+    const winter = recipe.id === 'snow_watch';
+    if (groundCounts.size < (winter ? 2 : 3)) issues.push(`${recipe.id}: groundMap does not use enough meaningful field assets`);
+    if (Math.max(0, ...groundCounts.values()) > (woodland ? 84 : winter ? 92 : 72)) {
+      issues.push(`${recipe.id}: groundMap is dominated by one repeated field`);
+    }
+    const placedCount = recipe.rearDecor.length + recipe.props.length + recipe.npcs.length
+      + recipe.frontOccluders.length + recipe.effects.length + recipe.structures.length;
+    const minimumPlacements = woodland ? 70 : 18;
+    const maximumPlacements = woodland ? 90 : 28;
+    if (placedCount < minimumPlacements || placedCount > maximumPlacements) {
+      issues.push(`${recipe.id}: scene placement density must stay between ${minimumPlacements} and ${maximumPlacements} authored placements`);
+    }
+    const mainStructures = recipe.structures.filter((entry) => entry.role === 'main');
+    if (recipe.structures.length < 3 || recipe.structures.length > 5 || mainStructures.length !== 1
+      || mainStructures[0]?.assetId !== recipe.building.assetId) {
+      issues.push(`${recipe.id}: structures must contain one main and two to four contextual buildings`);
+    }
+    for (const entry of recipe.structures) {
+      if (!BUILDING_IDS.includes(entry.assetId) || entry.width !== 256 || entry.height !== 256
+        || !Number.isInteger(entry.x) || !Number.isInteger(entry.y) || !Number.isInteger(entry.baselineY)) {
+        issues.push(`${recipe.id}: structure violates the native 256px integer placement contract`);
+      }
+    }
+    for (const [collectionName, entries] of [
+      ['rearDecor', recipe.rearDecor], ['props', recipe.props], ['frontOccluders', recipe.frontOccluders]
+    ]) {
+      for (const entry of entries) {
+        const placement = authoredTilePlacement(entry);
+        if (!placement.validGridAndOffset) {
+          issues.push(`${recipe.id}: ${collectionName} has an invalid authored pixel offset`);
+        } else if (!placement.insideCanvas) {
+          issues.push(`${recipe.id}: ${collectionName} authored pixel offset leaves the native site canvas`);
+        }
+      }
+    }
+    if (woodland) {
+      const compositionEntries = [...recipe.rearDecor, ...recipe.props, ...recipe.npcs, ...recipe.frontOccluders];
+      const featureDecor = compositionEntries.filter((entry) => FEATURE_FIELD_IDS.has(entry.assetId));
+      if (featureDecor.length < 60) issues.push(`${recipe.id}: woodland feature composition must contain at least 60 authored overlays`);
+      let visuallyOccupiedCells = 0;
+      for (let y = 0; y < SITE_CANVAS.rows; y += 1) {
+        for (let x = 0; x < SITE_CANVAS.columns; x += 1) {
+          const left = x * SITE_CANVAS.cellSize;
+          const top = y * SITE_CANVAS.cellSize;
+          const occupied = groundAssetAt(recipe, x, y) !== 'field.grass'
+            || compositionEntries.some((entry) => entry.x === x && entry.y === y)
+            || recipe.route.some((entry) => entry.x === x && entry.y === y)
+            || recipe.structures.some((entry) => entry.x < left + SITE_CANVAS.cellSize && entry.x + entry.width > left
+              && entry.y < top + SITE_CANVAS.cellSize && entry.y + entry.height > top);
+          if (occupied) visuallyOccupiedCells += 1;
+        }
+      }
+      if (visuallyOccupiedCells / (SITE_CANVAS.columns * SITE_CANVAS.rows) < 0.8) {
+        issues.push(`${recipe.id}: woodland visual occupancy must cover at least 80% of site cells`);
+      }
+      for (let y = 0; y < SITE_CANVAS.rows - 1; y += 1) {
+        for (let x = 0; x < SITE_CANVAS.columns - 1; x += 1) {
+          const cells = [[x, y], [x + 1, y], [x, y + 1], [x + 1, y + 1]];
+          if (!cells.every(([cellX, cellY]) => groundAssetAt(recipe, cellX, cellY) === 'field.grass')) continue;
+          const anchored = compositionEntries.some((entry) => entry.x >= x && entry.x <= x + 1
+            && entry.y >= y && entry.y <= y + 1);
+          const routed = recipe.route.some((entry) => entry.x >= x && entry.x <= x + 1
+            && entry.y >= y && entry.y <= y + 1);
+          const left = x * SITE_CANVAS.cellSize;
+          const top = y * SITE_CANVAS.cellSize;
+          const structured = recipe.structures.some((entry) => entry.x < left + 128 && entry.x + entry.width > left
+            && entry.y < top + 128 && entry.y + entry.height > top);
+          if (!anchored && !routed && !structured) issues.push(`${recipe.id}: unintended 2x2 grass void at ${x},${y}`);
+        }
+      }
+    }
+    for (const [key, transform] of Object.entries(recipe.groundTransformMap)) {
+      const [x, y] = key.split(',').map(Number);
+      const transformedAssetId = groundAssetAt(recipe, x, y);
+      const variedGround = VARIED_GROUND_IDS.has(transformedAssetId);
+      if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || x >= 12 || y < 0 || y >= 8
+        || !Number.isInteger(transform.quarterTurns) || transform.quarterTurns < 0 || transform.quarterTurns > 3
+        || typeof transform.flipX !== 'boolean'
+        || (!DIRECTIONAL_FIELD_IDS.has(transformedAssetId) && !variedGround)
+        || (variedGround && transform.quarterTurns !== 0 && transform.quarterTurns !== 2)) {
+        issues.push(`${recipe.id}: invalid directional ground transform at ${key}`);
+      }
+    }
+    for (let y = 0; y < SITE_CANVAS.rows; y += 1) {
+      for (let x = 0; x < SITE_CANVAS.columns; x += 1) {
+        if (DIRECTIONAL_FIELD_IDS.has(groundAssetAt(recipe, x, y)) && !recipe.groundTransformMap[`${x},${y}`]) {
+          issues.push(`${recipe.id}: directional field at ${x},${y} lacks an explicit transform`);
+        }
+      }
+    }
+    if (!routeIsConnected(recipe.route) || !recipe.route.some((node) => node.id === recipe.playerStartNodeId)
+      || !recipe.route.some((node) => node.id === recipe.evidenceNodeId)) issues.push(`${recipe.id}: route is not connected`);
+    for (const node of recipe.route) {
+      if (!ROUTE_FIELD_IDS.has(groundAssetAt(recipe, node.x, node.y))) {
+        issues.push(`${recipe.id}: route node ${node.id} is not on a visible road or floor`);
+      }
+    }
+    const evidenceNode = recipe.route.find((node) => node.id === recipe.evidenceNodeId);
+    const entranceX = (recipe.building.x + (recipe.building.width / 2)) / SITE_CANVAS.cellSize;
+    const entranceY = (recipe.building.y + recipe.building.height) / SITE_CANVAS.cellSize;
+    if (!evidenceNode || Math.abs(evidenceNode.x - entranceX) + Math.abs(evidenceNode.y - entranceY) > 1.1) {
+      issues.push(`${recipe.id}: evidence node is not visually aligned with the building entrance`);
+    }
+    for (const bridgeId of BRIDGE_FIELD_IDS) {
+      for (const [x, y] of groundCellsFor(recipe, bridgeId)) {
+        const horizontalCrossing = groundAssetAt(recipe, x, y - 1) === 'field.water'
+          && groundAssetAt(recipe, x, y + 1) === 'field.water';
+        const verticalCrossing = groundAssetAt(recipe, x - 1, y) === 'field.water'
+          && groundAssetAt(recipe, x + 1, y) === 'field.water';
+        if (!horizontalCrossing && !verticalCrossing) issues.push(`${recipe.id}: ${bridgeId} does not cross a waterway`);
+      }
+    }
+    for (const [x, y] of groundCellsFor(recipe, 'field.stairs_stone')) {
+      if (!neighboringGroundAssets(recipe, x, y).some((assetId) => BOUNDARY_FIELD_IDS.has(assetId))) {
+        issues.push(`${recipe.id}: stairs do not meet a cliff or stone-wall boundary`);
+      }
+    }
+    for (const barrierId of ['field.water', 'field.river_edge', 'field.wall_stone', 'field.fence_wood']) {
+      const cells = groundCellsFor(recipe, barrierId);
+      if (cells.length > 1 && cells.some(([x, y]) => {
+        const neighbors = neighboringGroundAssets(recipe, x, y);
+        return !neighbors.includes(barrierId)
+          && !(barrierId === 'field.water' && neighbors.some((assetId) => BRIDGE_FIELD_IDS.has(assetId)));
+      })) {
+        issues.push(`${recipe.id}: ${barrierId} contains an isolated discontinuity`);
+      }
+    }
+    for (const entry of recipe.effects.filter((item) => item.assetId === 'effect.water_ripple')) {
+      const onWater = groundAssetAt(recipe, entry.x, entry.y) === 'field.water';
+      if (!onWater || entry.context !== 'water') issues.push(`${recipe.id}: water ripple is not on a water cell`);
+    }
+    for (const entry of recipe.effects.filter((item) => item.assetId === 'effect.construction_dust')) {
+      const activeContext = ['repair', 'ruin'].includes(entry.context)
+        && (recipe.building.assetId === 'building.ruin'
+          || recipe.props.some((item) => ['object.construction_sign', 'object.rubble'].includes(item.assetId)));
+      if (!activeContext) issues.push(`${recipe.id}: construction dust lacks a repair/ruin context`);
+    }
+  }
+  return deepFreeze({ ok: issues.length === 0, issues, routeCount: SITE_RECIPES.length, usage: auditRuntimeAssetUsage() });
+}
+
+export function characterFrameRect(direction = 'down', frame = 'idle') {
+  const column = DIRECTION_COLUMNS[direction] ?? DIRECTION_COLUMNS.down;
+  const row = FRAME_ROWS[frame] ?? FRAME_ROWS.idle;
+  return Object.freeze({ x: column * 24, y: row * 40, width: 24, height: 40, column, row });
+}
+
+export function effectFrameRect(frameIndex = 0) {
+  const frame = ((Math.trunc(frameIndex) % 4) + 4) % 4;
+  return Object.freeze({ x: frame * 32, y: 0, width: 32, height: 32, frame });
+}
+
+export function siteNodeById(recipe, nodeId) {
+  return recipe?.route?.find((node) => node.id === nodeId) ?? null;
+}
+
+export function nearestSiteNode(recipe, x, y) {
+  if (!recipe || !Number.isFinite(x) || !Number.isFinite(y)) return null;
+  return [...recipe.route].sort((left, right) => {
+    const leftDistance = ((left.x - x) ** 2) + ((left.y - y) ** 2);
+    const rightDistance = ((right.x - x) ** 2) + ((right.y - y) ** 2);
+    return leftDistance - rightDistance || left.id.localeCompare(right.id);
+  })[0] ?? null;
+}
+
+export function nextSiteNodeForDirection(recipe, currentId, direction) {
+  const current = siteNodeById(recipe, currentId);
+  const vector = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[direction];
+  if (!current || !vector) return current;
+  return recipe.route.find((node) => node.x === current.x + vector[0] && node.y === current.y + vector[1]) ?? current;
+}
+
+export function shortestSitePath(recipe, fromId, toId) {
+  const byId = new Map((recipe?.route ?? []).map((node) => [node.id, node]));
+  if (!byId.has(fromId) || !byId.has(toId)) return Object.freeze([]);
+  if (fromId === toId) return Object.freeze([byId.get(fromId)]);
+  const previous = new Map([[fromId, null]]);
+  const queue = [fromId];
+  while (queue.length) {
+    const id = queue.shift();
+    const current = byId.get(id);
+    for (const candidate of byId.values()) {
+      if (previous.has(candidate.id)
+        || Math.abs(candidate.x - current.x) + Math.abs(candidate.y - current.y) !== 1) continue;
+      previous.set(candidate.id, id);
+      if (candidate.id === toId) {
+        const path = [];
+        let cursor = toId;
+        while (cursor !== null) {
+          path.push(byId.get(cursor));
+          cursor = previous.get(cursor);
+        }
+        return Object.freeze(path.reverse());
+      }
+      queue.push(candidate.id);
+    }
+  }
+  return Object.freeze([]);
+}
+
+export function computeSiteCamera(viewportWidth, viewportHeight) {
+  const width = Number.isFinite(viewportWidth) && viewportWidth > 0 ? viewportWidth : 1;
+  const height = Number.isFinite(viewportHeight) && viewportHeight > 0 ? viewportHeight : 1;
+  const scale = Math.min(1, width / SITE_CANVAS.width, height / SITE_CANVAS.height);
+  const destWidth = SITE_CANVAS.width * scale;
+  const destHeight = SITE_CANVAS.height * scale;
   return Object.freeze({
-    tileIndex,
-    sx: (tileIndex % contract.sheet.columns) * contract.tileSize,
-    sy: Math.floor(tileIndex / contract.sheet.columns) * contract.tileSize,
-    sw: contract.tileSize,
-    sh: contract.tileSize
+    scale,
+    destX: (width - destWidth) / 2,
+    destY: (height - destHeight) / 2,
+    destWidth,
+    destHeight,
+    viewportWidth: width,
+    viewportHeight: height
   });
 }
 
-export function characterFrame(definition, direction = 'south', action = 'idle', timestamp = 0) {
-  const contract = definition?.characterSpriteContract;
-  if (!contract || contract.version !== 2) return null;
-  const rowName = ({ north: 'back', east: 'right', south: 'front', west: 'left' })[direction] ?? 'front';
-  const row = contract.directionRows.indexOf(rowName);
-  const animation = contract.animations[action] ?? contract.animations.idle;
-  const column = animation[Math.floor(timestamp / 180) % animation.length];
-  return Object.freeze({
-    column,
-    row,
-    sx: column * contract.frame.width,
-    sy: row * contract.frame.height,
-    sw: contract.frame.width,
-    sh: contract.frame.height
-  });
+export function siteToScreen(camera, point) {
+  if (!camera || !point) return null;
+  return Object.freeze({ x: camera.destX + point.x * camera.scale, y: camera.destY + point.y * camera.scale });
 }
 
-export function spriteFrame(definition, frame = 0) {
-  const grid = definition?.sprites?.grid;
-  if (!positiveInteger(grid?.columns) || !positiveInteger(grid?.rows)) return null;
-  const outputWidth = definition.outputSize?.width;
-  const outputHeight = definition.outputSize?.height;
-  const frameWidth = grid.frameWidth ?? outputWidth / grid.columns;
-  const frameHeight = grid.frameHeight ?? outputHeight / grid.rows;
-  if (!positiveInteger(frameWidth) || !positiveInteger(frameHeight)) return null;
-  const index = Math.max(0, Math.min(grid.columns * grid.rows - 1, Number.isInteger(frame) ? frame : 0));
-  return Object.freeze({
-    index,
-    sx: (index % grid.columns) * frameWidth,
-    sy: Math.floor(index / grid.columns) * frameHeight,
-    sw: frameWidth,
-    sh: frameHeight
-  });
+export function screenToSite(camera, point) {
+  if (!camera || !point || !Number.isFinite(point.x) || !Number.isFinite(point.y)
+    || point.x < camera.destX || point.y < camera.destY
+    || point.x > camera.destX + camera.destWidth || point.y > camera.destY + camera.destHeight) return null;
+  return Object.freeze({ x: (point.x - camera.destX) / camera.scale, y: (point.y - camera.destY) / camera.scale });
 }

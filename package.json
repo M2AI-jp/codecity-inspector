@@ -33,7 +33,7 @@
     "asset:dry-run": "npm --prefix tools/asset-forge run dry-run",
     "asset:validate": "npm --prefix tools/asset-forge run validate",
     "check:launcher": "zsh -n CodeCity.command",
-    "check": "npm run check:launcher && node --check src/scanner.mjs && node --check src/inspector.mjs && node --check src/server.mjs && node --check src/generate-town.mjs && node --check public/world-runtime.mjs && node --check public/site-runtime.mjs && node --check public/app.js && npm test"
+    "check": "npm run check:launcher && node --check src/scanner.mjs && node --check src/inspector.mjs && node --check src/server.mjs && node --check src/generate-town.mjs && node --check public/world-runtime.mjs && node --check public/site-runtime.mjs && node --check public/app.js && node --check public/fable5-v2/world-runtime.mjs && node --check public/fable5-v2/site-runtime.mjs && node --check public/fable5-v2/app.js && npm test"
   },
   "engines": {
     "node": ">=20"

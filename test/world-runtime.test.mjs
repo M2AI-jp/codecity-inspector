@@ -40,7 +40,7 @@ import {
   validateRuntimeWorldPlan,
   withinBuildingReleaseZone,
   worldToScreen
-} from '../public/world-runtime.mjs';
+} from '../public/fable5-v2/world-runtime.mjs';
 
 const DIGEST = 'a'.repeat(64);
 
