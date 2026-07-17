@@ -195,6 +195,32 @@ test('provider-key-normalize-v1 schema binds character, shared monolithic, and s
   assert.equal(validateWith('generation-job-v2.schema.json', wrongMonolithicSourceKinds).ok, false);
 });
 
+test('provider-key-normalize-v2 schema binds no-magenta exact single-unit repair only', async () => {
+  const { job } = await buildWaveAJob({
+    assetId: 'prop.practice_target', generationMode: 'per-unit',
+    providerKeyNormalization: 'provider-key-normalize-v2'
+  });
+  assert.equal(validateWith('generation-job-v2.schema.json', job).ok, true);
+  assert.equal(job.providerKeyNormalizationPlan.assetDefinitionSha256, job.assetDefinitionSha256);
+  for (const mutate of [
+    (value) => { value.category = 'building'; },
+    (value) => { value.providerKeyNormalizationPlan.subjectMagentaPolicy = 'optional'; },
+    (value) => { value.providerKeyNormalizationPlan.algorithm = 'provider-key-normalize/outer-connected-exact-magenta-v1'; }
+  ]) {
+    const invalid = structuredClone(job); mutate(invalid);
+    assert.equal(validateWith('generation-job-v2.schema.json', invalid).ok, false);
+  }
+  for (const request of [
+    { assetId: 'character.player', generationMode: 'monolithic-atlas' },
+    { assetId: 'terrain.grass', generationMode: 'per-unit' },
+    { assetId: 'ui.footstep', generationMode: 'per-unit' },
+    { assetId: 'building.inn', generationMode: 'per-unit' },
+    { assetId: 'structure.rock.b', generationMode: 'per-unit' }
+  ]) await assert.rejects(buildWaveAJob({
+    ...request, providerKeyNormalization: 'provider-key-normalize-v2'
+  }), /exact single-unit overlay, structure, or prop|no subject magenta/);
+});
+
 test('character-atlas-layout-v1 schema is exact and opt-in only for character monolithic jobs', async () => {
   const { job } = await buildWaveAJob({
     assetId: 'character.player',

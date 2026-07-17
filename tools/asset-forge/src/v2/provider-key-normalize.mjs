@@ -5,6 +5,7 @@ export const PROVIDER_KEY_NORMALIZE_VERSION = 'provider-key-normalize-v1';
 export const PROVIDER_KEY_NORMALIZE_ALGORITHM =
   'provider-key-normalize/outer-connected-exact-magenta-v1';
 export const PROVIDER_KEY_NORMALIZE_STEP = 'provider-key-normalize-v1';
+export const PROVIDER_KEY_REPAIR_VERSION = 'provider-key-normalize-v2'; const PROVIDER_KEY_REPAIR_ALGORITHM = 'provider-key-normalize/outer-holes-narrow-spill-exact-magenta-v2';
 
 const TARGET = Object.freeze([255, 0, 255]);
 const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
@@ -44,6 +45,9 @@ const CONFIG = Object.freeze({
 });
 
 export const PROVIDER_KEY_NORMALIZE_CONFIG_SHA256 = sha256(canonicalJson(CONFIG));
+const REPAIR = Object.freeze({ version: PROVIDER_KEY_REPAIR_VERSION, algorithm: PROVIDER_KEY_REPAIR_ALGORITHM,
+  connectedPixelMaximumPermille: 990, disconnectedEligibleMaximumPermille: 150, spillMaximumDepth: 8, spillMaximumPermille: 10, repairMaximumPermille: 160, connectivity: 'outer-plus-enclosed-key-and-up-to-eight-pixel-four-neighbor-spill', replacement: 'repair-mask-rgb-to-ff00ff-alpha-zero-outside-rgba-identical', subjectMagentaPolicy: 'forbidden-by-bound-art-direction', spillEnvelope: 'r,b>=96;g<=96;dominance>=64;rb-delta<=48' });
+export const PROVIDER_KEY_REPAIR_CONFIG_SHA256 = sha256(canonicalJson({ ...CONFIG, ...REPAIR }));
 
 function normalizationPlan(sourceKinds) {
   return {
@@ -57,6 +61,9 @@ function normalizationPlan(sourceKinds) {
     providerInvocationEvidence: CONFIG.providerInvocationEvidence
   };
 }
+
+function repairPlan(asset) {
+  return { ...normalizationPlan(['single-unit']), version: REPAIR.version, algorithm: REPAIR.algorithm, configSha256: PROVIDER_KEY_REPAIR_CONFIG_SHA256, subjectMagentaPolicy: REPAIR.subjectMagentaPolicy, assetDefinitionSha256: sha256(canonicalJson(asset)) }; }
 
 function exactSingleUnitScope(asset, generationMode, generationUnits, artifactContracts) {
   if (!asset || asset.category === 'character' || asset.category === 'building'
@@ -218,6 +225,25 @@ function outerConnectedMask(eligible, width, height) {
   return connected;
 }
 
+function spillColor(raw, index) {
+  const o = index * 4; return raw[o] >= 96 && raw[o + 2] >= 96 && raw[o + 1] <= 96 && Math.min(raw[o], raw[o + 2]) - raw[o + 1] >= 64 && Math.abs(raw[o] - raw[o + 2]) <= 48;
+}
+
+function repairMask(raw, width, eligible) {
+  const mask = Buffer.from(eligible); let spillPixelCount = 0;
+  for (let depth = 0; depth < REPAIR.spillMaximumDepth; depth += 1) {
+    const next = [];
+    for (let index = 0; index < mask.length; index += 1) {
+      if (mask[index] || !spillColor(raw, index)) continue;
+      const x = index % width;
+      if ((x > 0 && mask[index - 1]) || (x + 1 < width && mask[index + 1]) || (index >= width && mask[index - width]) || (index + width < mask.length && mask[index + width])) next.push(index);
+    }
+    for (const index of next) mask[index] = 1; spillPixelCount += next.length;
+  }
+  for (let index = 0; index < mask.length; index += 1) if (!mask[index] && spillColor(raw, index)) throw new Error('provider-key-normalize-v2 source contains real or non-narrow subject magenta');
+  return { mask, spillPixelCount };
+}
+
 function countMask(mask) {
   let count = 0;
   for (const value of mask) count += value;
@@ -237,8 +263,17 @@ function outsideMaskBytes(raw, mask) {
 
 export function providerKeyNormalizationPlanFor(asset, generationMode, {
   generationUnits = null,
-  artifactContracts = null
+  artifactContracts = null,
+  version = PROVIDER_KEY_NORMALIZE_VERSION
 } = {}) {
+  if (version === PROVIDER_KEY_REPAIR_VERSION) {
+    if (!['overlay', 'structure', 'prop'].includes(asset?.category) || !exactSingleUnitScope(asset, generationMode, generationUnits, artifactContracts)) throw new Error('provider-key-normalize-v2 requires exact single-unit overlay, structure, or prop scope');
+    const direction = asset.artDirection ?? {};
+    const positiveColors = canonicalJson(['subjectForm', 'materials', 'dominantColors', 'accentColors', 'shapeLanguage', 'distinguishingFeatures', 'composition', 'groundContact', 'frameContent'].map((key) => direction[key]));
+    if (/\b(magenta|pink|violet|purple|plum|fuchsia|lavender)\b/i.test(positiveColors)) throw new Error('provider-key-normalize-v2 requires art direction with no subject magenta');
+    return repairPlan(asset);
+  }
+  if (version !== PROVIDER_KEY_NORMALIZE_VERSION) throw new Error(`Unsupported provider key normalization policy: ${version}`);
   if (asset?.category === 'character' && generationMode === 'monolithic-atlas') {
     return normalizationPlan(['identity-master', 'monolithic-atlas']);
   }
@@ -263,7 +298,8 @@ export function providerKeyNormalizationSourceKindForJob(job) {
   }
   const expected = providerKeyNormalizationPlanFor(job.assetDefinition, job.generationMode, {
     generationUnits: job.generationUnits,
-    artifactContracts: job.artifactContracts
+    artifactContracts: job.artifactContracts,
+    version: plan.version
   });
   if (canonicalJson(plan) !== canonicalJson(expected)) {
     throw new Error('provider-key-normalize-v1 job plan escaped its exact source contract');
@@ -272,7 +308,11 @@ export function providerKeyNormalizationSourceKindForJob(job) {
 }
 
 export async function normalizeProviderKey(image, plan) {
-  const exactPlan = [
+  const repair = plan?.version === PROVIDER_KEY_REPAIR_VERSION;
+  const exactRepairPlan = repair && /^[a-f0-9]{64}$/.test(plan.assetDefinitionSha256 ?? '') && canonicalJson(plan) === canonicalJson({
+    ...normalizationPlan(['single-unit']), version: REPAIR.version, algorithm: REPAIR.algorithm, configSha256: PROVIDER_KEY_REPAIR_CONFIG_SHA256,
+    subjectMagentaPolicy: REPAIR.subjectMagentaPolicy, assetDefinitionSha256: plan.assetDefinitionSha256 });
+  const exactPlan = exactRepairPlan || [
     normalizationPlan(['identity-master', 'monolithic-atlas']),
     normalizationPlan(['monolithic-atlas']),
     normalizationPlan(['single-unit'])
@@ -311,7 +351,7 @@ export async function normalizeProviderKey(image, plan) {
   const connectedPixelCount = countMask(connected);
   const disconnectedEligiblePixelCount = eligiblePixelCount - connectedPixelCount;
   const pixelCount = decoded.info.width * decoded.info.height;
-  if (plan.sourceKinds.length === 1 && plan.sourceKinds[0] === 'single-unit') {
+  if (!repair && plan.sourceKinds.length === 1 && plan.sourceKinds[0] === 'single-unit') {
     for (let index = 0; index < connected.length; index += 1) {
       if (connected[index]) continue;
       const offset = index * 4;
@@ -325,27 +365,35 @@ export async function normalizeProviderKey(image, plan) {
     }
   }
   if (connectedPixelCount * 1000 < pixelCount * CONFIG.connectedPixelMinimumPermille
-    || connectedPixelCount * 1000 > pixelCount * CONFIG.connectedPixelMaximumPermille) {
-    throw new Error('provider-key-normalize-v1 connected key fraction is outside 100..900 permille');
+    || connectedPixelCount * 1000 > pixelCount * (repair ? REPAIR.connectedPixelMaximumPermille : CONFIG.connectedPixelMaximumPermille)) {
+    throw new Error(repair ? 'provider-key-normalize-v2 connected key fraction is outside 100..990 permille' : 'provider-key-normalize-v1 connected key fraction is outside 100..900 permille');
   }
   if (disconnectedEligiblePixelCount * 1000
-    > pixelCount * CONFIG.disconnectedEligibleMaximumPermille) {
+    > pixelCount * (repair ? REPAIR.disconnectedEligibleMaximumPermille
+      : CONFIG.disconnectedEligibleMaximumPermille)) {
     throw new Error('provider-key-normalize-v1 disconnected eligible pixels exceed 1 permille');
   }
 
+  const repaired = repair ? repairMask(decoded.data, decoded.info.width, eligible)
+    : { mask: connected, spillPixelCount: 0 };
+  const repairPixelCount = disconnectedEligiblePixelCount + repaired.spillPixelCount;
+  if (repair && (repaired.spillPixelCount * 1000 > pixelCount * REPAIR.spillMaximumPermille || repairPixelCount * 1000 > pixelCount * REPAIR.repairMaximumPermille
+    || countMask(repaired.mask) * 1000 > pixelCount * REPAIR.connectedPixelMaximumPermille)) throw new Error('provider-key-normalize-v2 hole or spill repair exceeds its source budget');
+
   const normalizedRaw = Buffer.from(decoded.data);
   let changedPixelCount = 0;
-  for (let index = 0; index < connected.length; index += 1) {
-    if (!connected[index]) continue;
+  for (let index = 0; index < repaired.mask.length; index += 1) {
+    if (!repaired.mask[index]) continue;
     const offset = index * 4;
-    if (normalizedRaw[offset] !== 255 || normalizedRaw[offset + 1] !== 0
+    if (repair || normalizedRaw[offset] !== 255 || normalizedRaw[offset + 1] !== 0
       || normalizedRaw[offset + 2] !== 255) changedPixelCount += 1;
     normalizedRaw[offset] = 255;
     normalizedRaw[offset + 1] = 0;
     normalizedRaw[offset + 2] = 255;
+    if (repair) normalizedRaw[offset + 3] = 0;
   }
-  const rawOutsideMask = outsideMaskBytes(decoded.data, connected);
-  const normalizedOutsideMask = outsideMaskBytes(normalizedRaw, connected);
+  const rawOutsideMask = outsideMaskBytes(decoded.data, repaired.mask);
+  const normalizedOutsideMask = outsideMaskBytes(normalizedRaw, repaired.mask);
   if (!rawOutsideMask.equals(normalizedOutsideMask)) {
     throw new Error('provider-key-normalize-v1 changed decoded RGBA outside the replacement mask');
   }
@@ -364,9 +412,9 @@ export async function normalizeProviderKey(image, plan) {
   }).png(CONFIG.canonicalPng).toBuffer();
   const evidenceWithoutDigest = {
     originKind: 'deterministic-derived',
-    version: PROVIDER_KEY_NORMALIZE_VERSION,
-    algorithm: PROVIDER_KEY_NORMALIZE_ALGORITHM,
-    configSha256: PROVIDER_KEY_NORMALIZE_CONFIG_SHA256,
+    version: repair ? REPAIR.version : PROVIDER_KEY_NORMALIZE_VERSION,
+    algorithm: repair ? REPAIR.algorithm : PROVIDER_KEY_NORMALIZE_ALGORITHM,
+    configSha256: repair ? PROVIDER_KEY_REPAIR_CONFIG_SHA256 : PROVIDER_KEY_NORMALIZE_CONFIG_SHA256,
     providerInvocationEvidence: CONFIG.providerInvocationEvidence,
     sourceOriginal: {
       originKind: 'provider-original',
@@ -392,9 +440,11 @@ export async function normalizeProviderKey(image, plan) {
       connectedPixelPermille: Math.floor(connectedPixelCount * 1000 / pixelCount),
       disconnectedEligiblePixelCount,
       disconnectedEligiblePermille: Math.floor(disconnectedEligiblePixelCount * 1000 / pixelCount),
-      maskSha256: sha256(connected),
-      maskPixelCount: connectedPixelCount,
-      changedPixelCount
+      maskSha256: sha256(repaired.mask),
+      maskPixelCount: countMask(repaired.mask),
+      changedPixelCount,
+      ...(repair ? { spillPixelCount: repaired.spillPixelCount, spillPixelPermille: Math.floor(repaired.spillPixelCount * 1000 / pixelCount),
+        repairPixelCount, repairPixelPermille: Math.floor(repairPixelCount * 1000 / pixelCount) } : {})
     },
     outsideMaskBeforeRgbaSha256: sha256(rawOutsideMask),
     outsideMaskAfterRgbaSha256: sha256(normalizedOutsideMask),
@@ -405,7 +455,7 @@ export async function normalizeProviderKey(image, plan) {
   return {
     normalizedRaw,
     normalizedPng,
-    mask: connected,
+    mask: repaired.mask,
     evidence: {
       ...evidenceWithoutDigest,
       derivationSha256: sha256(canonicalJson(evidenceWithoutDigest))

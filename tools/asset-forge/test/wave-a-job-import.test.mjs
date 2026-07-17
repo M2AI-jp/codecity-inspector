@@ -1664,6 +1664,72 @@ test('single-unit provider-key normalization preserves raw PNG and deep-replays 
   }, { root, forgeRoot: root }));
 });
 
+test('provider-key-normalize-v2 makes bounded holes and spill transparent through deep/V3 replay', async (t) => {
+  const root = await fixtureRoot(t);
+  const pack = await makeWaveAJob({
+    assetId: 'prop.practice_target', generationMode: 'per-unit',
+    providerKeyNormalization: 'provider-key-normalize-v2', seed: 'hole-spill-repair'
+  }, { root, forgeRoot: root });
+  const unit = pack.job.generationUnits[0];
+  const width = unit.targetRect.width * 2;
+  const height = unit.targetRect.height * 2;
+  const key = [245, 6, 233, 255];
+  const raw = Buffer.alloc(width * height * 4);
+  for (let index = 0; index < width * height; index += 1) raw.set(key, index * 4);
+  for (let y = 16; y < height - 16; y += 1) for (let x = 16; x < width - 16; x += 1) {
+    raw.set([120, 90, 40, 255], (y * width + x) * 4);
+  }
+  for (let y = 92; y < 100; y += 1) for (let x = 60; x < 68; x += 1) {
+    raw.set(key, (y * width + x) * 4);
+  }
+  for (let y = 92; y < 100; y += 1) {
+    raw.set([163, 9, 158, 255], (y * width + 59) * 4);
+    raw.set([124, 4, 139, 255], (y * width + 58) * 4);
+  }
+  for (let y = 40; y < 56; y += 1) {
+    raw.set([163, 9, 158, 255], (y * width + 16) * 4);
+    raw.set([124, 4, 139, 255], (y * width + 17) * 4);
+  }
+  const sourceBytes = await sharp(raw, { raw: { width, height, channels: 4 } })
+    .png({ adaptiveFiltering: false, palette: false, compressionLevel: 9 }).toBuffer();
+  const sourceOriginal = await writeInput(root, 'practice-target-hole-spill.png', sourceBytes);
+  const imported = await importWaveACandidate({
+    assetId: pack.job.assetId, jobPackPath: pack.result.jobPackPath,
+    unitSources: [{ unitId: unit.unitId, sourceOriginal }], identityBindingPath: null
+  }, { root, forgeRoot: root });
+  const assembly = imported.result.unitAssemblyV2;
+  assert.equal(assembly.assemblyAlgorithm,
+    'provider-key-normalize-v2/auto-border-connected-fringe-soft-matte-nearest-hard-alpha/raw-copy-v1');
+  assert.equal(assembly.units[0].transformSteps[0], 'provider-key-normalize-v2');
+  assert.equal(assembly.providerKeyNormalization.eligibility.disconnectedEligiblePixelCount, 64);
+  assert.equal(assembly.providerKeyNormalization.eligibility.spillPixelCount, 48);
+  assert.ok((await readFile(path.join(root, assembly.units[0].sourceSnapshot.path))).equals(sourceBytes));
+  const normalized = await sharp(await readFile(path.join(
+    root, assembly.providerKeyNormalization.normalizedSnapshot.path
+  ))).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const final = await sharp(await readFile(path.join(root, assembly.artifacts[0].path)))
+    .ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const rgba = (data, imageWidth, x, y) => [...data.subarray(
+    (y * imageWidth + x) * 4, (y * imageWidth + x) * 4 + 4
+  )];
+  assert.deepEqual(rgba(normalized.data, width, 64, 96), [255, 0, 255, 0]);
+  assert.deepEqual(rgba(final.data, unit.targetRect.width, 32, 48), [0, 0, 0, 0]);
+  assert.deepEqual(rgba(final.data, unit.targetRect.width, 40, 48), [120, 90, 40, 255]);
+  const treeBeforeReplay = await hashTree(path.join(root, 'generated'));
+  await verifyPersistedWaveAUnitAssembly(imported.result, { root, forgeRoot: root });
+  await verifyPersistedWaveAUnitAssembly(imported.result, { root, forgeRoot: root });
+  await verifyPendingGenerationForWaveApproval({
+    assetId: pack.job.assetId, generationId: imported.result.id
+  }, { root, forgeRoot: root });
+  assert.equal(await hashTree(path.join(root, 'generated')), treeBeforeReplay);
+  const tampered = structuredClone(imported.result);
+  tampered.unitAssemblyV2.providerKeyNormalization.plan.assetDefinitionSha256 = '0'.repeat(64);
+  await assert.rejects(
+    verifyPersistedWaveAUnitAssembly(tampered, { root, forgeRoot: root }),
+    /provider-key normalization evidence|exact source contract/
+  );
+});
+
 test('single-unit provider-key normalization rejects unsupported scopes before job-pack writes', async (t) => {
   const root = await fixtureRoot(t);
   const generatedBefore = await hashTree(path.join(root, 'generated'));

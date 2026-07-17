@@ -3,6 +3,8 @@ import test from 'node:test';
 import sharp from 'sharp';
 import {
   PROVIDER_KEY_NORMALIZE_CONFIG_SHA256,
+  PROVIDER_KEY_REPAIR_CONFIG_SHA256,
+  PROVIDER_KEY_REPAIR_VERSION,
   normalizeProviderKey,
   providerKeyNormalizationPlanFor
 } from '../src/v2/provider-key-normalize.mjs';
@@ -19,6 +21,16 @@ const SINGLE_PLAN = providerKeyNormalizationPlanFor({ category: 'prop' }, 'per-u
     sourceRequired: true,
     targetRect: { x: 0, y: 0, width: 64, height: 96 }
   }],
+  artifactContracts: [{ role: 'primary', outputSize: { width: 64, height: 96 } }]
+});
+const REPAIR_ASSET = { id: 'prop.fixture', category: 'prop', artDirection: {
+  subjectForm: 'gray fixture', materials: ['stone'], dominantColors: ['gray'],
+  accentColors: ['amber'], shapeLanguage: 'compact', frameContent: [{ frameId: 'primary' }]
+} };
+const REPAIR_PLAN = providerKeyNormalizationPlanFor(REPAIR_ASSET, 'per-unit', {
+  version: PROVIDER_KEY_REPAIR_VERSION,
+  generationUnits: [{ artifactRole: 'primary', expectation: 'expected-nonempty', sourceRequired: true,
+    targetRect: { x: 0, y: 0, width: 64, height: 96 } }],
   artifactContracts: [{ role: 'primary', outputSize: { width: 64, height: 96 } }]
 });
 
@@ -86,6 +98,71 @@ test('provider-key-normalize-v1 admits only exact character, shared monolithic, 
       /exact single-unit/
     );
   }
+});
+
+test('provider-key-normalize-v2 clears enclosed key and two-pixel spill while preserving subject bytes', async () => {
+  assert.equal(REPAIR_PLAN.configSha256, PROVIDER_KEY_REPAIR_CONFIG_SHA256);
+  assert.equal(REPAIR_PLAN.subjectMagentaPolicy, 'forbidden-by-bound-art-direction');
+  const key = [245, 6, 233, 255];
+  const image = await pngFixture({ key, mutate(raw, width) {
+    for (let y = 47; y < 53; y += 1) for (let x = 47; x < 53; x += 1) raw.set(key, (y * width + x) * 4);
+    for (let y = 47; y < 53; y += 1) {
+      raw.set([163, 9, 158, 255], (y * width + 46) * 4);
+      raw.set([124, 4, 139, 255], (y * width + 45) * 4);
+    }
+    for (let y = 30; y < 40; y += 1) {
+      raw.set([163, 9, 158, 255], (y * width + 20) * 4);
+      raw.set([124, 4, 139, 255], (y * width + 21) * 4);
+    }
+  } });
+  const normalized = await normalizeProviderKey(image, REPAIR_PLAN);
+  assert.equal(normalized.evidence.version, PROVIDER_KEY_REPAIR_VERSION);
+  assert.equal(normalized.evidence.configSha256, PROVIDER_KEY_REPAIR_CONFIG_SHA256);
+  assert.match(normalized.evidence.algorithm, /outer-holes-narrow-spill/);
+  assert.deepEqual(pixel(normalized.normalizedRaw, 100, 50, 50), [255, 0, 255, 0]);
+  assert.deepEqual(pixel(normalized.normalizedRaw, 100, 45, 50), [255, 0, 255, 0]);
+  assert.deepEqual(pixel(normalized.normalizedRaw, 100, 21, 35), [255, 0, 255, 0]);
+  assert.deepEqual(pixel(normalized.normalizedRaw, 100, 30, 35), [0x55, 0x55, 0x55, 255]);
+  assert.equal(normalized.evidence.eligibility.disconnectedEligiblePixelCount, 36);
+  assert.equal(normalized.evidence.eligibility.spillPixelCount, 32);
+  assert.equal(normalized.evidence.eligibility.changedPixelCount,
+    normalized.evidence.eligibility.maskPixelCount);
+  assert.equal(normalized.evidence.outsideMaskPreserved, true);
+  assert.equal(normalized.evidence.postBorder.detectedKeyColor, '#FF00FF');
+});
+
+test('provider-key-normalize-v2 rejects real magenta, excessive spill, policy tamper, and legacy drift', async () => {
+  await assert.rejects(normalizeProviderKey(await pngFixture({ mutate(raw, width) {
+    raw.set([163, 9, 158, 255], (50 * width + 50) * 4);
+  } }), REPAIR_PLAN), /real or non-narrow subject magenta/);
+  await assert.rejects(normalizeProviderKey(await pngFixture({ mutate(raw, width) {
+    for (let y = 20; y < 80; y += 1) for (let x = 20; x < 80; x += 1) {
+      if (x < 22 || x >= 78 || y < 22 || y >= 78) raw.set([163, 9, 158, 255], (y * width + x) * 4);
+    }
+  } }), REPAIR_PLAN), /source budget/);
+  const image = await pngFixture();
+  for (const [field, value] of [
+    ['configSha256', '0'.repeat(64)], ['schemaVersion', 99],
+    ['originKind', 'provider-original'], ['sourceFormat', 'jpeg'],
+    ['providerInvocationEvidence', 'forged-receipt']
+  ]) await assert.rejects(normalizeProviderKey(image, {
+    ...REPAIR_PLAN, [field]: value
+  }), /exact plan/);
+  await assert.rejects(normalizeProviderKey(image, {
+    ...SINGLE_PLAN, subjectMagentaPolicy: 'forbidden-by-bound-art-direction'
+  }), /exact plan/);
+  for (const [field, value] of [
+    ['dominantColors', ['deep violet']], ['dominantColors', ['soft lavender']],
+    ['accentColors', ['pale lavender']], ['distinguishingFeatures', ['bright magenta jewel']],
+    ['composition', 'pink subject stripe'], ['groundContact', 'purple subject foot']
+  ]) assert.throws(() => providerKeyNormalizationPlanFor({
+    ...REPAIR_ASSET, artDirection: { ...REPAIR_ASSET.artDirection, [field]: value }
+  }, 'per-unit', {
+    version: PROVIDER_KEY_REPAIR_VERSION,
+    generationUnits: [{ artifactRole: 'primary', expectation: 'expected-nonempty', sourceRequired: true,
+      targetRect: { x: 0, y: 0, width: 64, height: 96 } }],
+    artifactContracts: [{ role: 'primary', outputSize: { width: 64, height: 96 } }]
+  }), /no subject magenta/);
 });
 
 test('single-unit plan normalizes the three observed safe shifted keys', async () => {

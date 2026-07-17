@@ -381,6 +381,23 @@
     },
     {
       "if": {
+        "properties": {
+          "providerKeyNormalizationPlan": {
+            "type": "object", "properties": { "version": { "const": "provider-key-normalize-v2" } },
+            "required": ["version"]
+          }
+        },
+        "required": ["providerKeyNormalizationPlan"]
+      },
+      "then": {
+        "properties": {
+          "category": { "enum": ["overlay", "structure", "prop"] },
+          "generationMode": { "const": "per-unit" }
+        }
+      }
+    },
+    {
+      "if": {
         "properties": { "characterAtlasLayoutPlan": {} },
         "required": ["characterAtlasLayoutPlan"]
       },
@@ -504,8 +521,13 @@
       "properties": {
         "schemaVersion": { "const": 1 },
         "originKind": { "const": "deterministic-derived" },
-        "version": { "const": "provider-key-normalize-v1" },
-        "algorithm": { "const": "provider-key-normalize/outer-connected-exact-magenta-v1" },
+        "version": { "enum": ["provider-key-normalize-v1", "provider-key-normalize-v2"] },
+        "algorithm": {
+          "enum": [
+            "provider-key-normalize/outer-connected-exact-magenta-v1",
+            "provider-key-normalize/outer-holes-narrow-spill-exact-magenta-v2"
+          ]
+        },
         "configSha256": { "$ref": "#/definitions/sha256" },
         "sourceKinds": {
           "oneOf": [
@@ -515,8 +537,30 @@
           ]
         },
         "sourceFormat": { "const": "png" },
-        "providerInvocationEvidence": { "const": "unverified-no-provider-receipt" }
-      }
+        "providerInvocationEvidence": { "const": "unverified-no-provider-receipt" },
+        "subjectMagentaPolicy": { "const": "forbidden-by-bound-art-direction" },
+        "assetDefinitionSha256": { "$ref": "#/definitions/sha256" }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "version": { "const": "provider-key-normalize-v1" },
+            "algorithm": { "const": "provider-key-normalize/outer-connected-exact-magenta-v1" }
+          },
+          "not": { "anyOf": [
+            { "properties": { "subjectMagentaPolicy": {} }, "required": ["subjectMagentaPolicy"] },
+            { "properties": { "assetDefinitionSha256": {} }, "required": ["assetDefinitionSha256"] }
+          ] }
+        },
+        {
+          "required": ["subjectMagentaPolicy", "assetDefinitionSha256"],
+          "properties": {
+            "version": { "const": "provider-key-normalize-v2" },
+            "algorithm": { "const": "provider-key-normalize/outer-holes-narrow-spill-exact-magenta-v2" },
+            "sourceKinds": { "const": ["single-unit"] }
+          }
+        }
+      ]
     },
     "terrainCompositionPlan": {
       "type": "object",

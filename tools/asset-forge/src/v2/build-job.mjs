@@ -13,6 +13,7 @@ import {
 import { terrainCompositionPlanFor } from './compose-terrain-atlas.mjs';
 import {
   PROVIDER_KEY_NORMALIZE_VERSION,
+  PROVIDER_KEY_REPAIR_VERSION,
   providerKeyNormalizationPlanFor
 } from './provider-key-normalize.mjs';
 import {
@@ -335,7 +336,9 @@ export function assetSpecificPrompt(asset, {
     'Generation background key: exact flat #FF00FF; import tolerance 0; hard-alpha threshold 127.',
     ...(providerKeyNormalizationPlan ? [
       `Explicit opt-in pre-transform: ${providerKeyNormalizationPlan.version}; config SHA-256 ${providerKeyNormalizationPlan.configSha256}.`,
-      'This does not relax the requested key. It preserves the provider-original PNG and creates a separately hashed deterministic full-size canonical PNG only after strict outer-connected key checks.'
+      providerKeyNormalizationPlan.version === PROVIDER_KEY_REPAIR_VERSION
+        ? 'The bound art direction forbids subject magenta. The immutable provider-original yields a hashed snapshot that alpha-clears only bounded outer/enclosed key and adjacent narrow spill.'
+        : 'This does not relax the requested key. It preserves the provider-original PNG and creates a separately hashed deterministic full-size canonical PNG only after strict outer-connected key checks.'
     ] : []),
     '',
     'The exact AssetDefinition below is authoritative. It includes the sheet/grid, placement, collision,',
@@ -401,8 +404,9 @@ export async function buildWaveAJob({
   if (!GENERATION_MODES_V2.includes(generationMode)) {
     throw new Error(`Unsupported Wave A generation mode: ${generationMode}`);
   }
-  if (providerKeyNormalization !== null
-    && providerKeyNormalization !== PROVIDER_KEY_NORMALIZE_VERSION) {
+  if (providerKeyNormalization !== null && ![
+    PROVIDER_KEY_NORMALIZE_VERSION, PROVIDER_KEY_REPAIR_VERSION
+  ].includes(providerKeyNormalization)) {
     throw new Error(`Unsupported provider key normalization policy: ${providerKeyNormalization}`);
   }
   if (characterAtlasLayout !== null
@@ -427,9 +431,9 @@ export async function buildWaveAJob({
     ? terrainCompositionPlanFor(asset)
     : null;
   const providerKeyNormalizationPlan = providerKeyNormalization
-    ? providerKeyNormalizationPlanFor(asset, generationMode, {
+      ? providerKeyNormalizationPlanFor(asset, generationMode, {
         generationUnits: enumerateWaveAGenerationUnits(asset),
-        artifactContracts: artifactContractsFor(asset)
+        artifactContracts: artifactContractsFor(asset), version: providerKeyNormalization
       })
     : null;
   const characterAtlasLayoutPlan = characterAtlasLayout

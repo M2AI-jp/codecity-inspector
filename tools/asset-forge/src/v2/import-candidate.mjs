@@ -36,7 +36,6 @@ import {
   terrainCompositionPlanFor
 } from './compose-terrain-atlas.mjs';
 import {
-  PROVIDER_KEY_NORMALIZE_STEP,
   normalizeProviderKey,
   providerKeyNormalizationSourceKindForJob
 } from './provider-key-normalize.mjs';
@@ -72,10 +71,6 @@ const AUTO_BORDER_TRANSFORM_STEPS = Object.freeze([
   'nearest-downscale',
   'hard-alpha-zero-hidden-rgb'
 ]);
-const PROVIDER_KEY_NORMALIZE_TRANSFORM_STEPS = Object.freeze([
-  PROVIDER_KEY_NORMALIZE_STEP,
-  ...AUTO_BORDER_TRANSFORM_STEPS
-]);
 const LEGACY_ASSEMBLY_ALGORITHM = 'crop-key-nearest-hard-alpha/raw-copy-v2';
 const AUTO_BORDER_ASSEMBLY_ALGORITHMS = Object.freeze({
   'auto-border-soft-matte-v1': 'auto-border-crop-soft-matte-nearest-hard-alpha/raw-copy-v3',
@@ -84,8 +79,6 @@ const AUTO_BORDER_ASSEMBLY_ALGORITHMS = Object.freeze({
   'auto-border-soft-matte-v3':
     'auto-border-connected-fringe-soft-matte-nearest-hard-alpha/raw-copy-v5'
 });
-const PROVIDER_KEY_NORMALIZE_ASSEMBLY_ALGORITHM =
-  'provider-key-normalize-v1/auto-border-connected-fringe-soft-matte-nearest-hard-alpha/raw-copy-v1';
 const ISSUED_SOURCE_BUDGETS = new WeakSet();
 
 function canonicalBackgroundRemoval(job) {
@@ -145,13 +138,13 @@ function providerKeyNormalizationLedger(normalization, normalizedPath) {
 }
 
 function transformStepsFor(job) {
-  if (providerKeyNormalizationPlan(job)) return PROVIDER_KEY_NORMALIZE_TRANSFORM_STEPS;
+  if (providerKeyNormalizationPlan(job)) return [providerKeyNormalizationPlan(job).version, ...AUTO_BORDER_TRANSFORM_STEPS];
   return canonicalBackgroundRemoval(job) ? AUTO_BORDER_TRANSFORM_STEPS : LEGACY_TRANSFORM_STEPS;
 }
 
 function assemblyAlgorithmFor(job) {
   if (job.generationMode === 'terrain-composed-atlas') return TERRAIN_COMPOSER_ALGORITHM;
-  if (providerKeyNormalizationPlan(job)) return PROVIDER_KEY_NORMALIZE_ASSEMBLY_ALGORITHM;
+  if (providerKeyNormalizationPlan(job)) return `${providerKeyNormalizationPlan(job).version}/auto-border-connected-fringe-soft-matte-nearest-hard-alpha/raw-copy-v1`;
   const method = canonicalBackgroundRemoval(job)?.method;
   return method ? AUTO_BORDER_ASSEMBLY_ALGORITHMS[method] : LEGACY_ASSEMBLY_ALGORITHM;
 }
