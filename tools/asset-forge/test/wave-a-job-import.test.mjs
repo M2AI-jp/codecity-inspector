@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { access, cp, mkdir, mkdtemp, readFile, rename, rm, symlink, writeFile } from 'node:fs/promises';
+import { access, cp, mkdir, mkdtemp, readFile, readdir, rename, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import sharp from 'sharp';
@@ -330,6 +330,49 @@ async function monolithicSourcesForJob(root, job, { scale = 2, prefix = 'atlas' 
   }));
 }
 
+async function monolithicBuildingSourcesForJob(root, job, {
+  prefix = 'building-atlas', background = '#fa07e6ff'
+} = {}) {
+  const required = job.generationUnits.filter(({ sourceRequired }) => sourceRequired);
+  const scale = 2;
+  const padding = 8;
+  const gap = 8;
+  let left = padding;
+  const placements = [];
+  for (const [index, unit] of required.entries()) {
+    const width = unit.targetRect.width * scale;
+    const height = unit.targetRect.height * scale;
+    placements.push({
+      input: await providerSource(width, height, {
+        r: 80 + index * 40, g: 90 + index * 20, b: 45 + index * 10
+      }, { background, inset: 12 }),
+      left,
+      top: padding,
+      unit,
+      cropRect: { x: left, y: padding, width, height }
+    });
+    left += width + gap;
+  }
+  const bytes = await sharp({
+    create: {
+      width: left - gap + padding,
+      height: Math.max(...placements.map(({ cropRect }) => cropRect.height)) + padding * 2,
+      channels: 4,
+      background
+    }
+  }).composite(placements.map(({ input, left: x, top }) => ({ input, left: x, top })))
+    .png({ adaptiveFiltering: false, palette: false }).toBuffer();
+  const sourceOriginal = await writeInput(root, `${prefix}.png`, bytes);
+  return {
+    bytes,
+    unitSources: placements.map(({ unit, cropRect }) => ({
+      unitId: unit.unitId,
+      sourceOriginal,
+      cropRect
+    }))
+  };
+}
+
 async function monolithicCharacterSourcesForJob(root, job, {
   scale = 2,
   prefix = 'character-atlas',
@@ -574,7 +617,7 @@ test('Wave A job packs bind 109 definitions to 771 generation units and honest p
       assetId: 'character.player', generationMode: CHARACTER_DIRECTION_STRIP_MODE,
       providerKeyNormalization: 'provider-key-normalize-v1'
     }, { forgeRoot: root }),
-    /only for character monolithic-atlas/
+    /requires character or non-terrain monolithic-atlas/
   );
   await assert.rejects(
     () => main(['make-job-v2', '--asset', 'character.player', '--mode', 'unsupported']),
@@ -1499,6 +1542,62 @@ test('explicit provider-key-normalize-v1 preserves raw character PNGs and deep-r
   );
 });
 
+test('shared monolithic provider-key normalization preserves one raw source and deep-replays', async (t) => {
+  const root = await fixtureRoot(t);
+  const pack = await makeWaveAJob({
+    assetId: 'building.dojo',
+    generationMode: 'monolithic-atlas',
+    providerKeyNormalization: 'provider-key-normalize-v1',
+    seed: 'shared-monolithic-normalized-key'
+  }, { root, forgeRoot: root });
+  assert.deepEqual(pack.job.providerKeyNormalizationPlan.sourceKinds, ['monolithic-atlas']);
+  const source = await monolithicBuildingSourcesForJob(root, pack.job);
+  const duplicatePath = await writeInput(root, 'building-atlas-duplicate.png', source.bytes);
+  const mixed = structuredClone(source.unitSources);
+  mixed[1].sourceOriginal = duplicatePath;
+  const generatedBefore = await hashTree(path.join(root, 'generated'));
+  const ledgerPath = path.join(root, 'data', 'local', 'generations.json');
+  const ledgerBefore = await readFile(ledgerPath);
+  await assert.rejects(() => importWaveACandidate({
+    assetId: pack.job.assetId,
+    jobPackPath: pack.result.jobPackPath,
+    unitSources: mixed,
+    identityBindingPath: null
+  }, { root, forgeRoot: root }), /requires one exact shared source path/);
+  assert.equal(await hashTree(path.join(root, 'generated')), generatedBefore);
+  assert.ok((await readFile(ledgerPath)).equals(ledgerBefore));
+
+  const imported = await importWaveACandidate({
+    assetId: pack.job.assetId,
+    jobPackPath: pack.result.jobPackPath,
+    unitSources: source.unitSources,
+    identityBindingPath: null
+  }, { root, forgeRoot: root });
+  const assembly = imported.result.unitAssemblyV2;
+  const evidence = assembly.providerKeyNormalization;
+  assert.equal(evidence.sourceKind, 'monolithic-atlas');
+  assert.deepEqual(evidence.plan.sourceKinds, ['monolithic-atlas']);
+  assert.equal(evidence.sourceOriginal.sha256, sha256(source.bytes));
+  assert.equal(evidence.normalizedSnapshot.derivedFromSha256, sha256(source.bytes));
+  assert.equal(evidence.outsideMaskPreserved, true);
+  assert.equal(new Set(assembly.units.map(({ sourceSnapshot }) => sourceSnapshot.path)).size, 1);
+  assert.equal(new Set(assembly.units.map(({ sourceOriginal }) => sourceOriginal.sha256)).size, 1);
+  assert.ok((await readFile(path.join(root, assembly.units[0].sourceSnapshot.path)))
+    .equals(source.bytes));
+  assert.ok(assembly.units.every(({ transformSteps }) =>
+    transformSteps[0] === 'provider-key-normalize-v1'));
+  const normalizedDirectory = path.dirname(path.join(root, evidence.normalizedSnapshot.path));
+  assert.equal((await readdir(normalizedDirectory))
+    .filter((name) => name.endsWith('.provider-key-normalized.png')).length, 1);
+  await assert.doesNotReject(() => verifyPersistedWaveAUnitAssembly(imported.result, {
+    root, forgeRoot: root
+  }));
+  await assert.doesNotReject(() => verifyPendingGenerationForWaveApproval({
+    assetId: pack.job.assetId,
+    generationId: imported.result.id
+  }, { root, forgeRoot: root }));
+});
+
 test('single-unit provider-key normalization preserves raw PNG and deep-replays pending/V3 evidence', async (t) => {
   const root = await fixtureRoot(t);
   const pack = await makeWaveAJob({
@@ -1574,13 +1673,12 @@ test('single-unit provider-key normalization rejects unsupported scopes before j
     { assetId: 'character.player', generationMode: CHARACTER_DIRECTION_STRIP_MODE },
     { assetId: 'building.inn', generationMode: 'per-unit' },
     { assetId: 'terrain.grass', generationMode: 'per-unit' },
-    { assetId: 'ui.footstep', generationMode: 'per-unit' },
-    { assetId: 'prop.lamp', generationMode: 'monolithic-atlas' }
+    { assetId: 'ui.footstep', generationMode: 'per-unit' }
   ]) {
     await assert.rejects(() => writeWaveAJobPack({
       ...request,
       providerKeyNormalization: 'provider-key-normalize-v1'
-    }, { root, forgeRoot: root }), /exact single-unit non-character per-unit/);
+    }, { root, forgeRoot: root }), /exact single-unit non-character per-unit scope/);
   }
   assert.equal(await hashTree(path.join(root, 'generated')), generatedBefore);
   assert.ok((await readFile(path.join(root, 'data', 'local', 'generations.json')))
@@ -1667,7 +1765,7 @@ test('provider-key normalization rejects unsafe, alpha, legacy, per-unit, and te
       generationMode: 'per-unit',
       providerKeyNormalization: 'provider-key-normalize-v1'
     }, { forgeRoot: root }),
-    /only for character monolithic-atlas/
+    /requires character or non-terrain monolithic-atlas/
   );
   await assert.rejects(
     () => buildWaveAJob({
@@ -1675,7 +1773,7 @@ test('provider-key normalization rejects unsafe, alpha, legacy, per-unit, and te
       generationMode: 'terrain-composed-atlas',
       providerKeyNormalization: 'provider-key-normalize-v1'
     }, { forgeRoot: root }),
-    /only for character monolithic-atlas/
+    /requires character or non-terrain monolithic-atlas/
   );
 });
 

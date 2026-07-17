@@ -8,6 +8,10 @@ import {
 } from '../src/v2/provider-key-normalize.mjs';
 
 const PLAN = providerKeyNormalizationPlanFor({ category: 'character' }, 'monolithic-atlas');
+const MONOLITHIC_PLAN = providerKeyNormalizationPlanFor(
+  { category: 'building' },
+  'monolithic-atlas'
+);
 const SINGLE_PLAN = providerKeyNormalizationPlanFor({ category: 'prop' }, 'per-unit', {
   generationUnits: [{
     artifactRole: 'primary',
@@ -48,28 +52,32 @@ function pixel(raw, width, x, y) {
   return [...raw.subarray((y * width + x) * 4, (y * width + x) * 4 + 4)];
 }
 
-test('provider-key-normalize-v1 keeps character plan exact and admits only exact single-unit scope', () => {
+test('provider-key-normalize-v1 admits only exact character, shared monolithic, and single-unit scopes', () => {
   assert.equal(
     PROVIDER_KEY_NORMALIZE_CONFIG_SHA256,
     '2c89f2fc52b643cdda6f0496210f6d03d8b3b8b7b5b3fe62d04567dd839f6d10'
   );
   assert.equal(PLAN.configSha256, PROVIDER_KEY_NORMALIZE_CONFIG_SHA256);
+  assert.deepEqual(MONOLITHIC_PLAN.sourceKinds, ['monolithic-atlas']);
   assert.deepEqual(SINGLE_PLAN.sourceKinds, ['single-unit']);
   assert.equal(SINGLE_PLAN.configSha256, PROVIDER_KEY_NORMALIZE_CONFIG_SHA256);
   assert.throws(
     () => providerKeyNormalizationPlanFor({ category: 'character' }, 'per-unit'),
-    /only for character monolithic-atlas/
+    /requires character or non-terrain monolithic-atlas/
   );
   assert.throws(
     () => providerKeyNormalizationPlanFor({ category: 'terrain' }, 'monolithic-atlas'),
-    /only for character monolithic-atlas/
+    /requires character or non-terrain monolithic-atlas/
+  );
+  assert.throws(
+    () => providerKeyNormalizationPlanFor({ category: 'unknown' }, 'monolithic-atlas'),
+    /requires character or non-terrain monolithic-atlas/
   );
   for (const [asset, mode, generationUnits, artifactContracts] of [
     [{ category: 'building' }, 'per-unit', [{ sourceRequired: true }], [{ role: 'primary' }]],
     [{ category: 'terrain' }, 'per-unit', [{ sourceRequired: true }], [{ role: 'primary' }]],
     [{ category: 'ui', sprites: { grid: { columns: 1, rows: 1 } } }, 'per-unit',
       SINGLE_PLAN, [{ role: 'primary' }]],
-    [{ category: 'prop' }, 'monolithic-atlas', [{ sourceRequired: true }], [{ role: 'primary' }]],
     [{ category: 'prop' }, 'per-unit', [{ sourceRequired: true }, { sourceRequired: true }],
       [{ role: 'primary' }]]
   ]) {
@@ -173,7 +181,7 @@ test('only four-neighbor outer-connected eligible pixels change and outside-mask
       }
     }
   });
-  const normalized = await normalizeProviderKey(image, PLAN);
+  const normalized = await normalizeProviderKey(image, MONOLITHIC_PLAN);
   assert.deepEqual(pixel(normalized.normalizedRaw, 100, 20, 20), [255, 0, 255, 255]);
   assert.deepEqual(pixel(normalized.normalizedRaw, 100, 21, 21), [245, 6, 233, 255]);
   assert.equal(normalized.evidence.eligibility.disconnectedEligiblePixelCount, 10);
@@ -192,7 +200,7 @@ test('only four-neighbor outer-connected eligible pixels change and outside-mask
           raw.set([245, 6, 233, 255], (50 * width + x) * 4);
         }
       }
-    }), PLAN),
+    }), MONOLITHIC_PLAN),
     /disconnected eligible pixels exceed 1 permille/
   );
 });

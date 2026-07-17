@@ -155,13 +155,29 @@
                   "generationMode": { "const": "monolithic-atlas" },
                   "providerKeyNormalization": {
                     "type": "object",
-                    "properties": { "sourceKind": { "const": "monolithic-atlas" } }
+                    "properties": {
+                      "sourceKind": { "const": "monolithic-atlas" },
+                      "plan": { "type": "object", "properties": { "sourceKinds": { "const": ["identity-master", "monolithic-atlas"] } } }
+                    }
                   },
                   "identityMaster": {
                     "type": "object",
                     "properties": { "providerKeyNormalization": {} },
                     "required": ["providerKeyNormalization"]
                   }
+                }
+              },
+              {
+                "properties": {
+                  "generationMode": { "const": "monolithic-atlas" },
+                  "providerKeyNormalization": {
+                    "type": "object",
+                    "properties": {
+                      "sourceKind": { "const": "monolithic-atlas" },
+                      "plan": { "type": "object", "properties": { "sourceKinds": { "const": ["monolithic-atlas"] } } }
+                    }
+                  },
+                  "identityMaster": { "type": "null" }
                 }
               },
               {

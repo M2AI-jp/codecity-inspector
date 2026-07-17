@@ -3269,6 +3269,11 @@ async function importWaveACandidateLocked({
     ? await preflightTerrainInputs(job, terrainComposition)
     : await preflightUnitSources(job, unitSources);
   const { cache: sourceCache, sourceBudget } = preflight;
+  if (providerKeyNormalizationPlan(job)
+    && job.generationMode === 'monolithic-atlas'
+    && sourceCache.size !== 1) {
+    throw new Error('Provider-key normalized monolithic-atlas requires one exact shared source path');
+  }
   let identityAuthority = null;
   if (job.category === 'character') {
     if (!identityBindingPath) {

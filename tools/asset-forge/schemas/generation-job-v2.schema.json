@@ -313,6 +313,17 @@
               },
               {
                 "properties": {
+                  "category": { "enum": ["building", "overlay", "structure", "interior", "prop", "ui", "effect"] },
+                  "generationMode": { "const": "monolithic-atlas" },
+                  "providerKeyNormalizationPlan": {
+                    "type": "object",
+                    "properties": { "sourceKinds": { "const": ["monolithic-atlas"] } }
+                  },
+                  "identityMasterPlan": { "type": "null" }
+                }
+              },
+              {
+                "properties": {
                   "category": { "enum": ["overlay", "structure", "interior", "prop", "ui", "effect"] },
                   "generationMode": { "const": "per-unit" },
                   "providerKeyNormalizationPlan": {
@@ -499,6 +510,7 @@
         "sourceKinds": {
           "oneOf": [
             { "const": ["identity-master", "monolithic-atlas"] },
+            { "const": ["monolithic-atlas"] },
             { "const": ["single-unit"] }
           ]
         },

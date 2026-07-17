@@ -242,9 +242,14 @@ export function providerKeyNormalizationPlanFor(asset, generationMode, {
   if (asset?.category === 'character' && generationMode === 'monolithic-atlas') {
     return normalizationPlan(['identity-master', 'monolithic-atlas']);
   }
+  if (['building', 'overlay', 'structure', 'interior', 'prop', 'ui', 'effect']
+    .includes(asset?.category)
+    && generationMode === 'monolithic-atlas') {
+    return normalizationPlan(['monolithic-atlas']);
+  }
   if (!exactSingleUnitScope(asset, generationMode, generationUnits, artifactContracts)) {
     throw new Error(
-      'provider-key-normalize-v1 is available only for character monolithic-atlas jobs or exact single-unit non-character per-unit jobs'
+      'provider-key-normalize-v1 requires character or non-terrain monolithic-atlas, or exact single-unit non-character per-unit scope'
     );
   }
   return normalizationPlan(['single-unit']);
@@ -263,12 +268,13 @@ export function providerKeyNormalizationSourceKindForJob(job) {
   if (canonicalJson(plan) !== canonicalJson(expected)) {
     throw new Error('provider-key-normalize-v1 job plan escaped its exact source contract');
   }
-  return job.category === 'character' ? 'monolithic-atlas' : 'single-unit';
+  return job.generationMode === 'monolithic-atlas' ? 'monolithic-atlas' : 'single-unit';
 }
 
 export async function normalizeProviderKey(image, plan) {
   const exactPlan = [
     normalizationPlan(['identity-master', 'monolithic-atlas']),
+    normalizationPlan(['monolithic-atlas']),
     normalizationPlan(['single-unit'])
   ].some((candidate) => canonicalJson(plan) === canonicalJson(candidate));
   if (!image?.buffer || image.sourceFormat !== 'png' || !image.metadata
