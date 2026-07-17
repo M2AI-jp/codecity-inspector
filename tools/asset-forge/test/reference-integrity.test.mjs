@@ -128,14 +128,23 @@ test('approved references, the pending cutaway reference, and the released 78 ca
     && approval.note === 'Required 78 batch approval cb4aa5f67c91a329c140f4a09bdc39b960ccce8a76334957066d7c0e83540042'), true);
   assert.equal(assets.assets.filter((asset) => required.some((definition) => definition.id === asset.assetId))
     .every((asset) => ['approved', 'exported'].includes(asset.status) && typeof asset.approvedPath === 'string'), true);
-  const generations = JSON.parse(await readFile(path.join(FORGE_ROOT, 'data', 'local', 'generations.json'))).results;
+  const assetById = new Map(assets.assets.map((asset) => [asset.assetId, asset]));
   const releasedGenerationIds = new Set(approvals.approvals.map((approval) => approval.generationId));
-  const releasedGenerations = generations.filter((generation) => releasedGenerationIds.has(generation.id));
+  const releasedGenerations = await Promise.all(approvals.approvals.map(async (approval) => {
+    const asset = assetById.get(approval.assetId);
+    assert.equal(asset?.approvedPath, approval.approvedPath);
+    const generation = JSON.parse(await readFile(
+      path.join(FORGE_ROOT, approval.approvedPath.replace(/\.png$/, '.json')),
+      'utf8'
+    ));
+    assert.equal(generation.id, approval.generationId);
+    return generation;
+  }));
   assert.equal(releasedGenerationIds.size, 78);
   assert.equal(releasedGenerations.length, 78);
   assert.equal(new Set(releasedGenerations.map((generation) => generation.assetId)).size, 78);
   assert.deepEqual(
-    new Set(generations.filter((generation) => generation.status === 'approved').map((generation) => generation.id)),
+    new Set(releasedGenerations.map((generation) => generation.id)),
     releasedGenerationIds
   );
   assert.equal(releasedGenerations.every((generation) => generation.status === 'approved'

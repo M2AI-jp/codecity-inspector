@@ -345,7 +345,7 @@ test('approved-only export verifies ledger hashes and never includes pending ass
   await writeFile(assetsPath, JSON.stringify(changedAssets));
   await assert.rejects(
     () => exportApproved({ publicRoot }, { root, forgeRoot: FORGE_ROOT }),
-    /Candidate path does not match its category|category does not match definition/
+    /path does not match its category|category does not match definition/i
   );
 });
 

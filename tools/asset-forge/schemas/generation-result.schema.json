@@ -953,12 +953,12 @@
             "backgroundPath", "backgroundSha256"
           ],
           "properties": {
-            "path": { "type": "string", "pattern": "^tmp/imagegen/[a-z0-9/_-]+\\.png$" },
+            "path": { "type": "string", "pattern": "^(?:tmp/imagegen|review/production-evidence/legacy-v2)/[a-z0-9/_-]+\\.png$" },
             "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
             "width": { "type": "integer", "minimum": 1 },
             "height": { "type": "integer", "minimum": 1 },
             "backgroundAssetId": { "const": "field.grass" },
-            "backgroundPath": { "type": "string", "pattern": "^tmp/imagegen/[a-z0-9/_-]+\\.png$" },
+            "backgroundPath": { "type": "string", "pattern": "^(?:tmp/imagegen|review/production-evidence/legacy-v2)/[a-z0-9/_-]+\\.png$" },
             "backgroundSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
           }
         },

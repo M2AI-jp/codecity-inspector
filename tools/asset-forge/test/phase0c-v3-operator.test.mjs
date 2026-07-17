@@ -270,11 +270,16 @@ test('default verification fails closed on stale reference authorization or a le
   };
   await writeFile(authorizationPath, canonicalJson(authorization));
 
-  const sourceGenerations = JSON.parse(await readFile(
-    path.join(FORGE_ROOT, 'data', 'local', 'generations.json'), 'utf8'
+  const trackedAssets = JSON.parse(await readFile(
+    path.join(FORGE_ROOT, 'data', 'manifests', 'assets.json'), 'utf8'
   ));
-  const legacy = sourceGenerations.results.find(({ assetId }) => assetId === 'character.player');
-  assert.ok(legacy);
+  const player = trackedAssets.assets.find(({ assetId }) => assetId === 'character.player');
+  assert.ok(player?.approvedPath);
+  const legacy = JSON.parse(await readFile(
+    path.join(FORGE_ROOT, player.approvedPath.replace(/\.png$/, '.json')), 'utf8'
+  ));
+  assert.equal(legacy.assetId, 'character.player');
+  assert.equal(legacy.requiredSetId, undefined);
   await mkdir(path.join(root, 'data', 'local'), { recursive: true });
   await writeFile(path.join(root, 'data', 'local', 'generations.json'), canonicalJson({
     schemaVersion: 1, tracked: false, results: [legacy]

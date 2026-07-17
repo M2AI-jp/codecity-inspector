@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { cp, mkdtemp as fsMkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp as fsMkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import sharp from 'sharp';
@@ -319,6 +319,7 @@ test('promotion preflight rejects tampered generation prompt and raw source prov
   await cp(path.join(FORGE_ROOT, 'prompts'), path.join(root, 'prompts'), { recursive: true });
   await cp(path.join(FORGE_ROOT, 'references'), path.join(root, 'references'), { recursive: true });
   await cp(path.join(FORGE_ROOT, 'review', 'prompts'), path.join(root, 'review', 'prompts'), { recursive: true });
+  await mkdir(path.join(root, 'data', 'local'), { recursive: true });
   await writeFile(path.join(root, 'data', 'local', 'generations.json'), JSON.stringify({
     schemaVersion: 1,
     tracked: false,

@@ -65,10 +65,10 @@
     },
     "compositeMask": {
       "backgroundAssetId": "field.grass",
-      "backgroundPath": "tmp/imagegen/wave4-ground-surfaces/prepared/field_grass.png",
+      "backgroundPath": "review/production-evidence/legacy-v2/wave1b-fields/field_grass_composite_background.png",
       "backgroundSha256": "8181c28a71f221650ca0240b8183143a3a558ddca062b3679264788b836fd2f8",
       "height": 64,
-      "path": "tmp/imagegen/wave1b-fields/masks/field_road_edge.png",
+      "path": "review/production-evidence/legacy-v2/wave1b-fields/field_road_edge_mask.png",
       "sha256": "e09a00aeedd96baa61371d1edc50b188ac6d058f90a9ba39779e33f10526a236",
       "width": 64
     },

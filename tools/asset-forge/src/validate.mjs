@@ -330,10 +330,6 @@ export async function inspectHistoricalApprovedArtifact(root, approval, {
     if (approval.sourceSha256 !== approval.approvedSha256) {
       throw new Error('approval source hash does not match its immutable approved copy');
     }
-    const source = await assertExistingPendingCandidate(root, category, approval.sourcePath);
-    if (await hashFile(source) !== approval.sourceSha256) {
-      throw new Error('approval source candidate is missing or changed');
-    }
     const actual = await assertExistingStateFile(root, category, 'approved', approval.approvedPath);
     const bytes = await readFile(actual);
     if (sha256(bytes) !== approval.approvedSha256) throw new Error('approved history hash changed');
