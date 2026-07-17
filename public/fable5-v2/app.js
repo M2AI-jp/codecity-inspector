@@ -1636,6 +1636,9 @@ async function loadTown() {
     state.repositoryName = payload.repository.name || '名称未設定のリポジトリ';
     state.storageKey = progressStorageKey(state.repositoryName, payload.worldPlan.inspectionDigest);
     state.questions = selectableTourQuestions(state.runtime);
+    elements.repositoryName.textContent = state.repositoryName;
+    elements.habitabilityBadge.textContent = habitabilityLabel(payload.habitability);
+    elements.habitabilityBadge.dataset.live = String(payload.habitability?.canLive === true);
 
     setStartupMessage('人間が承認したFable5素材を照合しています…');
     const requiredAssetIds = [...new Set([
@@ -1657,9 +1660,6 @@ async function loadTown() {
       facing: state.runtime.start.facing,
       navNodeId: state.runtime.start.navNodeId
     };
-    elements.repositoryName.textContent = state.repositoryName;
-    elements.habitabilityBadge.textContent = habitabilityLabel(payload.habitability);
-    elements.habitabilityBadge.dataset.live = String(payload.habitability?.canLive === true);
     elements.startupPanel.hidden = true;
     elements.gameError.hidden = true;
     elements.contextHint.hidden = false;

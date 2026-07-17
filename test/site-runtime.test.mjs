@@ -633,6 +633,41 @@ test('WorldPlan asset collection remains exact and isolated Fable5 v2 UI exposes
   assert.match(site, /128 globally unique/);
 });
 
+test('Fable5 v2 shows inspected identity before the v3 asset gate and retains it on gate failure', async () => {
+  const app = await readFile(new URL('../public/fable5-v2/app.js', import.meta.url), 'utf8');
+  const loadTownStart = app.indexOf('async function loadTown()');
+  const loadTownEnd = app.indexOf("elements.zoomOut.addEventListener", loadTownStart);
+  const loadTown = app.slice(loadTownStart, loadTownEnd);
+  const showFatalStart = app.indexOf('function showFatal(');
+  const showFatalEnd = app.indexOf('function assertTownPayload(', showFatalStart);
+  const showFatal = app.slice(showFatalStart, showFatalEnd);
+
+  const runtimeValidation = loadTown.indexOf('state.runtime = createWorldRuntime(payload.worldPlan)');
+  const repositoryIdentity = loadTown.indexOf('elements.repositoryName.textContent = state.repositoryName');
+  const habitabilityIdentity = loadTown.indexOf('elements.habitabilityBadge.textContent = habitabilityLabel(payload.habitability)');
+  const manifestGate = loadTown.indexOf('const manifest = await fetchForgeManifest({ requiredAssetIds })');
+  const criticalAssetGate = loadTown.indexOf('state.assets = await withDeadline(loadForgeAssetImages({');
+  const interactionsEnabled = loadTown.indexOf('state.ready = true');
+
+  for (const position of [
+    runtimeValidation,
+    repositoryIdentity,
+    habitabilityIdentity,
+    manifestGate,
+    criticalAssetGate,
+    interactionsEnabled
+  ]) assert.notEqual(position, -1);
+  assert.ok(runtimeValidation < repositoryIdentity);
+  assert.ok(repositoryIdentity < manifestGate);
+  assert.ok(habitabilityIdentity < manifestGate);
+  assert.ok(manifestGate < criticalAssetGate);
+  assert.ok(criticalAssetGate < interactionsEnabled);
+  assert.match(loadTown, /catch \(error\) \{[\s\S]*showFatal\(title, error\)/);
+  assert.doesNotMatch(showFatal, /repositoryName\.textContent|habitabilityBadge/);
+  assert.match(showFatal, /state\.ready = false/);
+  assert.match(showFatal, /elements\.actionButton\.disabled = true/);
+});
+
 test('isolated Fable5 v2 interaction code keeps five mechanics and progressive-loading UX distinct', async () => {
   const [app, html] = await Promise.all([
     readFile(new URL('../public/fable5-v2/app.js', import.meta.url), 'utf8'),
