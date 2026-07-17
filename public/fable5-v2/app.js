@@ -440,6 +440,11 @@ function npcPosition(npc) {
   return tileCenter(tileX, tileY, state.runtime.tileSize);
 }
 
+function shouldDrawNpc(npc) {
+  if (npc.role === 'resident' || npc.role === 'dojo-student') return npc.home === state.cutawayId;
+  return true;
+}
+
 function assetBounds(assetId, x, y, role = null) {
   const asset = state.assets.asset(assetId);
   const definition = asset?.definition;
@@ -516,7 +521,7 @@ function drawIndexedEntity(entity, timestamp) {
     }
   } else if (entity.kind === 'prop') {
     if (assetImageReady(entity.prop.assetId)) drawWholeAsset(entity.prop.assetId, entity.point.x, entity.point.y, { frameIndex: 0 });
-  } else if (entity.kind === 'npc' && assetImageReady(entity.npc.assetId)) {
+  } else if (entity.kind === 'npc' && shouldDrawNpc(entity.npc) && assetImageReady(entity.npc.assetId)) {
     drawCharacter(entity.npc.assetId, entity.point.x, entity.point.y, 'south', 'idle', timestamp);
   }
 }
@@ -869,8 +874,8 @@ function openFinalQuestion() {
     speaker: '市庁舎の記録官',
     body: `現場を三つの方法で確かめましたね。\n\n「${describeFact(question)}」\n\nこの内容には、検査で直接観測した根拠がありますか？`,
     choices: [
-      { label: 'はい、断定できる', run: () => finishTour(true) },
-      { label: 'いいえ、まだ不明がある', run: () => finishTour(false) }
+      { label: 'はい、直接観測の根拠がある', run: () => finishTour(true) },
+      { label: 'いいえ、直接観測の根拠はない', run: () => finishTour(false) }
     ]
   });
 }
@@ -884,8 +889,8 @@ function finishTour(answer) {
   window.queueMicrotask(() => openDialogue({
     speaker: '市庁舎の記録官',
     body: correct
-      ? `正解です。答えは「${correctAnswer ? 'はい' : 'いいえ'}」。観測・推定・不明を分けて読めています。これからは自由に街を調べられます。`
-      : `答えは「${correctAnswer ? 'はい' : 'いいえ'}」です。間違えてもペナルティはありません。証拠の三つの欄を読み返しながら、自由に街を調べてください。`
+      ? `正解です。答えは「${correctAnswer ? '直接観測の根拠がある' : '直接観測の根拠はない'}」。観測・推定・不明を分けて読めています。これからは自由に街を調べられます。`
+      : `答えは「${correctAnswer ? '直接観測の根拠がある' : '直接観測の根拠はない'}」です。間違えてもペナルティはありません。証拠の三つの欄を読み返しながら、自由に街を調べてください。`
   }));
   announce('最初の調査を完了しました。');
 }
@@ -1612,8 +1617,6 @@ async function streamRemainingAssets(manifest) {
     }
     state.assets = completeAssets;
     state.assetsComplete = true;
-    state.tour = loadSavedTour();
-    saveTour();
     state.nearbyKey = '';
     renderHud();
     renderJournal();
@@ -1653,7 +1656,14 @@ async function loadTown() {
       requiredAssetIds: criticalAssetIds(payload.worldPlan)
     }), 15_000);
 
-    state.tour = createTourState();
+    // The manifest has already proven that every WorldPlan asset is human-approved.
+    // Let the player begin once the ground, player, gate, town hall, and survey marker
+    // are present; later images remain individually unavailable until their bytes arrive.
+    // This keeps the release fail-closed for unexported assets without turning a normal
+    // streaming download into a dead start screen.
+    state.assetsComplete = true;
+    state.tour = loadSavedTour();
+    saveTour();
     state.player = {
       x: state.runtime.start.x,
       y: state.runtime.start.y,

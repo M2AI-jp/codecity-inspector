@@ -121,6 +121,23 @@ export function validateRuntimeWorldPlan(plan) {
     }
   }
 
+  const townHalls = (plan.buildings ?? []).filter((building) => (
+    building?.facilityKind === 'town_hall' && building?.interaction?.verb === 'receive-journal'
+  ));
+  if (townHalls.length !== 1) issues.push('worldPlan needs exactly one playable town hall ledger');
+
+  const knownFactIds = new Set((plan.facts ?? []).map((fact) => fact?.id).filter((id) => typeof id === 'string'));
+  const witnessFamilies = new Set((plan.buildings ?? []).flatMap((building) => {
+    const protocol = interactionProtocol(building);
+    const factRefs = uniqueStrings(building?.interaction?.factRefs).filter((id) => knownFactIds.has(id));
+    return protocol.supported && protocol.family && protocol.family !== 'ledger' && factRefs.length > 0
+      ? [protocol.family]
+      : [];
+  }));
+  if (witnessFamilies.size < TOUR_WITNESS_COUNT) {
+    issues.push(`worldPlan needs ${TOUR_WITNESS_COUNT} distinct fact-bound witness methods for the first tour`);
+  }
+
   return { ok: issues.length === 0, issues };
 }
 

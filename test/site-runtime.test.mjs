@@ -681,6 +681,8 @@ test('isolated Fable5 v2 interaction code keeps five mechanics and progressive-l
   assert.match(app, /cancelDojoObservation/);
   assert.match(app, /residentConversationTarget\(state\.runtime, nearby\.building, fact\)/);
   assert.match(app, /conversationActorId/);
+  assert.match(app, /if \(npc\.role === 'resident' \|\| npc\.role === 'dojo-student'\) return npc\.home === state\.cutawayId;/);
+  assert.match(app, /entity\.kind === 'npc' && shouldDrawNpc\(entity\.npc\)/);
   assert.match(app, /kind: 'fit-world'.*previousZoom.*previousCamera/s);
   assert.match(app, /leaveTowerOverview\(\{ record: true \}\)/);
   assert.match(app, /factId: interactionFactId|const factId = interactionFactId/);

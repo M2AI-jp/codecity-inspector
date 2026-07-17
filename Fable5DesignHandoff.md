@@ -1,5 +1,10 @@
 # CodeCity Inspector — Fable5向けゲームデザイン引き継ぎ
 
+> **2026-07-18 update:** この文書は旧78素材と再設計開始時点の技術背景を保存する。
+> 現在のWave A 109素材、配置品質の不合格判定、品質参照、追加可能素材、
+> 配置デザイナーへ要求する納品物の正本は
+> [Fable5PlacementDesignBrief.md](Fable5PlacementDesignBrief.md) を参照すること。
+
 - 作成日: 2026-07-15
 - 監査対象: `23b021a` (`feat: complete playable CodeCity inspection loop`)
 - 状態: **技術検証済みプロトタイプ／ゲームデザイン審査不合格／再設計待ち**

@@ -157,6 +157,25 @@ test('fixture is a shape-valid WorldPlan v2 and creates a dynamic runtime', () =
   assert.equal(districtForPoint(runtime, 300, 200).id, 'district.old_town');
 });
 
+test('runtime rejects a WorldPlan that would strand the first tour before it starts', () => {
+  const noLedger = makeWorldPlan();
+  noLedger.buildings.find(({ id }) => id === 'town_hall').interaction.verb = 'read-away-sign';
+  assert.match(validateRuntimeWorldPlan(noLedger).issues.join('\n'), /playable town hall ledger/);
+
+  const tooFewMethods = makeWorldPlan();
+  for (const id of ['old_dojo', 'row_house', 'survey_tower', 'market_store']) {
+    tooFewMethods.buildings.find((building) => building.id === id).interaction.factRefs = [];
+  }
+  assert.match(validateRuntimeWorldPlan(tooFewMethods).issues.join('\n'), /3 distinct fact-bound witness methods/);
+  assert.throws(() => createWorldRuntime(tooFewMethods), /first tour/);
+
+  const unknownFacts = makeWorldPlan();
+  for (const id of ['north_gate', 'old_dojo', 'row_house']) {
+    unknownFacts.buildings.find((building) => building.id === id).interaction.factRefs = ['fact.not-in-plan'];
+  }
+  assert.match(validateRuntimeWorldPlan(unknownFacts).issues.join('\n'), /3 distinct fact-bound witness methods/);
+});
+
 test('navigation uses WorldPlan nodes and preserves bridge, stair, and door edges', () => {
   const runtime = createWorldRuntime(makeWorldPlan());
   assert.equal(navigationIsConnected(runtime), true);

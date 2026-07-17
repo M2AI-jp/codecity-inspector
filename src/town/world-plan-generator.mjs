@@ -36,7 +36,7 @@ const FACILITY_ASSETS = Object.freeze({
 });
 
 const FACILITY_CLASSES = Object.freeze({
-  gate: 'S', town_hall: 'XL', dojo: 'L', inn: 'L', warehouse: 'L', dock: 'L',
+  gate: 'XL', town_hall: 'XL', dojo: 'L', inn: 'L', warehouse: 'L', dock: 'L',
   guild: 'L', pub: 'L', shop: 'M', workshop: 'L', watchtower: 'tower', well: 'S',
   house: 'M', ruin: 'M'
 });
@@ -74,12 +74,29 @@ const KEEPER_ASSETS = Object.freeze({
   dojo: 'character.dojo_inspector'
 });
 
-const FIRST_BUILDING_X = 7;
+// Building art is anchored at the south edge of its footprint.  The tallest
+// approved exterior is six 64px tiles high, so the first baseline must never
+// be nearer than that to the top of the canvas.  Keep two tiles after the last
+// baseline as well: entrances and the lower edge of the art then stay inside
+// the generated world instead of relying on camera clamping.
+const SPRITE_TOP_CLEARANCE_TILES = 6;
+const SPRITE_BOTTOM_CLEARANCE_TILES = 2;
+// The survey tower occupies x=2..4.  Start the civic block at x=6 so the
+// tower and the five-tile gate sprite have a real visual courtyard between
+// them, not merely non-overlapping collision rectangles.
+const FIRST_BUILDING_X = 6;
 const DISTRICT_SPINE_X = 1;
-const CELL_STRIDE_X = 9;
-const ROW_STRIDE_Y = 7;
+const LOCAL_AVENUE_X = FIRST_BUILDING_X - 2;
+const ROW_STRIDE_Y = 5;
 const MAX_FOOTPRINT_HEIGHT = 4;
-const DISTRICT_GAP = 2;
+const DISTRICT_GAP = 3;
+
+const DISTRICT_DECOR = Object.freeze({
+  'old-town': Object.freeze(['prop.streetlight', 'prop.bench', 'prop.signboard']),
+  harbor: Object.freeze(['prop.crate', 'prop.barrel', 'structure.ferry_shelter']),
+  snow: Object.freeze(['structure.stone_lantern', 'structure.rock.a', 'prop.warning_stake']),
+  woodland: Object.freeze(['structure.tree.a', 'structure.tree.b', 'overlay.flowers.a'])
+});
 
 function compareStrings(left, right) {
   if (left === right) return 0;
@@ -214,7 +231,20 @@ function fileClass(file) {
 function fileAsset(file, buildingClass) {
   const state = roomState(file);
   if (state === 'ivy' || state === 'warning') return 'building.house_old';
-  if (file.isTest) return 'building.hut';
+  if (file.isTest) {
+    return Number.parseInt(shortDigest(file.path).slice(-1), 16) % 2 === 0
+      ? 'building.hut' : 'building.house_s';
+  }
+  const path = file.path.toLowerCase();
+  if (/(?:inn|tavern)/.test(path)) return 'building.inn';
+  if (/(?:harbor|dock|port)/.test(path)) return 'building.dock';
+  if (/(?:market|shop|store)/.test(path)) return 'building.shop';
+  if (/(?:storage|warehouse)/.test(path)) return 'building.warehouse';
+  if (/(?:watchtower|watch|monitor)/.test(path)) return 'building.watchtower';
+  if (/(?:well|config|env)/.test(path)) return 'building.workshop';
+  if (file.kind === 'interface') return 'building.shop';
+  if (file.kind === 'service') return 'building.inn';
+  if (file.kind === 'data') return 'building.warehouse';
   return buildingClass === 'S' ? 'building.house_s' : 'building.house_m';
 }
 
@@ -484,12 +514,6 @@ function districtDefinitions(specs, files, oldDir) {
   for (let index = 0; index < unassigned.length; index += 1) {
     assignments.set(unassigned[index], BIOMES[index % BIOMES.length]);
   }
-  const presentBiomes = new Set(assignments.values());
-  for (const biome of BIOMES) {
-    if (presentBiomes.has(biome)) continue;
-    const environmentDir = `@environment/${biome}`;
-    assignments.set(environmentDir, biome);
-  }
   return [...assignments].map(([dir, biome]) => ({
     id: `district.${shortDigest({ dir, biome })}`,
     dir,
@@ -507,14 +531,15 @@ function sortSpecs(specs) {
   ));
 }
 
-function overlayIds(spec, biome) {
+function overlayIds(spec) {
   const states = new Set(spec.files.map(roomState));
   const overlays = [];
   if (states.has('warning')) overlays.push('overlay.tarp');
   if (states.has('scaffold')) overlays.push(spec.class === 'S' ? 'overlay.scaffold.s' : 'overlay.scaffold.m');
   if (states.has('ivy')) overlays.push(spec.class === 'S' ? 'overlay.ivy.s' : spec.class === 'L' ? 'overlay.ivy.l' : 'overlay.ivy.m');
-  if (biome === 'snow') overlays.push(spec.class === 'S' ? 'overlay.snowcap.s'
-    : spec.class === 'L' ? 'overlay.snowcap.l' : spec.class === 'XL' ? 'overlay.snowcap.xl' : 'overlay.snowcap.m');
+  // Snowcap art remains an approved candidate, but its current anchors float
+  // above roofs in the live renderer.  Do not attach it to game buildings
+  // until a correctly anchored asset is approved.
   return [...new Set(overlays)].sort(compareStrings);
 }
 
@@ -588,7 +613,7 @@ function buildingFromSpec(spec, district, x, baseY) {
         ? navOutdoorId(entrance.x, entrance.y)
         : navInteriorId(spec.id, roomIndex)]
     })),
-    overlays: overlayIds(spec, district.biome),
+    overlays: overlayIds(spec),
     interaction: {
       anchor: { x: entrance.x, y: entrance.y },
       verb: spec.verb,
@@ -610,17 +635,43 @@ function environmentLandmark(district, x, y) {
   };
 }
 
+function packedRows(members, maximumWidth) {
+  const rows = [];
+  let current = [];
+  let usedWidth = 0;
+  for (const spec of members) {
+    const width = (FOOTPRINTS[spec.class] ?? FOOTPRINTS.M).w;
+    const requiredWidth = current.length === 0 ? width : width + 1;
+    if (current.length > 0 && usedWidth + requiredWidth > maximumWidth) {
+      rows.push(current);
+      current = [];
+      usedWidth = 0;
+    }
+    current.push(spec);
+    usedWidth += current.length === 1 ? width : width + 1;
+  }
+  if (current.length > 0) rows.push(current);
+  return rows;
+}
+
+function placementStagger(spec, districtIndex) {
+  const preservesCivicSightline = districtIndex === 0
+    && (spec.facilityKind === 'gate' || spec.facilityKind === 'town_hall');
+  return preservesCivicSightline ? 0 : Number.parseInt(shortDigest(spec.key).slice(0, 1), 16) % 2;
+}
+
 function placeDistricts(definitions, specs, lod) {
-  const columnCap = lod === 'L2' ? 8 : 6;
   const specsByDir = new Map();
   for (const spec of specs) {
     const members = specsByDir.get(spec.dir) ?? [];
     members.push(spec);
     specsByDir.set(spec.dir, members);
   }
-  const largestDistrict = Math.max(1, ...definitions.map(({ dir }) => (specsByDir.get(dir)?.length ?? 0)));
-  const columns = Math.min(columnCap, Math.max(2, Math.ceil(Math.sqrt(largestDistrict))));
-  const width = FIRST_BUILDING_X + columns * CELL_STRIDE_X + 2;
+  // Keep a small repo as a compact, multi-row street block instead of a
+  // catalogue shelf.  This still fits two small homes or one large rowhouse
+  // per frontage, while the greedy packer handles the actual footprint widths.
+  const maximumBlockWidth = lod === 'L2' ? 16 : 15;
+  const width = FIRST_BUILDING_X + maximumBlockWidth + 2;
   const buildings = [];
   const districts = [];
   const props = [];
@@ -630,8 +681,22 @@ function placeDistricts(definitions, specs, lod) {
   for (let districtIndex = 0; districtIndex < definitions.length; districtIndex += 1) {
     const definition = definitions[districtIndex];
     const members = sortSpecs(specsByDir.get(definition.dir) ?? []);
-    const rows = Math.max(1, Math.ceil(members.length / columns));
-    const height = members.length === 0 ? 4 : Math.max(6, rows * ROW_STRIDE_Y);
+    const rows = packedRows(members, maximumBlockWidth);
+    // Only the world's northern edge can crop a roof.  Later districts still
+    // keep a compact one-tile crown, while the first district reserves enough
+    // room for a 384px tower/roof above its six-tile baseline.
+    const topInset = districtIndex === 0
+      ? Math.max(0, SPRITE_TOP_CLEARANCE_TILES - MAX_FOOTPRINT_HEIGHT)
+      : 1;
+    const maximumBaselineOffset = members.length === 0 ? null : Math.max(...rows.flatMap((row, rowIndex) => (
+      row.map((member) => topInset + rowIndex * ROW_STRIDE_Y
+        + placementStagger(member, districtIndex) + MAX_FOOTPRINT_HEIGHT)
+    )));
+    const height = members.length === 0
+      ? districtIndex === 0
+        ? topInset + MAX_FOOTPRINT_HEIGHT + SPRITE_BOTTOM_CLEARANCE_TILES
+        : 4
+      : maximumBaselineOffset + SPRITE_BOTTOM_CLEARANCE_TILES;
     const bounds = { x: 0, y: nextY, w: width, h: height };
 
     if (districtIndex === 0) {
@@ -640,21 +705,27 @@ function placeDistricts(definitions, specs, lod) {
         assetId: 'building.survey_tower',
         files: [],
         class: 'tower',
-        footprint: { x: 2, y: nextY + 1, w: 3, h: 4 },
-        entrance: { x: 3, y: nextY + 5, dir: 'south' },
+        footprint: { x: 2, y: nextY + topInset, w: 3, h: 4 },
+        entrance: { x: 3, y: nextY + topInset + 4, dir: 'south' },
         rooms: [],
         overlays: definition.biome === 'snow' ? ['overlay.snowcap.l'] : [],
-        interaction: { anchor: { x: 3, y: nextY + 5 }, verb: VERBS.survey_tower, factRefs: [] }
+        interaction: { anchor: { x: 3, y: nextY + topInset + 4 }, verb: VERBS.survey_tower, factRefs: [] }
       };
       buildings.push(surveyTower);
     }
 
-    for (let index = 0; index < members.length; index += 1) {
-      const row = Math.floor(index / columns);
-      const column = index % columns;
-      const x = FIRST_BUILDING_X + column * CELL_STRIDE_X;
-      const baseY = nextY + 1 + row * ROW_STRIDE_Y;
-      buildings.push(buildingFromSpec(members[index], definition, x, baseY));
+    for (let row = 0; row < rows.length; row += 1) {
+      const rowMembers = row % 2 === 0 ? rows[row] : [...rows[row]].reverse();
+      let x = FIRST_BUILDING_X;
+      for (const member of rowMembers) {
+        // Serpentine blocks make the same deterministic input read as a town
+        // block rather than a left-to-right catalogue.  A one-tile stagger is
+        // safe because rows are six tiles apart (the largest footprint is four).
+        const stagger = placementStagger(member, districtIndex);
+        const baseY = nextY + topInset + row * ROW_STRIDE_Y + stagger;
+        buildings.push(buildingFromSpec(member, definition, x, baseY));
+        x += (FOOTPRINTS[member.class] ?? FOOTPRINTS.M).w + 1;
+      }
     }
 
     let landmarkId = members.length > 0 ? members.find(({ facilityKind }) => facilityKind === 'town_hall')?.id ?? members[0].id : null;
@@ -744,6 +815,28 @@ function buildNavigation(buildings, districts, landmarkProps, transitions, eleva
   const minY = Math.min(...anchors.map(({ y }) => y));
   const maxY = Math.max(...anchors.map(({ y }) => y));
   for (let y = minY; y <= maxY; y += 1) outdoor.add(coordKey(DISTRICT_SPINE_X, y));
+  // A local north-south avenue and the narrow lanes before each building
+  // column turn the entrance branches into connected city blocks.  They stop
+  // at district boundaries; only the civic spine crosses a bridge or stairs.
+  for (const district of districts) {
+    const districtEntrances = buildings.filter((building) => (
+      building.footprint.y >= district.bounds.y
+        && building.footprint.y < district.bounds.y + district.bounds.h
+    )).map(({ entrance }) => entrance);
+    if (districtEntrances.length === 0) continue;
+    const lanes = [LOCAL_AVENUE_X, FIRST_BUILDING_X - 1];
+    for (const x of lanes) {
+      // Do not add decorative dead-end fragments.  Each lane begins and ends
+      // on an existing entrance branch, which keeps every tile navigable.
+      const connectedEntrances = districtEntrances.filter((entrance) => entrance.x >= x);
+      if (connectedEntrances.length === 0) continue;
+      const firstY = Math.min(...connectedEntrances.map(({ y }) => y));
+      const lastY = Math.max(...connectedEntrances.map(({ y }) => y));
+      for (let y = firstY; y <= lastY; y += 1) {
+        outdoor.add(coordKey(x, y));
+      }
+    }
+  }
   for (const anchor of anchors) {
     for (const [x, y] of horizontalPath(DISTRICT_SPINE_X, anchor.x, anchor.y)) outdoor.add(coordKey(x, y));
   }
@@ -920,14 +1013,13 @@ function buildActors(buildings) {
     const isWitnessResident = building.id === 'building.witness.resident';
     if (!building.facilityKind && building.files.length === 0 && !isWitnessResident) continue;
     const interiorFloors = building.class === 'S' ? [] : interiorFloorLayout(building);
-    const residents = !building.facilityKind && building.rooms.length > 0
-      ? building.rooms
-      : [building.rooms[0] ?? null];
+    const residents = building.rooms.length > 0 ? building.rooms
+      : building.facilityKind ? [] : [null];
     for (let roomIndex = 0; roomIndex < residents.length; roomIndex += 1) {
       const room = residents[roomIndex];
-      const id = `npc.${shortDigest([building.id, room?.file ?? 'keeper'])}`;
-      const assetId = KEEPER_ASSETS[building.facilityKind]
-        ?? (genericIndex++ % 2 === 0 ? 'character.mob.townsfolk_female' : 'character.mob.townsfolk_male');
+      const id = `npc.${shortDigest([building.id, room?.file ?? 'witness'])}`;
+      const assetId = genericIndex++ % 2 === 0
+        ? 'character.mob.townsfolk_female' : 'character.mob.townsfolk_male';
       const interiorFloor = interiorFloors[room ? roomIndex : 0];
       const floor = interiorFloor
         ? [interiorFloor.x, interiorFloor.y]
@@ -935,12 +1027,23 @@ function buildActors(buildings) {
       npcs.push({
         id,
         assetId,
-        role: building.facilityKind ? `keeper.${building.facilityKind}` : isWitnessResident ? 'witness' : 'resident',
+        role: isWitnessResident ? 'witness' : 'resident',
         home: building.id,
         patrol: [floor],
         factRefs: [...building.interaction.factRefs]
       });
       if (room) room.npcId = id;
+    }
+    if (building.facilityKind) {
+      npcs.push({
+        id: `npc.${shortDigest([building.id, 'keeper'])}`,
+        assetId: KEEPER_ASSETS[building.facilityKind]
+          ?? (genericIndex++ % 2 === 0 ? 'character.mob.townsfolk_female' : 'character.mob.townsfolk_male'),
+        role: `keeper.${building.facilityKind}`,
+        home: building.id,
+        patrol: [[building.entrance.x - 1, building.entrance.y]],
+        factRefs: [...building.interaction.factRefs]
+      });
     }
   }
   const dojo = buildings.find(({ facilityKind }) => facilityKind === 'dojo');
@@ -1011,23 +1114,53 @@ function buildFactProps(facts, buildings, baseProps, transitions) {
   return props.sort((left, right) => compareStrings(left.id, right.id));
 }
 
-function buildLights(buildings) {
-  const lights = [];
+function addDistrictDecor(props, districts, buildings, outdoor) {
+  const occupied = new Set([
+    ...props.map(({ x, y }) => coordKey(x, y)),
+    ...outdoor
+  ]);
   for (const building of buildings) {
-    for (let index = 0; index < building.rooms.length; index += 1) {
-      const room = building.rooms[index];
-      if (room.state !== 'lit') continue;
-      lights.push({
-        x: building.footprint.x + (index % building.footprint.w),
-        y: building.footprint.y + Math.floor(index / building.footprint.w) % building.footprint.h,
-        assetId: 'effect.window_glow',
-        kind: 'window',
-        roomRef: room.file,
-        on: true
-      });
+    for (let y = building.footprint.y; y < building.footprint.y + building.footprint.h; y += 1) {
+      for (let x = building.footprint.x; x < building.footprint.x + building.footprint.w; x += 1) {
+        occupied.add(coordKey(x, y));
+      }
     }
   }
-  return lights;
+  const decor = [];
+  for (const district of districts) {
+    const assets = DISTRICT_DECOR[district.biome] ?? [];
+    const { bounds } = district;
+    // A small, fixed candidate list keeps placement cheap even for many
+    // districts while preferring the unwalkable edge cells around each block.
+    const candidates = [
+      [bounds.w - 2, 1], [bounds.w - 4, 1], [bounds.w - 2, 3], [bounds.w - 4, 3],
+      [1, bounds.h - 2], [3, bounds.h - 2], [bounds.w - 2, bounds.h - 2], [bounds.w - 4, bounds.h - 2],
+      [bounds.w - 2, Math.floor(bounds.h / 2)], [1, Math.floor(bounds.h / 2)]
+    ];
+    let assetIndex = 0;
+    for (const [offsetX, offsetY] of candidates) {
+      if (assetIndex >= assets.length) break;
+      const x = bounds.x + offsetX;
+      const y = bounds.y + offsetY;
+      if (x < bounds.x || x >= bounds.x + bounds.w || y < bounds.y || y >= bounds.y + bounds.h) continue;
+      const key = coordKey(x, y);
+      if (occupied.has(key)) continue;
+      decor.push({
+        id: `prop.decor.${shortDigest(district.id)}.${assetIndex}`,
+        assetId: assets[assetIndex],
+        kind: 'district-decor',
+        x,
+        y
+      });
+      occupied.add(key);
+      assetIndex += 1;
+    }
+  }
+  return [...props, ...decor].sort((left, right) => compareStrings(left.id, right.id));
+}
+
+function buildLights() {
+  return [];
 }
 
 function normalizedDigestInput(inspection, files, edges, facilities, facts) {
@@ -1074,9 +1207,14 @@ export function generateWorldPlan({ inspection, model, seed } = {}) {
   );
   const streets = buildStreets(edges, placement.buildings, navigation.outdoor);
   const actualSeed = typeof seed === 'string' && seed.length > 0 ? seed : deriveWorldSeed(source);
-  const props = buildFactProps(facts, placement.buildings, placement.props, transitions);
+  const props = addDistrictDecor(
+    buildFactProps(facts, placement.buildings, placement.props, transitions),
+    placement.districts,
+    placement.buildings,
+    navigation.outdoor
+  );
   const npcs = buildActors(placement.buildings);
-  const lights = buildLights(placement.buildings);
+  const lights = buildLights();
   const gate = placement.buildings.find(({ facilityKind }) => facilityKind === 'gate');
   const townHall = placement.buildings.find(({ facilityKind }) => facilityKind === 'town_hall');
   const start = gate?.entrance ?? townHall?.entrance ?? placement.surveyTower.entrance;

@@ -60,6 +60,17 @@ function validFixture() {
   return { inspection, plan };
 }
 
+function transitionFixture() {
+  const inspection = inspectionFixture();
+  const extra = {
+    path: 'config/settings.js', bytes: 1_024, kind: 'configuration', isTest: false, state: 'mapped',
+    evidence: { unresolvedLinks: 0, cycle: false, associatedTest: false, reachability: 'reached-from-known-entrypoints' }
+  };
+  inspection.city.buildings.push(extra);
+  inspection.graph.nodes.push({ path: extra.path });
+  return { inspection, plan: generateWorldPlan({ inspection, model: modelFixture() }) };
+}
+
 function multiRoomFixture() {
   const buildings = Array.from({ length: 121 }, (_, index) => ({
     path: `src/leaf/file-${index}.js`, bytes: 1_024, kind: 'module', isTest: false, state: 'mapped',
@@ -90,6 +101,19 @@ test('accepts and freezes a plan that satisfies the player-visible invariants', 
   assert.equal(annotated.validation.ok, true);
   assert.equal(Object.isFrozen(annotated), true);
   assert.equal(Object.isFrozen(annotated.validation), true);
+});
+
+test('SPRITE_CLEARANCE rejects a roof anchor that would crop a 384px exterior', () => {
+  const { inspection, plan } = validFixture();
+  const changed = structuredClone(plan);
+  const building = changed.buildings.find(({ class: buildingClass }) => buildingClass === 'XL');
+  building.footprint.y = 0;
+
+  const verdict = validateWorldPlan(changed, { inspection });
+  assert.equal(verdict.ok, false);
+  assert.ok(verdict.issues.some(({ code, message }) => (
+    code === 'SPRITE_CLEARANCE' && /384px exterior/.test(message)
+  )));
 });
 
 test('fails closed with STRUCTURE for malformed input instead of throwing', () => {
@@ -329,7 +353,8 @@ test('INTERIOR_WALKABLE validates every NPC home floor and forbids unassigned re
   const outsideVerdict = validateWorldPlan(outsideClerk, { inspection });
   assert.equal(outsideVerdict.ok, false);
   assert.ok(outsideVerdict.issues.some(({ code, message }) => (
-    code === 'INTERIOR_WALKABLE' && message.includes(clerk.id) && /reachable home interior/.test(message)
+    code === 'INTERIOR_WALKABLE' && message.includes(clerk.id)
+      && /reachable outdoor tile beside its home entrance/.test(message)
   )));
 
   const unassigned = structuredClone(plan);
@@ -416,7 +441,7 @@ test('INTERIOR_WALKABLE binds semantic NPC roles to matching home facilities onl
 });
 
 test('WALKABLE validates terrain elevation and typed bridge/stairs boundaries', () => {
-  const { inspection, plan } = validFixture();
+  const { inspection, plan } = transitionFixture();
   const nodeElevation = structuredClone(plan);
   const outdoor = nodeElevation.nav.nodes.find(({ space }) => space === 'outdoor');
   outdoor.elevation += 1;
@@ -439,7 +464,7 @@ test('WALKABLE validates terrain elevation and typed bridge/stairs boundaries', 
 });
 
 test('WALKABLE rejects transition bypasses, wrong elevation deltas, and broken boundary terrain', () => {
-  const { inspection, plan } = validFixture();
+  const { inspection, plan } = transitionFixture();
   const bypass = structuredClone(plan);
   const bridge = bypass.nav.edges.find(({ kind }) => kind === 'bridge');
   bridge.kind = 'walk';

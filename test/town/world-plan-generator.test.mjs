@@ -5,6 +5,7 @@ import {
   generateWorldPlan,
   worldPlanLodForFileCount
 } from '../../src/town/world-plan-generator.mjs';
+import { WAVE_A_ASSET_IDS } from '../../public/fable5-v2/site-runtime.mjs';
 import { validateWorldPlanShape } from '../../src/town/world-plan-schema.mjs';
 import { validateWorldPlan } from '../../src/town/world-plan-validator.mjs';
 
@@ -83,6 +84,16 @@ function terrainAt(plan, x, y) {
   return plan.terrain[y * plan.world.widthTiles + x];
 }
 
+function worldPlanAssetIds(plan) {
+  return [
+    ...plan.terrain.map(({ assetId }) => assetId),
+    ...plan.buildings.flatMap(({ assetId, overlays }) => [assetId, ...overlays]),
+    ...plan.npcs.map(({ assetId }) => assetId),
+    ...plan.props.map(({ assetId }) => assetId),
+    ...plan.lights.map(({ assetId }) => assetId)
+  ];
+}
+
 test('uses the fixed L0/L1/L2 aggregation ladder', () => {
   assert.equal(worldPlanLodForFileCount(0), 'L0');
   assert.equal(worldPlanLodForFileCount(120), 'L0');
@@ -102,13 +113,15 @@ test('generates a deterministic, shape-valid and semantically valid playable pla
   assert.equal(Object.isFrozen(first), true);
   assert.deepEqual(validateWorldPlanShape(first), { ok: true, issues: [] });
   assert.deepEqual(validateWorldPlan(first, { inspection }), { ok: true, issues: [] });
+  assert.deepEqual(first.lights, []);
   assert.equal(first.schemaVersion, 2);
   assert.equal(first.generatorVersion, '2.0.0');
   assert.equal(first.world.tileSize, 64);
   assert.equal(first.terrain.length, first.world.widthTiles * first.world.heightTiles);
   assert.deepEqual(new Set(first.districts.map(({ biome }) => biome)), new Set([
-    'old-town', 'harbor', 'snow', 'woodland'
+    'old-town', 'harbor'
   ]));
+  assert.ok(first.districts.every(({ dir }) => !dir.startsWith('@environment/')));
   assert.ok(first.buildings.some(({ id }) => id === 'building.survey_tower'));
 
   const representedFiles = first.buildings.flatMap(({ files }) => files).sort();
@@ -148,6 +161,78 @@ test('generates a deterministic, shape-valid and semantically valid playable pla
     assert.equal(edge.kind, prop.kind);
     assert.ok((prop.x === from.x && prop.y === from.y) || (prop.x === to.x && prop.y === to.y));
     assert.equal(prop.assetId, prop.kind === 'bridge' ? 'structure.bridge_stone' : 'structure.stairs_stone');
+  }
+});
+
+test('packs a small town into staggered blocks with sprite-safe northern and southern clearance', () => {
+  const plan = generateWorldPlan({ inspection: inspectionFixture(), model: modelFixture() });
+  const baselines = plan.buildings.map(({ footprint }) => footprint.y + footprint.h);
+  assert.ok(baselines.every((y) => y >= 6));
+  assert.ok(baselines.every((y) => plan.world.heightTiles - y >= 2));
+  for (const building of plan.buildings) {
+    const district = plan.districts.find(({ bounds }) => (
+      building.footprint.y >= bounds.y && building.footprint.y < bounds.y + bounds.h
+    ));
+    assert.ok(district, `building ${building.id} belongs to a district`);
+    const baseline = building.footprint.y + building.footprint.h;
+    assert.ok(district.bounds.y + district.bounds.h - baseline >= 2,
+      `building ${building.id} keeps two tiles below its art anchor inside its district`);
+  }
+
+  const civic = plan.buildings.filter(({ footprint }) => footprint.y < plan.districts[0].bounds.y + plan.districts[0].bounds.h);
+  assert.ok(new Set(civic.map(({ footprint }) => footprint.x)).size >= 3);
+  assert.ok(new Set(civic.map(({ footprint }) => footprint.y)).size >= 2);
+  const roadTiles = plan.streets.find(({ kind }) => kind === 'civic-avenue').tiles;
+  const byX = new Map();
+  const byY = new Map();
+  for (const [x, y] of roadTiles) {
+    byX.set(x, (byX.get(x) ?? 0) + 1);
+    byY.set(y, (byY.get(y) ?? 0) + 1);
+  }
+  assert.ok([...byX.values()].filter((count) => count >= 4).length >= 2, 'connected north-south streets');
+  assert.ok([...byY.values()].filter((count) => count >= 4).length >= 2, 'connected east-west streets');
+});
+
+test('emits only Wave A asset IDs, including the building replacement for config-like files', () => {
+  const inspection = inspectionFixture();
+  const well = building('src/well.js');
+  inspection.city.buildings.push(well);
+  inspection.graph.nodes.push({ path: well.path });
+  const plan = generateWorldPlan({ inspection, model: modelFixture() });
+  const allowed = new Set(WAVE_A_ASSET_IDS);
+
+  assert.deepEqual([...new Set(worldPlanAssetIds(plan))].filter((assetId) => !allowed.has(assetId)), []);
+  assert.equal(plan.buildings.find(({ files }) => files.includes('src/well.js')).assetId, 'building.workshop');
+});
+
+test('adds at most three biome-specific decor props per real district without blocking navigation or buildings', () => {
+  const plan = generateWorldPlan({ inspection: inspectionFixture(), model: modelFixture() });
+  const expectedAssets = {
+    'old-town': new Set(['prop.streetlight', 'prop.bench', 'prop.signboard']),
+    harbor: new Set(['prop.crate', 'prop.barrel', 'structure.ferry_shelter']),
+    snow: new Set(['structure.stone_lantern', 'structure.rock.a', 'prop.warning_stake']),
+    woodland: new Set(['structure.tree.a', 'structure.tree.b', 'overlay.flowers.a'])
+  };
+  const navCoords = new Set(plan.nav.nodes.filter(({ space }) => space === 'outdoor')
+    .map(({ x, y }) => `${x},${y}`));
+  const decor = plan.props.filter(({ kind }) => kind === 'district-decor');
+  const coords = new Set();
+
+  for (const district of plan.districts) {
+    const within = decor.filter(({ x, y }) => x >= district.bounds.x && x < district.bounds.x + district.bounds.w
+      && y >= district.bounds.y && y < district.bounds.y + district.bounds.h);
+    assert.equal(within.length, 3);
+    assert.ok(within.every(({ assetId }) => expectedAssets[district.biome].has(assetId)));
+  }
+  for (const prop of decor) {
+    const key = `${prop.x},${prop.y}`;
+    assert.equal(coords.has(key), false);
+    coords.add(key);
+    assert.equal(navCoords.has(key), false);
+    assert.equal(plan.buildings.some(({ footprint }) => (
+      prop.x >= footprint.x && prop.x < footprint.x + footprint.w
+        && prop.y >= footprint.y && prop.y < footprint.y + footprint.h
+    )), false);
   }
 });
 
@@ -201,20 +286,77 @@ test('places every door, interior floor, and home actor on the playable building
     const interiors = plan.nav.nodes.filter((node) => (
       node.space === 'interior' && node.buildingId === home.id
     ));
-    const allowed = interiors.length > 0
+    const allowed = npc.role.startsWith('keeper.')
+      ? new Set([`${home.entrance.x - 1},${home.entrance.y}`])
+      : interiors.length > 0
       ? new Set(interiors.map(({ x, y }) => `${x},${y}`))
       : new Set([`${home.entrance.x},${home.entrance.y}`]);
     assert.ok(npc.patrol.every(([x, y]) => allowed.has(`${x},${y}`)));
     if (npc.role === 'resident') assert.ok(roomNpcIds.has(npc.id));
   }
 
-  for (const npc of plan.npcs.filter(({ assetId, role }) => (
-    assetId === 'character.town_clerk' || role === 'dojo-student'
-  ))) {
+  for (const npc of plan.npcs.filter(({ role }) => role === 'dojo-student')) {
     assert.ok(plan.nav.nodes.some((node) => node.space === 'interior'
       && node.buildingId === npc.home
       && npc.patrol.every(([x, y]) => x === node.x && y === node.y)));
   }
+
+  for (const npc of plan.npcs.filter(({ role }) => role.startsWith('keeper.'))) {
+    const home = buildingById.get(npc.home);
+    const expected = [home.entrance.x - 1, home.entrance.y];
+    assert.deepEqual(npc.patrol, [expected]);
+    assert.ok(plan.nav.nodes.some((node) => node.space === 'outdoor'
+      && node.x === expected[0] && node.y === expected[1]));
+  }
+  const gateKeeper = plan.npcs.find(({ role }) => role === 'keeper.gate');
+  assert.notDeepEqual(gateKeeper.patrol[0], [plan.playerStart.x, plan.playerStart.y]);
+});
+
+test('keeps all snowcaps out of the WorldPlan while retaining snow-district rowhouses', () => {
+  const configFiles = Array.from({ length: 121 }, (_, index) => (
+    building(`config/leaf/file-${String(index).padStart(3, '0')}.js`, { kind: 'configuration' })
+  ));
+  const buildings = [
+    building('src/main.js'),
+    building('harbor/api.js', { kind: 'service' }),
+    ...configFiles
+  ];
+  const inspection = {
+    repository: { name: 'snow-rowhouse-town' },
+    city: { buildings },
+    graph: {
+      nodes: buildings.map(({ path }) => ({ path })), edges: [],
+      entrypoints: [{ path: 'src/main.js', evidence: 'fixture' }]
+    },
+    inspection: { observed: { unresolvedLinks: [] }, inferred: { cycles: [], testAssociations: [] }, unknownDependencies: [] }
+  };
+  const plan = generateWorldPlan({ inspection, model: modelFixture() });
+  const snow = plan.districts.find(({ biome }) => biome === 'snow');
+  const rowhouses = plan.buildings.filter(({ class: buildingClass, footprint }) => (
+    buildingClass.startsWith('rowhouse_')
+      && footprint.y >= snow.bounds.y && footprint.y < snow.bounds.y + snow.bounds.h
+  ));
+
+  assert.ok(rowhouses.length > 0);
+  assert.ok(plan.buildings.every(({ overlays }) => overlays.every((assetId) => !assetId.startsWith('overlay.snowcap.'))));
+  assert.equal(rowhouses.flatMap(({ rooms }) => rooms).length, 121);
+});
+
+test('deterministically alternates same-size test-file building assets', () => {
+  const buildings = Array.from({ length: 16 }, (_, index) => (
+    building(`test/case-${String(index).padStart(2, '0')}.test.js`, { isTest: true })
+  ));
+  const inspection = {
+    repository: { name: 'varied-test-homes' }, city: { buildings },
+    graph: { nodes: buildings.map(({ path }) => ({ path })), edges: [], entrypoints: [] },
+    inspection: { observed: { unresolvedLinks: [] }, inferred: { cycles: [], testAssociations: [] }, unknownDependencies: [] }
+  };
+  const first = generateWorldPlan({ inspection, model: { facilities: [] } });
+  const second = generateWorldPlan({ inspection, model: { facilities: [] } });
+  const assets = first.buildings.filter(({ files }) => files.length > 0).map(({ assetId }) => assetId);
+
+  assert.deepEqual(second, first);
+  assert.deepEqual(new Set(assets), new Set(['building.hut', 'building.house_s']));
 });
 
 test('keeps worldSeed stable while inspectionDigest detects structural change', () => {

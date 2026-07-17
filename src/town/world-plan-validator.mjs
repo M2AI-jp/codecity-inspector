@@ -10,6 +10,11 @@ import { deepFreeze } from './schema.mjs';
 import { validateWorldPlanShape } from './world-plan-schema.mjs';
 
 const INTERIOR_CLASSES = new Set(['M', 'L', 'XL', 'rowhouse_s', 'rowhouse_l', 'tower']);
+// The v2 renderer draws a building from the south footprint edge.  Approved
+// exterior sprites can be 384px tall on 64px terrain, so reserve six tiles
+// above that anchor and two below it for the entrance/lower art edge.
+const MAX_BUILDING_SPRITE_HEIGHT_TILES = 6;
+const BUILDING_BOTTOM_CLEARANCE_TILES = 2;
 
 function compareStrings(left, right) {
   if (left === right) return 0;
@@ -181,6 +186,26 @@ function checkEntrances(plan, indexes) {
     }
     if (!indexes.outdoorByCoord.has(coordKey(entrance.x, entrance.y))) {
       issues.push(issue('ENTRANCE_CLEAR', `Building "${building.id}" entrance lacks an outdoor navigation node.`));
+    }
+  }
+  return issues;
+}
+
+function checkSpriteClearance(plan) {
+  const issues = [];
+  for (const building of plan.buildings) {
+    const baselineY = building.footprint.y + building.footprint.h;
+    if (baselineY < MAX_BUILDING_SPRITE_HEIGHT_TILES) {
+      issues.push(issue(
+        'SPRITE_CLEARANCE',
+        `Building "${building.id}" has only ${baselineY} tile(s) above its south art anchor; ${MAX_BUILDING_SPRITE_HEIGHT_TILES} are required for a 384px exterior.`
+      ));
+    }
+    if (plan.world.heightTiles - baselineY < BUILDING_BOTTOM_CLEARANCE_TILES) {
+      issues.push(issue(
+        'SPRITE_CLEARANCE',
+        `Building "${building.id}" has fewer than ${BUILDING_BOTTOM_CLEARANCE_TILES} tile(s) below its south art anchor.`
+      ));
     }
   }
   return issues;
@@ -627,7 +652,16 @@ function checkInteriors(plan, indexes, reached) {
     const homeInteriorNodes = indexes.interiorsByBuilding.get(home.id) ?? [];
     let allowedCoords;
     let locationDescription;
-    if (homeInteriorNodes.length > 0) {
+    if (npc.role.startsWith('keeper.')) {
+      const keeperX = home.entrance.x - 1;
+      const keeperY = home.entrance.y;
+      const keeperNodeId = indexes.outdoorByCoord.get(coordKey(keeperX, keeperY));
+      const keeperNode = keeperNodeId ? indexes.byId.get(keeperNodeId) : null;
+      allowedCoords = keeperNode && keeperNode.space === 'outdoor' && reached.has(keeperNode.id)
+        ? new Set([coordKey(keeperX, keeperY)])
+        : new Set();
+      locationDescription = 'reachable outdoor tile beside its home entrance';
+    } else if (homeInteriorNodes.length > 0) {
       allowedCoords = new Set(homeInteriorNodes
         .filter((node) => reached.has(node.id))
         .map((node) => coordKey(node.x, node.y)));
@@ -808,6 +842,7 @@ export function validateWorldPlan(plan, { inspection } = {}) {
     issues = [
       ...checkFileCoverage(plan, inspection),
       ...overlap.issues,
+      ...checkSpriteClearance(plan),
       ...checkEntrances(plan, indexes),
       ...checkWalkableNavigation(plan, indexes, reached),
       ...checkReachability(plan, indexes, reached, inspection),
