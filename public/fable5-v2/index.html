@@ -3,164 +3,76 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#10172a">
-  <title>CodeCity Inspector — Fable5</title>
+  <meta name="theme-color" content="#0b1018">
+  <title>CodeCity Inspector — 古町の宿屋</title>
   <link rel="stylesheet" href="/fable5-v2/styles.css">
 </head>
 <body>
-  <div id="app" class="app-shell">
+  <div class="app-shell">
     <header class="topbar">
       <div class="identity">
-        <span class="eyebrow">Fable5候補版 · コードの街を調査</span>
+        <span class="eyebrow">CodeCity Inspector · playable vertical slice</span>
         <strong id="repository-name">街を読み込み中</strong>
       </div>
       <div class="topbar-actions">
-        <a class="preview-link" href="/fable5-v2/preview.html" aria-label="新しい街を遊ぶ">
-          <span class="preview-link-long">新しい街を遊ぶ</span>
-          <span class="preview-link-short" aria-hidden="true">新しい街</span>
-        </a>
-        <span id="habitability-badge" class="habitability-badge" aria-live="polite">検査中</span>
-        <button id="sound-toggle" class="sound-toggle" type="button" aria-pressed="false" aria-label="効果音をミュートする">🔊 効果音 ON</button>
+        <span id="asset-badge" class="status-badge" aria-live="polite">画像照合中</span>
+        <span id="geometry-badge" class="status-badge">座標照合中</span>
         <div class="zoom-control" aria-label="表示倍率">
-          <button id="zoom-out" type="button" class="icon-button" aria-label="縮小">−</button>
-          <output id="zoom-value" aria-live="polite">2×</output>
-          <button id="zoom-in" type="button" class="icon-button" aria-label="拡大">＋</button>
+          <button id="zoom-out" type="button" aria-label="縮小">−</button>
+          <output id="zoom-value" aria-live="polite">1×</output>
+          <button id="zoom-in" type="button" aria-label="拡大">＋</button>
         </div>
-        <button id="journal-button" type="button" class="primary-button" disabled>調査手帳</button>
       </div>
     </header>
 
-    <main class="game-stage" aria-label="生成されたコードの街">
-      <canvas id="world-canvas" tabindex="0" aria-label="街のゲーム画面。矢印キー、WASD、クリックまたはタッチで移動できます。">
-        お使いのブラウザーはゲーム画面に対応していません。
-      </canvas>
+    <main class="game-stage" aria-label="ユーザー提供の完成画像から作った古町のゲーム画面">
+      <canvas
+        id="world-canvas"
+        tabindex="0"
+        aria-label="古町。WASDまたは矢印キーで4方向に歩きます。宿屋の扉は近づくと自動で出入りし、Enter、Space、Eキーで会話や調査もできます。"
+      >お使いのブラウザーはゲーム画面に対応していません。</canvas>
 
-      <section id="startup-panel" class="startup-panel" aria-live="polite">
-        <div class="spinner" aria-hidden="true"></div>
-        <p id="startup-message">検査結果から街を組み立てています…</p>
+      <section class="mission-card" aria-live="polite">
+        <span id="location-text">古町・中央大通り</span>
+        <strong id="objective-text">西へ進み、左上の宿屋の扉へ向かう</strong>
+        <small>WASD / 矢印：歩く　扉は近づくと自動で開閉　Enter / Space / E：会話・調査</small>
       </section>
 
-      <section id="game-error" class="game-error" role="alert" hidden>
-        <span class="eyebrow">ゲームを停止しました</span>
-        <h1 id="game-error-title">街を開始できません</h1>
+      <section id="startup-panel" class="cover-panel" aria-live="polite">
+        <div class="spinner" aria-hidden="true"></div>
+        <p id="startup-message">ユーザー提供の町とゲームオブジェクトを読み込んでいます…</p>
+      </section>
+
+      <section id="game-error" class="cover-panel error-panel" role="alert" hidden>
+        <span class="eyebrow">production gate</span>
+        <h1>必要な画像が揃っていません</h1>
         <p id="game-error-message"></p>
         <ul id="game-error-details"></ul>
-        <p class="error-note">未承認素材や仮の素材では続行しません。承認済み素材を揃えてから再読み込みしてください。</p>
-        <a class="preview-link error-preview-link" href="/fable5-v2/preview.html">新しい街を遊ぶ</a>
-      </section>
-
-      <section id="context-hint" class="context-hint" aria-live="polite" hidden>
-        <span class="hint-speaker">門番の案内</span>
-        <strong id="objective-text">市庁舎へ向かう</strong>
-        <button id="objective-guide" class="objective-guide" type="button">目的地へ案内</button>
+        <p class="error-note">見た目の代替物は描かず、asset contractを満たすまで開始しません。</p>
       </section>
 
       <section id="nearby-prompt" class="nearby-prompt" aria-live="polite" hidden>
         <span id="nearby-place"></span>
         <strong id="nearby-action"></strong>
-        <kbd>Enter</kbd>
-        <small id="nearby-note">Enter / Space、またはTabで操作ボタンへ</small>
+        <kbd id="nearby-key-hint">Enter</kbd>
       </section>
 
-      <button id="action-button" class="action-button" type="button" disabled aria-label="近くを調べる" aria-keyshortcuts="E Enter">
+      <button id="action-button" class="action-button" type="button" disabled aria-label="近くを操作する">
         <span aria-hidden="true">◎</span>
-        <strong>調べる</strong>
+        <strong>操作</strong>
       </button>
 
+      <nav id="dpad" class="dpad" aria-label="4方向移動">
+        <button type="button" class="dpad-north" data-direction="north" aria-label="上へ歩く">▲</button>
+        <button type="button" class="dpad-west" data-direction="west" aria-label="左へ歩く">◀</button>
+        <button type="button" class="dpad-south" data-direction="south" aria-label="下へ歩く">▼</button>
+        <button type="button" class="dpad-east" data-direction="east" aria-label="右へ歩く">▶</button>
+      </nav>
+
+      <p id="dialogue-status" class="visually-hidden" aria-live="assertive" hidden></p>
       <p id="screen-reader-status" class="visually-hidden" aria-live="polite"></p>
     </main>
   </div>
-
-  <dialog id="dialogue" class="dialogue" aria-labelledby="dialogue-speaker">
-    <form method="dialog" class="dialogue-card">
-      <header>
-        <span class="eyebrow">会話</span>
-        <button id="dialogue-close" class="icon-button" value="close" aria-label="会話を閉じる">×</button>
-      </header>
-      <h2 id="dialogue-speaker">記録官</h2>
-      <p id="dialogue-body"></p>
-      <div id="dialogue-choices" class="dialogue-choices"></div>
-    </form>
-  </dialog>
-
-  <dialog id="journal" class="journal" aria-labelledby="journal-title">
-    <section class="journal-sheet">
-      <header class="panel-header">
-        <div>
-          <span class="eyebrow">現地調査の記録</span>
-          <h2 id="journal-title">調査手帳</h2>
-        </div>
-        <button id="journal-close" class="icon-button" type="button" aria-label="手帳を閉じる">×</button>
-      </header>
-      <div class="journal-grid">
-        <section aria-labelledby="questions-title">
-          <h3 id="questions-title">今回の問い</h3>
-          <div id="question-list" class="question-list"></div>
-        </section>
-        <section aria-labelledby="findings-title">
-          <h3 id="findings-title">現場の発見</h3>
-          <div id="finding-list" class="finding-list"></div>
-        </section>
-        <section aria-labelledby="legend-title">
-          <h3 id="legend-title">証拠の読み方</h3>
-          <dl class="evidence-legend">
-            <div class="observed"><dt>● 観測</dt><dd>検査で直接確認できたこと</dd></div>
-            <div class="inferred"><dt>▲ 推定</dt><dd>観測から妥当に考えられること</dd></div>
-            <div class="unknown"><dt>? 不明</dt><dd>この検査だけでは断定しないこと</dd></div>
-            <div><dt>街の建物</dt><dd>確認したファイルや施設を表します。施設があることは、現在活動中であることを意味しません。</dd></div>
-            <div><dt>測量中の区画</dt><dd>承認済み画像の照合中を表します。壊れているという判定ではありません。</dd></div>
-            <div><dt>窓の灯り</dt><dd>対応するテストとの関連が静的検査で見つかった家です。テストを実行したことや、成功したことを意味しません。</dd></div>
-            <div><dt>暗い窓</dt><dd>対応するテストが、この検査ではまだ見つかっていない家です。建物やコードの故障・失敗を意味しません。</dd></div>
-            <div><dt>街灯の光</dt><dd>街の表示上で点灯しています。人や処理が現在活動中だという証拠ではありません。</dd></div>
-            <div><dt>建物を覆う蔦</dt><dd>外観の特徴を表します。放棄、故障、未使用を断定する印ではありません。</dd></div>
-            <div><dt>壊れた閉鎖看板</dt><dd>確認済みの入口から静的な道筋が見つからなかったモジュールを表します。実行時に未使用、削除可能、または故障しているとは断定しません。</dd></div>
-            <div><dt>足場と覆い布</dt><dd>調査中の外観を表します。工事が実行中、または建物が壊れているという意味ではありません。</dd></div>
-            <div><dt>存在と活動</dt><dd>施設の存在を確認しても、現在動いているかは別に調べます。</dd></div>
-          </dl>
-        </section>
-        <section aria-labelledby="absent-title">
-          <h3 id="absent-title">この街にない施設</h3>
-          <div id="absent-list" class="finding-list"></div>
-        </section>
-        <section aria-labelledby="survey-title">
-          <h3 id="survey-title">測量の範囲と限界</h3>
-          <div id="survey-list" class="finding-list"></div>
-        </section>
-        <section aria-labelledby="locations-title">
-          <h3 id="locations-title">街の場所</h3>
-          <div id="location-list" class="location-list"></div>
-        </section>
-      </div>
-    </section>
-  </dialog>
-
-  <aside id="evidence-panel" class="evidence-panel" aria-labelledby="evidence-title" hidden>
-    <header class="panel-header">
-      <div>
-        <span class="eyebrow">証拠</span>
-        <h2 id="evidence-title">証拠</h2>
-      </div>
-      <button id="evidence-close" class="icon-button" type="button" aria-label="証拠を閉じる">×</button>
-    </header>
-    <p id="evidence-saying" class="evidence-saying"></p>
-    <section class="evidence-group observed" aria-labelledby="observed-title">
-      <h3 id="observed-title">● 観測したこと</h3>
-      <ul id="evidence-observed"></ul>
-    </section>
-    <section class="evidence-group inferred" aria-labelledby="inferred-title">
-      <h3 id="inferred-title">▲ 推定できること</h3>
-      <ul id="evidence-inferred"></ul>
-    </section>
-    <section class="evidence-group unknown" aria-labelledby="unknown-title">
-      <h3 id="unknown-title">? まだ不明なこと</h3>
-      <ul id="evidence-unknown"></ul>
-    </section>
-    <details>
-      <summary>検査入力</summary>
-      <pre id="evidence-source"></pre>
-      <button id="evidence-copy" class="journal-action" type="button">検査入力をコピー</button>
-    </details>
-  </aside>
 
   <script type="module" src="/fable5-v2/app.js"></script>
 </body>

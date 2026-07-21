@@ -1,9 +1,0 @@
-Use case: stylized-concept
-Asset type: production game building sprite source for CodeCity Inspector
-Input images: Image 1 is the global world/palette/pixel-density reference; Image 2 is the direct building-family and masonry reference.
-Primary request: create one distinct late-medieval PUB / TAVERN building, suitable for later downsampling to a 256x256 transparent master.
-Scene/backdrop: perfectly flat solid #ff00ff chroma-key background for local background removal.
-Subject: one complete compact pub with a clearly readable front entrance facing the walkable foreground, a small hanging tankard sign without letters, warm amber windows, dark blue-green roof tiles, timber and stone masonry, moss and restrained lived-in clutter. No people.
-Style/medium: dense crisp top-down three-quarter pixel art, preserving the references' fine pixel clusters, scale, palette, architectural texture, and lighting.
-Composition/framing: single building centered, coherent three-quarter/top-down perspective, generous padding on all sides, entire roof and footprint visible, consistent baseline.
-Constraints: background must be one uniform #ff00ff color with no shadows, gradients, texture, reflections, floor plane, or lighting variation. Crisp silhouette. Do not use #ff00ff in the building. No cast shadow, contact shadow, rectangular ground pad, neighboring examples, specimen-sheet layout, labels, letters, watermark, characters, or cropped edges. Do not simplify into an icon. Do not recolor another building; make pub architecture semantically distinct.

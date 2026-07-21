@@ -1,9 +1,0 @@
-Use case: stylized-concept
-Asset type: production game building sprite source for CodeCity Inspector
-Input images: Image 1 is the global world/palette/pixel-density reference; Image 2 is the direct guild-hall architecture, stonework, roof, and facade reference.
-Primary request: create one distinct late-medieval DOJO / TRAINING HALL building adapted naturally to this European fantasy town, suitable for later downsampling to a 256x256 transparent master.
-Scene/backdrop: perfectly flat solid #ff00ff chroma-key background for local background removal.
-Subject: one complete compact timber-and-stone training hall with a clearly readable broad front entrance facing the walkable foreground, crossed wooden practice staffs as a wordless emblem, dark blue-green roof tiles, warm amber windows, restrained moss, a small attached weapon rack, and sturdy guild-like construction. No people.
-Style/medium: dense crisp top-down three-quarter pixel art, matching the references' fine pixel clusters, scale, palette, architectural texture, and lighting. It must look native to CodeCity, not East Asian modern/chibi art.
-Composition/framing: one building centered, coherent three-quarter/top-down perspective, generous padding, entire roof and footprint visible, consistent baseline.
-Constraints: one uniform #ff00ff background with no shadows, gradients, texture, reflections, floor plane, or lighting variation. Crisp silhouette. Do not use #ff00ff in the subject. No cast/contact shadow, rectangular ground pad, neighboring examples, specimen sheet, labels, letters, watermark, characters, or cropped edges. Architecture must be distinct from the guild hall and not a simple recolor.

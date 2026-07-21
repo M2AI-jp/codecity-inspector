@@ -1,8 +1,0 @@
-Use case: stylized-concept
-Asset type: production 64x64 natural-obstacle terrain master source for CodeCity Inspector
-Input images: Image 1 is the global world style, palette, camera, and pixel-density reference; Image 2 is the direct approved cliffs, trees, roots, moss, and vegetation reference.
-Primary request: create one natural impassable mature tree obstacle centered on a grass terrain tile.
-Subject: one compact old deciduous tree with a visible dark trunk, roots, irregular deep-green leafy crown, restrained moss and small ground plants; readable as a tree and movement obstacle, with a naturally uneven canopy silhouette.
-Style/medium: dense crisp late-medieval fantasy top-down three-quarter pixel art matching CodeCity's forest vegetation, palette, pixel clusters, and upper-left lighting.
-Composition/framing: one full-bleed square tile; the full canopy, trunk, and roots remain inside generous grass margins, no part touches the outer edges, readable at 64x64 after nearest-neighbor downsampling.
-Constraints: do not crop the canopy into a square, no forest cluster, stump, building, person, prop, fruit, text, label, border, margin, tile grid, variants, watermark, blur, or enlarged old pixels.

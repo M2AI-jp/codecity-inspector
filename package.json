@@ -8,32 +8,27 @@
     "codecity": "src/server.mjs"
   },
   "files": [
+    "art/contracts/",
     "CodeCity.command",
+    "Fable5ArtContract.md",
+    "Fable5PlacementGuide.md",
+    "Fable5PlacementMatrix.md",
+    "Fable5PrefabSpec.md",
+    "Fable5SceneBlueprints.md",
+    "Fable5VerticalSlice.md",
     "public/",
     "sample/",
     "src/",
-    "tools/asset-forge/README.md",
-    "tools/asset-forge/asset-forge.config.example.json",
-    "tools/asset-forge/data/",
-    "tools/asset-forge/package-lock.json",
-    "tools/asset-forge/package.json",
-    "tools/asset-forge/prompts/",
-    "tools/asset-forge/references/README.md",
-    "tools/asset-forge/schemas/",
-    "tools/asset-forge/src/",
+    "tools/asset-forge/contracts/",
     "SECURITY.md",
     "THIRD_PARTY_NOTICES.md"
   ],
   "scripts": {
     "start": "node src/server.mjs",
     "demo": "node src/server.mjs --repo ./sample/tiny-town --open",
-    "generate:town": "node src/generate-town.mjs",
     "test": "node --test test/*.test.mjs test/town/*.test.mjs",
-    "asset:check": "npm --prefix tools/asset-forge run check",
-    "asset:dry-run": "npm --prefix tools/asset-forge run dry-run",
-    "asset:validate": "npm --prefix tools/asset-forge run validate",
     "check:launcher": "zsh -n CodeCity.command",
-    "check": "npm run check:launcher && node --check src/scanner.mjs && node --check src/inspector.mjs && node --check src/server.mjs && node --check src/generate-town.mjs && node --check public/world-runtime.mjs && node --check public/site-runtime.mjs && node --check public/app.js && node --check public/fable5-v2/world-runtime.mjs && node --check public/fable5-v2/site-runtime.mjs && node --check public/fable5-v2/app.js && npm test"
+    "check": "npm run check:launcher && node --check src/scanner.mjs && node --check src/inspector.mjs && node --check src/server.mjs && node --check public/fable5-v2/app.js && npm test"
   },
   "engines": {
     "node": ">=20"

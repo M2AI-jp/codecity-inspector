@@ -1,9 +1,0 @@
-Use case: stylized-concept
-Asset type: production game building sprite source for CodeCity Inspector
-Input images: Image 1 is the global world/palette/pixel-density reference; Image 2 is the direct workshop architecture, forge, tools, and masonry reference.
-Primary request: create one distinct late-medieval WORKSHOP / SMITHY building, suitable for later downsampling to a 256x256 transparent master.
-Scene/backdrop: perfectly flat solid #ff00ff chroma-key background for local background removal.
-Subject: one complete compact artisan workshop with a clearly readable front entrance facing the walkable foreground, a visible glowing forge opening integrated into the facade, dark blue-green roof tiles, stone chimney without smoke, timber framing, stone base, small tool rack and anvil attached close to the building. No people.
-Style/medium: dense crisp top-down three-quarter pixel art, preserving the references' fine pixel clusters, scale, palette, masonry, warm forge light, moss, and lived-in craft detail.
-Composition/framing: one unified building centered, coherent three-quarter/top-down perspective, generous padding, entire roof and footprint visible, consistent baseline.
-Constraints: one uniform #ff00ff background with no shadows, gradients, texture, reflections, floor plane, lighting variation, smoke, sparks, or particle effects. Crisp silhouette. Do not use #ff00ff in the subject. No cast/contact shadow, rectangular ground pad, neighboring examples, specimen sheet, labels, text, watermark, characters, or cropped edges. Do not simplify into an icon or recolor another building.

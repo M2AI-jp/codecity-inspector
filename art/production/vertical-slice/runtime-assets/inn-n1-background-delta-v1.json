@@ -1,0 +1,181 @@
+{
+  "schemaVersion": 1,
+  "assetSetId": "old-town-inn-n1-background-delta-v1",
+  "updatedAt": "2026-07-18",
+  "status": "deterministic-crops-ready-open-door-occluder-and-repair-raster-pending",
+  "scope": "One enterable inn over the accepted whole-world background. Keep every good source pixel and add only interaction-critical deltas.",
+  "instructionPrecedence": {
+    "currentDecision": "The accepted master is retained as the runtime background for this n=1 implementation, and only interaction-critical local assets are layered above it.",
+    "supersedesForThisAssetSetOnly": [
+      "art/production/vertical-slice/geometry-v2.json#authority.visualMasterRuntimeAllowed=false",
+      "art/production/vertical-slice/geometry-v2.json#authority.visualMasterSlicingAllowed=false",
+      "art/production/vertical-slice/manifest.json#output.masterBoardsAreRuntimeForbidden=true",
+      "Fable5VerticalSlice24x16.md#visual-master-runtime-prohibition"
+    ],
+    "preservationRule": "Do not rewrite or delete those historical contracts. This additive asset set records the newer user-authorized minimal-delta route explicitly."
+  },
+  "source": {
+    "path": "art/production/vertical-slice/boards/old-town-exterior-master-v1.png",
+    "sha256": "a3b33e5dcb8bd2c0475ba146888027159cb5c955eae3a5d53d58d7770a0417ce",
+    "dimensions": { "width": 1536, "height": 1024 },
+    "colorType": "RGB",
+    "nativeScale": 1,
+    "resamplingAllowed": false
+  },
+  "coordinateSystem": {
+    "origin": "top-left",
+    "rectConvention": "half-open",
+    "worldBounds": { "x": 0, "y": 0, "width": 1536, "height": 1024 },
+    "logicalCellPixels": 64
+  },
+  "observed": {
+    "innVisualBBox": { "x": 73, "y": 179, "width": 357, "height": 296 },
+    "innLotBBox": { "x": 47, "y": 179, "width": 384, "height": 354 },
+    "doorRect": { "x": 185, "y": 356, "width": 43, "height": 83 },
+    "doorFoot": { "x": 207, "y": 439 },
+    "sourceClusterBBox": { "x": 267, "y": 449, "width": 91, "height": 65 }
+  },
+  "inferredRuntimeGeometry": {
+    "logicalFootprint": { "x": 64, "y": 256, "width": 320, "height": 192 },
+    "ySortAnchorY": 448,
+    "doorTriggerRect": { "x": 184, "y": 430, "width": 48, "height": 24 },
+    "doorApproachPoint": { "x": 207, "y": 480 },
+    "openVisualRect": { "x": 183, "y": 356, "width": 48, "height": 83 },
+    "actorFootEllipse": { "radiusX": 12, "radiusY": 7 },
+    "openDoorLateralMarginAtCenterline": { "left": 12, "right": 12 },
+    "note": "The interaction trigger is allowed to overlap the visible opening, but collision must use the visible 48px opening rather than treating the trigger rectangle as a wall aperture."
+  },
+  "runtimeBackground": {
+    "assetId": "old_town.background.accepted_master",
+    "path": "art/production/vertical-slice/boards/old-town-exterior-master-v1.png",
+    "worldAnchor": { "x": 0, "y": 0 },
+    "drawOrder": 0,
+    "required": true
+  },
+  "assets": [
+    {
+      "assetId": "inn.interaction.crop.closed",
+      "status": "ready-deterministic-svg-view",
+      "role": "Exact native crop used for building-local interaction state, registration checks, and non-destructive restoration.",
+      "file": "art/production/vertical-slice/runtime-assets/inn/inn-interaction-crop-v1.svg",
+      "sourceCrop": { "x": 47, "y": 179, "width": 384, "height": 354 },
+      "outputDimensions": { "width": 384, "height": 354 },
+      "worldAnchor": { "x": 47, "y": 179 },
+      "alpha": "none-source-is-rgb",
+      "runtimeRestriction": "Do not brighten, tint, or hover-filter this rectangle. A rectangular visual filter would expose the crop boundary. Use it at 100% opacity only, or use a separately approved pixel-tight building mask."
+    },
+    {
+      "assetId": "inn.foreground.occluder",
+      "status": "crop-locked-alpha-pending",
+      "role": "Redraw only the solid inn silhouette above an actor whose foot is north of y=448, so roof and facade correctly pass in front.",
+      "sourceCrop": { "x": 73, "y": 179, "width": 357, "height": 296 },
+      "outputDimensions": { "width": 357, "height": 296 },
+      "worldAnchor": { "x": 73, "y": 179 },
+      "ySortAnchorY": 448,
+      "alphaExtraction": {
+        "required": "pixel-tight RGBA mask at original size",
+        "include": [
+          "inn roof, chimneys, eaves, facade, door frame, annex roof and annex wall",
+          "building-attached bed sign, wall lantern hardware, flower boxes and structural porch/wall trim"
+        ],
+        "exclude": [
+          "smoke and glow",
+          "background trees, rock, foliage and sky gaps around the roof",
+          "courtyard cobble, light pool and free-standing courtyard props",
+          "detached perimeter wall, loose barrels, crates, table and vegetation"
+        ],
+        "edgeRule": "Preserve one-pixel source antialiasing. No rectangular fallback, feather halo, dark fringe, or source-color spill."
+      },
+      "runtimeCondition": "Draw above the actor only while actor.footY < 448 and the exterior state is active. Hide this occluder during the inn cutaway/interior state."
+    },
+    {
+      "assetId": "inn.door.closed",
+      "status": "ready-deterministic-svg-view",
+      "role": "Native closed-state restoration plate with an 8px-or-greater architectural context margin.",
+      "file": "art/production/vertical-slice/runtime-assets/inn/inn-door-closed-v1.svg",
+      "sourceCrop": { "x": 176, "y": 336, "width": 64, "height": 112 },
+      "outputDimensions": { "width": 64, "height": 112 },
+      "worldAnchor": { "x": 176, "y": 336 },
+      "drawOrder": 15,
+      "alpha": "none-source-is-rgb",
+      "registration": "At native scale this plate must be pixel-identical to the same source region; any visible seam is a hard failure."
+    },
+    {
+      "assetId": "inn.door.open",
+      "status": "local-edit-required",
+      "role": "Cover the baked closed door and show a real, navigable, warm interior reveal.",
+      "outputFile": "art/production/vertical-slice/runtime-assets/inn/inn-door-open-v1.png",
+      "plateRect": { "x": 176, "y": 336, "width": 64, "height": 112 },
+      "outputDimensions": { "width": 64, "height": 112 },
+      "worldAnchor": { "x": 176, "y": 336 },
+      "drawOrder": 15,
+      "editMask": {
+        "worldRect": { "x": 183, "y": 356, "width": 48, "height": 83 },
+        "localRect": { "x": 7, "y": 20, "width": 48, "height": 83 },
+        "meaning": "43px observed door plus exactly 2px west and 3px east. Use a pixel-tight leaf/jamb mask inside this envelope rather than repainting the whole rectangle."
+      },
+      "supportingReference": {
+        "path": "art/references/target-cutaway.png",
+        "role": "material and inhabited-interior quality reference only; do not copy its composition or scale"
+      },
+      "prompt": "Use case: precise-object-edit. Asset type: native 64x112 inn door state plate. Edit target: accepted old-town master; preserve its exact camera, pixel density, warm timber-and-stone style, dusk lighting, facade, arch, transom, flower boxes and all pixels outside world rect [176,240)x[336,448). Open only the inn door inward, with the leaf mostly out of the walking aperture and a slim believable inner edge on the west side. Widen the visible aperture from [185,228) to exactly [183,231), retaining centerline x=207. Reveal a short warm wooden threshold and detailed inhabited interior continuation; it must not be a flat black hole. No person, UI, text, new lamp, geometry drift, resampling, blur, halo, or change outside the plate.",
+      "acceptance": [
+        "Visible opening is exactly 48px wide at x=[183,231) with centerline x=207.",
+        "The 24px-wide foot collider clears the opening with 12px lateral margin on each side at x=207.",
+        "Closed-door pixels are fully covered; no double door, ghost edge, black rectangle, or halo remains.",
+        "Plate edge is invisible at native scale and 2x nearest-neighbor display."
+      ]
+    },
+    {
+      "assetId": "inn.courtyard.clearance-repair",
+      "status": "segmentation-and-local-inpaint-required",
+      "role": "Make the visible courtyard agree with the already-declared 48px route by moving the same table/barrel cluster exactly 18px north.",
+      "outputFile": "art/production/vertical-slice/runtime-assets/inn/inn-courtyard-clearance-repair-v1.png",
+      "unionRect": { "x": 267, "y": 431, "width": 91, "height": 83 },
+      "outputDimensions": { "width": 91, "height": 83 },
+      "worldAnchor": { "x": 267, "y": 431 },
+      "drawOrder": 5,
+      "sourceClusterBBox": { "x": 267, "y": 449, "width": 91, "height": 65 },
+      "translatedClusterBBox": { "x": 267, "y": 431, "width": 91, "height": 65 },
+      "translation": { "x": 0, "y": -18 },
+      "rawPassage": { "axis": "y", "from": 496, "toExclusive": 544, "pixels": 48 },
+      "preferredMethod": [
+        "Extract the original cluster to a pixel-tight alpha mask inside [267,358)x[449,514).",
+        "Reconstruct cobble only beneath every source-cluster alpha pixel; preserve every non-mask source pixel exactly.",
+        "Composite the unchanged extracted cluster at delta (0,-18) into [267,358)x[431,496).",
+        "Export only the union [267,358)x[431,514) as RGBA, with alpha equal to the union of removed-source and translated-cluster semantic pixels."
+      ],
+      "fallbackPrompt": "Use case: precise-object-edit. Edit target: accepted old-town master. Change only the union [267,358)x[431,514). Move the exact same outdoor table-and-barrel cluster, with identical object count, size, silhouette, materials, lighting and orientation, from bbox [267,358)x[449,514) exactly 18 pixels north to [267,358)x[431,496). Reconstruct the vacated pixels as matching courtyard cobble sampled from the immediately adjacent surface. Preserve every pixel outside the union, and preserve the inn, door, perimeter wall, stair, flowers and all other props. No deletion, resize, replacement object, blur, relighting, invented vegetation, geometry drift or resampling.",
+      "acceptance": [
+        "Cluster bbox is translated by exactly (0,-18), not regenerated at a different size.",
+        "Object identity and count are unchanged.",
+        "No cluster pixel remains south of y=496.",
+        "The raw visible passage [496,544) remains 48px before collider sweep.",
+        "No seam is visible around the 91x83 plate at 1x or 2x."
+      ]
+    }
+  ],
+  "drawOrder": [
+    { "order": 0, "assetId": "old_town.background.accepted_master", "condition": "always" },
+    { "order": 5, "assetId": "inn.courtyard.clearance-repair", "condition": "always after asset approval" },
+    { "order": 10, "assetId": "inn.cutaway.background-and-interior", "condition": "interior; supplied by the interior owner and drawn below actors while fully covering the baked exterior region" },
+    { "order": 15, "assetId": "inn.door.closed|inn.door.open", "condition": "exterior; exactly one door state" },
+    { "order": 20, "assetId": "actors", "condition": "exterior or interior; use the actor's active space and spawn contract" },
+    { "order": 30, "assetId": "inn.foreground.occluder", "condition": "exterior and actor.footY < 448" },
+    { "order": 35, "assetId": "inn.cutaway.foreground-rim", "condition": "interior; optional separately masked front wall or rim only, drawn above actors without covering the walkable floor" }
+  ],
+  "unknown": [
+    "The accepted master is RGB, so it contains no authoritative alpha truth for the inn silhouette or courtyard cluster.",
+    "No approved open-door pixels exist in the accepted master.",
+    "The exact cutaway/interior cover asset is outside this asset set and must be registered against the same 320x192 footprint before entry is complete.",
+    "The inferred 5x3 footprint is not a collision polygon; visible mass and portal sweeps still require runtime proof."
+  ],
+  "hardFailures": [
+    "Using either source bbox as collision.",
+    "Shipping the foreground occluder as an opaque rectangle.",
+    "Opening the door with a flat dark rectangle or an aperture narrower than 48px.",
+    "Leaving the table/barrel cluster in the old position while claiming the 48px courtyard route.",
+    "Resampling the master or any crop.",
+    "Treating an SVG crop view as approved alpha, open-door, or repair artwork."
+  ]
+}

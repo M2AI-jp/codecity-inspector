@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "assetId": "player-green-4dir-v1",
+  "status": "runtime-integrated-independent-visual-pass-browser-pending",
+  "runtime": {
+    "path": "public/fable5-v2/assets/characters/player-green-4dir-v1.png",
+    "sha256": "96d4e06ae5d9439e07c52d865095f556de3a6d4dcfa456f6a32858ae05b15094",
+    "dimensions": { "width": 256, "height": 512 },
+    "frame": { "width": 64, "height": 128, "footPivot": { "x": 32, "y": 120 } },
+    "rows": ["south", "west", "east", "north"],
+    "columns": ["idle", "walk-a", "passing", "walk-b"]
+  },
+  "userSource": {
+    "ledgerSourceId": "user_character_style_reference",
+    "path": "art/references/user-provided/character_style_reference_sheet.png",
+    "sha256": "910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b",
+    "dimensions": { "width": 1536, "height": 1024 },
+    "custody": "user-direct"
+  },
+  "rejectedGeneratedCandidate": {
+    "status": "failed-independent-visual-eval-not-used-by-runtime-atlas",
+    "provider": "codex-imagegen-built-in",
+    "model": "managed-built-in-model-not-exposed",
+    "promptPath": "art/production/vertical-slice/prompts/player-green-missing-motion-v1.md",
+    "rawPath": "art/production/vertical-slice/boards/candidates/player-green-4x4-imagegen-candidate-01.png",
+    "rawSha256": "241d984a7bce49da2f98546f014c106dc0ceb00270ada91a0aee82ee81056ff1",
+    "rawDimensions": { "width": 1254, "height": 1254 },
+    "alphaPath": "art/production/vertical-slice/boards/candidates/player-green-4x4-imagegen-candidate-01-rgba.png",
+    "alphaSha256": "b2412829e613759eed1a77e9132c40a50cab11e0633694e3fad691a9cecce3fe",
+    "alphaMethod": { "script": "imagegen/remove_chroma_key.py", "autoKey": "corners", "observedKey": "#f503ec", "tolerance": 100, "spillCleanup": true }
+  },
+  "frameLineage": {
+    "runtimeUsesGeneratedPixels": false,
+    "allRuntimeFramesUseOnlyUserSourcePixels": true,
+    "directNormalizedCrops": ["south-idle", "west-idle", "west-walk-a", "west-walk-b", "east-idle", "north-idle"],
+    "deterministicUserPixelTransforms": {
+      "neutralPassingCopies": ["south-passing", "west-passing", "east-passing", "north-passing"],
+      "oppositeArmAndLegContacts": ["south-walk-a", "south-walk-b", "north-walk-a", "north-walk-b"],
+      "horizontalMirrorsFromWestSourceWalk": ["east-walk-a", "east-walk-b"]
+    }
+  },
+  "assembly": {
+    "script": "art/production/vertical-slice/scripts/assemble-player-green-atlas.py",
+    "scriptSha256": "22ee953fd354b5f7ca0e052f4dc8de4dc5cd2050db10b53a6afbe0028f9339fa",
+    "resampling": "nearest-neighbor",
+    "sourceMutation": false
+  },
+  "qa": {
+    "comparisonPath": "art/production/vertical-slice/qa/player-green-source-vs-runtime-v1.png",
+    "comparisonSha256": "bd5caa7ee7efc97a8313406f26b73380cdf1cadbb84756360fbb0d1e2112ca5f",
+    "nativeWorldComposite": { "path": "art/production/vertical-slice/qa/player-green-target-town-native-composite-v2.png", "sha256": "6c8acabd67c816390251222e059d40027fe004a7179f61032574ad763888f68a" },
+    "walkLoopGif": {
+      "path": "art/production/vertical-slice/qa/player-green-target-town-walk-loops-v2.gif",
+      "sha256": "750861b6397256fb1eb4d6a2a0aa0cc6453eb91bdfb69c2fb324237d0c146ed5",
+      "frameCount": 16,
+      "frameDurationMs": 60,
+      "poseHoldMs": 120,
+      "rootMotionPixelsPerFrame": 5,
+      "equivalentSpeedPixelsPerSecond": 83.33
+    },
+    "hardIdentityConstraints": ["gray-lavender-hair", "beard-and-moustache", "deep-green-torso", "ochre-gold-edging", "cream-sleeves", "pale-lower-garment", "dark-footwear", "no-blue-cap", "no-long-blue-coat", "no-satchel", "no-notebook"]
+  },
+  "supersedesRuntimeReference": {
+    "path": "public/fable5-v2/assets/characters/player-inspector-4dir-v1.png",
+    "disposition": "quarantine-after-runtime-reference-removal-not-user-source"
+  }
+}

@@ -2,9 +2,19 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import {
-  createWorldRuntime,
-  residentConversationTarget,
-  validateRuntimeWorldPlan
+  ACTOR_CONTRACT,
+  CLUE_INTERACTIONS,
+  EXTERIOR_BLOCKERS,
+  GAMEPLAY_ZOOM,
+  INN_CONTRACT,
+  PLAYER_WALK_FRAME_DURATION_MS,
+  WALKABLE_ROUTE_POLYGONS,
+  evidenceDialoguePages,
+  isExteriorWalkable,
+  isInteriorWalkable,
+  moveActor,
+  nearbyInteraction,
+  spriteFrame
 } from '../../public/fable5-v2/world-runtime.mjs';
 import { inspectRepository } from '../../src/inspector.mjs';
 import { buildTownPayload } from '../../src/town/index.mjs';
@@ -165,38 +175,6 @@ test('maps only the reachable service to an enterable inn and the unverified unr
   assert.ok(closedFacts.some(({ evidence }) => evidence.unknown.length > 0));
   assert.ok(closedFacts.every(({ evidence }) => evidence.observed.length === 0));
 
-  const playable = structuredClone(plan);
-  playable.validation = verdict;
-  const runtime = createWorldRuntime(playable);
-  const runtimeInn = runtime.buildingById.get(inn.id);
-  const runtimeClosed = runtime.buildingById.get(closed.id);
-  assert.deepEqual(runtimeInn.prefab, {
-    id: inn.prefabId,
-    access: 'enterable',
-    behaviorId: inn.behaviorId,
-    animationSetId: 'animation.building.cutaway.fade',
-    cutawayDurationMs: 460,
-    cutawayEasing: 'ease-in-out-cubic',
-    collision: {
-      exterior: 'solid-footprint', entrance: 'door', interior: 'walkable'
-    },
-    eventIds: inn.eventIds,
-    soundSetId: inn.soundSetId,
-    labelMode: 'proximity',
-    speakerRole: 'keeper.inn',
-    interactionVerb: 'talk-innkeeper'
-  });
-  assert.deepEqual(runtimeClosed.prefab.collision, {
-    exterior: 'solid-footprint', entrance: 'blocked', interior: 'none'
-  });
-  assert.equal(Object.isFrozen(runtimeInn.prefab.collision), true);
-  assert.equal(Object.isFrozen(runtimeInn.prefab.eventIds), true);
-
-  const innSpeaker = residentConversationTarget(runtime, runtimeInn, factsById.get(inn.interaction.factRefs[0]));
-  assert.equal(innSpeaker.actor.id, inn.rooms[0].npcId);
-  assert.equal(innSpeaker.actor.role, 'keeper.inn');
-  assert.equal(innSpeaker.actor.home, inn.id);
-
   const missingSign = structuredClone(plan);
   missingSign.props = missingSign.props.filter(({ id }) => id !== closedSign.id);
   missingSign.buildings.find(({ id }) => id === closed.id).rooms[0].props = [];
@@ -222,9 +200,187 @@ test('maps only the reachable service to an enterable inn and the unverified unr
   malformedProgram.buildings.find(({ id }) => id === inn.id).cutawayDurationMs = -1;
   assert.equal(validateWorldPlanShape(malformedProgram).ok, false);
 
-  const unknownPrefab = structuredClone(playable);
+  const unknownPrefab = structuredClone(plan);
   unknownPrefab.buildings.find(({ id }) => id === inn.id).prefabId = 'prefab.invented';
-  assert.match(validateRuntimeWorldPlan(unknownPrefab).issues.join('\n'), /unknown prefabId/);
+  assert.ok(validateWorldPlan(unknownPrefab, { inspection }).issues
+    .some(({ code }) => code === 'PREFAB_BINDING'));
+});
+
+test('target-town n=1 geometry connects the expanded town, inn flow, and measured blockers', () => {
+  assert.deepEqual(ACTOR_CONTRACT.spawn, { x: 650, y: 520 });
+  assert.equal(ACTOR_CONTRACT.speed, 75);
+  assert.equal(GAMEPLAY_ZOOM, 1);
+  assert.equal(isExteriorWalkable(ACTOR_CONTRACT.spawn.x, ACTOR_CONTRACT.spawn.y), true);
+
+  const walkTo = (start, destination, mode) => {
+    let actor = { ...start, facing: start.facing ?? 'north' };
+    let remaining = 2_000;
+    while ((actor.x !== destination.x || actor.y !== destination.y) && remaining > 0) {
+      const input = actor.x !== destination.x
+        ? { x: Math.sign(destination.x - actor.x), y: 0 }
+        : { x: 0, y: Math.sign(destination.y - actor.y) };
+      const next = moveActor(actor, input, 1 / ACTOR_CONTRACT.speed, mode);
+      assert.equal(next.moved, true, `blocked at ${actor.x},${actor.y} toward ${destination.x},${destination.y}`);
+      actor = next;
+      remaining -= 1;
+    }
+    assert.ok(remaining > 0, `movement guard exhausted toward ${destination.x},${destination.y}`);
+    return actor;
+  };
+
+  // These checkpoints cross the measured main-road/inn-route overlap without
+  // inventing walkable pixels outside the two production polygons.
+  let exteriorActor = { ...ACTOR_CONTRACT.spawn, facing: 'north' };
+  for (const point of [
+    { x: 226, y: 520 },
+    { x: 226, y: 495 },
+    { x: 212, y: 495 },
+    INN_CONTRACT.door.approachPoint
+  ]) {
+    exteriorActor = walkTo(exteriorActor, point, 'exterior');
+  }
+
+  assert.equal(nearbyInteraction({ x: 212, y: 493 }, 'exterior'), null);
+  assert.equal(nearbyInteraction(exteriorActor, 'exterior')?.id, 'enter-inn');
+  assert.equal(nearbyInteraction({ x: 250, y: 480 }, 'exterior'), null);
+  assert.equal(nearbyInteraction(INN_CONTRACT.door.returnPoint, 'exterior'), null);
+
+  assert.equal(isInteriorWalkable(INN_CONTRACT.interior.entryFoot.x, INN_CONTRACT.interior.entryFoot.y), true);
+  assert.equal(isInteriorWalkable(212, 389), true);
+  assert.equal(isInteriorWalkable(212, 388), false, 'actor radius keeps feet south of the counter boundary');
+  let interiorActor = walkTo(INN_CONTRACT.interior.entryFoot, { x: 212, y: 400 }, 'interior');
+  assert.equal(nearbyInteraction(interiorActor, 'interior')?.id, 'talk-innkeeper');
+  interiorActor = walkTo(interiorActor, INN_CONTRACT.interior.entryFoot, 'interior');
+  assert.equal(nearbyInteraction(interiorActor, 'interior')?.id, 'exit-inn');
+  assert.deepEqual(INN_CONTRACT.objects.routeStreetlampFoot, { x: 327, y: 624 });
+
+  const walkExteriorCheckpoints = (checkpoints) => {
+    let actor = { ...ACTOR_CONTRACT.spawn, facing: 'north' };
+    for (const checkpoint of checkpoints) actor = walkTo(actor, checkpoint, 'exterior');
+    return actor;
+  };
+
+  const west = walkExteriorCheckpoints([
+    { x: 200, y: 520 },
+    { x: 200, y: 540 },
+    { x: 20, y: 540 }
+  ]);
+  assert.deepEqual([west.x, west.y], [20, 540]);
+  assert.equal(walkExteriorCheckpoints([
+    { x: 650, y: 480 },
+    { x: 1200, y: 480 },
+    { x: 1200, y: 500 },
+    { x: 1560, y: 500 }
+  ]).x, 1560);
+  assert.equal(walkExteriorCheckpoints([{ x: 760, y: 520 }, { x: 760, y: 310 }]).y, 310);
+  const south = walkExteriorCheckpoints([
+    { x: 720, y: 520 },
+    { x: 720, y: 620 },
+    { x: 690, y: 700 },
+    { x: 650, y: 800 },
+    { x: 620, y: 900 },
+    { x: 620, y: 960 }
+  ]);
+  assert.deepEqual([south.x, south.y], [620, 960]);
+
+  assert.deepEqual(CLUE_INTERACTIONS.map(({ id }) => id), [
+    'clue-streetlamp',
+    'clue-well',
+    'clue-east-shop'
+  ]);
+  assert.deepEqual(CLUE_INTERACTIONS.map(({ shortLabel }) => shortLabel), [
+    '古い街灯',
+    '中央広場の井戸',
+    '東市場の看板'
+  ]);
+  for (const clue of CLUE_INTERACTIONS) {
+    assert.equal(isExteriorWalkable(clue.point.x, clue.point.y), true, `${clue.id} approach`);
+    assert.equal(nearbyInteraction(clue.point, 'exterior')?.id, clue.id);
+  }
+
+  for (let startY = 472; startY <= 488; startY += 1) {
+    let returnTrip = { x: 1200, y: startY, facing: 'west' };
+    for (let step = 0; step < 260 && returnTrip.x > 226; step += 1) {
+      const moved = moveActor(returnTrip, { x: -1, y: 0 }, 0.06, 'exterior');
+      assert.equal(moved.blocked, false, `east-to-inn return blocked from y=${startY} near x=${returnTrip.x}`);
+      returnTrip = { ...returnTrip, ...moved };
+    }
+    assert.ok(returnTrip.x <= 226, `east-to-inn return from y=${startY} ended at x=${returnTrip.x}`);
+  }
+
+  for (const [label, point] of Object.entries({
+    westRoad: { x: 20, y: 540 },
+    civicPlaza: { x: 760, y: 310 },
+    eastRoad: { x: 1200, y: 500 },
+    southPath: { x: 620, y: 960 },
+    // The two east-market lamp posts (formerly 'east-road-west-lamp-base'
+    // and 'east-road-east-lamp-base') no longer carry a ground collider: at
+    // this road's ~115px width, any nonzero collider centred here, once
+    // padded by the actor's own footprint, blocked every westbound return
+    // through x~1300/1510 with no way to route around it under pure
+    // east-west input. See the EXTERIOR_BLOCKERS comment in world-runtime.mjs.
+    eastLampWest: { x: 1308, y: 472 },
+    eastLampEast: { x: 1510, y: 474 }
+  })) {
+    assert.equal(isExteriorWalkable(point.x, point.y), true, label);
+  }
+
+  for (const [label, point] of Object.entries({
+    innBuilding: { x: 120, y: 450 },
+    eastShop: { x: 1200, y: 420 },
+    flowerbed: { x: 632, y: 351 },
+    well: { x: 850, y: 388 },
+    routeLamp: INN_CONTRACT.objects.routeStreetlampFoot,
+    westTrees: { x: 520, y: 650 },
+    eastTrees: { x: 900, y: 520 },
+    northForest: { x: 1450, y: 200 }
+  })) {
+    assert.equal(isExteriorWalkable(point.x, point.y), false, label);
+  }
+
+  assert.ok(WALKABLE_ROUTE_POLYGONS.length >= 8);
+  const blockerIds = new Set(EXTERIOR_BLOCKERS.map(({ id }) => id));
+  for (const id of [
+    'inn-west-frontage',
+    'plaza-well',
+    'route-streetlamp-base',
+    'plaza-east-lamp-base'
+  ]) assert.equal(blockerIds.has(id), true, id);
+  for (const id of ['east-road-west-lamp-base', 'east-road-east-lamp-base']) {
+    assert.equal(blockerIds.has(id), false, `${id} ground collider stays removed`);
+  }
+});
+
+test('player runtime uses all eight direction frames from a movement-relative phase zero', () => {
+  const actor = { facing: 'east', moving: true, walkStartedAt: 1_000 };
+  const frames = Array.from({ length: 8 }, (_, phase) => (
+    spriteFrame(actor, 1_000 + phase * PLAYER_WALK_FRAME_DURATION_MS)
+  ));
+  assert.deepEqual(frames.map(({ sx }) => sx), [64, 128, 192, 256, 320, 384, 448, 512]);
+  assert.deepEqual(new Set(frames.map(({ sy }) => sy)), new Set([256]));
+  assert.ok(frames.every(({ offsetX, offsetY }) => offsetX === 0 && offsetY === 0));
+  assert.equal(spriteFrame({ ...actor, moving: false }, 1_900).sx, 0);
+  assert.equal(PLAYER_WALK_FRAME_DURATION_MS, 70);
+});
+
+test('innkeeper dialogue surfaces repository-specific observed, inferred, and unknown evidence', () => {
+  const pages = evidenceDialoguePages({
+    repository: { name: 'tiny-town' },
+    facts: [
+      { type: 'entrypoint', params: { path: 'src/main.js' }, evidence: { observed: ['entry'], inferred: [], unknown: [] } },
+      { type: 'unresolved', params: { targetHint: 'src/missing-sign.js' }, evidence: { observed: ['link'], inferred: [], unknown: [] } },
+      { type: 'cycle', params: { members: ['src/cycle-a.js', 'src/cycle-b.js'] }, evidence: { observed: [], inferred: ['cycle'], unknown: [] } },
+      { type: 'unverified', params: { path: 'src/well.js' }, evidence: { observed: [], inferred: [], unknown: ['runtime'] } }
+    ]
+  });
+
+  assert.deepEqual(pages.map(({ className }) => className), ['observed', 'inferred', 'unknown']);
+  assert.match(pages[0].body, /src\/main\.js/);
+  assert.match(pages[0].body, /src\/missing-sign\.js/);
+  assert.match(pages[1].body, /src\/cycle-a\.js/);
+  assert.match(pages[1].body, /src\/cycle-b\.js/);
+  assert.match(pages[2].body, /1件/);
+  assert.match(pages[2].body, /故障を意味しません/);
 });
 
 test('same seed is byte-stable while a different seed changes valid building placement', () => {

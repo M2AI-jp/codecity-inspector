@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "assetId": "player-green-8walk-v3",
+  "status": "runtime-integrated-mechanical-and-independent-visual-eval",
+  "runtime": {
+    "path": "public/fable5-v2/assets/characters/player-green-8walk-v3.png",
+    "sha256": "6808b783eb7269d4e383dbe9d772ce0c086392a3700def455f2e3e2c88a8a32c",
+    "dimensions": { "width": 576, "height": 512 },
+    "frame": { "width": 64, "height": 128, "footPivot": { "x": 32, "y": 120 } },
+    "rows": ["south", "west", "east", "north"],
+    "columns": ["idle", "walk-1", "walk-2", "walk-3", "walk-4", "walk-5", "walk-6", "walk-7", "walk-8"],
+    "motion": { "speedPixelsPerSecond": 75, "phaseDurationMs": 70, "rootPixelsPerPhase": 5.25 }
+  },
+  "userSource": {
+    "path": "art/references/user-provided/character_style_reference_sheet.png",
+    "sha256": "910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b",
+    "custody": "user-direct",
+    "role": "identity, palette, clothing, proportions, and pixel-style authority"
+  },
+  "generation": {
+    "provider": "codex-imagegen-built-in",
+    "model": "managed-built-in-model-not-exposed",
+    "intent": "four direction-specific eight-phase classic JRPG walk strips with planted-foot and alternating arm/leg motion",
+    "sourcePaths": [
+      "art/production/vertical-slice/boards/candidates/player-green-imagegen-8walk-v3/south-strip-source.png",
+      "art/production/vertical-slice/boards/candidates/player-green-imagegen-8walk-v3/west-strip-source.png",
+      "art/production/vertical-slice/boards/candidates/player-green-imagegen-8walk-v3/east-strip-source.png",
+      "art/production/vertical-slice/boards/candidates/player-green-imagegen-8walk-v3/north-strip-source.png"
+    ],
+    "alphaMethod": "imagegen remove_chroma_key.py, border auto-key, soft matte, despill"
+  },
+  "assembly": {
+    "script": "art/production/vertical-slice/scripts/assemble-rpg-state-assets-v2.py",
+    "scriptSha256": "65d806c0a4f1261f2bf9f04457ea6a5418b546ca1a67f4ea35ef94a0705966cf",
+    "rules": [
+      "one scale per direction strip",
+      "common head/body anchor",
+      "two-phase planted-foot pairs",
+      "nearest-neighbor pixel preservation",
+      "largest 8-connected component cleanup",
+      "idle is pixel-identical to walk phase 8"
+    ]
+  },
+  "qa": {
+    "contactSheet": {
+      "path": "art/production/vertical-slice/qa/player-green-imagegen-8walk-v3-contact.png",
+      "sha256": "8d21746f29c9108a7ee8bfb463695b6b1f3eafcc715761f7ed3caa2c0bb69c38"
+    },
+    "runtimeGif": {
+      "path": "art/production/vertical-slice/qa/player-green-imagegen-8walk-v3-runtime.gif",
+      "sha256": "1c83d22ce4f0e10e0d9562c004e23cc9f9a8ed93ffedda5c4e9a9849ebd73874",
+      "frameCount": 24,
+      "frameDurationMs": 40
+    },
+    "mechanical": "32/32 walk frames single-component; all 16 planted pairs differ by at most 1px in world coordinates; no cell-edge contact",
+    "independentReviewer": "Sol manager"
+  }
+}

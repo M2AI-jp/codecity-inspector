@@ -212,11 +212,20 @@ test('collectSignals against this repo root reads its real bin field, scripts, a
   assert.deepEqual(signals.packageJson.engines, { node: '>=20' });
   assert.equal(signals.packageJson.module, null);
   assert.deepEqual(signals.packageJson.files, [
-    'CodeCity.command', 'public/', 'sample/', 'src/',
-    'tools/asset-forge/README.md', 'tools/asset-forge/asset-forge.config.example.json',
-    'tools/asset-forge/data/', 'tools/asset-forge/package-lock.json', 'tools/asset-forge/package.json',
-    'tools/asset-forge/prompts/', 'tools/asset-forge/references/README.md',
-    'tools/asset-forge/schemas/', 'tools/asset-forge/src/', 'SECURITY.md', 'THIRD_PARTY_NOTICES.md'
+    'art/contracts/',
+    'CodeCity.command',
+    'Fable5ArtContract.md',
+    'Fable5PlacementGuide.md',
+    'Fable5PlacementMatrix.md',
+    'Fable5PrefabSpec.md',
+    'Fable5SceneBlueprints.md',
+    'Fable5VerticalSlice.md',
+    'public/',
+    'sample/',
+    'src/',
+    'tools/asset-forge/contracts/',
+    'SECURITY.md',
+    'THIRD_PARTY_NOTICES.md'
   ]);
 
   assert.equal(signals.scripts.hasStart, true);
@@ -224,13 +233,9 @@ test('collectSignals against this repo root reads its real bin field, scripts, a
   assert.equal(signals.scripts.hasBuild, false);
   assert.equal(signals.scripts.hasLint, false);
   assert.deepEqual(signals.scripts.names, [
-    'asset:check',
-    'asset:dry-run',
-    'asset:validate',
     'check',
     'check:launcher',
     'demo',
-    'generate:town',
     'start',
     'test'
   ]);

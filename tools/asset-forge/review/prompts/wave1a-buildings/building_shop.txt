@@ -1,9 +1,0 @@
-Use case: stylized-concept
-Asset type: production game building sprite source for CodeCity Inspector
-Input images: Image 1 is the global world/palette/pixel-density reference; Image 2 is the direct shopfront family, masonry, roof, and market facade reference.
-Primary request: create one distinct late-medieval SHOP building, suitable for later downsampling and placement as a medium scale-class 256x256 transparent master.
-Scene/backdrop: perfectly flat solid #ff00ff chroma-key background for local background removal.
-Subject: one complete compact two-story merchant shop with a clearly readable front entrance facing the walkable foreground, a blue-green tiled roof, warm amber upper windows, an open but dark merchandise window under a striped muted awning, a wordless hanging scales emblem, timber-and-stone facade, a few crates kept against the wall. No people.
-Style/medium: dense crisp top-down three-quarter pixel art, matching the references' fine pixel clusters, palette, pixel density, materials, moss, and warm lighting.
-Composition/framing: one shop centered, coherent three-quarter/top-down perspective, generous padding, entire roof and footprint visible, stable baseline.
-Constraints: one uniform #ff00ff background with no shadows, gradients, texture, reflections, floor plane, or lighting variation. Crisp silhouette. Do not use #ff00ff in the subject. No cast/contact shadow, rectangular ground pad, neighboring examples, specimen sheet, labels, readable text, watermark, characters, or cropped edges. Must read as a shop, not a house/pub recolor.

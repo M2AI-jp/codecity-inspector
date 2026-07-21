@@ -5,7 +5,6 @@ import {
   generateWorldPlan,
   worldPlanLodForFileCount
 } from '../../src/town/world-plan-generator.mjs';
-import { WAVE_A_ASSET_IDS } from '../../public/fable5-v2/site-runtime.mjs';
 import { validateWorldPlanShape } from '../../src/town/world-plan-schema.mjs';
 import { validateWorldPlan } from '../../src/town/world-plan-validator.mjs';
 
@@ -193,16 +192,22 @@ test('packs a small town into staggered blocks with sprite-safe northern and sou
   assert.ok([...byY.values()].filter((count) => count >= 4).length >= 2, 'connected east-west streets');
 });
 
-test('emits only Wave A asset IDs, including the building replacement for config-like files', () => {
+test('emits deterministic catalog-style asset IDs and maps config-like files to the workshop', () => {
   const inspection = inspectionFixture();
   const well = building('src/well.js');
   inspection.city.buildings.push(well);
   inspection.graph.nodes.push({ path: well.path });
   const plan = generateWorldPlan({ inspection, model: modelFixture() });
-  const allowed = new Set(WAVE_A_ASSET_IDS);
+  const repeated = generateWorldPlan({ inspection, model: modelFixture() });
+  const assetIds = worldPlanAssetIds(plan);
 
-  assert.deepEqual([...new Set(worldPlanAssetIds(plan))].filter((assetId) => !allowed.has(assetId)), []);
+  assert.deepEqual(worldPlanAssetIds(repeated), assetIds);
+  assert.ok(assetIds.length > 0);
+  assert.ok(assetIds.every((assetId) => typeof assetId === 'string'
+    && /^[a-z][a-z0-9_-]*(?:\.[a-z0-9_-]+)+$/.test(assetId)));
+  assert.ok(assetIds.includes('building.inn'));
   assert.equal(plan.buildings.find(({ files }) => files.includes('src/well.js')).assetId, 'building.workshop');
+  assert.equal(validateWorldPlan(plan, { inspection }).ok, true);
 });
 
 test('adds at most three biome-specific decor props per real district without blocking navigation or buildings', () => {

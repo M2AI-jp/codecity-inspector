@@ -1,0 +1,382 @@
+{
+  "schemaVersion": 1,
+  "status": "candidate-not-adopted",
+  "candidate": "art/production/vertical-slice/boards/candidates/player-green-8walk-candidate-v1.png",
+  "source": {
+    "path": "art/references/user-provided/character_style_reference_sheet.png",
+    "sha256": "910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b",
+    "custody": "user-direct"
+  },
+  "worldQaSource": {
+    "path": "art/references/target-town.png",
+    "sha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607",
+    "custody": "user-direct"
+  },
+  "derivation": {
+    "script": "art/production/vertical-slice/scripts/assemble-player-green-8walk-candidate.py",
+    "scriptSha256": "e54cf97174aba63b092a54d92c3816185cec980b9bb0d2413185dab5cd2fdfd7",
+    "operations": [
+      "exact 4x2 source-cell crops",
+      "black-field alpha isolation",
+      "nearest-neighbor normalization to 60px native character height",
+      "deterministic source-pixel limb cut/translate articulation",
+      "direct profile-idle upper-body stabilization over user-source side contacts",
+      "horizontal mirror of user-source west contacts for east contacts"
+    ],
+    "generatedPixelsUsed": false,
+    "resampling": "nearest-neighbor"
+  },
+  "atlas": {
+    "sha256": "583d2d177572ae958629fae7acdc6b002a6b06d7ae291c63bd95491d00fea9fc",
+    "size": [
+      576,
+      512
+    ],
+    "frameSize": [
+      64,
+      128
+    ],
+    "pivot": [
+      32,
+      120
+    ],
+    "rows": [
+      "south",
+      "west",
+      "east",
+      "north"
+    ],
+    "columns": [
+      "idle",
+      "contact-l",
+      "recoil-l",
+      "pass-l",
+      "high-l",
+      "contact-r",
+      "recoil-r",
+      "pass-r",
+      "high-r"
+    ]
+  },
+  "qa": {
+    "contactSheet": {
+      "path": "art/production/vertical-slice/qa/player-green-8walk-contact-sheet-v1.png",
+      "sha256": "6d4709de977c932a41b149a8036b57920ad092b7c7fd4535e17ea8ae3aab21e0",
+      "nativeCharacterScale": true,
+      "nativeTownScale": true
+    },
+    "rootMotionGif": {
+      "path": "art/production/vertical-slice/qa/player-green-8walk-root-motion-v1.gif",
+      "sha256": "9aa09e3b01b4313a01202adbd58b8eeb41440a726bfaf5ed49148b3bafffeef0",
+      "frames": 24,
+      "durationMsPerFrame": 80,
+      "rootPixelsPerFrame": 3
+    },
+    "exactRuntimeSpeedGif": {
+      "path": "art/production/vertical-slice/qa/player-green-8walk-runtime-speed-v1.gif",
+      "sha256": "f95cc1f2708beacfcd7e1f2a469ba14537fbcfc204ccd9b8ab8667bbfcac3bd9",
+      "frames": 24,
+      "durationMsPerFrame": 60,
+      "rootPixelsPerFrame": 5,
+      "rootPixelsPerSecond": 83.3333333333
+    },
+    "mechanicalMeasurements": {
+      "rows": {
+        "south": {
+          "uniqueFrames": 9,
+          "alphaBBoxes": [
+            [
+              16,
+              60,
+              48,
+              120
+            ],
+            [
+              16,
+              60,
+              48,
+              120
+            ],
+            [
+              16,
+              60,
+              48,
+              120
+            ],
+            [
+              16,
+              60,
+              48,
+              120
+            ],
+            [
+              16,
+              60,
+              48,
+              120
+            ],
+            [
+              16,
+              60,
+              48,
+              120
+            ],
+            [
+              16,
+              60,
+              48,
+              120
+            ],
+            [
+              16,
+              60,
+              48,
+              120
+            ],
+            [
+              16,
+              60,
+              48,
+              120
+            ]
+          ],
+          "framePixelHashes": [
+            "7fbd9d020797d718a20a5169b8e4d8b458b5f86bd9cd427ced0a7542a08252fd",
+            "57ec234e64627d809b241ace856aa5200739082aebb6f25c44cf3c221a25e6a5",
+            "aad9aad84a1779b1a34972cc9f2c6a2d6c1158f2320f2062bcea852780610ca8",
+            "78fadbc314201553f98557183adf3e3e82b1b63a54eb36f22e2429dcb55d753b",
+            "4e7360e88a6938df14bef347adb66024965b0d660376719b11be6436dda3eca4",
+            "26435f28c56cfe1848b6215b1b1d95641c6a7f9c30e40cefa8ad6cfd63e02de2",
+            "24ba15c2310adaa8b450876845f054d31469bc5ecd2ccfcb8923cb0391f58fc6",
+            "52f88550d80955aedfacc1df6c57bf6bbe829e253e3693d7e53816e644b9c4fa",
+            "91bec733765a0d84e37beed0a8b12ba468e221b9688ed927d993109064058761"
+          ]
+        },
+        "west": {
+          "uniqueFrames": 9,
+          "alphaBBoxes": [
+            [
+              20,
+              60,
+              44,
+              120
+            ],
+            [
+              16,
+              60,
+              48,
+              120
+            ],
+            [
+              16,
+              60,
+              49,
+              120
+            ],
+            [
+              20,
+              60,
+              46,
+              120
+            ],
+            [
+              20,
+              60,
+              48,
+              120
+            ],
+            [
+              17,
+              60,
+              47,
+              120
+            ],
+            [
+              17,
+              60,
+              46,
+              120
+            ],
+            [
+              20,
+              60,
+              44,
+              120
+            ],
+            [
+              20,
+              60,
+              44,
+              120
+            ]
+          ],
+          "framePixelHashes": [
+            "6ce8a72c1f3e2a2122ac9446a7a66ccd217ae2b2208b7bb2a5774c7fdd3af180",
+            "f8b1eadf4b350e7c06e024017218e7e600fbd874f13d4add833cf4bf72153be7",
+            "6afd9c0ff977dd5bae85f26b9a33d380f468ab5fbcf3d3d21126f4464babd0fb",
+            "200ead0ec56f5f0b1fb1eb7bd992a91f0ad25535142fd6e07ba15f17f117410c",
+            "dfcf4274184f679cd2bf0e93c7929deaf56fbb9dd97c260655b34340694008e8",
+            "d2b794a165080f5b7b7e64424553b2580f33b710ebe13fb082e8d5b8930b8d70",
+            "f5311c37daee28a36e683a3d30c54da0de564af3ace6a1c88a8f00604dec4854",
+            "91f8b878c1f455ce61204b741145682dde3ad27ae2be9f2318f9b31bd6bf607e",
+            "ce8300cbeeceea76dc91d09709b8fc9366d546cdcc75750f0e55deaf7b09c23c"
+          ]
+        },
+        "east": {
+          "uniqueFrames": 9,
+          "alphaBBoxes": [
+            [
+              20,
+              60,
+              44,
+              120
+            ],
+            [
+              16,
+              60,
+              48,
+              120
+            ],
+            [
+              16,
+              60,
+              49,
+              120
+            ],
+            [
+              19,
+              60,
+              44,
+              120
+            ],
+            [
+              20,
+              60,
+              46,
+              120
+            ],
+            [
+              17,
+              60,
+              47,
+              120
+            ],
+            [
+              17,
+              60,
+              46,
+              120
+            ],
+            [
+              20,
+              60,
+              44,
+              120
+            ],
+            [
+              20,
+              60,
+              44,
+              120
+            ]
+          ],
+          "framePixelHashes": [
+            "49842870a85509c8c724989c551fc8ee39e6cf6a5c9f5d5273dd3f1dd1af7e75",
+            "1657abb198118d17c3799fb737e0642d653d5bbfd58fe76327307e8b30ee0f22",
+            "b79a933233585569ead40bbb12dc27640afccecea2d55831f3c892560c5eaab8",
+            "cab100746ba1cd93c0c996571a94f71a716deb50081a357d57e9eedbe0c1315b",
+            "f875603533836dd3f60c400b6872741f1927a3676b74f394b18ebd6ee8942425",
+            "7dc9d8ba9681125c1381f531858f3589e84341189274736c9ba40118d9b63576",
+            "3744dfe9afb83ceee72c36311c77ac3a4205318e0d9e9bca738514a4ec7bc1fa",
+            "4aaa585b975bdedf0e25d3e7f10e5e430de291e9975b04849a478bd9ad9c1f49",
+            "dda07d199eaa4b48fbaa23e46e560b2193cf2683821d72ef637a912a28f3f089"
+          ]
+        },
+        "north": {
+          "uniqueFrames": 9,
+          "alphaBBoxes": [
+            [
+              16,
+              60,
+              47,
+              120
+            ],
+            [
+              16,
+              60,
+              47,
+              120
+            ],
+            [
+              16,
+              60,
+              47,
+              120
+            ],
+            [
+              16,
+              60,
+              47,
+              120
+            ],
+            [
+              16,
+              60,
+              47,
+              120
+            ],
+            [
+              16,
+              60,
+              47,
+              120
+            ],
+            [
+              16,
+              60,
+              47,
+              120
+            ],
+            [
+              16,
+              60,
+              47,
+              120
+            ],
+            [
+              16,
+              60,
+              47,
+              120
+            ]
+          ],
+          "framePixelHashes": [
+            "4a32477debc4d80ae77464b84e6b0663503e8a69d9012cafcb4fbb2a60dc33df",
+            "4cafbc0d29dd5c5afd6c256f4276fa3664e84f87f291cdec6c91736e090ac390",
+            "3593492d10ac4eddbe8aa881c7cd29a78c3bd98858b651cac198ec4480c3613d",
+            "214c71010efb00b64307b75e9aad43a5cd58c67c3ea34d180a1904db3ef33dca",
+            "bbc2286028a82aea59720ed1857a493167d26c194931938565f86545cfaf9df9",
+            "e32b2784d7c26f169407d8800d0077f347163c79c4af5269415406d3627ba354",
+            "a19571e0e6aa408f9ac5d90f9952218bf68b066fcdbe2b575b331531f5864f9f",
+            "0547b48c1aa11bcd67ceaca56f85214ff33205d63c8963f7b019f2af55abb458",
+            "2851f4372840bffb285cb09d1d485dafbb116486eca0b06fbb3be32435ce244f"
+          ]
+        }
+      }
+    },
+    "selfEval": {
+      "verdict": "pass-as-runtime-speed-eval-candidate; hold-runtime-promotion-for-independent-visual-approval",
+      "identity": "pass: every visible head/face pixel is stable per direction and all sprite colors occur in the user-direct source",
+      "sizeAndBob": "pass: every frame spans y=60..119 and contacts the fixed y=120 pivot plane",
+      "distinctness": "pass: all 9 frames in every direction are byte-distinct; adjacent phases change visible limb pixels",
+      "runtimeCadence": "pass: 8 phases at 60ms form a 480ms brisk walk cycle while the root advances exactly 5px per frame (83.33px/s)",
+      "profileTransition": "pass as candidate: source contact width was contracted from 36px to 30-32px; stable profile-idle upper body removes the prior identity/size pop",
+      "footSliding": "conditional: the exact-speed GIF exposes continuous 5px root motion, but this stylized cycle does not mathematically lock one identified sole to a world coordinate during every stance frame",
+      "knownRisk": "independent visual review must decide whether the remaining stylized sole drift is noticeable during actual controls; uniqueness alone is not treated as approval"
+    }
+  },
+  "adoption": {
+    "activeRuntimeModified": false,
+    "requiresIndependentVisualEval": true
+  }
+}

@@ -1,8 +1,0 @@
-Use case: stylized-concept
-Asset type: production 64x64 natural-obstacle terrain master source for CodeCity Inspector
-Input images: Image 1 is the global world style, palette, camera, and pixel-density reference; Image 2 is the direct approved cliffs, stone outcrops, moss, and vegetation reference.
-Primary request: create one natural impassable rock obstacle centered on a grass terrain tile.
-Subject: an irregular cluster of two or three dark-gray weathered boulders with readable top planes, cracks, restrained moss and tiny grass at the base; strong natural silhouette, clearly smaller than a cliff and clearly blocks movement.
-Style/medium: dense crisp late-medieval fantasy top-down three-quarter pixel art matching CodeCity's stone clusters, palette, vegetation, and upper-left lighting.
-Composition/framing: exactly one full-bleed square tile; obstacle centered with generous grass around it, no element touches the outer edges, readable at 64x64 after nearest-neighbor downsampling.
-Constraints: no square cutout, cliff wall, cave, ore crystal, building, person, prop, text, label, border, margin, tile grid, variants, watermark, blur, shadow outside the tile, or enlarged old pixels.
