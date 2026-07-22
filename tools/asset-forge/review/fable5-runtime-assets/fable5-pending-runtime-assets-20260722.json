@@ -1,0 +1,60 @@
+{
+  "format": "fable5-runtime-asset-inventory-v1",
+  "assets": [
+    {
+      "assetId": "char_player",
+      "category": "character",
+      "state": "pending-inspection",
+      "artifactPath": "generated/characters/pending/fable5_char_player_d947cf60b90d892a6104.png",
+      "metadataPath": "generated/characters/pending/fable5_char_player_d947cf60b90d892a6104.json",
+      "contractPath": "contracts/fable5-prefab/character.player.contract-draft.json",
+      "jobPackPath": "generated/jobs/fable5_prefab_char_player_30aecfcddcbb054c5b59/job-pack.json",
+      "approvalRecordPath": null,
+      "runtimePath": null
+    },
+    {
+      "assetId": "char_innkeeper",
+      "category": "character",
+      "state": "pending-inspection",
+      "artifactPath": "generated/characters/pending/fable5_char_innkeeper_4ec9fe5a1e5ed1f8e8e1.png",
+      "metadataPath": "generated/characters/pending/fable5_char_innkeeper_4ec9fe5a1e5ed1f8e8e1.json",
+      "contractPath": "contracts/fable5-prefab/character.innkeeper.contract-draft.json",
+      "jobPackPath": "generated/jobs/fable5_prefab_char_innkeeper_3c03c1ac9644bdad8d32/job-pack.json",
+      "approvalRecordPath": null,
+      "runtimePath": null
+    },
+    {
+      "assetId": "bld_m_inn.interior",
+      "category": "interior",
+      "state": "pending-inspection",
+      "artifactPath": "generated/interiors/pending/fable5_bld_m_inn_interior_ee1097a034ed0ee772bd.png",
+      "metadataPath": "generated/interiors/pending/fable5_bld_m_inn_interior_ee1097a034ed0ee772bd.json",
+      "contractPath": "contracts/fable5-prefab/interior.inn.contract-draft.json",
+      "jobPackPath": "generated/jobs/fable5_prefab_bld_m_inn_interior_b60a8350eaaeff37944d/job-pack.json",
+      "approvalRecordPath": null,
+      "runtimePath": null
+    },
+    {
+      "assetId": "bld_l_town_hall.interior",
+      "category": "interior",
+      "state": "pending-inspection",
+      "artifactPath": "generated/interiors/pending/fable5_bld_l_town_hall_interior_cd60b78e58ae39aec409.png",
+      "metadataPath": "generated/interiors/pending/fable5_bld_l_town_hall_interior_cd60b78e58ae39aec409.json",
+      "contractPath": "contracts/fable5-prefab/interior.city-hall.contract-draft.json",
+      "jobPackPath": "generated/jobs/fable5_prefab_bld_l_town_hall_interior_060b70bca123e9a747bf/job-pack.json",
+      "approvalRecordPath": null,
+      "runtimePath": null
+    },
+    {
+      "assetId": "bld_m_house.interior",
+      "category": "interior",
+      "state": "pending-inspection",
+      "artifactPath": "generated/interiors/pending/fable5_bld_m_house_interior_02fa6bbf58649065372a.png",
+      "metadataPath": "generated/interiors/pending/fable5_bld_m_house_interior_02fa6bbf58649065372a.json",
+      "contractPath": "contracts/fable5-prefab/interior.residence.contract-draft.json",
+      "jobPackPath": "generated/jobs/fable5_prefab_bld_m_house_interior_512102244bae5f00d91d/job-pack.json",
+      "approvalRecordPath": null,
+      "runtimePath": null
+    }
+  ]
+}

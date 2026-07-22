@@ -1,0 +1,49 @@
+{
+  "$comment": "DRAFT ONLY — not generated, not approved, and not installed into runtime. The 4x4 rectangle is derived from the current city-hall building-runtime walk polygon and anchors, not from a claim that a cutaway image has already been visually accepted.",
+  "status": "draft-pending-generation",
+  "assetId": "bld_l_town_hall.interior",
+  "category": "interior",
+  "png": { "file": "interior/bld_l_town_hall.interior.png", "w": 256, "h": 256 },
+  "nativeScale": 1,
+  "logicalTileSize": 64,
+  "pivot": { "x": 0, "y": 256 },
+  "footprint": { "w": 4, "h": 4 },
+  "collision": [],
+  "layers": { "base": "interior/bld_l_town_hall.interior.png" },
+  "allowedZoom": [1, 2, 3],
+  "materialProfile": "old-town / civic stone-and-wood records hall / current target-town scale",
+  "districts": ["old_town"],
+  "composition": {
+    "buildingId": "city-hall",
+    "layer": "ground",
+    "worldRect": { "x": 512, "y": 136, "width": 256, "height": 256 },
+    "worldPivot": { "x": 512, "y": 392, "anchor": "southwest" },
+    "coordinateEvidence": { "exterior": "observed", "interior": "inferred", "authority": "public/fable5-v2/building-runtime.mjs" },
+    "walkPolygon": [[552, 170], [728, 170], [728, 352], [684, 352], [684, 392], [596, 392], [596, 352], [552, 352]],
+    "runtimeAnchors": {
+      "entryFoot": { "x": 640, "y": 380 },
+      "exitFoot": { "x": 640, "y": 370 },
+      "cameraFocus": { "x": 640, "y": 260 },
+      "interaction": { "id": "talk-town-clerk", "point": { "x": 640, "y": 242 }, "radius": 58 }
+    },
+    "semanticSource": {
+      "minimumOpaqueCoverage": 0.75,
+      "requiredOpaqueRects": [
+        { "id": "entry-floor", "x": 124, "y": 240, "width": 8, "height": 8 },
+        { "id": "exit-threshold", "x": 124, "y": 230, "width": 8, "height": 8 },
+        { "id": "clerk-floor", "x": 124, "y": 102, "width": 8, "height": 8 }
+      ]
+    },
+    "visibleKit": {
+      "required": ["walkable civic floor", "north-wall trim", "fixed records desk", "shelving-or-ledger detail", "door threshold continuity"],
+      "forbidden": ["character", "text", "dialogue UI", "baked lighting halo", "black-hole doorway"]
+    }
+  },
+  "draftMeta": {
+    "canonicalTownReference": "user_target_town_current",
+    "buildingReference": "user_building_town_hall",
+    "humanApprovalRequiredBeforeRuntime": true,
+    "runtimeInstallAuthorized": false,
+    "interiorGeometryStatus": "inferred-until-owner-approved-visual-review"
+  }
+}

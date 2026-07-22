@@ -1,0 +1,13 @@
+{
+  "assetId": "bld_l_town_hall.interior",
+  "importCommandPath": "generated/jobs/fable5_prefab_bld_l_town_hall_interior_060b70bca123e9a747bf/intake-guide.md",
+  "jobId": "fable5_prefab_bld_l_town_hall_interior_060b70bca123e9a747bf",
+  "outputContractPath": "generated/jobs/fable5_prefab_bld_l_town_hall_interior_060b70bca123e9a747bf/output-contract.json",
+  "promptPath": "generated/jobs/fable5_prefab_bld_l_town_hall_interior_060b70bca123e9a747bf/prompt.md",
+  "referenceIds": [
+    "user_target_town_current",
+    "user_building_town_hall"
+  ],
+  "schemaVersion": 1,
+  "status": "job-pack"
+}

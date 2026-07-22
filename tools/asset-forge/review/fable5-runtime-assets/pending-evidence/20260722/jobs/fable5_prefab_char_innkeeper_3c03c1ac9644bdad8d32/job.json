@@ -1,0 +1,105 @@
+{
+  "approval": {
+    "humanOnly": true,
+    "status": "not-yet-submitted"
+  },
+  "assetId": "char_innkeeper",
+  "contractPath": "contracts/fable5-prefab/character.innkeeper.contract-draft.json",
+  "externalGenerationRequired": true,
+  "format": "fable5-prefab-character-job-v1",
+  "guards": {
+    "apiKeyRequired": false,
+    "automaticApproval": false,
+    "automaticImport": false,
+    "paidApiFallback": false,
+    "usesLegacyCharacterDefinitions": false,
+    "usesLegacyCharacterPrompts": false,
+    "usesRejectedPlayerIdentity": false
+  },
+  "id": "fable5_prefab_char_innkeeper_3c03c1ac9644bdad8d32",
+  "outputContract": {
+    "animations": {
+      "idle": {
+        "cols": [
+          0,
+          1
+        ],
+        "fps": 4
+      },
+      "interact": {
+        "cols": [
+          8,
+          9
+        ],
+        "fps": 6
+      },
+      "rowOrder": [
+        "south",
+        "west",
+        "east",
+        "north"
+      ],
+      "walk": {
+        "cols": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "fps": 10
+      }
+    },
+    "background": "transparent",
+    "format": "png",
+    "grid": {
+      "columns": 10,
+      "frameHeight": 128,
+      "frameWidth": 64,
+      "rows": 4
+    },
+    "height": 512,
+    "kind": "spritesheet",
+    "nativeScale": 1,
+    "needsTransparency": true,
+    "pivot": {
+      "x": 32,
+      "y": 120
+    },
+    "width": 640
+  },
+  "promptPaths": [
+    "prompts/fable5-prefab/00_common_fable5_character_sheet_style.md",
+    "prompts/fable5-prefab/character.innkeeper.prompt-draft.md"
+  ],
+  "promptSha256": "05699410c9974bc01af5446592efb465ffcf384dedf4dafa498cb275dfd862ed",
+  "provenanceKey": "3c03c1ac9644bdad8d320d420e84c41141c44d8878a7afdd88fb7cbc5ef442e5",
+  "references": [
+    {
+      "bindingSha256": "ca802aa30c7699509ad00a4c3a01456b64740fe76f8bd40833e2c309998922f7",
+      "copiedIntoForge": false,
+      "dimensions": {
+        "height": 1024,
+        "width": 1536
+      },
+      "ledger": "art/contracts/user-provided-images.json",
+      "role": "shared-character-rendering-language",
+      "sourceId": "user_character_style_reference",
+      "verifiedAtAssembly": true
+    },
+    {
+      "bindingSha256": "0014509f3d2b14abe04b06a14557abd6c3d3214b826953d64223cd9a017c2e34",
+      "copiedIntoForge": false,
+      "dimensions": {
+        "height": 992,
+        "width": 1586
+      },
+      "ledger": "art/contracts/user-provided-images.json",
+      "role": "town-lighting-and-shading",
+      "sourceId": "user_target_town_current",
+      "verifiedAtAssembly": true
+    }
+  ],
+  "status": "draft-job-pack"
+}

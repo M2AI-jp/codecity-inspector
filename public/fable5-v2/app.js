@@ -15,6 +15,8 @@ import {
   ledgerPulseForMotionPreference,
   lerpCameraFocus,
   moveActor,
+  normalizeMovementInput,
+  facingForVector,
   nearbyInteraction,
   rectsOverlap,
   spriteFrame,
@@ -30,6 +32,27 @@ import {
   drawWorldPrefabs,
   loadProductionAssets
 } from './site-runtime.mjs';
+import {
+  enter as enterBuilding,
+  exit as exitBuilding,
+  getBuilding,
+  getInteraction as getBuildingInteraction,
+  isInteriorWalkable as isBuildingInteriorWalkable
+} from './building-runtime.mjs';
+import {
+  chooseInvestigationQuestion,
+  createInvestigationState,
+  recordInvestigationClue,
+  startInnDialogue,
+  submitTownHallReport
+} from './quest-runtime.mjs';
+import { createFable5Persistence } from './persistence.mjs';
+import { createAudioFeedback } from './audio-feedback.mjs';
+import {
+  createFable5SessionState,
+  createInitialFable5SessionState,
+  restoreFable5SessionState
+} from './session-runtime.mjs';
 
 const elements = {
   canvas: document.querySelector('#world-canvas'),
@@ -52,6 +75,20 @@ const elements = {
   zoomOut: document.querySelector('#zoom-out'),
   zoomIn: document.querySelector('#zoom-in'),
   zoomValue: document.querySelector('#zoom-value'),
+  audioMute: document.querySelector('#audio-mute'),
+  audioVolume: document.querySelector('#audio-volume'),
+  audioVolumeValue: document.querySelector('#audio-volume-value'),
+  restartProgress: document.querySelector('#restart-progress'),
+  interiorDisclosure: document.querySelector('#interior-disclosure'),
+  questChoicePanel: document.querySelector('#quest-choice-panel'),
+  questChoiceButtons: document.querySelectorAll('#quest-choice-panel [data-question]'),
+  reportPanel: document.querySelector('#report-panel'),
+  reportSummary: document.querySelector('#report-summary'),
+  submitReport: document.querySelector('#submit-report-button'),
+  cancelReport: document.querySelector('#cancel-report-button'),
+  resetPanel: document.querySelector('#reset-panel'),
+  confirmReset: document.querySelector('#confirm-reset-button'),
+  cancelReset: document.querySelector('#cancel-reset-button'),
   screenReaderStatus: document.querySelector('#screen-reader-status'),
   dialogueStatus: document.querySelector('#dialogue-status'),
   dpad: document.querySelector('#dpad')
@@ -98,7 +135,15 @@ const state = {
   assets: null,
   payload: null,
   investigation: null,
+  quest: createInvestigationState(),
+  persistence: null,
+  progressLoadStatus: 'not-loaded',
+  // Audio preference bytes are stored inside the same repository+digest
+  // scoped progress envelope as quest/player/settings.  Never let this
+  // runtime fall back to audio-feedback's generic module key.
+  audio: createAudioFeedback({ storage: null }),
   mode: 'exterior',
+  buildingId: null,
   player: {
     x: ACTOR_CONTRACT.spawn.x,
     y: ACTOR_CONTRACT.spawn.y,
@@ -124,9 +169,11 @@ const state = {
   dialogueKind: null,
   dialogueSpeaker: '',
   dialogueAnchor: null,
-  questStage: 'unstarted',
-  foundClues: new Set(),
+  modal: null,
   completionStartedAt: 0,
+  progressDirty: false,
+  lastProgressSavedAt: 0,
+  lastFootstepAt: 0,
   lastTimestamp: 0,
   animationFrame: 0,
   reduceMotion: reducedMotionQuery?.matches ?? false
@@ -200,6 +247,163 @@ function dialogueOpen() {
   return state.dialogueIndex >= 0 && state.dialogueIndex < state.dialoguePages.length;
 }
 
+function modalOpen() {
+  return state.modal !== null;
+}
+
+function questPhase() {
+  return state.quest?.phase ?? 'new';
+}
+
+function recordedClueIds() {
+  return new Set(state.quest?.clues?.map(({ id }) => id) ?? []);
+}
+
+function safeBrowserStorage() {
+  try {
+    return window.localStorage ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function syncAudioControls() {
+  const preferences = state.audio.getPreferences();
+  elements.audioMute.textContent = preferences.muted ? '音声 OFF' : '音声 ON';
+  elements.audioMute.setAttribute('aria-pressed', String(preferences.muted));
+  elements.audioVolume.value = String(Math.round(preferences.volume * 100));
+  elements.audioVolumeValue.textContent = `${Math.round(preferences.volume * 100)}%`;
+}
+
+// AudioContext creation/resume is deliberately reachable only from DOM input
+// handlers below. Calling this helper from rendering, boot, or a timer would
+// violate browser autoplay policies and make sound a hidden side effect.
+function unlockAudioFromGesture() {
+  void state.audio.unlock().then(syncAudioControls);
+}
+
+function syncInteriorDisclosure() {
+  const building = state.mode === 'interior' ? getBuilding(state.buildingId) : null;
+  const inferred = building?.interiorEvidence === 'inferred';
+  elements.interiorDisclosure.hidden = !inferred;
+  if (!inferred) return;
+  elements.interiorDisclosure.textContent = `${building.label}の室内は推定された操作領域です。背景・配置・人物の来歴は未承認で、承認済みの室内画像は表示していません。`;
+}
+
+function currentSessionSnapshot() {
+  return createFable5SessionState({
+    quest: state.quest,
+    player: state.player,
+    mode: state.mode,
+    buildingId: state.buildingId,
+    zoom: state.zoom,
+    audioPreferences: state.audio.getPreferences()
+  });
+}
+
+function markProgressDirty() {
+  state.progressDirty = true;
+}
+
+function saveProgress() {
+  if (!state.persistence) return { status: 'not-saved' };
+  const snapshot = currentSessionSnapshot();
+  if (!snapshot.ok) return { status: snapshot.code ?? 'invalid-session' };
+  const result = state.persistence.save(snapshot.state);
+  if (result.status === 'saved') {
+    state.progressDirty = false;
+    state.lastProgressSavedAt = state.lastTimestamp;
+  }
+  return result;
+}
+
+function applyRestoredSession(session) {
+  state.quest = session.quest;
+  state.mode = session.mode;
+  state.buildingId = session.buildingId;
+  state.player = {
+    x: session.player.x,
+    y: session.player.y,
+    facing: session.player.facing,
+    moving: false,
+    walkStartedAt: 0
+  };
+  state.zoom = session.zoom;
+  state.audio.setMuted(session.audioPreferences.muted);
+  state.audio.setVolume(session.audioPreferences.volume);
+  const building = state.mode === 'interior' ? getBuilding(state.buildingId) : null;
+  state.cameraFocus = building?.interior?.cameraFocus
+    ? { ...building.interior.cameraFocus }
+    : { x: state.player.x, y: state.player.y };
+  state.pendingTransition = null;
+  state.transitionUntil = 0;
+  state.doorAuto = createDoorAutoState();
+  state.progressDirty = false;
+  syncZoomControls();
+  syncAudioControls();
+  syncInteriorDisclosure();
+}
+
+function restoreSessionProgress(payload) {
+  state.persistence = createFable5Persistence({
+    storage: safeBrowserStorage(),
+    repositoryIdentity: payload?.repository?.name,
+    inspectionDigest: payload?.worldPlan?.inspectionDigest
+  });
+  const loaded = state.persistence.load();
+  state.progressLoadStatus = loaded.status;
+  const initial = createInitialFable5SessionState();
+  if (!initial.ok) throw new Error('Fable5 initial session contract is invalid');
+  if (loaded.status !== 'loaded' || !loaded.state) {
+    applyRestoredSession(initial.state);
+    return;
+  }
+  const restored = restoreFable5SessionState(loaded.state);
+  if (!restored.ok) {
+    // A valid persistence envelope can still contain a stale or impossible
+    // route state. Do not infer a nearby coordinate, room, or preference.
+    state.progressLoadStatus = `corrupt-session:${restored.code}`;
+    applyRestoredSession(initial.state);
+    return;
+  }
+  applyRestoredSession(restored.state);
+}
+
+function updateQuest(next, { savedStatus = null } = {}) {
+  if (!next?.ok) return false;
+  state.quest = next.state;
+  markProgressDirty();
+  saveProgress();
+  updateQuestMission();
+  if (savedStatus) setStatus(savedStatus);
+  return true;
+}
+
+function moveWithinBuilding(input, deltaSeconds) {
+  const vector = normalizeMovementInput(input);
+  const distance = Math.max(0, Math.min(0.05, Number(deltaSeconds) || 0)) * ACTOR_CONTRACT.speed;
+  let x = state.player.x;
+  let y = state.player.y;
+  let blocked = false;
+  if (vector.x !== 0) {
+    const candidate = { x: x + vector.x * distance, y };
+    if (isBuildingInteriorWalkable(state.buildingId, candidate)) x = candidate.x;
+    else blocked = true;
+  }
+  if (vector.y !== 0) {
+    const candidate = { x, y: y + vector.y * distance };
+    if (isBuildingInteriorWalkable(state.buildingId, candidate)) y = candidate.y;
+    else blocked = true;
+  }
+  return {
+    x,
+    y,
+    moved: x !== state.player.x || y !== state.player.y,
+    blocked: blocked && (vector.x !== 0 || vector.y !== 0),
+    facing: facingForVector(vector, state.player.facing)
+  };
+}
+
 // The only place player position is mutated. It runs exactly once per
 // requestAnimationFrame callback (see frame()) with that frame's own
 // deltaSeconds, so distance is always (elapsed time) * speed with no
@@ -214,44 +418,66 @@ function dialogueOpen() {
 // bindDirectionButton below); the next animation frame -- at most ~16ms
 // away -- is what actually moves the player.
 function updateMovement(deltaSeconds, timestamp) {
-  if (dialogueOpen() || timestamp < state.transitionUntil) {
+  if (dialogueOpen() || modalOpen() || timestamp < state.transitionUntil) {
     state.player.moving = false;
     return;
   }
   const input = movementVector();
   const wasMoving = state.player.moving;
   const previousFacing = state.player.facing;
-  const moved = moveActor(state.player, input, deltaSeconds, state.mode);
+  const moved = state.mode === 'interior'
+    ? moveWithinBuilding(input, deltaSeconds)
+    : moveActor(state.player, input, deltaSeconds, 'exterior');
   state.player.x = moved.x;
   state.player.y = moved.y;
   state.player.facing = moved.facing;
   state.player.moving = moved.moved;
+  if (moved.moved) markProgressDirty();
   if (moved.blocked) registerBump(timestamp);
   if (moved.moved && (!wasMoving || moved.facing !== previousFacing)) state.player.walkStartedAt = timestamp;
   if (!moved.moved) state.player.walkStartedAt = 0;
+  if (moved.moved && timestamp - state.lastFootstepAt >= 170) {
+    state.lastFootstepAt = timestamp;
+    state.audio.footstep();
+  }
+}
+
+function currentInteraction() {
+  // Building runtime is authoritative for entry availability and in-room
+  // affordances. A pending interior returns an explicit unavailable reason
+  // before legacy closed-entrance copy can make it look silently operable.
+  const building = getBuildingInteraction({
+    mode: state.mode,
+    buildingId: state.mode === 'interior' ? state.buildingId : null,
+    position: state.player,
+    questState: state.quest
+  });
+  if (building) return building;
+  if (state.mode !== 'exterior') return null;
+
+  const legacy = nearbyInteraction(state.player, 'exterior');
+  // Keep historical closed copy from replacing the building-runtime reason
+  // for city hall/residence. The east shop remains honestly closed.
+  if (legacy?.id === 'closed-townhall' || legacy?.id === 'closed-house') return null;
+  return legacy;
 }
 
 function updateNearby(timestamp) {
-  if (dialogueOpen()) {
+  if (dialogueOpen() || modalOpen()) {
     state.nearby = null;
     elements.mission.hidden = true;
     elements.prompt.hidden = true;
     elements.action.disabled = true;
     return;
   }
-  state.nearby = timestamp < state.transitionUntil
-    ? null
-    : nearbyInteraction(state.player, state.mode);
+  state.nearby = timestamp < state.transitionUntil ? null : currentInteraction();
   elements.mission.hidden = state.nearby?.id === 'talk-innkeeper';
   elements.prompt.hidden = !state.nearby || state.nearby.id === 'talk-innkeeper';
-  // A closed entrance (town hall / house / east market shop -- see
-  // CLOSED_ENTRANCES in world-runtime.mjs) is honestly non-actionable: unlike
-  // enter-inn/exit-inn there is no auto-transition and no manual fallback
-  // that does anything for it (performAction's id checks simply don't match
-  // 'closed-*'), so the action button stays disabled for it exactly like it
-  // does with no nearby interaction at all.
+  // The remaining legacy closed entrance (the east-market shop) is honestly
+  // non-actionable. City hall and residence use building-runtime before this
+  // point, so neither can be disabled by a historical closed-* fallback.
   const isClosed = isClosedEntranceId(state.nearby?.id);
-  elements.action.disabled = !state.nearby || isClosed;
+  elements.action.disabled = !state.nearby || isClosed || state.nearby.enabled === false;
   if (!state.nearby) {
     if (state.lastNearbyId) setStatus('近くに操作できるものはありません。');
     state.lastNearbyId = null;
@@ -264,38 +490,48 @@ function updateNearby(timestamp) {
   // way as auto doors: there is nothing to press Enter/E for, only a reason
   // to read (Fable5VerticalSlice24x16.md requirement 4).
   const isAutoDoor = state.nearby.id === 'enter-inn' || state.nearby.id === 'exit-inn';
-  const noKeyAction = isAutoDoor || isClosed;
+  const noKeyAction = isAutoDoor || isClosed || state.nearby.enabled === false;
+  const promptLabel = state.nearby.enabled === false && state.nearby.quest?.label
+    ? state.nearby.quest.label
+    : state.nearby.label;
   elements.promptPlace.textContent = state.nearby.place;
-  elements.promptAction.textContent = state.nearby.label;
+  elements.promptAction.textContent = promptLabel;
   elements.promptKey.hidden = noKeyAction;
   if (state.lastNearbyId !== state.nearby.id) {
     state.lastNearbyId = state.nearby.id;
     setStatus(noKeyAction
-      ? `${state.nearby.place}。${state.nearby.label}。`
-      : `${state.nearby.place}。${state.nearby.label}。EnterまたはEキー。`);
+      ? `${state.nearby.place}。${promptLabel}。`
+      : `${state.nearby.place}。${promptLabel}。EnterまたはEキー。`);
   }
 }
 
 function updateQuestMission() {
-  elements.mission.dataset.completed = state.questStage === 'completed' ? 'true' : 'false';
-  if (state.questStage === 'unstarted') {
-    elements.location.textContent = state.mode === 'interior' ? '古町の宿屋・室内' : '古町・宿屋前';
+  const phase = questPhase();
+  const building = state.mode === 'interior' ? getBuilding(state.buildingId) : null;
+  const location = building?.label ?? '古町・屋外';
+  elements.mission.dataset.completed = phase === 'completed' ? 'true' : 'false';
+  if (phase === 'new' || phase === 'inn-dialogue') {
+    elements.location.textContent = state.mode === 'interior' ? `${location}・室内` : '古町・宿屋前';
     elements.objective.textContent = state.mode === 'interior'
       ? '宿帳係に近づき、観測・推定・不明を聞く'
-      : '宿屋の扉へ戻る、または東の大通りを歩く';
+      : '宿屋へ入り、調査の問いを一つ選ぶ';
     return;
   }
-  if (state.questStage === 'investigating') {
-    const remaining = CLUE_INTERACTIONS.filter((clue) => !state.foundClues.has(clue.id));
-    elements.location.textContent = `町の手掛かり　${state.foundClues.size}/3`;
+  if (phase === 'investigating') {
+    const found = recordedClueIds();
+    const remaining = CLUE_INTERACTIONS.filter((clue) => !found.has(clue.id));
+    elements.location.textContent = `町の手掛かり　${found.size}/3`;
     elements.objective.textContent = remaining.length > 0
       ? `残り：${remaining.map((clue) => clue.shortLabel).join('・')}`
-      : '宿帳係へ報告する';
+      : '市庁舎の記録係へ報告する';
     return;
   }
-  if (state.questStage === 'reportable') {
+  if (phase === 'reportable') {
     elements.location.textContent = '手掛かり　3/3';
-    elements.objective.textContent = '宿屋へ戻り、宿帳係へ報告する';
+    const cityHall = getBuilding('city-hall');
+    elements.objective.textContent = cityHall?.runtimeAvailability.state === 'available'
+      ? '市庁舎へ入り、記録係に報告する'
+      : '市庁舎の承認済み内装を準備中のため、報告ルートは公開待ちです';
     return;
   }
   elements.location.textContent = '調査完了・tiny-town';
@@ -309,22 +545,29 @@ function updateQuestMission() {
 // into it, so the camera is already exactly right the instant the fade-in
 // reveals the new scene -- easing here would look like the camera visibly
 // catching up right after the reveal.
-function applyModeSwitch(mode, timestamp) {
-  state.mode = mode;
-  if (mode === 'interior') {
-    state.player.x = INN_CONTRACT.interior.entryFoot.x;
-    state.player.y = INN_CONTRACT.interior.entryFoot.y;
-    state.player.facing = 'north';
-    state.cameraFocus = { x: INN_CONTRACT.interior.cameraFocus.x, y: INN_CONTRACT.interior.cameraFocus.y };
-    updateQuestMission();
-    setStatus('宿屋へ入りました。帳場へ近づいてください。');
+function applyModeSwitch(transition, timestamp) {
+  state.mode = transition.mode;
+  state.buildingId = transition.buildingId;
+  state.player.x = transition.player.x;
+  state.player.y = transition.player.y;
+  state.player.facing = transition.mode === 'interior' ? 'north' : 'south';
+  state.player.moving = false;
+  state.player.walkStartedAt = 0;
+  state.cameraFocus = { x: transition.cameraFocus.x, y: transition.cameraFocus.y };
+  state.lastFootstepAt = timestamp;
+  state.audio.door();
+  markProgressDirty();
+  saveProgress();
+  syncInteriorDisclosure();
+  updateQuestMission();
+  const building = getBuilding(transition.buildingId);
+  if (transition.mode === 'interior') {
+    const evidence = building?.interiorEvidence === 'inferred'
+      ? '推定の室内操作領域です。承認済み背景はありません。'
+      : '帳場へ近づいてください。';
+    setStatus(`${building?.label ?? '建物'}へ入りました。${evidence}`);
   } else {
-    state.player.x = INN_CONTRACT.door.returnPoint.x;
-    state.player.y = INN_CONTRACT.door.returnPoint.y;
-    state.player.facing = 'south';
-    state.cameraFocus = { x: state.player.x, y: state.player.y };
-    updateQuestMission();
-    setStatus('宿屋から外へ戻りました。');
+    setStatus('建物から屋外へ戻りました。');
   }
 }
 
@@ -338,7 +581,7 @@ function applyModeSwitch(mode, timestamp) {
 // (INN_CONTRACT.interior.entryFoot) sits inside the exit trigger's own
 // radius, so without this an auto-entered player would otherwise bounce
 // straight back outside.
-function beginModeTransition(mode, timestamp) {
+function beginModeTransition(transition, timestamp) {
   // Load-bearing re-entry guard: while a transition is already pending,
   // every other caller (the auto-trigger in updateAutoTransition, and the
   // manual Enter/E/action-button fallback in performAction) must be a
@@ -359,7 +602,7 @@ function beginModeTransition(mode, timestamp) {
   // the no-reload requirement).
   const totalMs = transitionDurationForMotionPreference(state.reduceMotion, TRANSITION_TOTAL_MS, TRANSITION_TOTAL_MS_REDUCED);
   state.transitionUntil = timestamp + totalMs;
-  state.pendingTransition = { targetMode: mode, startedAt: timestamp, applied: false, totalMs };
+  state.pendingTransition = { transition, startedAt: timestamp, applied: false, totalMs };
   state.doorAuto = { latched: true, cooldownUntil: timestamp + DOOR_AUTO_COOLDOWN_MS };
 }
 
@@ -382,7 +625,7 @@ function updateModeTransition(timestamp) {
   // including ones not yet imagined.
   const expired = isTransitionExpired(elapsed, pending.totalMs);
   if (!pending.applied && (elapsed >= pending.totalMs / 2 || expired)) {
-    applyModeSwitch(pending.targetMode, timestamp);
+    applyModeSwitch(pending.transition, timestamp);
     pending.applied = true;
   }
   if (elapsed >= pending.totalMs || expired) {
@@ -402,12 +645,19 @@ function currentFadeAlpha(timestamp) {
 // fade-locked, nearby-less window mid-transition can never be misread as
 // "the player stepped outside the trigger" and clear the latch early.
 function updateAutoTransition(timestamp) {
-  if (state.pendingTransition || dialogueOpen()) return;
-  const autoId = state.mode === 'exterior' ? 'enter-inn' : 'exit-inn';
+  if (state.pendingTransition || dialogueOpen() || modalOpen()) return;
+  const autoId = state.mode === 'exterior'
+    ? 'enter-inn'
+    : state.buildingId === 'inn' ? 'exit-inn' : null;
+  if (!autoId) return;
   const inside = state.nearby?.id === autoId;
   const result = evaluateDoorAutoTransition(state.doorAuto, inside, timestamp);
   state.doorAuto = { latched: result.latched, cooldownUntil: result.cooldownUntil };
-  if (result.fire) beginModeTransition(state.mode === 'exterior' ? 'interior' : 'exterior', timestamp);
+  if (!result.fire) return;
+  const transition = autoId === 'enter-inn'
+    ? enterBuilding('inn', state.player)
+    : exitBuilding('inn', state.player);
+  if (transition) beginModeTransition(transition, timestamp);
 }
 
 // Eases state.cameraFocus toward this frame's target (see
@@ -416,7 +666,8 @@ function updateAutoTransition(timestamp) {
 // when the player can't move; applyModeSwitch snaps it directly on a mode
 // switch so this never has to chase a same-frame teleport.
 function updateCamera(deltaSeconds) {
-  const target = state.mode === 'interior' ? INN_CONTRACT.interior.cameraFocus : state.player;
+  const interiorBuilding = state.mode === 'interior' ? getBuilding(state.buildingId) : null;
+  const target = interiorBuilding?.interior?.cameraFocus ?? state.player;
   // Read live every frame (not captured once like a transition's totalMs)
   // so toggling prefers-reduced-motion mid-session takes effect on the very
   // next frame instead of waiting for some future event.
@@ -425,6 +676,7 @@ function updateCamera(deltaSeconds) {
 }
 
 function beginDialogue({ pages, speaker, anchor, kind }) {
+  if (!Array.isArray(pages) || pages.length === 0) return;
   state.dialoguePages = pages;
   state.dialogueIndex = 0;
   state.dialogueSpeaker = speaker;
@@ -434,6 +686,7 @@ function beginDialogue({ pages, speaker, anchor, kind }) {
   const page = state.dialoguePages[0];
   elements.dialogueStatus.textContent = `${speaker}、${page.label}。${page.body}`;
   elements.dialogueStatus.hidden = false;
+  state.audio.dialogue();
   setStatus(`${speaker}。${page.label}。${page.body}`);
 }
 
@@ -441,28 +694,32 @@ function openInnkeeperDialogue() {
   state.player.facing = 'north';
   state.player.moving = false;
   state.player.walkStartedAt = 0;
-  const investigation = state.investigation ?? buildInvestigation(state.payload);
+  const phase = questPhase();
+  if (phase === 'new') {
+    const started = startInnDialogue(state.quest);
+    if (!updateQuest(started)) return;
+    showQuestionPanel();
+    return;
+  }
+  if (phase === 'inn-dialogue') {
+    showQuestionPanel();
+    return;
+  }
   let pages;
   let kind;
-  if (state.questStage === 'unstarted') {
-    pages = investigation.intro;
-    kind = 'quest-intro';
-  } else if (state.questStage === 'reportable') {
-    pages = investigation.report;
-    kind = 'quest-report';
-  } else if (state.questStage === 'completed') {
+  if (phase === 'completed') {
     pages = [Object.freeze({
       className: 'observed',
       label: '記録済み',
-      body: '報告は宿帳に残っています。未確認を故障と決めつけず、次の調査に備えましょう。'
+      body: '報告は市庁舎の記録として保存されています。未確認を故障と決めつけず、次の調査に備えましょう。'
     })];
     kind = 'quest-repeat';
   } else {
-    const remaining = 3 - state.foundClues.size;
+    const remaining = 3 - recordedClueIds().size;
     pages = [Object.freeze({
       className: 'unknown',
       label: '調査中',
-      body: `手掛かりは ${state.foundClues.size}/3 です。残り${remaining}か所を調べ、この帳場へ戻ってください。`
+      body: `手掛かりは ${recordedClueIds().size}/3 です。残り${remaining}か所を調べ、市庁舎の記録係へ報告してください。`
     })];
     kind = 'quest-progress';
   }
@@ -474,12 +731,34 @@ function openInnkeeperDialogue() {
   });
 }
 
+function evidenceReferencesFor(site) {
+  const references = site?.fact?.evidence?.[site?.evidenceClass];
+  return Array.isArray(references)
+    ? references.filter((reference) => typeof reference === 'string' && reference.trim().length > 0)
+    : [];
+}
+
 function openClueDialogue(clue) {
-  const alreadyRecorded = state.foundClues.has(clue.id);
-  if (!alreadyRecorded) state.foundClues.add(clue.id);
-  if (state.questStage === 'investigating' && state.foundClues.size === 3) state.questStage = 'reportable';
   const investigation = state.investigation ?? buildInvestigation(state.payload);
+  if (questPhase() !== 'investigating') {
+    beginDialogue({
+      pages: [Object.freeze({
+        className: 'unknown',
+        label: '調査の順序',
+        body: 'この手掛かりは、宿屋で観測・推定・不明の問いを選んだ後に記録できます。'
+      })],
+      speaker: clue.place,
+      anchor: clue.anchor,
+      kind: 'clue-locked'
+    });
+    return;
+  }
+  const alreadyRecorded = recordedClueIds().has(clue.id);
   const site = investigation.sites[clue.id];
+  if (!alreadyRecorded) {
+    const recorded = recordInvestigationClue(state.quest, clue.id, evidenceReferencesFor(site));
+    if (!updateQuest(recorded)) return;
+  }
   const pages = alreadyRecorded
     ? [Object.freeze({
       className: 'observed',
@@ -510,7 +789,7 @@ function registerBump(timestamp) {
   state.bumpUntil = Math.max(state.bumpUntil, timestamp + 300);
   if (!state.lastBumpStatusAt || timestamp - state.lastBumpStatusAt >= 700) {
     state.lastBumpStatusAt = timestamp;
-    const blockedNearby = nearbyInteraction(state.player, state.mode);
+    const blockedNearby = currentInteraction();
     setStatus(isClosedEntranceId(blockedNearby?.id)
       ? `${blockedNearby.place}。${blockedNearby.label}`
       : 'ここは通れません。別の道を探してください。');
@@ -518,7 +797,7 @@ function registerBump(timestamp) {
 }
 
 function drawLedgerCompletion(timestamp) {
-  if (state.questStage !== 'completed') return;
+  if (questPhase() !== 'completed') return;
   // See ledgerCompletionPulse's own comment in world-runtime.mjs: this is
   // the one call in the whole render path proven (against a real browser)
   // to throw -- not just draw something wrong -- when a non-finite
@@ -553,24 +832,13 @@ function advanceDialogue() {
   state.dialogueIndex += 1;
   if (!dialogueOpen()) {
     state.dialogueIndex = -1;
-    if (state.dialogueKind === 'quest-intro') {
-      state.questStage = state.foundClues.size === 3 ? 'reportable' : 'investigating';
-    }
-    if (state.dialogueKind === 'quest-report') {
-      state.questStage = 'completed';
-      // state.lastTimestamp, not performance.now(): drawWorld() compares
-      // this against its own `timestamp` argument (the rAF clock) to time
-      // the completion celebration, so both sides must agree on what clock
-      // "now" means -- see performAction's own comment on the same point.
-      state.completionStartedAt = state.lastTimestamp;
-    }
     const completedKind = state.dialogueKind;
     state.dialogueKind = null;
     elements.dialogueStatus.hidden = true;
     elements.mission.hidden = false;
     updateQuestMission();
     setStatus(completedKind === 'quest-report'
-      ? '調査完了。3つの手掛かりを宿帳へ記録しました。'
+      ? '調査完了。3つの手掛かりを市庁舎の記録へ保存しました。'
       : '会話を閉じました。');
     return;
   }
@@ -589,6 +857,152 @@ function closeDialogue() {
   setStatus('会話を閉じました。');
 }
 
+const QUESTION_COPY = Object.freeze({
+  observed: Object.freeze({
+    label: '観測について聞く',
+    body: '観測された事実だけを記録する問いです。町では古い街灯の台座を調べてください。'
+  }),
+  inferred: Object.freeze({
+    label: '推定について聞く',
+    body: '推定は構造から導いた仮説であり、実行時の成否を断定しない問いです。中央広場の井戸を調べてください。'
+  }),
+  unknown: Object.freeze({
+    label: '不明について聞く',
+    body: '未確認は故障を意味しません。東市場の閉じた看板を調べてください。'
+  })
+});
+
+function showQuestionPanel() {
+  if (questPhase() !== 'inn-dialogue') return;
+  state.keys.clear();
+  state.heldDirections.clear();
+  state.modal = 'question';
+  elements.questChoicePanel.hidden = false;
+  elements.reportPanel.hidden = true;
+  elements.resetPanel.hidden = true;
+  elements.mission.hidden = true;
+  elements.questChoiceButtons[0]?.focus({ preventScroll: true });
+  setStatus('宿帳係。今回の調査で確かめる問いを、観測・推定・不明から一つ選んでください。');
+}
+
+function closeModal() {
+  state.modal = null;
+  elements.questChoicePanel.hidden = true;
+  elements.reportPanel.hidden = true;
+  elements.resetPanel.hidden = true;
+  elements.mission.hidden = false;
+  updateQuestMission();
+}
+
+function showResetPanel() {
+  if (!state.ready || !state.persistence || modalOpen()) return;
+  state.keys.clear();
+  state.heldDirections.clear();
+  state.modal = 'reset';
+  elements.questChoicePanel.hidden = true;
+  elements.reportPanel.hidden = true;
+  elements.resetPanel.hidden = false;
+  elements.mission.hidden = true;
+  elements.confirmReset.focus({ preventScroll: true });
+  setStatus('最初から始める確認。現在のリポジトリと検査結果の保存だけを消去します。');
+}
+
+function resetCurrentSession() {
+  if (state.modal !== 'reset' || !state.persistence) return;
+  const result = state.persistence.reset({ confirmed: true });
+  if (result.status !== 'reset') {
+    setStatus('この検査結果の保存を消去できませんでした。ブラウザーの保存設定を確認してください。');
+    return;
+  }
+  const initial = createInitialFable5SessionState();
+  if (!initial.ok) {
+    setStatus('新しい調査記録を作成できませんでした。');
+    return;
+  }
+  applyRestoredSession(initial.state);
+  state.progressLoadStatus = 'reset';
+  closeModal();
+  setStatus('このリポジトリと検査結果の保存を消去し、最初から開始しました。');
+}
+
+function chooseQuestion(questionId) {
+  if (state.modal !== 'question') return;
+  const selected = chooseInvestigationQuestion(state.quest, questionId);
+  if (!updateQuest(selected)) {
+    setStatus('その問いは選べません。調査の状態を確認してください。');
+    return;
+  }
+  const copy = QUESTION_COPY[questionId];
+  closeModal();
+  beginDialogue({
+    pages: [Object.freeze({
+      className: questionId,
+      label: copy?.label ?? '調査の問い',
+      body: copy?.body ?? '三つの手掛かりを、観測・推定・不明として区別して記録してください。'
+    })],
+    speaker: '宿帳係',
+    anchor: INN_CONTRACT.interior.npcUiConnectorAnchor,
+    kind: 'question-selected'
+  });
+}
+
+function showReportPanel() {
+  if (questPhase() !== 'reportable') return;
+  const records = state.quest.clues
+    .map((clue) => `${CLUE_INTERACTIONS.find(({ id }) => id === clue.id)?.shortLabel ?? clue.id}（${clue.evidenceClass}）`)
+    .join('・');
+  state.keys.clear();
+  state.heldDirections.clear();
+  state.modal = 'report';
+  elements.reportSummary.textContent = `記録する手掛かり: ${records}。観測・推定・不明を区別したまま、市庁舎の記録に保存します。`;
+  elements.reportPanel.hidden = false;
+  elements.questChoicePanel.hidden = true;
+  elements.mission.hidden = true;
+  elements.submitReport.focus({ preventScroll: true });
+  setStatus('市庁舎の記録係。3つの手掛かりを区別して報告する内容を確認してください。');
+}
+
+function submitReport() {
+  if (state.modal !== 'report') return;
+  const report = submitTownHallReport(state.quest, {
+    answer: {
+      questionId: state.quest.questionId,
+      clues: state.quest.clues.map(({ id, evidenceClass, evidenceRefs }) => ({ id, evidenceClass, evidenceRefs }))
+    },
+    result: {
+      status: 'filed',
+      evidenceClasses: state.quest.clues.map(({ evidenceClass }) => evidenceClass)
+    }
+  });
+  if (!updateQuest(report)) {
+    setStatus('報告を保存できませんでした。調査の状態を確認してください。');
+    return;
+  }
+  state.completionStartedAt = state.lastTimestamp;
+  closeModal();
+  const investigation = state.investigation ?? buildInvestigation(state.payload);
+  beginDialogue({
+    pages: investigation.report,
+    speaker: '市庁舎の記録係',
+    anchor: getBuilding('city-hall')?.interior.interaction.point ?? state.player,
+    kind: 'quest-report'
+  });
+}
+
+function openResidentDialogue() {
+  const building = getBuilding('residence');
+  beginDialogue({
+    pages: [Object.freeze({
+      className: 'inferred',
+      label: '推定の室内',
+      body: 'ここは操作できる推定室内です。背景・配置・人物の来歴は未承認で、調査の事実は追加しません。三つの記録がそろったら市庁舎で報告できます。'
+    })],
+    speaker: '住宅の案内',
+    anchor: building?.interior.interaction.point ?? state.player,
+    kind: 'residence'
+  });
+}
+
 // Defaults to state.lastTimestamp (the rAF loop's own most recent
 // timestamp) rather than performance.now(): performAction is called from
 // DOM event handlers (keydown, the action button's click) outside the rAF
@@ -601,13 +1015,30 @@ function closeDialogue() {
 // updateModeTransition is later driven with -- see isTransitionExpired's
 // comment in world-runtime.mjs for what that does to `elapsed`.
 function performAction(timestamp = state.lastTimestamp) {
-  if (!state.ready || dialogueOpen() || timestamp < state.transitionUntil || !state.nearby) return;
-  // enter-inn/exit-inn normally fire on their own via updateAutoTransition;
-  // this stays as an explicit, unconditional fallback (e.g. the player
-  // paused right at the threshold and doorAuto is mid-cooldown).
-  if (state.nearby.id === 'enter-inn') beginModeTransition('interior', timestamp);
-  if (state.nearby.id === 'exit-inn') beginModeTransition('exterior', timestamp);
-  if (state.nearby.id === 'talk-innkeeper') openInnkeeperDialogue();
+  if (!state.ready || dialogueOpen() || modalOpen() || timestamp < state.transitionUntil || !state.nearby) return;
+  if (state.nearby.enabled === false || isClosedEntranceId(state.nearby.id)) return;
+  if (state.nearby.kind === 'enter') {
+    const transition = enterBuilding(state.nearby.buildingId, state.player);
+    if (transition) beginModeTransition(transition, timestamp);
+    return;
+  }
+  if (state.nearby.kind === 'exit') {
+    const transition = exitBuilding(state.nearby.buildingId, state.player);
+    if (transition) beginModeTransition(transition, timestamp);
+    return;
+  }
+  if (state.nearby.id === 'talk-innkeeper') {
+    openInnkeeperDialogue();
+    return;
+  }
+  if (state.nearby.id === 'talk-town-clerk' && state.nearby.quest?.action === 'submit-townhall-report') {
+    showReportPanel();
+    return;
+  }
+  if (state.nearby.id === 'talk-resident') {
+    openResidentDialogue();
+    return;
+  }
   if (state.nearby.id.startsWith('clue-')) openClueDialogue(state.nearby);
 }
 
@@ -619,13 +1050,21 @@ function drawWorld(timestamp) {
   context.fillRect(0, 0, width, height);
 
   state.camera = createCamera(width, height, state.cameraFocus, state.zoom);
+  const activeBuilding = state.mode === 'interior' ? getBuilding(state.buildingId) : null;
+  if (activeBuilding?.interiorEvidence === 'inferred') {
+    drawInferredInterior(activeBuilding, timestamp);
+    drawFadeOverlay(timestamp, width, height);
+    if (dialogueOpen()) drawDialogue();
+    return;
+  }
+
   context.save();
   context.scale(state.camera.zoom, state.camera.zoom);
   context.translate(-state.camera.x, -state.camera.y);
   drawWorldPrefabs(context, state.assets.worldPrefabs);
   if (state.mode === 'exterior') {
     context.drawImage(state.assets.innExteriorClosed, 8, 72);
-  } else {
+  } else if (state.buildingId === 'inn') {
     context.drawImage(state.assets.innCounterClean, 200, 255);
     drawLedgerCompletion(timestamp);
     const celebrating = state.completionStartedAt > 0
@@ -647,8 +1086,9 @@ function drawWorld(timestamp) {
       64
     );
   }
-  const playerBehindStreetlamp = state.player.y < INN_CONTRACT.objects.routeStreetlampFoot.y;
-  if (!playerBehindStreetlamp) {
+  const playerBehindStreetlamp = state.mode === 'exterior'
+    && state.player.y < INN_CONTRACT.objects.routeStreetlampFoot.y;
+  if (state.mode === 'exterior' && !playerBehindStreetlamp) {
     context.drawImage(
       state.assets.routeStreetlamp,
       INN_CONTRACT.objects.routeStreetlampOrigin.x,
@@ -671,14 +1111,14 @@ function drawWorld(timestamp) {
     context.stroke();
     context.restore();
   }
-  if (playerBehindStreetlamp) {
+  if (state.mode === 'exterior' && playerBehindStreetlamp) {
     context.drawImage(
       state.assets.routeStreetlamp,
       INN_CONTRACT.objects.routeStreetlampOrigin.x,
       INN_CONTRACT.objects.routeStreetlampOrigin.y
     );
   }
-  if (state.mode === 'interior') {
+  if (state.mode === 'interior' && state.buildingId === 'inn') {
     context.drawImage(
       state.assets.entranceForeground,
       INN_CONTRACT.objects.entranceForegroundOrigin.x,
@@ -688,24 +1128,114 @@ function drawWorld(timestamp) {
   if (state.mode === 'exterior') drawClueMarkers();
   context.restore();
 
-  const fadeAlpha = currentFadeAlpha(timestamp);
-  if (fadeAlpha > 0) {
-    context.save();
-    context.fillStyle = `rgba(8, 12, 19, ${fadeAlpha})`;
-    context.fillRect(0, 0, width, height);
-    context.restore();
-  }
+  drawFadeOverlay(timestamp, width, height);
 
   if (dialogueOpen()) drawDialogue();
-  else if (state.nearby?.id === 'talk-innkeeper') drawNpcSpeechPrompt();
+  else if (state.nearby?.id === 'talk-innkeeper' && state.buildingId === 'inn') drawNpcSpeechPrompt();
+}
+
+function drawFadeOverlay(timestamp, width, height) {
+  const fadeAlpha = currentFadeAlpha(timestamp);
+  if (fadeAlpha <= 0) return;
+  context.save();
+  context.setTransform(state.viewport.dpr, 0, 0, state.viewport.dpr, 0, 0);
+  context.fillStyle = `rgba(8, 12, 19, ${fadeAlpha})`;
+  context.fillRect(0, 0, width, height);
+  context.restore();
+}
+
+// City-hall and residence have deterministic navigation geometry, but no
+// approved interior artwork. Render an explicit operational diagram instead
+// of borrowing the inn, fabricating a background, or referencing a pending
+// generated asset. The player sprite remains their existing supplied asset;
+// the room itself is labelled as inferred at both canvas and DOM layers.
+function drawInferredInterior(building, timestamp) {
+  const { width, height } = state.viewport;
+  context.save();
+  const gradient = context.createLinearGradient(0, 0, width, height);
+  gradient.addColorStop(0, '#131827');
+  gradient.addColorStop(1, '#080c13');
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, width, height);
+  context.strokeStyle = 'rgba(255, 217, 132, 0.2)';
+  context.lineWidth = 1;
+  for (let x = 18; x < width; x += 24) {
+    context.beginPath();
+    context.moveTo(x, 0);
+    context.lineTo(x, height);
+    context.stroke();
+  }
+  for (let y = 18; y < height; y += 24) {
+    context.beginPath();
+    context.moveTo(0, y);
+    context.lineTo(width, y);
+    context.stroke();
+  }
+  const panelWidth = Math.min(560, Math.max(260, width - 40));
+  const panelX = Math.round((width - panelWidth) / 2);
+  const panelY = Math.max(92, Math.round(height * 0.2));
+  context.fillStyle = 'rgba(8, 12, 19, 0.88)';
+  context.fillRect(panelX, panelY, panelWidth, 138);
+  context.strokeStyle = '#e9c65f';
+  context.lineWidth = 2;
+  context.strokeRect(panelX + 1, panelY + 1, panelWidth - 2, 136);
+  context.fillStyle = '#ffd984';
+  context.textBaseline = 'top';
+  context.font = '800 16px system-ui, sans-serif';
+  context.fillText('推定の操作領域 / INFERRED INTERIOR', panelX + 18, panelY + 18);
+  context.fillStyle = '#f9f1d4';
+  context.font = '700 18px system-ui, sans-serif';
+  context.fillText(building.label, panelX + 18, panelY + 48);
+  context.fillStyle = '#b9c1d1';
+  context.font = '600 14px system-ui, sans-serif';
+  const note = '背景・配置・人物の来歴は未承認です。これは移動と会話を検証する図式表示で、観測済み室内ではありません。';
+  wrapCanvasText(context, note, panelWidth - 36).slice(0, 3)
+    .forEach((line, index) => context.fillText(line, panelX + 18, panelY + 80 + index * 19));
+  const vertices = building.interior.walkPolygon;
+  const minX = Math.min(...vertices.map(([x]) => x));
+  const maxX = Math.max(...vertices.map(([x]) => x));
+  const minY = Math.min(...vertices.map(([, y]) => y));
+  const maxY = Math.max(...vertices.map(([, y]) => y));
+  const diagramX = panelX + 22;
+  const diagramY = panelY + 164;
+  const diagramWidth = panelWidth - 44;
+  const diagramHeight = Math.max(88, Math.min(150, height - diagramY - 30));
+  const mapPoint = (point) => ({
+    x: diagramX + ((point.x - minX) / Math.max(1, maxX - minX)) * diagramWidth,
+    y: diagramY + ((point.y - minY) / Math.max(1, maxY - minY)) * diagramHeight
+  });
+  context.beginPath();
+  vertices.forEach(([x, y], index) => {
+    const point = mapPoint({ x, y });
+    if (index === 0) context.moveTo(point.x, point.y);
+    else context.lineTo(point.x, point.y);
+  });
+  context.closePath();
+  context.fillStyle = 'rgba(116, 216, 208, 0.1)';
+  context.fill();
+  context.strokeStyle = 'rgba(116, 216, 208, 0.8)';
+  context.lineWidth = 2;
+  context.stroke();
+  context.fillStyle = '#b9eee9';
+  context.font = '700 12px system-ui, sans-serif';
+  context.fillText('推定移動領域（現在地は実際の当たり判定に連動）', diagramX, diagramY + diagramHeight + 8);
+  const mappedPlayer = mapPoint(state.player);
+  const player = {
+    ...state.player,
+    x: Math.round(mappedPlayer.x),
+    y: Math.round(mappedPlayer.y + 25)
+  };
+  drawCharacterFrame(context, state.assets.player, spriteFrame(state.player, timestamp), player);
+  context.restore();
 }
 
 // Small always-on "already investigated" checkmarks over each found clue,
 // drawn in world space (inside drawWorld's camera transform) so they scroll
 // and scale with the scene like any other prop.
 function drawClueMarkers() {
+  const found = recordedClueIds();
   for (const clue of CLUE_INTERACTIONS) {
-    if (!state.foundClues.has(clue.id)) continue;
+    if (!found.has(clue.id)) continue;
     const markerX = clue.anchor.x;
     const markerY = clue.anchor.y - 8;
     context.save();
@@ -834,6 +1364,7 @@ function frame(rawTimestamp) {
   updateModeTransition(timestamp);
   updateAutoTransition(timestamp);
   updateCamera(deltaSeconds);
+  if (state.progressDirty && timestamp - state.lastProgressSavedAt >= 750) saveProgress();
   drawWorld(timestamp);
   state.animationFrame = window.requestAnimationFrame(frame);
 }
@@ -844,7 +1375,16 @@ function normalizedKey(event) {
 
 function onKeyDown(event) {
   if (!state.ready || event.metaKey || event.ctrlKey || event.altKey) return;
+  unlockAudioFromGesture();
   const key = normalizedKey(event);
+  if (modalOpen()) {
+    if (key === 'escape') {
+      event.preventDefault();
+      closeModal();
+      setStatus('確認を取り消しました。現在の保存は残っています。');
+    }
+    return;
+  }
   const movementKey = ['arrowleft', 'arrowright', 'arrowup', 'arrowdown', 'w', 'a', 's', 'd'].includes(key);
   if (movementKey) {
     event.preventDefault();
@@ -867,12 +1407,21 @@ function onKeyUp(event) {
   state.keys.delete(normalizedKey(event));
 }
 
-function changeZoom(delta) {
-  state.zoom = Math.max(1, Math.min(2, state.zoom + delta));
+function syncZoomControls() {
   elements.zoomValue.value = `${state.zoom}×`;
   elements.zoomValue.textContent = `${state.zoom}×`;
   elements.zoomOut.disabled = state.zoom <= 1;
   elements.zoomIn.disabled = state.zoom >= 2;
+}
+
+function changeZoom(delta) {
+  const previous = state.zoom;
+  state.zoom = Math.max(1, Math.min(2, state.zoom + delta));
+  syncZoomControls();
+  if (state.ready && state.zoom !== previous) {
+    markProgressDirty();
+    saveProgress();
+  }
 }
 
 function bindDirectionButton(button) {
@@ -882,6 +1431,7 @@ function bindDirectionButton(button) {
   };
   button.addEventListener('pointerdown', (event) => {
     event.preventDefault();
+    unlockAudioFromGesture();
     button.setPointerCapture?.(event.pointerId);
     state.heldDirections.set(event.pointerId, button.dataset.direction);
     elements.canvas.focus({ preventScroll: true });
@@ -918,6 +1468,7 @@ async function boot() {
     assertTownPayload(payload);
     state.payload = payload;
     state.investigation = buildInvestigation(payload);
+    restoreSessionProgress(payload);
     state.assets = assets;
     state.ready = true;
     elements.repositoryName.textContent = payload.repository?.name || '名称未設定のリポジトリ';
@@ -926,8 +1477,16 @@ async function boot() {
     elements.geometryBadge.textContent = 'target-town n=1';
     elements.geometryBadge.dataset.ready = 'true';
     elements.startup.hidden = true;
+    syncAudioControls();
+    syncInteriorDisclosure();
+    updateQuestMission();
     elements.canvas.focus({ preventScroll: true });
-    setStatus('街を開始しました。WASDまたは矢印キーで西へ進み、左上の宿屋へ向かってください。');
+    const progressNotice = state.progressLoadStatus === 'loaded'
+      ? 'この検査結果に対応する前回の調査記録を復元しました。'
+      : state.progressLoadStatus === 'missing'
+        ? '街を開始しました。宿屋で調査の問いを選んでください。'
+        : '保存済みの調査記録は検証できなかったため、新しい記録として開始します。';
+    setStatus(progressNotice);
     state.animationFrame = window.requestAnimationFrame(frame);
   } catch (error) {
     stopWithError(error);
@@ -940,6 +1499,9 @@ window.addEventListener('blur', () => {
   state.keys.clear();
   state.heldDirections.clear();
 });
+window.addEventListener('pagehide', () => {
+  if (state.progressDirty) saveProgress();
+});
 window.addEventListener('resize', resizeCanvas);
 // Live reflection of the OS/browser motion preference: updateCamera() reads
 // state.reduceMotion fresh every frame and beginModeTransition()/
@@ -951,9 +1513,54 @@ window.addEventListener('resize', resizeCanvas);
 reducedMotionQuery?.addEventListener('change', (event) => {
   state.reduceMotion = event.matches;
 });
-elements.action.addEventListener('click', () => performAction());
+elements.action.addEventListener('click', () => {
+  unlockAudioFromGesture();
+  performAction();
+});
 elements.zoomOut.addEventListener('click', () => changeZoom(-1));
 elements.zoomIn.addEventListener('click', () => changeZoom(1));
+elements.audioMute.addEventListener('click', () => {
+  unlockAudioFromGesture();
+  state.audio.toggleMuted();
+  syncAudioControls();
+  markProgressDirty();
+  saveProgress();
+});
+elements.audioVolume.addEventListener('input', () => {
+  unlockAudioFromGesture();
+  state.audio.setVolume(Number(elements.audioVolume.value) / 100);
+  syncAudioControls();
+  markProgressDirty();
+  saveProgress();
+});
+elements.restartProgress.addEventListener('click', () => {
+  unlockAudioFromGesture();
+  showResetPanel();
+});
+for (const button of elements.questChoiceButtons) {
+  button.addEventListener('click', () => {
+    unlockAudioFromGesture();
+    chooseQuestion(button.dataset.question);
+  });
+}
+elements.submitReport.addEventListener('click', () => {
+  unlockAudioFromGesture();
+  submitReport();
+});
+elements.cancelReport.addEventListener('click', () => {
+  unlockAudioFromGesture();
+  closeModal();
+  setStatus('報告を取り消しました。3つの手掛かりは記録したままです。');
+});
+elements.confirmReset.addEventListener('click', () => {
+  unlockAudioFromGesture();
+  resetCurrentSession();
+});
+elements.cancelReset.addEventListener('click', () => {
+  unlockAudioFromGesture();
+  closeModal();
+  setStatus('最初からの開始を取り消しました。現在の保存は残っています。');
+});
 for (const button of elements.dpad.querySelectorAll('[data-direction]')) bindDirectionButton(button);
 
 resizeCanvas();

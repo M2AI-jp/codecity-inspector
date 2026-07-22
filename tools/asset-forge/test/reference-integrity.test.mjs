@@ -117,7 +117,11 @@ test('approved references, the pending cutaway reference, and the released 78 ca
     'cutaway_interior_visual_reference.png'
   ]);
   const worldHash = EXPECTED_REFERENCE_HASHES.get('world_visual_master');
-  assert.equal(sha256(await readFile(path.join(REPO_ROOT, '9e28e43d-56a5-44aa-aa1d-b59461e625dd.png'))), worldHash);
+  // The root-level UUID-named duplicate was intentionally removed (see the
+  // recovery manifest). Recheck the canonical user-provided copy instead;
+  // requiring a deleted duplicate would turn cleanup into a false provenance
+  // failure while the approved Forge reference and its source still agree.
+  assert.equal(sha256(await readFile(path.join(REPO_ROOT, 'art', 'references', 'user-provided', 'world_visual_master.png'))), worldHash);
 
   const approvals = JSON.parse(await readFile(path.join(FORGE_ROOT, 'data', 'manifests', 'approvals.json')));
   const assets = JSON.parse(await readFile(path.join(FORGE_ROOT, 'data', 'manifests', 'assets.json')));

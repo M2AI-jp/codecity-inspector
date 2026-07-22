@@ -2,7 +2,7 @@
 
 > **状態:** 実行計画。ここにある未完了チェックは、未実装または同一revisionの証拠が未取得であることを示す。未検証を不具合とは扱わない。
 >
-> **現行の技術ベースライン:** `967acb1`。Prefabランタイム描画、町マスター画像のruntime非参照、Prefab再合成のピクセル差分0、348件のテスト成功までは観測済み。ただし、これらはプロダクト完成や公式スコアを意味しない。
+> **現行の技術ベースライン:** `c497498`（このロードマップの初版時点）。Prefabランタイム描画、町マスター画像のruntime非参照、Prefab再合成のピクセル差分0、348件のテスト成功までは観測済み。ただし、これらはプロダクト完成や公式スコアを意味しない。以後の実装・判定の正本は [受入スコープv1](qa/fable5-acceptance-scope-v1.md) と [実装順v1](qa/fable5-execution-order-v1.md) であり、captureごとに新しいHEADを記録する。
 
 ## 1. 最終的に顧客が得る体験
 
@@ -58,10 +58,10 @@
 ### P0 — 正本と受入範囲を凍結する（最初に行う）
 
 - [ ] 現行HEAD、URL、対象ブラウザ、browser version、DPR、viewport、capture時刻を記録する新しいQA iterationを作る。古い [証拠マトリクス](qa/evidence-matrix.md) は `356f7e6` 時点の履歴として残し、現在の判定に流用しない。
-- [ ] `1586×992` の現在Prefabマスターと、`1536×1024` を正本とする [Fable5 Art Contract](../Fable5ArtContract.md) の矛盾を、どちらが今回の完成対象かという所有者決定で解消する。寸法・SHA-256・座標系を一組だけ固定する。
-- [ ] 必須素材数・受入manifestの正本を決める。`asset-inventory.json` の「57 core」と、固定asset quotaを退役とする `Fable5PrefabSpec.md` の不整合を解消する。
-- [ ] 音声を完成基準に含めるか決定する。含めない場合は、D1/HG関連の受入条件を所有者承認つきで改訂する。黙ってスキップしない。
-- [ ] 「3建物」「3調査方式」「保存・復元」「3リポジトリ比較」を今回の完成スコープに残すことを確認する。
+- [x] `1586×992` の現在Prefabマスターと、`1536×1024` を正本とする [Fable5 Art Contract](../Fable5ArtContract.md) の矛盾を、どちらが今回の完成対象かという所有者決定で解消する。`user_target_town_current`（1586×992 / SHA-256は受入スコープv1記載）を唯一の可視正本として固定し、1536×1024は歴史資料へ退役した。
+- [x] 必須素材数・受入manifestの正本を決める。`asset-inventory.json` の「57 core」固定数を受入基準から退役し、contract/provenance/hash/human approvalを持つruntime asset ledgerを正本とする。
+- [x] 音声を完成基準に含めると決定した。footstep / door / dialogue、mute / volume、user-gesture unlockをD1/HG関連の対象から外さない。
+- [x] 「3建物」「3調査方式」「保存・復元」「3リポジトリ比較」を今回の完成スコープに残すことを確認した。
 
 **E1 — 受入対象凍結（PASS条件）**
 
@@ -201,8 +201,8 @@ asset-forgeは画像生成器ではない。ここで初めて、**所有者が�
 - [x] P7の一部: 48Prefabのoffline再構成は `1,573,312` pixel中差分0でPASS。これはSSIM閾値以上を強く支持するが、P0で正本を固定してから最終evidenceとして再取得する。
 - [x] P7の一部: runtimeはPrefabを描画し、町マスターを通信で読まないことを現行browser smoke testとcontract testで確認済み。
 - [x] P4の一部: 宿屋の入口・室内・NPC・退出、閉鎖入口の理由表示、reduced motion、touch targetには実装と静的回帰がある。
-- [ ] P2/P3: player/innkeeperの新契約素材はdraftだけで、生成・import・人間承認・runtime移行は未着手。
-- [ ] P4/P5/P6: 市庁舎・住宅の開放、クエスト一周、保存・復元は完成条件に対して未達または未証明。
+- [ ] P2/P3: player/innkeeperと3室内kitは、hash・job receiptつきの機械検収済み`pending`候補まで到達し、commit-backed review evidenceにも保存した。ただし、人間の視覚承認（characterはstyle-lockを含む）・promotion・approved export・runtime移行は未着手であり、完成素材ではない。
+- [ ] P4/P5/P6: quest/persistence/audioの純粋実装と静的回帰はある。市庁舎・住宅は未承認内装を顧客導線へ漏らさないよう明示的に利用不可に戻しており、3建物の最終導線・browser証拠・完成条件は未達または未証明。
 
 ## 6. 運用ルール
 

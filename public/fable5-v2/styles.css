@@ -110,10 +110,66 @@ button:focus-visible,
 }
 
 .topbar-actions,
-.zoom-control {
+.zoom-control,
+.audio-control,
+.audio-volume-label {
   display: flex;
   align-items: center;
   gap: 7px;
+}
+
+.audio-control {
+  min-height: 44px;
+  padding: 2px 6px;
+  border: 1px solid rgba(116, 216, 208, 0.36);
+  border-radius: 3px;
+  background: rgba(8, 15, 22, 0.82);
+}
+
+.audio-control button {
+  min-width: 74px;
+  min-height: 44px;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 2px;
+  background: rgba(116, 216, 208, 0.12);
+  color: #b9eee9;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.restart-progress {
+  min-width: 74px;
+  min-height: 44px;
+  padding: 5px 10px;
+  border: 1px solid rgba(255, 155, 145, 0.54);
+  border-radius: 3px;
+  background: rgba(255, 155, 145, 0.1);
+  color: #ffd0ca;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.restart-progress:hover {
+  background: rgba(255, 155, 145, 0.2);
+}
+
+.audio-volume-label {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.audio-volume-label input {
+  width: 72px;
+  min-height: 44px;
+  accent-color: var(--cyan);
+}
+
+.audio-volume-label output {
+  min-width: 32px;
+  color: #b9eee9;
+  text-align: right;
 }
 
 .status-badge {
@@ -187,9 +243,127 @@ button:focus-visible,
 .mission-card,
 .nearby-prompt,
 .action-button,
-.dpad {
+.dpad,
+.interior-disclosure,
+.quest-modal {
   position: absolute;
   z-index: 5;
+}
+
+.interior-disclosure {
+  top: 16px;
+  right: 16px;
+  max-width: min(430px, calc(100% - 32px));
+  padding: 10px 13px;
+  border: 1px solid rgba(255, 217, 132, 0.75);
+  border-left: 4px solid #ffd984;
+  background: rgba(18, 17, 20, 0.94);
+  color: #fff0bf;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.36);
+}
+
+.quest-modal {
+  z-index: 12;
+  top: 50%;
+  left: 50%;
+  width: min(620px, calc(100% - 32px));
+  max-height: min(580px, calc(100% - 32px));
+  overflow: auto;
+  padding: 22px;
+  border: 2px solid #d8cc67;
+  border-radius: 5px;
+  background:
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.024) 0 2px, rgba(0, 0, 0, 0.04) 2px 4px),
+    rgba(11, 14, 20, 0.98);
+  box-shadow: 0 0 0 4px rgba(8, 10, 12, 0.94), 0 22px 70px rgba(0, 0, 0, 0.72);
+  transform: translate(-50%, -50%);
+}
+
+.quest-modal h2 {
+  margin: 7px 0 6px;
+  font-size: clamp(22px, 4vw, 31px);
+}
+
+.quest-modal p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.quest-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.quest-choice-grid button,
+.modal-actions button {
+  min-height: 76px;
+  padding: 11px;
+  border: 1px solid rgba(216, 204, 103, 0.66);
+  border-radius: 4px;
+  background: rgba(216, 204, 103, 0.09);
+  color: var(--ink);
+  text-align: left;
+}
+
+.quest-choice-grid button:hover,
+.modal-actions button:hover {
+  background: rgba(216, 204, 103, 0.2);
+}
+
+.quest-choice-grid strong,
+.quest-choice-grid span {
+  display: block;
+}
+
+.quest-choice-grid strong {
+  color: var(--gold);
+  font-size: 18px;
+}
+
+.quest-choice-grid span {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.modal-disclosure {
+  margin-top: 13px !important;
+  padding: 9px 11px;
+  border-left: 3px solid #ffd984;
+  background: rgba(255, 217, 132, 0.08);
+  color: #fff0bf !important;
+  font-size: 13px;
+}
+
+.modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.modal-actions button {
+  min-width: 148px;
+  min-height: 48px;
+  text-align: center;
+}
+
+.modal-actions button:first-child {
+  border-color: rgba(116, 216, 208, 0.72);
+  background: rgba(116, 216, 208, 0.16);
+}
+
+.modal-actions button.destructive-action {
+  border-color: rgba(255, 155, 145, 0.72);
+  background: rgba(255, 155, 145, 0.15);
+  color: #ffe0db;
 }
 
 .mission-card {
@@ -450,6 +624,39 @@ button:focus-visible,
   .status-badge {
     padding-inline: 8px;
     font-size: 10px;
+  }
+
+  .audio-control {
+    padding-inline: 3px;
+  }
+
+  .audio-volume-label span,
+  .audio-volume-label output {
+    display: none;
+  }
+
+  .audio-volume-label input {
+    width: 52px;
+  }
+
+  .audio-control button {
+    min-width: 62px;
+    font-size: 10px;
+  }
+
+  .interior-disclosure {
+    top: auto;
+    right: 10px;
+    bottom: 116px;
+    max-width: calc(100% - 20px);
+  }
+
+  .quest-choice-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .quest-choice-grid button {
+    min-height: 58px;
   }
 
   .mission-card {

@@ -19,6 +19,14 @@ import {
 } from './jobs/required-promotion.mjs';
 import { runJob } from './jobs/run-job.mjs';
 import { writeJobPack } from './jobs/write-job-pack.mjs';
+import { writeFable5PrefabCharacterJobPack } from './fable5-prefab-character-jobs.mjs';
+import { importFable5PrefabCharacterCandidate } from './fable5-prefab-character-intake.mjs';
+import { writeFable5PrefabInteriorJobPack } from './fable5-prefab-interior-jobs.mjs';
+import { importFable5PrefabInteriorCandidate } from './fable5-prefab-interior-intake.mjs';
+import {
+  freezeFable5RuntimeAssetLedger,
+  verifyFable5RuntimeAssetLedger
+} from './fable5-runtime-asset-ledger.mjs';
 import { compiledSchemaNames } from './schemas.mjs';
 import { validateRepository } from './validate.mjs';
 import { importWaveARequest, listWaveAAssets, makeWaveAJob } from './v2/operator.mjs';
@@ -115,6 +123,12 @@ export async function main(argv = process.argv.slice(2)) {
         'make-job-v2 --asset <character-asset-id> --mode monolithic-atlas --character-atlas-layout character-atlas-layout-v1 [--seed <seed>]',
         'make-job-v2 --asset <character-asset-id> --mode monolithic-atlas --provider-key-normalization provider-key-normalize-v1 [--seed <seed>]',
         'make-job-v2 --asset <terrain-asset-id> --mode terrain-composed-atlas [--seed <seed>]',
+        'make-fable5-character-job --asset <char_player|char_innkeeper> [--dry-run]',
+        'import-fable5-character --asset <char_player|char_innkeeper> --file <candidate.png> --job-pack generated/jobs/<job-id>/job-pack.json [--dry-run]',
+        'make-fable5-interior-job --asset <bld_m_inn.interior|bld_l_town_hall.interior|bld_m_house.interior> [--dry-run]',
+        'import-fable5-interior --asset <interior-id> --file <candidate.png> --job-pack generated/jobs/<job-id>/job-pack.json [--dry-run]',
+        'freeze-fable5-runtime-ledger --inventory review/fable5-runtime-assets/<inventory>.json [--dry-run]',
+        'verify-fable5-runtime-ledger --ledger generated/fable5-runtime-ledgers/<sha256>.json',
         'import-v2 --recipe review/import-requests/v2/<request>.json',
         'list-v2',
         'approve-wave-a --note <human-review-note>  (interactive TTY; one exact 109-asset bulk ceremony)',
@@ -164,6 +178,59 @@ export async function main(argv = process.argv.slice(2)) {
     });
   }
   if (command === 'make-job') return writeJobPack(generationOptions({ ...options, provider: 'job-pack' }));
+  if (command === 'make-fable5-character-job') {
+    requireOnlyOptions(command, options, ['asset', 'dryRun']);
+    if (!options.asset) throw new Error('--asset is required');
+    return writeFable5PrefabCharacterJobPack({
+      assetId: options.asset,
+      dryRun: Boolean(options.dryRun)
+    });
+  }
+  if (command === 'import-fable5-character') {
+    requireOnlyOptions(command, options, ['asset', 'file', 'jobPack', 'dryRun']);
+    if (!options.asset || !options.file || !options.jobPack) {
+      throw new Error('--asset, --file, and --job-pack are required');
+    }
+    return importFable5PrefabCharacterCandidate({
+      assetId: options.asset,
+      file: options.file,
+      jobPackPath: options.jobPack,
+      dryRun: Boolean(options.dryRun)
+    });
+  }
+  if (command === 'make-fable5-interior-job') {
+    requireOnlyOptions(command, options, ['asset', 'dryRun']);
+    if (!options.asset) throw new Error('--asset is required');
+    return writeFable5PrefabInteriorJobPack({
+      assetId: options.asset,
+      dryRun: Boolean(options.dryRun)
+    });
+  }
+  if (command === 'import-fable5-interior') {
+    requireOnlyOptions(command, options, ['asset', 'file', 'jobPack', 'dryRun']);
+    if (!options.asset || !options.file || !options.jobPack) {
+      throw new Error('--asset, --file, and --job-pack are required');
+    }
+    return importFable5PrefabInteriorCandidate({
+      assetId: options.asset,
+      file: options.file,
+      jobPackPath: options.jobPack,
+      dryRun: Boolean(options.dryRun)
+    });
+  }
+  if (command === 'freeze-fable5-runtime-ledger') {
+    requireOnlyOptions(command, options, ['inventory', 'dryRun']);
+    if (!options.inventory) throw new Error('--inventory is required');
+    return freezeFable5RuntimeAssetLedger({
+      inventoryPath: options.inventory,
+      dryRun: Boolean(options.dryRun)
+    });
+  }
+  if (command === 'verify-fable5-runtime-ledger') {
+    requireOnlyOptions(command, options, ['ledger']);
+    if (!options.ledger) throw new Error('--ledger is required');
+    return verifyFable5RuntimeAssetLedger({ ledgerPath: options.ledger });
+  }
   if (command === 'make-job-v2') {
     requireOnlyOptions(command, options, [
       'asset', 'seed', 'mode', 'providerKeyNormalization', 'characterAtlasLayout'

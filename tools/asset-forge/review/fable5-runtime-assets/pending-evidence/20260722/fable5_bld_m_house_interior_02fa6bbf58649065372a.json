@@ -1,0 +1,246 @@
+{
+  "approval": {
+    "humanOnly": true,
+    "status": "not-yet-submitted"
+  },
+  "assetId": "bld_m_house.interior",
+  "category": "interior",
+  "custody": {
+    "kind": "workshop-produced",
+    "userDirect": false
+  },
+  "export": {
+    "allowed": false
+  },
+  "format": "fable5-prefab-interior-pending-candidate-v1",
+  "id": "fable5_pending_bld_m_house_interior_02fa6bbf58649065372a",
+  "inferred": [
+    "Passing alpha and semantic-source checks does not establish visual cutaway quality or route legibility."
+  ],
+  "jobPack": {
+    "jobId": "fable5_prefab_bld_m_house_interior_512102244bae5f00d91d",
+    "path": "generated/jobs/fable5_prefab_bld_m_house_interior_512102244bae5f00d91d/job-pack.json",
+    "provenanceKey": "512102244bae5f00d91d1e212d2f94aabf07ee3b5a3fcca004db4ea0a7523326",
+    "referenceBindings": [
+      {
+        "bindingSha256": "37480cdc17e018d01cbef85ad1c4a8bcab7987df51903290ee887a5dc4c0081d",
+        "copiedIntoForge": false,
+        "dimensions": {
+          "height": 992,
+          "width": 1586
+        },
+        "ledger": "art/contracts/user-provided-images.json",
+        "role": "canonical-current-town-scale-and-material-authority",
+        "sourceId": "user_target_town_current",
+        "verifiedAtAssembly": true
+      },
+      {
+        "bindingSha256": "964720fb129c12c6b3a52e5f3a12f24bc74cb8e9c2e0cb7cae661fbe8c7b0f10",
+        "copiedIntoForge": false,
+        "dimensions": {
+          "height": 1024,
+          "width": 1536
+        },
+        "ledger": "art/contracts/user-provided-images.json",
+        "role": "residence-exterior-material-language",
+        "sourceId": "user_building_houses_shops_ruins",
+        "verifiedAtAssembly": true
+      }
+    ]
+  },
+  "mechanicalChecks": {
+    "exactDimensions": true,
+    "noOpaqueChromaKeyPixels": true,
+    "opaqueChromaKeyPixels": 0,
+    "opaqueCoverage": 1,
+    "opaqueCoverageAtLeastMinimum": true,
+    "requiredOpaqueRects": [
+      {
+        "id": "entry-floor",
+        "opaque": true
+      },
+      {
+        "id": "exit-threshold",
+        "opaque": true
+      },
+      {
+        "id": "resident-floor",
+        "opaque": true
+      }
+    ],
+    "rgbaDecoded": true,
+    "semanticSourceBoundsOpaque": true
+  },
+  "observed": [
+    "Candidate bytes were decoded without transformation and passed exact Fable5 interior mechanical checks.",
+    "The matching job pack, contract, prompts, current-town reference, and building reference commitments were re-verified."
+  ],
+  "origin": {
+    "kind": "external-candidate-unverified",
+    "toolName": null
+  },
+  "outputContract": {
+    "allowedZoom": [
+      1,
+      2,
+      3
+    ],
+    "alphaChannelRequired": true,
+    "background": "opaque-ground-layer-with-alpha-channel",
+    "composition": {
+      "buildingId": "residence",
+      "coordinateEvidence": {
+        "authority": "public/fable5-v2/building-runtime.mjs",
+        "exterior": "observed",
+        "interior": "inferred"
+      },
+      "layer": "ground",
+      "runtimeAnchors": {
+        "cameraFocus": {
+          "x": 997,
+          "y": 264
+        },
+        "entryFoot": {
+          "x": 997,
+          "y": 376
+        },
+        "exitFoot": {
+          "x": 997,
+          "y": 366
+        },
+        "interaction": {
+          "id": "talk-resident",
+          "point": {
+            "x": 997,
+            "y": 246
+          },
+          "radius": 54
+        }
+      },
+      "semanticSource": {
+        "minimumOpaqueCoverage": 0.75,
+        "requiredOpaqueRects": [
+          {
+            "height": 8,
+            "id": "entry-floor",
+            "width": 8,
+            "x": 124,
+            "y": 240
+          },
+          {
+            "height": 8,
+            "id": "exit-threshold",
+            "width": 8,
+            "x": 124,
+            "y": 230
+          },
+          {
+            "height": 8,
+            "id": "resident-floor",
+            "width": 8,
+            "x": 124,
+            "y": 110
+          }
+        ]
+      },
+      "visibleKit": {
+        "forbidden": [
+          "character",
+          "text",
+          "dialogue UI",
+          "baked lighting halo",
+          "black-hole doorway"
+        ],
+        "required": [
+          "walkable floor",
+          "north-wall trim",
+          "fixed table-or-hearth",
+          "storage-or-bed detail",
+          "door threshold continuity"
+        ]
+      },
+      "walkPolygon": [
+        [
+          918,
+          178
+        ],
+        [
+          1076,
+          178
+        ],
+        [
+          1076,
+          348
+        ],
+        [
+          1038,
+          348
+        ],
+        [
+          1038,
+          388
+        ],
+        [
+          956,
+          388
+        ],
+        [
+          956,
+          348
+        ],
+        [
+          918,
+          348
+        ]
+      ],
+      "worldPivot": {
+        "anchor": "southwest",
+        "x": 869,
+        "y": 388
+      },
+      "worldRect": {
+        "height": 256,
+        "width": 256,
+        "x": 869,
+        "y": 132
+      }
+    },
+    "footprint": {
+      "h": 4,
+      "w": 4
+    },
+    "format": "png",
+    "height": 256,
+    "kind": "interior-kit",
+    "logicalTileSize": 64,
+    "nativeScale": 1,
+    "pivot": {
+      "x": 0,
+      "y": 256
+    },
+    "width": 256
+  },
+  "pendingPath": "generated/interiors/pending/fable5_bld_m_house_interior_02fa6bbf58649065372a.png",
+  "runtime": {
+    "allowed": false
+  },
+  "source": {
+    "bytes": 158362,
+    "channels": 4,
+    "dimensions": {
+      "height": 256,
+      "width": 256
+    },
+    "format": "png",
+    "path": "/Users/amano/dev/codecity-inspector/tmp/imagegen/interior-residence-fable5-256x256-v2.png",
+    "sha256": "02fa6bbf58649065372a3fe0ad5e436f75581904a66e7db94a5abc20ac53bf7b"
+  },
+  "status": "pending-inspection",
+  "unknown": [
+    "visual fit to the target-town reference",
+    "cutaway continuity and furniture readability",
+    "player and NPC clearance in the live renderer",
+    "human review decision",
+    "runtime behavior"
+  ]
+}

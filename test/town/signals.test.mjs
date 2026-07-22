@@ -234,6 +234,8 @@ test('collectSignals against this repo root reads its real bin field, scripts, a
   assert.equal(signals.scripts.hasLint, false);
   assert.deepEqual(signals.scripts.names, [
     'check',
+    'check:fable5-pending-evidence',
+    'check:fable5-runtime-assets',
     'check:launcher',
     'demo',
     'start',

@@ -1,0 +1,27 @@
+{
+  "format": "fable5-runtime-asset-inventory-v1",
+  "assets": [
+    {
+      "assetId": "char_player",
+      "category": "character",
+      "state": "pending-inspection",
+      "artifactPath": "generated/characters/pending/fable5_char_player_d947cf60b90d892a6104.png",
+      "metadataPath": "generated/characters/pending/fable5_char_player_d947cf60b90d892a6104.json",
+      "contractPath": "contracts/fable5-prefab/character.player.contract-draft.json",
+      "jobPackPath": "generated/jobs/fable5_prefab_char_player_30aecfcddcbb054c5b59/job-pack.json",
+      "approvalRecordPath": null,
+      "runtimePath": null
+    },
+    {
+      "assetId": "char_innkeeper",
+      "category": "character",
+      "state": "pending-inspection",
+      "artifactPath": "generated/characters/pending/fable5_char_innkeeper_4ec9fe5a1e5ed1f8e8e1.png",
+      "metadataPath": "generated/characters/pending/fable5_char_innkeeper_4ec9fe5a1e5ed1f8e8e1.json",
+      "contractPath": "contracts/fable5-prefab/character.innkeeper.contract-draft.json",
+      "jobPackPath": "generated/jobs/fable5_prefab_char_innkeeper_3c03c1ac9644bdad8d32/job-pack.json",
+      "approvalRecordPath": null,
+      "runtimePath": null
+    }
+  ]
+}

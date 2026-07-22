@@ -28,7 +28,9 @@
     "demo": "node src/server.mjs --repo ./sample/tiny-town --open",
     "test": "node --test test/*.test.mjs test/town/*.test.mjs",
     "check:launcher": "zsh -n CodeCity.command",
-    "check": "npm run check:launcher && node --check src/scanner.mjs && node --check src/inspector.mjs && node --check src/server.mjs && node --check public/fable5-v2/app.js && npm test"
+    "check:fable5-runtime-assets": "node tools/qa/fable5-runtime-asset-preflight.mjs",
+    "check:fable5-pending-evidence": "node tools/qa/fable5-pending-runtime-evidence.mjs",
+    "check": "npm run check:launcher && npm run check:fable5-runtime-assets && npm run check:fable5-pending-evidence && node --check src/scanner.mjs && node --check src/inspector.mjs && node --check src/server.mjs && node --check public/fable5-v2/app.js && npm test"
   },
   "engines": {
     "node": ">=20"

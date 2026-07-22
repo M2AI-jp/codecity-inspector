@@ -17,6 +17,15 @@
       <div class="topbar-actions">
         <span id="asset-badge" class="status-badge" aria-live="polite">画像照合中</span>
         <span id="geometry-badge" class="status-badge">座標照合中</span>
+        <div class="audio-control" aria-label="音声設定">
+          <button id="audio-mute" type="button" aria-pressed="false">音声 ON</button>
+          <label class="audio-volume-label" for="audio-volume">
+            <span>音量</span>
+            <input id="audio-volume" type="range" min="0" max="100" step="1" value="45">
+            <output id="audio-volume-value" for="audio-volume">45%</output>
+          </label>
+        </div>
+        <button id="restart-progress" class="restart-progress" type="button">最初から</button>
         <div class="zoom-control" aria-label="表示倍率">
           <button id="zoom-out" type="button" aria-label="縮小">−</button>
           <output id="zoom-value" aria-live="polite">1×</output>
@@ -36,6 +45,49 @@
         <span id="location-text">古町・中央大通り</span>
         <strong id="objective-text">西へ進み、左上の宿屋の扉へ向かう</strong>
         <small>WASD / 矢印：歩く　扉は近づくと自動で開閉　Enter / Space / E：会話・調査</small>
+      </section>
+
+      <aside id="interior-disclosure" class="interior-disclosure" aria-live="polite" hidden></aside>
+
+      <section id="quest-choice-panel" class="quest-modal" role="dialog" aria-modal="true" aria-labelledby="quest-choice-title" hidden>
+        <span class="eyebrow">宿帳係の問い</span>
+        <h2 id="quest-choice-title">どの区別から調査しますか？</h2>
+        <p>一つを選び、町の三つの手掛かりを観測・推定・不明として記録します。</p>
+        <div class="quest-choice-grid">
+          <button type="button" data-question="observed">
+            <strong>観測</strong>
+            <span>実際に読み取れた事実を確かめる</span>
+          </button>
+          <button type="button" data-question="inferred">
+            <strong>推定</strong>
+            <span>構造から導いた仮説を区別する</span>
+          </button>
+          <button type="button" data-question="unknown">
+            <strong>不明</strong>
+            <span>未確認を故障と決めつけない</span>
+          </button>
+        </div>
+      </section>
+
+      <section id="report-panel" class="quest-modal" role="dialog" aria-modal="true" aria-labelledby="report-title" hidden>
+        <span class="eyebrow">市庁舎の記録</span>
+        <h2 id="report-title">報告を保存しますか？</h2>
+        <p id="report-summary"></p>
+        <p class="modal-disclosure">この市庁舎の室内は推定の操作領域です。未承認の背景や人物の事実を示すものではありません。</p>
+        <div class="modal-actions">
+          <button id="submit-report-button" type="button">報告を保存する</button>
+          <button id="cancel-report-button" type="button">戻る</button>
+        </div>
+      </section>
+
+      <section id="reset-panel" class="quest-modal" role="dialog" aria-modal="true" aria-labelledby="reset-title" hidden>
+        <span class="eyebrow">保存の消去</span>
+        <h2 id="reset-title">最初から始めますか？</h2>
+        <p>このリポジトリと現在の検査結果に結び付いた調査、現在地、倍率、音声設定だけを消去します。ほかのリポジトリの保存には触れません。</p>
+        <div class="modal-actions">
+          <button id="confirm-reset-button" class="destructive-action" type="button">この保存を消して最初から</button>
+          <button id="cancel-reset-button" type="button">戻る</button>
+        </div>
       </section>
 
       <section id="startup-panel" class="cover-panel" aria-live="polite">
