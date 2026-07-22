@@ -14,10 +14,10 @@
 // around".
 //
 // The fix adds CLOSED_ENTRANCES (world-runtime.mjs): three doorways visually
-// measured against target-town-user-direct-v1.png (1586x992, the exact
-// runtime background -- see PRODUCTION_ASSETS.worldMaster in
-// site-runtime.mjs), each paired with a walkable approach point confirmed
-// with isExteriorWalkable and a world-appropriate closure reason.
+// measured against target-town-user-direct-v1.png (1586x992, the accepted
+// offline ground truth reconstructed at runtime from verified prefabs), each
+// paired with a walkable approach point confirmed with isExteriorWalkable and
+// a world-appropriate closure reason.
 // nearbyInteraction() reports them (after CLUE_INTERACTIONS, so a genuine
 // investigation hotspot never loses its prompt to the ambient "this is
 // closed" message) and isClosedEntranceId() is the shared classification

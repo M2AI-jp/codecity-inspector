@@ -97,9 +97,10 @@ export const CLUE_INTERACTIONS = Object.freeze([
 // obstacle (a bench, a lamp post) already gives via registerBump() in app.js -- the player
 // could not tell "this is a real, permanently closed entrance" from "this is scenery you
 // should walk around". Each entry below pairs a doorway visually confirmed against
-// target-town-user-direct-v1.png (1586x992, the exact runtime background -- see
-// PRODUCTION_ASSETS.worldMaster in site-runtime.mjs) with a walkable approach point in
-// front of it (verified with isExteriorWalkable against this same file) and a
+// target-town-user-direct-v1.png (1586x992, the accepted offline ground truth
+// now reconstructed at runtime from verified prefabs) with a walkable approach
+// point in front of it (verified with isExteriorWalkable against this same
+// reference) and a
 // world-appropriate reason. nearbyInteraction() below reports these only after the
 // CLUE_INTERACTIONS loop, so a genuine investigation hotspot (e.g. clue-east-shop's sign,
 // 195px away from closed-eastshop's own point) always keeps priority over the ambient

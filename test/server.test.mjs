@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { PRODUCTION_ASSETS } from '../public/fable5-v2/site-runtime.mjs';
+import { PRODUCTION_ASSETS, WORLD_PREFABS } from '../public/fable5-v2/site-runtime.mjs';
 import { parseCliArgs, startServer } from '../src/server.mjs';
 import { buildTownPayload } from '../src/town/index.mjs';
 
@@ -56,7 +56,7 @@ test('CLI parsing accepts explicit local options and rejects invalid ports', () 
 });
 
 test('target-town production asset contracts match the packaged PNG bytes, hashes, and dimensions', async () => {
-  for (const contract of Object.values(PRODUCTION_ASSETS)) {
+  for (const contract of [...Object.values(PRODUCTION_ASSETS), ...WORLD_PREFABS]) {
     const bytes = await readFile(path.join(PUBLIC_ROOT, contract.url.slice(1)));
     assert.equal(bytes.length, contract.bytes, contract.id);
     assert.equal(createHash('sha256').update(bytes).digest('hex'), contract.sha256, contract.id);
@@ -65,6 +65,7 @@ test('target-town production asset contracts match the packaged PNG bytes, hashe
     assert.equal(bytes.readUInt32BE(20), contract.height, contract.id);
   }
   assert.equal(Object.isFrozen(PRODUCTION_ASSETS), true);
+  assert.equal(Object.isFrozen(WORLD_PREFABS), true);
 });
 
 test('serves the city report and assets on loopback without source bodies', async (t) => {
@@ -167,7 +168,7 @@ test('serves the target-town n=1 shell, runtime modules, and exact production as
     assert.match(response.headers['content-type'], /text\/javascript/, modulePath);
   }
 
-  for (const contract of Object.values(PRODUCTION_ASSETS)) {
+  for (const contract of [...Object.values(PRODUCTION_ASSETS), ...WORLD_PREFABS]) {
     const response = await rawRequest(port, contract.url, 'HEAD');
     assert.equal(response.status, 200, contract.id);
     assert.equal(Number(response.headers['content-length']), contract.bytes, contract.id);

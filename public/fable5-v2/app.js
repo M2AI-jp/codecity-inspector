@@ -27,7 +27,7 @@ import {
   DIALOGUE_CROPS,
   drawCharacterFrame,
   drawNativeCrop,
-  drawWorldImage,
+  drawWorldPrefabs,
   loadProductionAssets
 } from './site-runtime.mjs';
 
@@ -622,7 +622,7 @@ function drawWorld(timestamp) {
   context.save();
   context.scale(state.camera.zoom, state.camera.zoom);
   context.translate(-state.camera.x, -state.camera.y);
-  drawWorldImage(context, state.assets.worldMaster);
+  drawWorldPrefabs(context, state.assets.worldPrefabs);
   if (state.mode === 'exterior') {
     context.drawImage(state.assets.innExteriorClosed, 8, 72);
   } else {
@@ -912,7 +912,7 @@ async function fetchTownPayload(timeoutMs = 15000) {
 
 async function boot() {
   try {
-    elements.startupMessage.textContent = 'ユーザー提供の町・本人キャラクター・宿屋オブジェクトを照合しています…';
+    elements.startupMessage.textContent = 'ユーザー提供の町を構成するprefab・本人キャラクター・宿屋オブジェクトを照合しています…';
     const payloadRequest = fetchTownPayload();
     const [payload, assets] = await Promise.all([payloadRequest, loadProductionAssets()]);
     assertTownPayload(payload);
@@ -921,7 +921,7 @@ async function boot() {
     state.assets = assets;
     state.ready = true;
     elements.repositoryName.textContent = payload.repository?.name || '名称未設定のリポジトリ';
-    elements.assetBadge.textContent = 'user-direct画像 OK';
+    elements.assetBadge.textContent = 'prefab画像 OK';
     elements.assetBadge.dataset.ready = 'true';
     elements.geometryBadge.textContent = 'target-town n=1';
     elements.geometryBadge.dataset.ready = 'true';
