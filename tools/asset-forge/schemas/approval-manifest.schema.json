@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://codecity-inspector.local/asset-forge/approval-manifest.schema.json",
+  "title": "ApprovalManifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "approvals"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "supersessions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "assetId", "supersededGenerationId", "supersededApprovedPath",
+          "supersededApprovedSha256", "replacementGenerationId",
+          "replacementApprovedPath", "replacementApprovedSha256", "reviewer",
+          "note", "supersededAt"
+        ],
+        "properties": {
+          "assetId": { "type": "string", "minLength": 1 },
+          "supersededGenerationId": { "type": "string", "minLength": 1 },
+          "supersededApprovedPath": { "type": "string", "pattern": "^generated/(characters|buildings|fields|objects|ui|effects|terrains|overlays|structures|interiors|props)/approved/[a-z0-9_-]+\\.png$" },
+          "supersededApprovedSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "replacementGenerationId": { "type": "string", "minLength": 1 },
+          "replacementApprovedPath": { "type": "string", "pattern": "^generated/(characters|buildings|fields|objects|ui|effects|terrains|overlays|structures|interiors|props)/approved/[a-z0-9_-]+\\.png$" },
+          "replacementApprovedSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "reviewer": { "const": "human" },
+          "note": { "type": "string", "minLength": 1 },
+          "supersededAt": { "type": "string", "format": "date-time" }
+        }
+      }
+    },
+    "approvals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "generationId", "assetId", "reviewer", "note", "approvedAt",
+          "sourcePath", "sourceSha256", "approvedPath", "approvedSha256"
+        ],
+        "properties": {
+          "generationId": { "type": "string", "minLength": 1 },
+          "assetId": { "type": "string", "minLength": 1 },
+          "reviewer": { "const": "human" },
+          "note": { "type": "string", "minLength": 1 },
+          "approvedAt": { "type": "string", "format": "date-time" },
+          "sourcePath": {
+            "type": "string",
+            "pattern": "^(generated|processed)/(characters|buildings|fields|objects|ui|effects|terrains|overlays|structures|interiors|props)/pending/[a-z0-9_-]+\\.png$"
+          },
+          "sourceSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "approvedPath": { "type": "string", "pattern": "^generated/(characters|buildings|fields|objects|ui|effects|terrains|overlays|structures|interiors|props)/approved/[a-z0-9_-]+\\.png$" },
+          "approvedSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+        }
+      }
+    }
+  }
+}

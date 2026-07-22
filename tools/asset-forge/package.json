@@ -1,0 +1,39 @@
+{
+  "name": "@codecity-inspector/asset-forge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local-first game asset workshop for CodeCity Inspector; no paid API provider.",
+  "scripts": {
+    "check": "node --test",
+    "test": "node --test",
+    "help": "node src/cli.mjs help",
+    "dry-run": "node src/cli.mjs generate --asset character.tavern_master --provider mock --dry-run",
+    "generate": "node src/cli.mjs generate",
+    "batch": "node src/cli.mjs batch",
+    "make-job": "node src/cli.mjs make-job",
+    "make-job-v2": "node src/cli.mjs make-job-v2",
+    "import": "node src/cli.mjs import",
+    "import-v2": "node src/cli.mjs import-v2",
+    "validate": "node src/cli.mjs validate",
+    "process": "node src/cli.mjs process",
+    "approve-wave-a": "node src/cli.mjs approve-wave-a",
+    "promote": "node src/cli.mjs promote",
+    "promote-required": "node src/cli.mjs promote-required",
+    "reject": "node src/cli.mjs reject",
+    "export": "node src/cli.mjs export",
+    "export-v3": "node src/cli.mjs export-v3",
+    "list": "node src/cli.mjs list",
+    "list-v2": "node src/cli.mjs list-v2",
+    "doctor": "node src/cli.mjs doctor"
+  },
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "sharp": "0.35.3"
+  }
+}

@@ -1,0 +1,15 @@
+Use case: production game asset generation; stylized-concept fidelity.
+
+Create one standalone medieval woodland tree feature sprite. Generate at high resolution for later nearest-neighbor reduction to a native 64x64 PNG.
+
+Reference images:
+- Image 1 is the world visual master. Match its warm late-medieval pixel-art palette, crisp clustered shading, top-down three-quarter view, and chunky readable forms.
+- Image 2 is the targeted field reference sheet. Use it only to reinforce the same terrain camera, stone-and-earth lighting, and pixel scale.
+
+Subject: one dense old forest tree with a clearly visible dark brown trunk and roots, a broad irregular asymmetrical crown, layered clusters of deep forest-green, olive, moss, and small warm highlights. It must read as a mature wild tree, not a round bush, topiary, hedge, or sapling. The trunk must remain visible below the foliage. The crown should fill much of the square while retaining a small clear margin on every side.
+
+Composition: exactly one tree, centered and bottom-anchored, fully contained, strong uneven silhouette, roughly 55-75% visible-pixel coverage after reduction. No cropped crown. No ground tile, grass square, soil patch, shadow ellipse, scenery, border, text, UI, character, or extra object.
+
+Background: perfectly flat uniform solid #ff00ff magenta chroma-key, edge to edge. Do not use magenta anywhere in the tree. No gradient, texture, vignette, lighting spill, halo, matte, or cast shadow on the background.
+
+Rendering: deliberately pixel-art-like with hard-edged color clusters and no soft photographic blur. Keep fine leaf detail large enough to survive nearest-neighbor downsampling. High local contrast around the trunk and crown silhouette. Native target must remain clear and recognizable at 64x64.

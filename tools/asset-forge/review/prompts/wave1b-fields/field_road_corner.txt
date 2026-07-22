@@ -1,0 +1,8 @@
+Use case: stylized-concept
+Asset type: production 64x64 directional road-family terrain master source for CodeCity Inspector
+Input images: Image 1 is the global world style, palette, camera, and pixel-density reference; Image 2 is the direct approved cobblestone roads, corners, intersections, masonry scale, and ground reference.
+Primary request: create the canonical cobblestone ROAD CORNER tile connecting only the TOP edge and RIGHT edge.
+Subject: one consistent-width gray cobblestone road, exactly 24/64 of the final tile wide at each connection, turning cleanly through the center from top to right; muted mossy grass fills the non-road areas, with a restrained irregular stone verge.
+Style/medium: dense crisp late-medieval fantasy top-down three-quarter pixel art matching CodeCity's cobbles, grass, palette, and upper-left lighting.
+Composition/framing: one full-bleed square terrain tile; top and right road endpoints centered and identical in width, left and bottom edges grass-only; readable after nearest-neighbor downsampling to 64x64.
+Constraints: no extra branch, building, wall, stairs, water, people, props, text, labels, arrows, border, margin, tile grid, variants, watermark, blur, or enlarged old pixels.

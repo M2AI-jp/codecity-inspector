@@ -1,0 +1,1070 @@
+{
+  "schemaVersion": 2,
+  "requiredSetId": "fable5-v2",
+  "waveId": "A",
+  "category": "structure",
+  "assetCount": 20,
+  "assets": [
+    {
+      "id": "structure.bridge_stone",
+      "category": "structure",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Low arched ashlar bridge with route and broken-end cells",
+        "materials": [
+          "worn limestone ashlar",
+          "dark lime mortar"
+        ],
+        "dominantColors": [
+          "cool limestone gray",
+          "deep mortar brown"
+        ],
+        "accentColors": [
+          "pale parapet caps",
+          "ochre broken cores"
+        ],
+        "shapeLanguage": "Three-quarter structural silhouette with readable supports, openings, and load direction. Defining contour: Wedge parapet caps frame the walkable center",
+        "distinguishingFeatures": [
+          "Wedge parapet caps frame the walkable center",
+          "Broken cells expose snapped voussoirs and a dark missing span"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "structure.bridge_wood",
+            "reason": "Stone uses masonry arches; wood uses lashed beams"
+          }
+        ],
+        "composition": "Keep the traversable or blocking outline inside its native cells and preserve connection edges. Exact subject: Low arched ashlar bridge with route and broken-end cells",
+        "groundContact": "Both masonry abutments meet the bank tile baseline; intact decks align with the walkable route while broken voussoirs end at the missing span.",
+        "negativeConstraints": [
+          "Do not borrow structure.bridge_wood's form: Stone uses masonry arches; wood uses lashed beams",
+          "Do not omit or contradict this cue: Broken cells expose snapped voussoirs and a dark missing span"
+        ],
+        "frameContent": [
+          {
+            "frameId": "horizontal",
+            "visualContent": "Low arched ashlar bridge with route and broken-end cells; horizontal preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "horizontal_start",
+            "visualContent": "Low arched ashlar bridge with route and broken-end cells; horizontal start preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "horizontal_end",
+            "visualContent": "Low arched ashlar bridge with route and broken-end cells; horizontal end preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "horizontal_broken_left",
+            "visualContent": "Low arched ashlar bridge with route and broken-end cells; horizontal broken left preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "horizontal_broken_right",
+            "visualContent": "Low arched ashlar bridge with route and broken-end cells; horizontal broken right preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "vertical",
+            "visualContent": "Low arched ashlar bridge with route and broken-end cells; vertical preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "vertical_start",
+            "visualContent": "Low arched ashlar bridge with route and broken-end cells; vertical start preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "vertical_end",
+            "visualContent": "Low arched ashlar bridge with route and broken-end cells; vertical end preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "vertical_broken_top",
+            "visualContent": "Low arched ashlar bridge with route and broken-end cells; vertical broken top preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "vertical_broken_bottom",
+            "visualContent": "Low arched ashlar bridge with route and broken-end cells; vertical broken bottom preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          }
+        ]
+      }
+    },
+    {
+      "id": "structure.bridge_wood",
+      "category": "structure",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Narrow timber trestle bridge with route and broken-end cells",
+        "materials": [
+          "salt-weathered oak boards",
+          "hemp rope",
+          "black iron spikes"
+        ],
+        "dominantColors": [
+          "gray-brown oak",
+          "dark rope umber"
+        ],
+        "accentColors": [
+          "pale splintered ends",
+          "rust-red spike heads"
+        ],
+        "shapeLanguage": "Three-quarter structural silhouette with readable supports, openings, and load direction. Defining contour: Uneven deck boards cross lashed side beams",
+        "distinguishingFeatures": [
+          "Uneven deck boards cross lashed side beams",
+          "Broken cells show splinters and dangling rope ends"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "structure.bridge_stone",
+            "reason": "Wood has beams and rope; stone has ashlar arches"
+          }
+        ],
+        "composition": "Keep the traversable or blocking outline inside its native cells and preserve connection edges. Exact subject: Narrow timber trestle bridge with route and broken-end cells",
+        "groundContact": "Trestle feet terminate at the waterline and both deck ends align to route tiles; broken boards stop visibly above the missing span.",
+        "negativeConstraints": [
+          "Do not borrow structure.bridge_stone's form: Wood has beams and rope; stone has ashlar arches",
+          "Do not omit or contradict this cue: Broken cells show splinters and dangling rope ends"
+        ],
+        "frameContent": [
+          {
+            "frameId": "horizontal",
+            "visualContent": "Narrow timber trestle bridge with route and broken-end cells; horizontal preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "horizontal_start",
+            "visualContent": "Narrow timber trestle bridge with route and broken-end cells; horizontal start preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "horizontal_end",
+            "visualContent": "Narrow timber trestle bridge with route and broken-end cells; horizontal end preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "horizontal_broken_left",
+            "visualContent": "Narrow timber trestle bridge with route and broken-end cells; horizontal broken left preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "horizontal_broken_right",
+            "visualContent": "Narrow timber trestle bridge with route and broken-end cells; horizontal broken right preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "vertical",
+            "visualContent": "Narrow timber trestle bridge with route and broken-end cells; vertical preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "vertical_start",
+            "visualContent": "Narrow timber trestle bridge with route and broken-end cells; vertical start preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "vertical_end",
+            "visualContent": "Narrow timber trestle bridge with route and broken-end cells; vertical end preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "vertical_broken_top",
+            "visualContent": "Narrow timber trestle bridge with route and broken-end cells; vertical broken top preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "vertical_broken_bottom",
+            "visualContent": "Narrow timber trestle bridge with route and broken-end cells; vertical broken bottom preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          }
+        ]
+      }
+    },
+    {
+      "id": "structure.stairs_stone",
+      "category": "structure",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Four-direction flight of broad worn limestone steps",
+        "materials": [
+          "worn limestone treads",
+          "dark lime joints",
+          "granite cheek blocks"
+        ],
+        "dominantColors": [
+          "warm gray limestone",
+          "cool charcoal risers"
+        ],
+        "accentColors": [
+          "pale worn tread noses",
+          "ochre joint chips"
+        ],
+        "shapeLanguage": "Three-quarter structural silhouette with readable supports, openings, and load direction. Defining contour: Every orientation keeps the upper landing visibly higher",
+        "distinguishingFeatures": [
+          "Every orientation keeps the upper landing visibly higher",
+          "Cheek blocks taper toward the lower landing"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "terrain.cliff",
+            "reason": "Stairs show regular climbable treads; cliff is a blocked jagged face"
+          }
+        ],
+        "composition": "Keep the traversable or blocking outline inside its native cells and preserve connection edges. Exact subject: Four-direction flight of broad worn limestone steps",
+        "groundContact": "The lowest tread meets the lower terrain baseline and the top landing meets the raised band; cheek blocks remain seated along both sides.",
+        "negativeConstraints": [
+          "Do not borrow terrain.cliff's form: Stairs show regular climbable treads; cliff is a blocked jagged face",
+          "Do not omit or contradict this cue: Cheek blocks taper toward the lower landing"
+        ],
+        "frameContent": [
+          {
+            "frameId": "north",
+            "visualContent": "Four-direction flight of broad worn limestone steps; north preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "east",
+            "visualContent": "Four-direction flight of broad worn limestone steps; east preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "south",
+            "visualContent": "Four-direction flight of broad worn limestone steps; south preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "west",
+            "visualContent": "Four-direction flight of broad worn limestone steps; west preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          }
+        ]
+      }
+    },
+    {
+      "id": "structure.fence",
+      "category": "structure",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Low split-rail boundary in eight connection states",
+        "materials": [
+          "split oak rails",
+          "rough cedar posts",
+          "iron join pins"
+        ],
+        "dominantColors": [
+          "weathered honey-brown wood",
+          "dark post shadows"
+        ],
+        "accentColors": [
+          "pale cut rail ends",
+          "rusted pin heads"
+        ],
+        "shapeLanguage": "Three-quarter structural silhouette with readable supports, openings, and load direction. Defining contour: Posts occupy every true connection junction",
+        "distinguishingFeatures": [
+          "Posts occupy every true connection junction",
+          "Rails overlap posts with irregular end cuts"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "structure.wall_stone",
+            "reason": "Fence is open timber with air gaps; wall is solid masonry"
+          }
+        ],
+        "composition": "Keep the traversable or blocking outline inside its native cells and preserve connection edges. Exact subject: Low split-rail boundary in eight connection states",
+        "groundContact": "Every post bottom meets the ground baseline at connection junctions; rails enter post faces without hovering between cells.",
+        "negativeConstraints": [
+          "Do not borrow structure.wall_stone's form: Fence is open timber with air gaps; wall is solid masonry",
+          "Do not omit or contradict this cue: Rails overlap posts with irregular end cuts"
+        ],
+        "frameContent": [
+          {
+            "frameId": "isolated",
+            "visualContent": "Low split-rail boundary in eight connection states; isolated preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "horizontal",
+            "visualContent": "Low split-rail boundary in eight connection states; horizontal preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "vertical",
+            "visualContent": "Low split-rail boundary in eight connection states; vertical preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "corner_ne",
+            "visualContent": "Low split-rail boundary in eight connection states; corner ne preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "corner_nw",
+            "visualContent": "Low split-rail boundary in eight connection states; corner nw preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "corner_se",
+            "visualContent": "Low split-rail boundary in eight connection states; corner se preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "corner_sw",
+            "visualContent": "Low split-rail boundary in eight connection states; corner sw preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "cross",
+            "visualContent": "Low split-rail boundary in eight connection states; cross preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          }
+        ]
+      }
+    },
+    {
+      "id": "structure.wall_stone",
+      "category": "structure",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Waist-high fieldstone wall in eight connection states",
+        "materials": [
+          "fieldstone blocks",
+          "lime mortar",
+          "large granite capstones"
+        ],
+        "dominantColors": [
+          "blue-gray fieldstone",
+          "deep mortar gray"
+        ],
+        "accentColors": [
+          "pale capstone edges",
+          "ochre chipped corners"
+        ],
+        "shapeLanguage": "Three-quarter structural silhouette with readable supports, openings, and load direction. Defining contour: Heavy capstones bridge each masonry joint",
+        "distinguishingFeatures": [
+          "Heavy capstones bridge each masonry joint",
+          "Corners use larger squared quoins than straight runs"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "structure.fence",
+            "reason": "Wall is solid capped masonry; fence is open timber"
+          }
+        ],
+        "composition": "Keep the traversable or blocking outline inside its native cells and preserve connection edges. Exact subject: Waist-high fieldstone wall in eight connection states",
+        "groundContact": "The lowest masonry course sits flush on terrain across every connection cell; capstones remain directly above load-bearing blocks.",
+        "negativeConstraints": [
+          "Do not borrow structure.fence's form: Wall is solid capped masonry; fence is open timber",
+          "Do not omit or contradict this cue: Corners use larger squared quoins than straight runs"
+        ],
+        "frameContent": [
+          {
+            "frameId": "isolated",
+            "visualContent": "Waist-high fieldstone wall in eight connection states; isolated preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "horizontal",
+            "visualContent": "Waist-high fieldstone wall in eight connection states; horizontal preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "vertical",
+            "visualContent": "Waist-high fieldstone wall in eight connection states; vertical preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "corner_ne",
+            "visualContent": "Waist-high fieldstone wall in eight connection states; corner ne preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "corner_nw",
+            "visualContent": "Waist-high fieldstone wall in eight connection states; corner nw preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "corner_se",
+            "visualContent": "Waist-high fieldstone wall in eight connection states; corner se preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "corner_sw",
+            "visualContent": "Waist-high fieldstone wall in eight connection states; corner sw preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "cross",
+            "visualContent": "Waist-high fieldstone wall in eight connection states; cross preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          }
+        ]
+      }
+    },
+    {
+      "id": "structure.tree.a",
+      "category": "structure",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Slim crooked birch with separate forked trunk and airy canopy",
+        "materials": [
+          "white birch bark",
+          "charcoal bark scars",
+          "small green leaves"
+        ],
+        "dominantColors": [
+          "chalk-white trunk",
+          "fresh leaf green"
+        ],
+        "accentColors": [
+          "pale yellow-green leaf tips",
+          "cool gray bark cuts"
+        ],
+        "shapeLanguage": "Three-quarter structural silhouette with readable supports, openings, and load direction. Defining contour: White bark carries charcoal scars on the lower fork",
+        "distinguishingFeatures": [
+          "White bark carries charcoal scars on the lower fork",
+          "Small oval crown leans east and leaves sky gaps"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "structure.tree.b",
+            "reason": "A is pale forked birch; B is a dark conical spruce"
+          }
+        ],
+        "composition": "Keep the traversable or blocking outline inside its native cells and preserve connection edges. Exact subject: Slim crooked birch with separate forked trunk and airy canopy",
+        "groundContact": "Forked trunk and exposed roots meet one tight soil ellipse; the separate airy canopy aligns above the same 64-pixel trunk pivot.",
+        "negativeConstraints": [
+          "Do not borrow structure.tree.b's form: A is pale forked birch; B is a dark conical spruce",
+          "Do not omit or contradict this cue: Small oval crown leans east and leaves sky gaps"
+        ],
+        "frameContent": [
+          {
+            "frameId": "trunk",
+            "visualContent": "Slim crooked birch with separate forked trunk and airy canopy; trunk preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "canopy",
+            "visualContent": "Slim crooked birch with separate forked trunk and airy canopy; canopy preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          }
+        ]
+      }
+    },
+    {
+      "id": "structure.tree.b",
+      "category": "structure",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Compact dark spruce with straight trunk and tiered canopy",
+        "materials": [
+          "dark spruce bark",
+          "blue-green needles",
+          "exposed root flare"
+        ],
+        "dominantColors": [
+          "deep pine green",
+          "umber trunk"
+        ],
+        "accentColors": [
+          "cool teal needle tips",
+          "pale resin notch"
+        ],
+        "shapeLanguage": "Three-quarter structural silhouette with readable supports, openings, and load direction. Defining contour: Three descending needle tiers form a narrow cone",
+        "distinguishingFeatures": [
+          "Three descending needle tiers form a narrow cone",
+          "Lower boughs sweep left under the key light"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "structure.tree.a",
+            "reason": "B is a dark conifer; A is a pale airy birch"
+          }
+        ],
+        "composition": "Keep the traversable or blocking outline inside its native cells and preserve connection edges. Exact subject: Compact dark spruce with straight trunk and tiered canopy",
+        "groundContact": "The straight trunk flares into visible roots on the ground baseline; all three canopy tiers align over that fixed trunk pivot.",
+        "negativeConstraints": [
+          "Do not borrow structure.tree.a's form: B is a dark conifer; A is a pale airy birch",
+          "Do not omit or contradict this cue: Lower boughs sweep left under the key light"
+        ],
+        "frameContent": [
+          {
+            "frameId": "trunk",
+            "visualContent": "Compact dark spruce with straight trunk and tiered canopy; trunk preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "canopy",
+            "visualContent": "Compact dark spruce with straight trunk and tiered canopy; canopy preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          }
+        ]
+      }
+    },
+    {
+      "id": "structure.tree.c",
+      "category": "structure",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Ancient two-tile oak with split trunk and massive canopy",
+        "materials": [
+          "furrowed oak bark",
+          "moss patches",
+          "dense olive leaves"
+        ],
+        "dominantColors": [
+          "deep oak brown",
+          "olive canopy green"
+        ],
+        "accentColors": [
+          "moss-yellow leaf edges",
+          "cool teal canopy hollows"
+        ],
+        "shapeLanguage": "Three-quarter structural silhouette with readable supports, openings, and load direction. Defining contour: Hollow knot and buttress roots identify the trunk",
+        "distinguishingFeatures": [
+          "Hollow knot and buttress roots identify the trunk",
+          "Three canopy lobes end in a broken western edge"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "structure.tree.a",
+            "reason": "C is a giant buttressed oak; A is a slender birch"
+          }
+        ],
+        "composition": "Keep the traversable or blocking outline inside its native cells and preserve connection edges. Exact subject: Ancient two-tile oak with split trunk and massive canopy",
+        "groundContact": "Two buttressed root masses occupy the two-tile soil footprint; the separate three-lobed canopy aligns to the central split trunk.",
+        "negativeConstraints": [
+          "Do not borrow structure.tree.a's form: C is a giant buttressed oak; A is a slender birch",
+          "Do not omit or contradict this cue: Three canopy lobes end in a broken western edge"
+        ],
+        "frameContent": [
+          {
+            "frameId": "trunk",
+            "visualContent": "Ancient two-tile oak with split trunk and massive canopy; trunk preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "canopy",
+            "visualContent": "Ancient two-tile oak with split trunk and massive canopy; canopy preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          }
+        ]
+      }
+    },
+    {
+      "id": "structure.rock.a",
+      "category": "structure",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Small squat granite wedge with one diagonal fracture",
+        "materials": [
+          "coarse granite",
+          "single quartz fracture"
+        ],
+        "dominantColors": [
+          "cool granite gray",
+          "charcoal lower face"
+        ],
+        "accentColors": [
+          "pale quartz seam",
+          "blue-gray top plane"
+        ],
+        "shapeLanguage": "Three-quarter structural silhouette with readable supports, openings, and load direction. Defining contour: The broad upper face carries the cool key light",
+        "distinguishingFeatures": [
+          "The broad upper face carries the cool key light",
+          "Right edge drops sharply into a tight shadow"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "structure.rock.b",
+            "reason": "A is a low wedge; B is a narrow upright shard"
+          }
+        ],
+        "composition": "Keep the traversable or blocking outline inside its native cells and preserve connection edges. Exact subject: Small squat granite wedge with one diagonal fracture",
+        "groundContact": "The squat wedge rests on its entire low front facet, with a tight shadow directly under the sharply dropping right edge.",
+        "negativeConstraints": [
+          "Do not borrow structure.rock.b's form: A is a low wedge; B is a narrow upright shard",
+          "Do not omit or contradict this cue: Right edge drops sharply into a tight shadow"
+        ],
+        "frameContent": [
+          {
+            "frameId": "primary",
+            "visualContent": "Small squat granite wedge with one diagonal fracture; one complete isolated primary sprite showing the broad upper face carries the cool key light."
+          }
+        ]
+      }
+    },
+    {
+      "id": "structure.rock.b",
+      "category": "structure",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Narrow upright shale shard with two stepped faces",
+        "materials": [
+          "layered shale",
+          "small mica chips"
+        ],
+        "dominantColors": [
+          "blue-gray shale",
+          "deep violet strata"
+        ],
+        "accentColors": [
+          "silver mica flecks",
+          "pale chipped crown"
+        ],
+        "shapeLanguage": "Three-quarter structural silhouette with readable supports, openings, and load direction. Defining contour: A chipped pointed crown leans west",
+        "distinguishingFeatures": [
+          "A chipped pointed crown leans west",
+          "Vertical strata separate it from low ground stones"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "structure.rock.a",
+            "reason": "B stands upright with strata; A is low granite"
+          }
+        ],
+        "composition": "Keep the traversable or blocking outline inside its native cells and preserve connection edges. Exact subject: Narrow upright shale shard with two stepped faces",
+        "groundContact": "The upright shard contacts ground along a narrow stepped base; vertical strata rise from that base without a transparent gap.",
+        "negativeConstraints": [
+          "Do not borrow structure.rock.a's form: B stands upright with strata; A is low granite",
+          "Do not omit or contradict this cue: Vertical strata separate it from low ground stones"
+        ],
+        "frameContent": [
+          {
+            "frameId": "primary",
+            "visualContent": "Narrow upright shale shard with two stepped faces; one complete isolated primary sprite showing a chipped pointed crown leans west."
+          }
+        ]
+      }
+    },
+    {
+      "id": "structure.rock.c",
+      "category": "structure",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Large two-tile boulder with a split saddle top",
+        "materials": [
+          "coarse granite",
+          "ochre mineral vein",
+          "moss fringe"
+        ],
+        "dominantColors": [
+          "dark granite gray",
+          "olive moss"
+        ],
+        "accentColors": [
+          "raw ochre vein",
+          "pale fractured saddle"
+        ],
+        "shapeLanguage": "Three-quarter structural silhouette with readable supports, openings, and load direction. Defining contour: Twin masses create a deep central notch",
+        "distinguishingFeatures": [
+          "Twin masses create a deep central notch",
+          "An ochre vein crosses the front face beneath moss"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "structure.rock.a",
+            "reason": "C is a twin-mass two-tile boulder; A is a small wedge"
+          }
+        ],
+        "composition": "Keep the traversable or blocking outline inside its native cells and preserve connection edges. Exact subject: Large two-tile boulder with a split saddle top",
+        "groundContact": "Both boulder masses sit on a broad two-tile contact shadow; the central notch remains above ground and the moss fringe touches stone, not air.",
+        "negativeConstraints": [
+          "Do not borrow structure.rock.a's form: C is a twin-mass two-tile boulder; A is a small wedge",
+          "Do not omit or contradict this cue: An ochre vein crosses the front face beneath moss"
+        ],
+        "frameContent": [
+          {
+            "frameId": "primary",
+            "visualContent": "Large two-tile boulder with a split saddle top; one complete isolated primary sprite showing twin masses create a deep central notch."
+          }
+        ]
+      }
+    },
+    {
+      "id": "structure.stone_lantern",
+      "category": "structure",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Snow-district stone toro with a square amber chamber",
+        "materials": [
+          "carved granite",
+          "amber glass",
+          "packed snow"
+        ],
+        "dominantColors": [
+          "cool granite gray",
+          "snow blue"
+        ],
+        "accentColors": [
+          "small amber chamber",
+          "pale cap rim"
+        ],
+        "shapeLanguage": "Three-quarter structural silhouette with readable supports, openings, and load direction. Defining contour: A wide cap snow shelf overhangs the chamber",
+        "distinguishingFeatures": [
+          "A wide cap snow shelf overhangs the chamber",
+          "Four-legged base reads above packed snow"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "prop.streetlight",
+            "reason": "Stone lantern is squat masonry; streetlight is tall iron"
+          }
+        ],
+        "composition": "Keep the traversable or blocking outline inside its native cells and preserve connection edges. Exact subject: Snow-district stone toro with a square amber chamber",
+        "groundContact": "All four granite feet press into one shallow packed-snow contact; the square lamp chamber stays centered above that base.",
+        "negativeConstraints": [
+          "Do not borrow prop.streetlight's form: Stone lantern is squat masonry; streetlight is tall iron",
+          "Do not omit or contradict this cue: Four-legged base reads above packed snow"
+        ],
+        "frameContent": [
+          {
+            "frameId": "primary",
+            "visualContent": "Snow-district stone toro with a square amber chamber; one complete isolated primary sprite showing a wide cap snow shelf overhangs the chamber."
+          }
+        ]
+      }
+    },
+    {
+      "id": "structure.pier",
+      "category": "structure",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Pile-supported timber pier in eight connection states",
+        "materials": [
+          "salt-weathered oak decking",
+          "tarred timber piles",
+          "hemp rope cleats"
+        ],
+        "dominantColors": [
+          "gray-brown planks",
+          "near-black wet piles"
+        ],
+        "accentColors": [
+          "salt-white board ends",
+          "rust-tan rope"
+        ],
+        "shapeLanguage": "Three-quarter structural silhouette with readable supports, openings, and load direction. Defining contour: Dark round piles remain visible below outer edges",
+        "distinguishingFeatures": [
+          "Dark round piles remain visible below outer edges",
+          "Salt-white board ends and rope cleats orient the harbor path"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "terrain.deck",
+            "reason": "Pier exposes piles over water; deck is flush planking"
+          }
+        ],
+        "composition": "Keep the traversable or blocking outline inside its native cells and preserve connection edges. Exact subject: Pile-supported timber pier in eight connection states",
+        "groundContact": "Round piles descend below outer deck edges to the waterline; the top boards align flush with each connected walkable pier cell.",
+        "negativeConstraints": [
+          "Do not borrow terrain.deck's form: Pier exposes piles over water; deck is flush planking",
+          "Do not omit or contradict this cue: Salt-white board ends and rope cleats orient the harbor path"
+        ],
+        "frameContent": [
+          {
+            "frameId": "isolated",
+            "visualContent": "Pile-supported timber pier in eight connection states; isolated preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "horizontal",
+            "visualContent": "Pile-supported timber pier in eight connection states; horizontal preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "vertical",
+            "visualContent": "Pile-supported timber pier in eight connection states; vertical preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "corner_ne",
+            "visualContent": "Pile-supported timber pier in eight connection states; corner ne preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "corner_nw",
+            "visualContent": "Pile-supported timber pier in eight connection states; corner nw preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "corner_se",
+            "visualContent": "Pile-supported timber pier in eight connection states; corner se preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "corner_sw",
+            "visualContent": "Pile-supported timber pier in eight connection states; corner sw preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          },
+          {
+            "frameId": "cross",
+            "visualContent": "Pile-supported timber pier in eight connection states; cross preserves the defining support and shows exactly the named connection, direction, break, or layer."
+          }
+        ]
+      }
+    },
+    {
+      "id": "structure.well",
+      "category": "structure",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Circular civic well with a timber winding beam",
+        "materials": [
+          "dressed limestone",
+          "oak winding beam",
+          "hemp bucket rope",
+          "black iron crank"
+        ],
+        "dominantColors": [
+          "warm limestone",
+          "dark oak brown"
+        ],
+        "accentColors": [
+          "aged iron gray",
+          "pale rope fibers"
+        ],
+        "shapeLanguage": "Three-quarter structural silhouette with readable supports, openings, and load direction. Defining contour: Offset crank and bucket rope create an active silhouette",
+        "distinguishingFeatures": [
+          "Offset crank and bucket rope create an active silhouette",
+          "The inner opening remains dark and blocked"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "structure.cycle_wellcurb",
+            "reason": "Well has a tall beam; cycle curb is low and spiral-carved"
+          }
+        ],
+        "composition": "Keep the traversable or blocking outline inside its native cells and preserve connection edges. Exact subject: Circular civic well with a timber winding beam",
+        "groundContact": "The circular stone plinth seats on a full two-tile ground ring; the dark well opening remains inside that ring and cannot be walked through.",
+        "negativeConstraints": [
+          "Do not borrow structure.cycle_wellcurb's form: Well has a tall beam; cycle curb is low and spiral-carved",
+          "Do not omit or contradict this cue: The inner opening remains dark and blocked"
+        ],
+        "frameContent": [
+          {
+            "frameId": "primary",
+            "visualContent": "Circular civic well with a timber winding beam; one complete isolated primary sprite showing offset crank and bucket rope create an active silhouette."
+          }
+        ]
+      }
+    },
+    {
+      "id": "structure.barricade",
+      "category": "structure",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Cross-braced route barricade on two weighted feet",
+        "materials": [
+          "rough pine slats",
+          "oak trestle feet",
+          "iron hinges",
+          "hemp lash"
+        ],
+        "dominantColors": [
+          "ochre pine",
+          "dark oak feet"
+        ],
+        "accentColors": [
+          "rust-red hinge plates",
+          "pale rope"
+        ],
+        "shapeLanguage": "Three-quarter structural silhouette with readable supports, openings, and load direction. Defining contour: Three uneven warning slats lean across the path",
+        "distinguishingFeatures": [
+          "Three uneven warning slats lean across the path",
+          "Iron hinge plates and rope lash keep it temporary"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "structure.fence",
+            "reason": "Barricade closes a route diagonally; fence makes boundaries"
+          }
+        ],
+        "composition": "Keep the traversable or blocking outline inside its native cells and preserve connection edges. Exact subject: Cross-braced route barricade on two weighted feet",
+        "groundContact": "Both weighted trestle feet touch the road baseline, holding three diagonal slats across the route without a floating center.",
+        "negativeConstraints": [
+          "Do not borrow structure.fence's form: Barricade closes a route diagonally; fence makes boundaries",
+          "Do not omit or contradict this cue: Iron hinge plates and rope lash keep it temporary"
+        ],
+        "frameContent": [
+          {
+            "frameId": "primary",
+            "visualContent": "Cross-braced route barricade on two weighted feet; one complete isolated primary sprite showing three uneven warning slats lean across the path."
+          }
+        ]
+      }
+    },
+    {
+      "id": "structure.signpost_broken",
+      "category": "structure",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Snapped signpost with one dangling directional plank",
+        "materials": [
+          "split cedar post",
+          "dangling oak plank",
+          "bent iron bracket"
+        ],
+        "dominantColors": [
+          "weathered cedar brown",
+          "dark iron"
+        ],
+        "accentColors": [
+          "pale splintered grain",
+          "rust-orange bracket"
+        ],
+        "shapeLanguage": "Three-quarter structural silhouette with readable supports, openings, and load direction. Defining contour: The upper break exposes pale splintered grain",
+        "distinguishingFeatures": [
+          "The upper break exposes pale splintered grain",
+          "A bent bracket holds the plank at a failed angle"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "prop.signboard",
+            "reason": "Broken signpost is damaged; signboard is intact"
+          }
+        ],
+        "composition": "Keep the traversable or blocking outline inside its native cells and preserve connection edges. Exact subject: Snapped signpost with one dangling directional plank",
+        "groundContact": "The snapped post enters a compact soil socket at the baseline; the hanging plank remains attached only at the bent upper bracket.",
+        "negativeConstraints": [
+          "Do not borrow prop.signboard's form: Broken signpost is damaged; signboard is intact",
+          "Do not omit or contradict this cue: A bent bracket holds the plank at a failed angle"
+        ],
+        "frameContent": [
+          {
+            "frameId": "primary",
+            "visualContent": "Snapped signpost with one dangling directional plank; one complete isolated primary sprite showing the upper break exposes pale splintered grain."
+          }
+        ]
+      }
+    },
+    {
+      "id": "structure.cycle_wellcurb",
+      "category": "structure",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Low spiral-carved plaza curb around a dark center",
+        "materials": [
+          "carved limestone segments",
+          "brass witness studs",
+          "dark inner stone"
+        ],
+        "dominantColors": [
+          "honey-gray limestone",
+          "charcoal center"
+        ],
+        "accentColors": [
+          "aged brass studs",
+          "pale carved spiral rim"
+        ],
+        "shapeLanguage": "Three-quarter structural silhouette with readable supports, openings, and load direction. Defining contour: Three segments curl inward clockwise",
+        "distinguishingFeatures": [
+          "Three segments curl inward clockwise",
+          "Brass witness studs punctuate the outer ring"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "structure.well",
+            "reason": "Cycle curb is low and spiral; well has a winding beam"
+          }
+        ],
+        "composition": "Keep the traversable or blocking outline inside its native cells and preserve connection edges. Exact subject: Low spiral-carved plaza curb around a dark center",
+        "groundContact": "Three spiral curb segments form a low circular contact on plaza stones; the dark center stays enclosed inside the masonry ring.",
+        "negativeConstraints": [
+          "Do not borrow structure.well's form: Cycle curb is low and spiral; well has a winding beam",
+          "Do not omit or contradict this cue: Brass witness studs punctuate the outer ring"
+        ],
+        "frameContent": [
+          {
+            "frameId": "primary",
+            "visualContent": "Low spiral-carved plaza curb around a dark center; one complete isolated primary sprite showing three segments curl inward clockwise."
+          }
+        ]
+      }
+    },
+    {
+      "id": "structure.ferry_shelter",
+      "category": "structure",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Open-sided harbor shelter under a hipped roof",
+        "materials": [
+          "salt-stained oak posts",
+          "weathered slate roof",
+          "pine bench",
+          "hemp pennant cord"
+        ],
+        "dominantColors": [
+          "gray-brown oak",
+          "blue-gray slate"
+        ],
+        "accentColors": [
+          "faded ochre pennant",
+          "pale salt streaks"
+        ],
+        "shapeLanguage": "Three-quarter structural silhouette with readable supports, openings, and load direction. Defining contour: Three posts leave a clear waiting bay",
+        "distinguishingFeatures": [
+          "Three posts leave a clear waiting bay",
+          "A rear bench and shape-only pennant indicate ferry use"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "building.dock",
+            "reason": "Shelter is open and post-supported; dock office is enclosed"
+          }
+        ],
+        "composition": "Keep the traversable or blocking outline inside its native cells and preserve connection edges. Exact subject: Open-sided harbor shelter under a hipped roof",
+        "groundContact": "Three timber posts terminate on the harbor deck baseline; the rear bench and hipped roof remain visibly supported by those posts.",
+        "negativeConstraints": [
+          "Do not borrow building.dock's form: Shelter is open and post-supported; dock office is enclosed",
+          "Do not omit or contradict this cue: A rear bench and shape-only pennant indicate ferry use"
+        ],
+        "frameContent": [
+          {
+            "frameId": "primary",
+            "visualContent": "Open-sided harbor shelter under a hipped roof; one complete isolated primary sprite showing three posts leave a clear waiting bay."
+          }
+        ]
+      }
+    },
+    {
+      "id": "structure.searoute_marker",
+      "category": "structure",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Tall offshore spar buoy with cage and amber cap",
+        "materials": [
+          "painted iron spar",
+          "black iron cage",
+          "amber glass cap",
+          "three steel fins"
+        ],
+        "dominantColors": [
+          "deep marine blue",
+          "chalk-white bands"
+        ],
+        "accentColors": [
+          "small amber cap light",
+          "rust-red waterline"
+        ],
+        "shapeLanguage": "Three-quarter structural silhouette with readable supports, openings, and load direction. Defining contour: Dark blue and chalk bands show the water height",
+        "distinguishingFeatures": [
+          "Dark blue and chalk bands show the water height",
+          "Three stabilizing fins widen the waterline base"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "structure.stone_lantern",
+            "reason": "Sea marker is slender and banded; stone lantern is squat"
+          }
+        ],
+        "composition": "Keep the traversable or blocking outline inside its native cells and preserve connection edges. Exact subject: Tall offshore spar buoy with cage and amber cap",
+        "groundContact": "Three steel fins enter the water at one shared oval waterline; the banded spar rises vertically from their centered junction.",
+        "negativeConstraints": [
+          "Do not borrow structure.stone_lantern's form: Sea marker is slender and banded; stone lantern is squat",
+          "Do not omit or contradict this cue: Three stabilizing fins widen the waterline base"
+        ],
+        "frameContent": [
+          {
+            "frameId": "primary",
+            "visualContent": "Tall offshore spar buoy with cage and amber cap; one complete isolated primary sprite showing dark blue and chalk bands show the water height."
+          }
+        ]
+      }
+    },
+    {
+      "id": "structure.survey_plot",
+      "category": "structure",
+      "artDirection": {
+        "version": 2,
+        "subjectForm": "Four rope-linked stakes around an empty measured square",
+        "materials": [
+          "split cedar stakes",
+          "hemp rope",
+          "brass stake caps"
+        ],
+        "dominantColors": [
+          "weathered cedar brown",
+          "tan rope"
+        ],
+        "accentColors": [
+          "small brass caps",
+          "pale cut stake tops"
+        ],
+        "shapeLanguage": "Three-quarter structural silhouette with readable supports, openings, and load direction. Defining contour: Corner stakes carry small brass caps",
+        "distinguishingFeatures": [
+          "Corner stakes carry small brass caps",
+          "Sagging rope leaves the center visibly unbuilt"
+        ],
+        "distinguishFrom": [
+          {
+            "assetId": "structure.barricade",
+            "reason": "Survey plot encloses a site; barricade closes a lane"
+          }
+        ],
+        "composition": "Keep the traversable or blocking outline inside its native cells and preserve connection edges. Exact subject: Four rope-linked stakes around an empty measured square",
+        "groundContact": "Four sharpened stakes enter the ground at the corners of a two-tile square; sagging rope connects them while the center remains empty.",
+        "negativeConstraints": [
+          "Do not borrow structure.barricade's form: Survey plot encloses a site; barricade closes a lane",
+          "Do not omit or contradict this cue: Sagging rope leaves the center visibly unbuilt"
+        ],
+        "frameContent": [
+          {
+            "frameId": "primary",
+            "visualContent": "Four rope-linked stakes around an empty measured square; one complete isolated primary sprite showing corner stakes carry small brass caps."
+          }
+        ]
+      }
+    }
+  ]
+}

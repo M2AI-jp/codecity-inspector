@@ -1,0 +1,88 @@
+{
+  "$comment": "DRAFT — not generated, not approved, not wired into any runtime path. Target shape follows Fable5PrefabSpec.md section 7. No sample entry for an innkeeper exists in tools/asset-forge/contracts/asset-contract.sample.json, so png/pivot/sheet fields below are newly authored to match that sample's char_player entry field-for-field (same canvas, same footPivot, same 4x10 grid) rather than copied from an existing example. draftMeta is not part of the Fable5PrefabSpec section 7 field set; strip it before promotion.",
+  "status": "draft-pending-generation",
+  "assetId": "char_innkeeper",
+  "category": "character",
+  "png": { "file": "character/char_innkeeper.png", "w": 640, "h": 512 },
+  "nativeScale": 1,
+  "logicalTileSize": 64,
+  "pivot": { "x": 32, "y": 120 },
+  "footprint": { "w": 1, "h": 1 },
+  "collision": [],
+  "layers": { "base": "character/char_innkeeper.png" },
+  "sheet": {
+    "rows": 4,
+    "cols": 10,
+    "frameW": 64,
+    "frameH": 128,
+    "anims": {
+      "rowOrder": ["south", "west", "east", "north"],
+      "idle": { "cols": [0, 1], "fps": 4 },
+      "walk": { "cols": [2, 3, 4, 5, 6, 7], "fps": 10 },
+      "interact": { "cols": [8, 9], "fps": 6 }
+    }
+  },
+  "palette": "district_old_town",
+  "allowedZoom": [1, 2, 3],
+  "districts": ["old_town"],
+  "draftMeta": {
+    "purpose": "Re-production per product-owner decision, same initiative as character.player. Unlike the player, this is new authoring: no character.innkeeper entry exists yet in data/v2/art-direction/characters.json (only player/town_clerk/gatekeeper/dojo_inspector/mob.townsfolk_male/mob.townsfolk_female/dojo_student do).",
+    "identityRule": "Different person from the player is allowed. Must share the player identity source's pixel density, head-to-body proportions, outline weight, and shading language (docs/user-provided-image-policy.md section 7: 'NPCは別人にできますが、原画のpixel density、頭身、輪郭、陰影の言語を共有します').",
+    "identityLanguageSource": {
+      "directory": "art/references/user-provided/",
+      "resolveExactPathAndHashFrom": "art/contracts/user-provided-images.json → sources[] where sourceId equals ledgerSourceId below",
+      "whyNotInlinedHere": "tools/asset-forge/test/reference-integrity.test.mjs (RETIRED_CHARACTER_REFERENCE) asserts this specific reference's exact basename and SHA-256 must not appear anywhere inside tools/asset-forge — this draft respects that boundary instead of working around it. See character.player.contract-draft.json's identitySource for the same note.",
+      "dimensions": { "width": 1536, "height": 1024 },
+      "custody": "user-direct",
+      "ledgerSourceId": "user_character_style_reference",
+      "role": "shared rendering-language authority (proportions/density/shading), not a costume/hair-color source for this NPC"
+    },
+    "existingDeployedArt": {
+      "note": "Currently deployed, but unverified origin and explicitly not to be treated as an identity source to preserve byte-for-byte. No .lineage.json exists for either file and neither appears in art/contracts/user-provided-images.json.",
+      "files": [
+        {
+          "path": "public/fable5-v2/assets/characters/innkeeper-4dir-v1.png",
+          "dimensions": { "width": 256, "height": 512 },
+          "gap": "idle-only, 4 directions x 1 frame each; no walk cycle; does not match the 640x512/4x10 target grid"
+        },
+        {
+          "path": "public/fable5-v2/assets/characters/innkeeper-talk-4frame-v2.png",
+          "dimensions": { "width": 384, "height": 64 },
+          "gap": "separate small strip at a different frame height (64px tall vs the 128px-tall target frame); not part of a unified sheet"
+        }
+      ],
+      "permittedUse": "loose continuity reference only (e.g. hair/apron color), if the project owner wants visual continuity with the currently-deployed look; must be recorded as such and never labeled user-provided per docs/user-provided-image-policy.md section 5"
+    },
+    "backgroundShadingReference": {
+      "path": "public/fable5-v2/assets/world/target-town-user-direct-v1.png",
+      "canonicalPath": "art/references/user-provided/target-town.png",
+      "sha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607",
+      "dimensions": { "width": 1586, "height": 992 },
+      "custody": "user-direct",
+      "ledgerSourceId": "user_target_town_current",
+      "useAs": "lighting/shading-density match only",
+      "verifiedIndependently": "sha256 recomputed 2026-07-21, byte-identical across both copies"
+    },
+    "npcSpotContext": {
+      "declaredIn": "tools/asset-forge/contracts/asset-contract.sample.json → assets[].assetId == \"bld_m_inn\" → npcSpots",
+      "value": { "x": 1, "y": 0, "role": "innkeeper" },
+      "note": "informational placement context only; this draft does not modify building contracts"
+    },
+    "prefabSpecAuthority": "Fable5PrefabSpec.md section 6 and section 7, same as character.player",
+    "promptDrafts": [
+      "tools/asset-forge/prompts/fable5-prefab/00_common_fable5_character_sheet_style.md",
+      "tools/asset-forge/prompts/fable5-prefab/character.innkeeper.prompt-draft.md"
+    ],
+    "provenanceTemplate": "tools/asset-forge/review/provenance/character.innkeeper.candidate-provenance-draft.json",
+    "generationRoute": [
+      "author a new character.innkeeper entry in data/v2/art-direction/characters.json (or an equivalent v1 data/asset-definitions/characters.json entry) using this contract + the prompt drafts — currently missing entirely from v2",
+      "make-job / make-job-v2 (job-pack, no image produced)",
+      "external human-supervised generation session — outside this tool",
+      "import / import-v2 (hash-verified pending candidate)",
+      "process (alpha/trim as needed)",
+      "interactive promote (human-only)",
+      "export (dry-run by default; --write only after the v2 manifest is complete)"
+    ],
+    "notGeneratedReason": "Task scope for this pass excludes real image generation (API cost and out-of-band approval); this file only prepares the contract/prompt pair so generation can start without re-deriving identity/background facts."
+  }
+}

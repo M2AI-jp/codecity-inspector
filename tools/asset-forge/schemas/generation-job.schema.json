@@ -1,0 +1,78 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://codecity-inspector.local/asset-forge/generation-job.schema.json",
+  "title": "GenerationJob",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id", "assetId", "provider", "dryRun", "subscriptionRun", "promptText",
+    "promptHash", "promptFiles", "referenceImageIds", "referenceImageHashes",
+    "seed", "provenanceKey", "outputContract", "outputDir", "createdBy", "warnings"
+  ],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "assetId": { "type": "string", "minLength": 1 },
+    "provider": { "enum": ["mock", "job-pack", "manual-import", "codex-subscription"] },
+    "dryRun": { "type": "boolean" },
+    "subscriptionRun": { "type": "boolean" },
+    "promptText": { "type": "string" },
+    "promptHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "promptFiles": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string" }
+    },
+    "referenceImageIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string" }
+    },
+    "referenceImageHashes": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+    },
+    "seed": { "type": "string" },
+    "provenanceKey": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "outputContract": { "$ref": "#/definitions/outputContract" },
+    "outputDir": { "type": "string", "pattern": "^generated/[a-z]+/pending$" },
+    "createdBy": { "enum": ["codex", "human", "script"] },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    }
+  },
+  "definitions": {
+    "outputContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind", "format", "background", "needsTransparency", "needsTrim",
+        "width", "height", "nearestNeighbor", "allowAntiAlias"
+      ],
+      "properties": {
+        "kind": { "enum": ["single", "spritesheet", "tileset", "ui-sheet"] },
+        "format": { "const": "png" },
+        "background": { "enum": ["transparent", "black", "white", "scene"] },
+        "needsTransparency": { "type": "boolean" },
+        "needsTrim": { "type": "boolean" },
+        "width": { "type": "integer", "minimum": 1, "maximum": 8192 },
+        "height": { "type": "integer", "minimum": 1, "maximum": 8192 },
+        "nearestNeighbor": { "type": "boolean" },
+        "allowAntiAlias": { "type": "boolean" },
+        "grid": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["columns", "rows", "frameWidth", "frameHeight"],
+          "properties": {
+            "columns": { "type": "integer", "minimum": 1 },
+            "rows": { "type": "integer", "minimum": 1 },
+            "frameWidth": { "type": "integer", "minimum": 1 },
+            "frameHeight": { "type": "integer", "minimum": 1 }
+          }
+        }
+      }
+    }
+  }
+}

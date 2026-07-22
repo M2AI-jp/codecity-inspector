@@ -1,0 +1,65 @@
+{
+  "$comment": "Copy of fable5-character-candidate-provenance.template.json for character.innkeeper / char_innkeeper, filled in with what is known as of 2026-07-21 (contract + prompt drafted, no generation run yet, no prior v2 definition existed for this NPC). Update in place as each stage actually happens; do not pre-fill generation/review facts. derivation.sourceSha256 is deliberately left as a lookup instruction rather than the literal digest: tools/asset-forge/test/reference-integrity.test.mjs (RETIRED_CHARACTER_REFERENCE) asserts that this specific reference's exact basename/hash must not appear anywhere inside tools/asset-forge.",
+  "assetId": "character.innkeeper / char_innkeeper",
+  "candidateGenerationId": null,
+  "origin": {
+    "kind": "unknown",
+    "toolName": null,
+    "notInferredFromCustody": true
+  },
+  "custody": {
+    "kind": "workshop-produced",
+    "note": "Not yet produced. Will not be user-direct even though it shares a rendering language with a user-direct identity reference.",
+    "intakeManifestId": null,
+    "intakeCommit": null,
+    "gitBlob": null
+  },
+  "derivation": {
+    "sourceId": "user_character_style_reference",
+    "sourceSha256": "resolve from art/contracts/user-provided-images.json sources[] for this sourceId — not restated here, see $comment",
+    "sourceRole": "shared pixel-density/proportion/shading-language authority only — the innkeeper is a different person and is not required to copy this reference's hair/costume",
+    "secondarySourceId": "user_target_town_current",
+    "secondarySourceSha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607",
+    "secondarySourceRole": "shading/lighting-density reference only, not a crop/composition source",
+    "unverifiedContinuityReferences": [
+      {
+        "path": "public/fable5-v2/assets/characters/innkeeper-4dir-v1.png",
+        "note": "currently deployed; origin unverified (no lineage.json, not in art/contracts/user-provided-images.json); loose continuity reference only if the project owner wants it, never an identity or user-provided source"
+      },
+      {
+        "path": "public/fable5-v2/assets/characters/innkeeper-talk-4frame-v2.png",
+        "note": "same caveat as above"
+      }
+    ],
+    "method": null,
+    "cropOrMask": "none — full 640x512 sheet output expected",
+    "outputPath": null,
+    "outputSha256": null,
+    "outputDimensions": null,
+    "comparisonEvidence": {
+      "contactSheetPath": null,
+      "sideBySideWithIdentitySourcePath": null,
+      "note": "not yet possible — no candidate exists"
+    }
+  },
+  "review": {
+    "mechanicalChecks": {
+      "footPivotAt32_120AllFrames": "unknown",
+      "eastNotAMirrorOfWest": "unknown",
+      "fortyCellsIndependentlyExtractable": "unknown",
+      "shadingMatchesTargetTown": "unknown",
+      "sharesPixelDensityAndProportionsWithPlayerReference": "unknown"
+    },
+    "approval": {
+      "status": "not-yet-submitted",
+      "scope": [],
+      "approvedBy": null,
+      "decisionRef": null,
+      "note": "no candidate exists yet; nothing to submit"
+    }
+  },
+  "protection": {
+    "state": "not-yet-created",
+    "note": "only the contract/prompt drafts exist on disk so far, under tools/asset-forge/contracts/fable5-prefab/ and tools/asset-forge/prompts/fable5-prefab/"
+  }
+}

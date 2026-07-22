@@ -1,0 +1,1539 @@
+{
+  "schemaVersion": 1,
+  "waveId": "wave1d-objects-effects",
+  "state": "lead-visually-accepted-pending-formal-promotion",
+  "observed": [
+    "Lead visually accepted every adopted raw source, including the medieval construction-sign retry, the recovered completed signboard call, the single-crate replacement, and both four-frame effects.",
+    "Lead visually accepted all eighteen normalized objects and both normalized four-frame effects in native and four-times QA sheets, pending formal production promotion.",
+    "Ten approved-reference direct crops and ten distinct built-in imagegen calls produced eighteen normalized objects and two normalized effects.",
+    "All normalized objects and effect frames satisfy their exact dimensions, hard-alpha, bounding-box, palette, source, reference, and no-enlargement gates.",
+    "The pre-existing fifty-eight candidate trees remained byte-identical and the local ledger now contains exactly seventy-eight pending candidates."
+  ],
+  "inferred": [
+    "Native and enlarged QA sheets preserve clear role silhouettes and ordered animation states at intended map scale."
+  ],
+  "unknown": [
+    "formal production promotion and export",
+    "runtime animation timing, placement, and collision behavior"
+  ],
+  "gates": {
+    "activeImagegenPromptRawCleaned10": true,
+    "distinctBuiltInCalls10Recorded": true,
+    "promptSnapshotsAndReferencesExact10": true,
+    "objects18At64x64": true,
+    "objectAlphaBboxColors": true,
+    "objectNoEnlargement": true,
+    "directExtractions10WithCleanCropOverlays": true,
+    "effects2At128x32FourFrames": true,
+    "effectAlphaBboxColors": true,
+    "effectFramesDistinctReadable": true,
+    "effectSharedScaleNoEnlargement": true,
+    "effectSourceSlicesUseVerifiedTransparentGutters": true,
+    "rejectedAttemptsRecordedAndExcluded": true,
+    "accepted58CandidateTreesByteUnchanged": true,
+    "ledgerExactly78Pending": true,
+    "ledgerCategorySplit17_19_22_18_2": true,
+    "all78OutputHashesUnique": true,
+    "productionApprovalsZero": true,
+    "lifecycleZero": true,
+    "approvedObjectEffectFilesZero": true,
+    "publicForgeAbsent": true
+  },
+  "contract": {
+    "objectCanvas": {
+      "width": 64,
+      "height": 64,
+      "baselineY": 63,
+      "maxSubjectWidth": 60,
+      "maxSubjectHeight": 60
+    },
+    "effectFrame": {
+      "width": 32,
+      "height": 32,
+      "maxSubjectWidth": 28,
+      "maxSubjectHeight": 28
+    },
+    "effectSheet": {
+      "width": 128,
+      "height": 32
+    },
+    "hardAlpha": true,
+    "nearestDownscaleOnly": true,
+    "allowEnlargement": false
+  },
+  "rejectedInputs": [
+    {
+      "assetId": "object.construction_sign",
+      "kind": "imagegen-source",
+      "rawPath": "tmp/imagegen/wave1d-objects-effects/rejected/construction_sign-v1-modern-hazard.png",
+      "promptPath": "review/prompts/wave1d-objects-effects/rejected/construction_sign-v1-modern-hazard.txt",
+      "reason": "Lead rejected the black/yellow industrial hazard language; the adopted retry uses medieval red/cream repair language.",
+      "rawSha256": "c8ac93e628fd11e63f3fee8e9cd290b1f994753d45dac0925eedeb91759e189f",
+      "promptSha256": "99ee17d5bb431effdac55b44de57232edd6ed6051b2ae55ea7d254364bc0c079"
+    },
+    {
+      "assetId": "object.crate",
+      "kind": "direct-crop",
+      "cropRect": {
+        "x": 297,
+        "y": 15,
+        "width": 60,
+        "height": 70
+      },
+      "rawPath": "tmp/imagegen/wave1d-objects-effects/rejected/crate-v1-two-box-crop.png",
+      "cleanedPath": "tmp/imagegen/wave1d-objects-effects/rejected/crate-v1-two-box-crop.keyed.png",
+      "reason": "Lead rejected the two-box cluster because it was not a standalone single closed crate.",
+      "rawSha256": "07b08830e07495549f6ece424c2a4cf1ceeae01de73f92904cc4678e6212335e",
+      "cleanedSha256": "6107f09cf3c3f1bc090cd9b513a6979c726eae6b4a8fa9f6c84b9426cafcba7c"
+    },
+    {
+      "assetId": "object.signboard",
+      "kind": "direct-crop",
+      "cropRect": {
+        "x": 734,
+        "y": 148,
+        "width": 88,
+        "height": 90
+      },
+      "rawPath": "tmp/imagegen/wave1d-objects-effects/rejected/signboard-v1-contaminated-crop.png",
+      "cleanedPath": "tmp/imagegen/wave1d-objects-effects/rejected/signboard-v1-contaminated-crop.keyed.png",
+      "reason": "Lead rejected neighboring specimen residue at the left/bottom; an isolated imagegen source replaced it.",
+      "rawSha256": "52eae050301d7a6e261a938ff877f8e61177718223e2b27dcc49e5788bcd8e70",
+      "cleanedSha256": "d87605e641554b07350faece91384efdc0150c77014792c007c902f69f1179f8"
+    }
+  ],
+  "processingRecoveries": [
+    {
+      "kind": "unledgered-import-file-preserved",
+      "path": "tmp/imagegen/wave1d-objects-effects/orphaned-import/effect_construction_dust-79f615693bd28b5e.png",
+      "sha256": "48ce213abf1f1ec970b55f02ed4faf9888e5e1ea4348669ea093557d8814510c",
+      "reason": "A schema-validation stop occurred after atomic source/output writes but before metadata and ledger append; the two unledgered files were moved aside before the successful resumable import."
+    },
+    {
+      "kind": "unledgered-import-file-preserved",
+      "path": "tmp/imagegen/wave1d-objects-effects/orphaned-import/effect_construction_dust-79f615693bd28b5e.source.png",
+      "sha256": "79f615693bd28b5e9c4c75a1ee559a9fdec58da42c2c8205dfd9d677e7a7ce44",
+      "reason": "A schema-validation stop occurred after atomic source/output writes but before metadata and ledger append; the two unledgered files were moved aside before the successful resumable import."
+    }
+  ],
+  "recipeMigrations": [
+    {
+      "assetId": "effect.water_ripple",
+      "generationId": "gen_import_d9760c6551b50c630f6c",
+      "kind": "centered-effect-baseline-correction",
+      "baselineYBefore": 31,
+      "baselineYAfter": 15,
+      "outputPath": "generated/effects/pending/effect_water_ripple-f3e63aa2e2cf2180.png",
+      "outputSha256": "8586e1d16331790ab633b9fb890de9413eb0f63aee683bbe4d128d053f3a25fa",
+      "outputBytesUnchanged": true
+    }
+  ],
+  "objects": [
+    {
+      "assetId": "object.barrel",
+      "method": "direct-extraction",
+      "primaryReferenceId": "intake_20260713_object_street_props",
+      "sourcePath": "references/approved/object_street_props_sheet.png",
+      "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "cropRect": {
+        "height": 75,
+        "width": 58,
+        "x": 9,
+        "y": 10
+      },
+      "outputPath": "generated/objects/pending/object_barrel-c439cb2454b66677.png",
+      "outputSha256": "71fc318a616e8e813cb5a9d0734269f804667342277238ea88604857ee11e7f7",
+      "outputDimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "sourceBbox": {
+        "x": 9,
+        "y": 15,
+        "width": 44,
+        "height": 56
+      },
+      "outputBbox": {
+        "x": 10,
+        "y": 8,
+        "width": 44,
+        "height": 56
+      },
+      "scale": 1,
+      "partialAlphaPixels": 0,
+      "visiblePixels": 1935,
+      "visibleColorCount": 15,
+      "cleanup": {
+        "componentCountBefore": 2,
+        "keptPixels": 1935,
+        "largestTouchedCropBorder": false
+      }
+    },
+    {
+      "assetId": "object.crate",
+      "method": "direct-extraction",
+      "primaryReferenceId": "intake_20260713_object_street_props",
+      "sourcePath": "references/approved/object_street_props_sheet.png",
+      "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "cropRect": {
+        "height": 64,
+        "width": 64,
+        "x": 748,
+        "y": 450
+      },
+      "outputPath": "generated/objects/pending/object_crate-ebccb2d4eaa0628c.png",
+      "outputSha256": "f47ed882f797ccd59e08dd13030599ea0d7e50820cfcef5d9170bc4a5d8feec8",
+      "outputDimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "sourceBbox": {
+        "x": 10,
+        "y": 21,
+        "width": 33,
+        "height": 32
+      },
+      "outputBbox": {
+        "x": 15,
+        "y": 32,
+        "width": 33,
+        "height": 32
+      },
+      "scale": 1,
+      "partialAlphaPixels": 0,
+      "visiblePixels": 874,
+      "visibleColorCount": 15,
+      "cleanup": {
+        "componentCountBefore": 5,
+        "keptPixels": 874,
+        "largestTouchedCropBorder": false
+      }
+    },
+    {
+      "assetId": "object.stacked_crates",
+      "method": "direct-extraction",
+      "primaryReferenceId": "intake_20260713_object_street_props",
+      "sourcePath": "references/approved/object_street_props_sheet.png",
+      "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "cropRect": {
+        "height": 76,
+        "width": 62,
+        "x": 367,
+        "y": 8
+      },
+      "outputPath": "generated/objects/pending/object_stacked_crates-6cfd69d081ab00e5.png",
+      "outputSha256": "173f6375ff416799ddcf8017a7f0ff397bafc2ad1a5d786ac94ddb5c8c971916",
+      "outputDimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "sourceBbox": {
+        "x": 1,
+        "y": 17,
+        "width": 48,
+        "height": 53
+      },
+      "outputBbox": {
+        "x": 8,
+        "y": 11,
+        "width": 48,
+        "height": 53
+      },
+      "scale": 1,
+      "partialAlphaPixels": 0,
+      "visiblePixels": 2222,
+      "visibleColorCount": 15,
+      "cleanup": {
+        "componentCountBefore": 1,
+        "keptPixels": 2222,
+        "largestTouchedCropBorder": false
+      }
+    },
+    {
+      "assetId": "object.lamp",
+      "method": "direct-extraction",
+      "primaryReferenceId": "intake_20260713_object_street_props",
+      "sourcePath": "references/approved/object_street_props_sheet.png",
+      "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "cropRect": {
+        "height": 90,
+        "width": 62,
+        "x": 596,
+        "y": 145
+      },
+      "outputPath": "generated/objects/pending/object_lamp-f4955335b4037a27.png",
+      "outputSha256": "e06588c0ea81851a3d090f67f8294f34fe29c7691be1f3c071da796c9a6fcddc",
+      "outputDimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "sourceBbox": {
+        "x": 19,
+        "y": 20,
+        "width": 22,
+        "height": 40
+      },
+      "outputBbox": {
+        "x": 21,
+        "y": 24,
+        "width": 22,
+        "height": 40
+      },
+      "scale": 1,
+      "partialAlphaPixels": 0,
+      "visiblePixels": 539,
+      "visibleColorCount": 15,
+      "cleanup": {
+        "componentCountBefore": 5,
+        "keptPixels": 539,
+        "largestTouchedCropBorder": false
+      }
+    },
+    {
+      "assetId": "object.streetlight",
+      "method": "direct-extraction",
+      "primaryReferenceId": "intake_20260713_object_street_props",
+      "sourcePath": "references/approved/object_street_props_sheet.png",
+      "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "cropRect": {
+        "height": 160,
+        "width": 52,
+        "x": 927,
+        "y": 10
+      },
+      "outputPath": "generated/objects/pending/object_streetlight-ca6ed1676de1245c.png",
+      "outputSha256": "639def25b22eba568ac2b7f347eeb549c4eca62b6e5750042ad52ac9dec4da2d",
+      "outputDimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "sourceBbox": {
+        "x": 6,
+        "y": 15,
+        "width": 30,
+        "height": 138
+      },
+      "outputBbox": {
+        "x": 25,
+        "y": 4,
+        "width": 13,
+        "height": 60
+      },
+      "scale": 0.43478260869565216,
+      "partialAlphaPixels": 0,
+      "visiblePixels": 319,
+      "visibleColorCount": 15,
+      "cleanup": {
+        "componentCountBefore": 11,
+        "keptPixels": 1632,
+        "largestTouchedCropBorder": false
+      }
+    },
+    {
+      "assetId": "object.signboard",
+      "method": "imagegen",
+      "primaryReferenceId": "intake_20260713_object_street_props",
+      "sourcePath": "tmp/imagegen/wave1d-objects-effects/raw/signboard.png",
+      "sourceSha256": "3cd30783be61f0635cf8589fe81f5767d348591a2416522164021f5554740521",
+      "cropRect": null,
+      "outputPath": "generated/objects/pending/object_signboard-bc386c96d54efe16.png",
+      "outputSha256": "3db5b06ff4eb548ffbb3dc3bcc4f7b8da61bdaae86cd3654d4cc11d3b0cd63ac",
+      "outputDimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "sourceBbox": {
+        "x": 391,
+        "y": 174,
+        "width": 532,
+        "height": 880
+      },
+      "outputBbox": {
+        "x": 14,
+        "y": 5,
+        "width": 36,
+        "height": 59
+      },
+      "scale": 0.06818181818181818,
+      "partialAlphaPixels": 0,
+      "visiblePixels": 1022,
+      "visibleColorCount": 15,
+      "cleanup": {
+        "componentCountBefore": 1,
+        "keptPixels": 227645,
+        "largestTouchedCropBorder": false
+      }
+    },
+    {
+      "assetId": "object.notice_board",
+      "method": "imagegen",
+      "primaryReferenceId": "intake_20260713_object_street_props",
+      "sourcePath": "tmp/imagegen/wave1d-objects-effects/raw/notice_board.png",
+      "sourceSha256": "7102bcd149ebb7df731ed82938153e3f8653e19ed5a8138b3c9891fe37850419",
+      "cropRect": null,
+      "outputPath": "generated/objects/pending/object_notice_board-7e7f68f64eed2b2c.png",
+      "outputSha256": "93fa43cb4c9c85f25bca23334b007af076fe15fb896ae3e43a003d4bf6c45909",
+      "outputDimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "sourceBbox": {
+        "x": 216,
+        "y": 116,
+        "width": 820,
+        "height": 997
+      },
+      "outputBbox": {
+        "x": 7,
+        "y": 4,
+        "width": 49,
+        "height": 60
+      },
+      "scale": 0.06018054162487462,
+      "partialAlphaPixels": 0,
+      "visiblePixels": 1946,
+      "visibleColorCount": 15,
+      "cleanup": {
+        "componentCountBefore": 1,
+        "keptPixels": 540921,
+        "largestTouchedCropBorder": false
+      }
+    },
+    {
+      "assetId": "object.well",
+      "method": "direct-extraction",
+      "primaryReferenceId": "intake_20260713_object_street_props",
+      "sourcePath": "references/approved/object_street_props_sheet.png",
+      "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "cropRect": {
+        "height": 80,
+        "width": 92,
+        "x": 808,
+        "y": 188
+      },
+      "outputPath": "generated/objects/pending/object_well-a32c27e6a8e19cb9.png",
+      "outputSha256": "abf65f2948387c775b5f06867fec5f5d9b4dc97a72ffff67bcc1b1f4cf9195bd",
+      "outputDimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "sourceBbox": {
+        "x": 3,
+        "y": 14,
+        "width": 68,
+        "height": 62
+      },
+      "outputBbox": {
+        "x": 2,
+        "y": 10,
+        "width": 60,
+        "height": 54
+      },
+      "scale": 0.8823529411764706,
+      "partialAlphaPixels": 0,
+      "visiblePixels": 2295,
+      "visibleColorCount": 15,
+      "cleanup": {
+        "componentCountBefore": 17,
+        "keptPixels": 2990,
+        "largestTouchedCropBorder": false
+      }
+    },
+    {
+      "assetId": "object.bench",
+      "method": "direct-extraction",
+      "primaryReferenceId": "intake_20260713_object_street_props",
+      "sourcePath": "references/approved/object_street_props_sheet.png",
+      "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "cropRect": {
+        "height": 60,
+        "width": 105,
+        "x": 617,
+        "y": 98
+      },
+      "outputPath": "generated/objects/pending/object_bench-989ca4b83f31ea6f.png",
+      "outputSha256": "7cd0d87c46f5fb28fea3c0134d6d434aa0c73d1dbd70305ce480c93f55506dea",
+      "outputDimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "sourceBbox": {
+        "x": 6,
+        "y": 11,
+        "width": 89,
+        "height": 42
+      },
+      "outputBbox": {
+        "x": 2,
+        "y": 36,
+        "width": 59,
+        "height": 28
+      },
+      "scale": 0.6741573033707865,
+      "partialAlphaPixels": 0,
+      "visiblePixels": 1195,
+      "visibleColorCount": 15,
+      "cleanup": {
+        "componentCountBefore": 1,
+        "keptPixels": 2664,
+        "largestTouchedCropBorder": false
+      }
+    },
+    {
+      "assetId": "object.flowerbed",
+      "method": "direct-extraction",
+      "primaryReferenceId": "intake_20260713_object_street_props",
+      "sourcePath": "references/approved/object_street_props_sheet.png",
+      "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "cropRect": {
+        "height": 55,
+        "width": 82,
+        "x": 188,
+        "y": 222
+      },
+      "outputPath": "generated/objects/pending/object_flowerbed-738fa133d114aeee.png",
+      "outputSha256": "6f366b7c3622efd08c1ab5eac908647d89a7131e3b0e05718d0a47f8a0c1d189",
+      "outputDimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "sourceBbox": {
+        "x": 21,
+        "y": 15,
+        "width": 52,
+        "height": 33
+      },
+      "outputBbox": {
+        "x": 6,
+        "y": 31,
+        "width": 52,
+        "height": 33
+      },
+      "scale": 1,
+      "partialAlphaPixels": 0,
+      "visiblePixels": 1428,
+      "visibleColorCount": 15,
+      "cleanup": {
+        "componentCountBefore": 11,
+        "keptPixels": 1428,
+        "largestTouchedCropBorder": false
+      }
+    },
+    {
+      "assetId": "object.grass_patch",
+      "method": "direct-extraction",
+      "primaryReferenceId": "intake_20260713_object_street_props",
+      "sourcePath": "references/approved/object_street_props_sheet.png",
+      "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "cropRect": {
+        "height": 58,
+        "width": 72,
+        "x": 12,
+        "y": 332
+      },
+      "outputPath": "generated/objects/pending/object_grass_patch-2bacea849f457a52.png",
+      "outputSha256": "80ed192572cbb825a41ee9804693e0f0debe18b80698039a1c0f47d417392c1e",
+      "outputDimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "sourceBbox": {
+        "x": 9,
+        "y": 17,
+        "width": 50,
+        "height": 40
+      },
+      "outputBbox": {
+        "x": 7,
+        "y": 24,
+        "width": 50,
+        "height": 40
+      },
+      "scale": 1,
+      "partialAlphaPixels": 0,
+      "visiblePixels": 965,
+      "visibleColorCount": 15,
+      "cleanup": {
+        "componentCountBefore": 23,
+        "keptPixels": 965,
+        "largestTouchedCropBorder": false
+      }
+    },
+    {
+      "assetId": "object.construction_sign",
+      "method": "imagegen",
+      "primaryReferenceId": "intake_20260713_object_status_markers",
+      "sourcePath": "tmp/imagegen/wave1d-objects-effects/raw/construction_sign.png",
+      "sourceSha256": "8c205a4c1a15763822461a85440167ddbde15b2d1f4222fcac0d33d2155807bf",
+      "cropRect": null,
+      "outputPath": "generated/objects/pending/object_construction_sign-a79be722a84ed31f.png",
+      "outputSha256": "843680770e687357305bc8639a6a3656cd7ec172ec70545bea8068ac13f04ee7",
+      "outputDimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "sourceBbox": {
+        "x": 249,
+        "y": 299,
+        "width": 783,
+        "height": 616
+      },
+      "outputBbox": {
+        "x": 2,
+        "y": 17,
+        "width": 59,
+        "height": 47
+      },
+      "scale": 0.07662835249042145,
+      "partialAlphaPixels": 0,
+      "visiblePixels": 1739,
+      "visibleColorCount": 15,
+      "cleanup": {
+        "componentCountBefore": 1,
+        "keptPixels": 302666,
+        "largestTouchedCropBorder": false
+      }
+    },
+    {
+      "assetId": "object.unverified_tag",
+      "method": "imagegen",
+      "primaryReferenceId": "intake_20260713_object_status_markers",
+      "sourcePath": "tmp/imagegen/wave1d-objects-effects/raw/unverified_tag.png",
+      "sourceSha256": "4dc221c0647037addd739fa338c7404a4a004d396034be801d66f0d9a438736c",
+      "cropRect": null,
+      "outputPath": "generated/objects/pending/object_unverified_tag-693f35a1b7c8fd28.png",
+      "outputSha256": "c0ad3a68ea16181b11818e25ec68b40e7f63f386195571bbf09c1b99e75ff401",
+      "outputDimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "sourceBbox": {
+        "x": 376,
+        "y": 65,
+        "width": 491,
+        "height": 1088
+      },
+      "outputBbox": {
+        "x": 18,
+        "y": 4,
+        "width": 27,
+        "height": 60
+      },
+      "scale": 0.05514705882352941,
+      "partialAlphaPixels": 0,
+      "visiblePixels": 1153,
+      "visibleColorCount": 15,
+      "cleanup": {
+        "componentCountBefore": 1,
+        "keptPixels": 381460,
+        "largestTouchedCropBorder": false
+      }
+    },
+    {
+      "assetId": "object.warning_stake",
+      "method": "imagegen",
+      "primaryReferenceId": "intake_20260713_object_status_markers",
+      "sourcePath": "tmp/imagegen/wave1d-objects-effects/raw/warning_stake.png",
+      "sourceSha256": "8c4a87f912abebbf29d0efc50b0674aec09b7ed5da96218d4044670d54923d07",
+      "cropRect": null,
+      "outputPath": "generated/objects/pending/object_warning_stake-b308d21036f5b6a4.png",
+      "outputSha256": "a482ba544c8ddaf6d686fc0097d1f5992ef532410a480141397b8af8a70a016f",
+      "outputDimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "sourceBbox": {
+        "x": 488,
+        "y": 233,
+        "width": 276,
+        "height": 764
+      },
+      "outputBbox": {
+        "x": 21,
+        "y": 4,
+        "width": 21,
+        "height": 60
+      },
+      "scale": 0.07853403141361257,
+      "partialAlphaPixels": 0,
+      "visiblePixels": 771,
+      "visibleColorCount": 15,
+      "cleanup": {
+        "componentCountBefore": 1,
+        "keptPixels": 125501,
+        "largestTouchedCropBorder": false
+      }
+    },
+    {
+      "assetId": "object.red_flag",
+      "method": "imagegen",
+      "primaryReferenceId": "intake_20260713_object_status_markers",
+      "sourcePath": "tmp/imagegen/wave1d-objects-effects/raw/red_flag.png",
+      "sourceSha256": "dc93696c132ded2e1005892078820470c1eed87717309e3662e1930e7703a4de",
+      "cropRect": null,
+      "outputPath": "generated/objects/pending/object_red_flag-61dc5b4dc0f0ff08.png",
+      "outputSha256": "88e900e6c6f5713137d39585e02f95c3feb080719f061c663ea40ef9c0e1404f",
+      "outputDimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "sourceBbox": {
+        "x": 472,
+        "y": 281,
+        "width": 362,
+        "height": 653
+      },
+      "outputBbox": {
+        "x": 15,
+        "y": 4,
+        "width": 33,
+        "height": 60
+      },
+      "scale": 0.09188361408882083,
+      "partialAlphaPixels": 0,
+      "visiblePixels": 720,
+      "visibleColorCount": 15,
+      "cleanup": {
+        "componentCountBefore": 1,
+        "keptPixels": 87552,
+        "largestTouchedCropBorder": false
+      }
+    },
+    {
+      "assetId": "object.yellow_flag",
+      "method": "imagegen",
+      "primaryReferenceId": "intake_20260713_object_status_markers",
+      "sourcePath": "tmp/imagegen/wave1d-objects-effects/raw/yellow_flag.png",
+      "sourceSha256": "5d4546b956a478295140d7808ffecec792fbaf03942d8f2d707c0d812fa83b5b",
+      "cropRect": null,
+      "outputPath": "generated/objects/pending/object_yellow_flag-eb004b817a66462f.png",
+      "outputSha256": "a6f483074440a1a62af14c4af43eb96db878385381b251438db90a7d62d11b3a",
+      "outputDimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "sourceBbox": {
+        "x": 440,
+        "y": 253,
+        "width": 474,
+        "height": 700
+      },
+      "outputBbox": {
+        "x": 12,
+        "y": 4,
+        "width": 40,
+        "height": 60
+      },
+      "scale": 0.08571428571428572,
+      "partialAlphaPixels": 0,
+      "visiblePixels": 914,
+      "visibleColorCount": 15,
+      "cleanup": {
+        "componentCountBefore": 1,
+        "keptPixels": 128066,
+        "largestTouchedCropBorder": false
+      }
+    },
+    {
+      "assetId": "object.blue_flag",
+      "method": "imagegen",
+      "primaryReferenceId": "intake_20260713_object_status_markers",
+      "sourcePath": "tmp/imagegen/wave1d-objects-effects/raw/blue_flag.png",
+      "sourceSha256": "7977ddd4885e235a171bc37cbeb8cfe4eec5b132b70c4b0f689cd1464c108825",
+      "cropRect": null,
+      "outputPath": "generated/objects/pending/object_blue_flag-73f22fe067446faf.png",
+      "outputSha256": "96876238dec26ac159ad7b56cfa33761cd4a9251cd8614bfdb0f93f8ea1d4a29",
+      "outputDimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "sourceBbox": {
+        "x": 454,
+        "y": 250,
+        "width": 390,
+        "height": 673
+      },
+      "outputBbox": {
+        "x": 15,
+        "y": 4,
+        "width": 34,
+        "height": 60
+      },
+      "scale": 0.08915304606240713,
+      "partialAlphaPixels": 0,
+      "visiblePixels": 794,
+      "visibleColorCount": 15,
+      "cleanup": {
+        "componentCountBefore": 1,
+        "keptPixels": 99620,
+        "largestTouchedCropBorder": false
+      }
+    },
+    {
+      "assetId": "object.rubble",
+      "method": "direct-extraction",
+      "primaryReferenceId": "intake_20260713_object_street_props",
+      "sourcePath": "references/approved/object_street_props_sheet.png",
+      "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "cropRect": {
+        "height": 44,
+        "width": 65,
+        "x": 768,
+        "y": 334
+      },
+      "outputPath": "generated/objects/pending/object_rubble-67827ad2f0f297ba.png",
+      "outputSha256": "6be08b76e6e790a3eeeffc5c964e22565480bd989323ebca6d092a6d9fcd1cec",
+      "outputDimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "sourceBbox": {
+        "x": 8,
+        "y": 13,
+        "width": 46,
+        "height": 27
+      },
+      "outputBbox": {
+        "x": 9,
+        "y": 37,
+        "width": 46,
+        "height": 27
+      },
+      "scale": 1,
+      "partialAlphaPixels": 0,
+      "visiblePixels": 588,
+      "visibleColorCount": 15,
+      "cleanup": {
+        "componentCountBefore": 9,
+        "keptPixels": 588,
+        "largestTouchedCropBorder": false
+      }
+    }
+  ],
+  "effects": [
+    {
+      "assetId": "effect.construction_dust",
+      "primaryReferenceId": "intake_20260713_object_status_markers",
+      "outputPath": "generated/effects/pending/effect_construction_dust-79f615693bd28b5e.png",
+      "outputSha256": "48ce213abf1f1ec970b55f02ed4faf9888e5e1ea4348669ea093557d8814510c",
+      "outputDimensions": {
+        "width": 128,
+        "height": 32
+      },
+      "canvas": {
+        "baselineY": 31,
+        "height": 32,
+        "width": 128
+      },
+      "subjectBbox": {
+        "height": 21,
+        "width": 112,
+        "x": 9,
+        "y": 11
+      },
+      "sharedScale": 0.07272727272727272,
+      "sourceSlices": [
+        {
+          "frame": 1,
+          "rect": {
+            "height": 887,
+            "width": 443,
+            "x": 0,
+            "y": 0
+          },
+          "transparentMargins": {
+            "bottom": 310,
+            "left": 110,
+            "right": 114,
+            "top": 463
+          }
+        },
+        {
+          "frame": 2,
+          "rect": {
+            "height": 887,
+            "width": 444,
+            "x": 443,
+            "y": 0
+          },
+          "transparentMargins": {
+            "bottom": 307,
+            "left": 40,
+            "right": 119,
+            "top": 299
+          }
+        },
+        {
+          "frame": 3,
+          "rect": {
+            "height": 887,
+            "width": 443,
+            "x": 887,
+            "y": 0
+          },
+          "transparentMargins": {
+            "bottom": 302,
+            "left": 1,
+            "right": 57,
+            "top": 290
+          }
+        },
+        {
+          "frame": 4,
+          "rect": {
+            "height": 887,
+            "width": 444,
+            "x": 1330,
+            "y": 0
+          },
+          "transparentMargins": {
+            "bottom": 301,
+            "left": 69,
+            "right": 107,
+            "top": 399
+          }
+        }
+      ],
+      "frames": [
+        {
+          "frame": 1,
+          "sourceBbox": {
+            "x": 110,
+            "y": 463,
+            "width": 219,
+            "height": 114
+          },
+          "outputBbox": {
+            "x": 9,
+            "y": 24,
+            "width": 14,
+            "height": 8
+          },
+          "partialAlphaPixels": 0,
+          "visiblePixels": 60,
+          "visibleColorCount": 14,
+          "exactHash": "2dc084719b8410ce58e516efaf20e64ff4a8fb3c34bc564e16650074c2f62a63"
+        },
+        {
+          "frame": 2,
+          "sourceBbox": {
+            "x": 40,
+            "y": 299,
+            "width": 285,
+            "height": 281
+          },
+          "outputBbox": {
+            "x": 7,
+            "y": 13,
+            "width": 19,
+            "height": 19
+          },
+          "partialAlphaPixels": 0,
+          "visiblePixels": 214,
+          "visibleColorCount": 15,
+          "exactHash": "6ec2ce988dfaa82f2ee0cb309e2c0eb0ffa54e99bdc29527eeceecd4d173223d"
+        },
+        {
+          "frame": 3,
+          "sourceBbox": {
+            "x": 1,
+            "y": 290,
+            "width": 385,
+            "height": 295
+          },
+          "outputBbox": {
+            "x": 2,
+            "y": 11,
+            "width": 28,
+            "height": 21
+          },
+          "partialAlphaPixels": 0,
+          "visiblePixels": 326,
+          "visibleColorCount": 15,
+          "exactHash": "54365bcff4dc8728b0e4636a4c1357699f86c846a394c39657ea98d6b6a08b21"
+        },
+        {
+          "frame": 4,
+          "sourceBbox": {
+            "x": 69,
+            "y": 399,
+            "width": 268,
+            "height": 187
+          },
+          "outputBbox": {
+            "x": 6,
+            "y": 19,
+            "width": 19,
+            "height": 13
+          },
+          "partialAlphaPixels": 0,
+          "visiblePixels": 71,
+          "visibleColorCount": 14,
+          "exactHash": "2a262984a201c0b75d1cca2a889cd61d62d2cda42596f04f21605308230869f4"
+        }
+      ],
+      "pairDifferences": [
+        {
+          "left": 1,
+          "right": 2,
+          "changedPixels": 207,
+          "silhouetteChangedPixels": 158
+        },
+        {
+          "left": 1,
+          "right": 3,
+          "changedPixels": 321,
+          "silhouetteChangedPixels": 276
+        },
+        {
+          "left": 1,
+          "right": 4,
+          "changedPixels": 94,
+          "silhouetteChangedPixels": 65
+        },
+        {
+          "left": 2,
+          "right": 3,
+          "changedPixels": 328,
+          "silhouetteChangedPixels": 164
+        },
+        {
+          "left": 2,
+          "right": 4,
+          "changedPixels": 217,
+          "silhouetteChangedPixels": 169
+        },
+        {
+          "left": 3,
+          "right": 4,
+          "changedPixels": 333,
+          "silhouetteChangedPixels": 273
+        }
+      ]
+    },
+    {
+      "assetId": "effect.water_ripple",
+      "primaryReferenceId": "intake_20260713_field_harbor_docks_tiles",
+      "outputPath": "generated/effects/pending/effect_water_ripple-f3e63aa2e2cf2180.png",
+      "outputSha256": "8586e1d16331790ab633b9fb890de9413eb0f63aee683bbe4d128d053f3a25fa",
+      "outputDimensions": {
+        "width": 128,
+        "height": 32
+      },
+      "canvas": {
+        "baselineY": 15,
+        "height": 32,
+        "width": 128
+      },
+      "subjectBbox": {
+        "height": 11,
+        "width": 112,
+        "x": 10,
+        "y": 10
+      },
+      "sharedScale": 0.0603448275862069,
+      "sourceSlices": [
+        {
+          "frame": 1,
+          "rect": {
+            "height": 887,
+            "width": 400,
+            "x": 0,
+            "y": 0
+          },
+          "transparentMargins": {
+            "bottom": 400,
+            "left": 107,
+            "right": 83,
+            "top": 410
+          }
+        },
+        {
+          "frame": 2,
+          "rect": {
+            "height": 887,
+            "width": 400,
+            "x": 400,
+            "y": 0
+          },
+          "transparentMargins": {
+            "bottom": 386,
+            "left": 60,
+            "right": 50,
+            "top": 396
+          }
+        },
+        {
+          "frame": 3,
+          "rect": {
+            "height": 887,
+            "width": 547,
+            "x": 800,
+            "y": 0
+          },
+          "transparentMargins": {
+            "bottom": 343,
+            "left": 42,
+            "right": 41,
+            "top": 357
+          }
+        },
+        {
+          "frame": 4,
+          "rect": {
+            "height": 887,
+            "width": 427,
+            "x": 1347,
+            "y": 0
+          },
+          "transparentMargins": {
+            "bottom": 374,
+            "left": 42,
+            "right": 49,
+            "top": 385
+          }
+        }
+      ],
+      "frames": [
+        {
+          "frame": 1,
+          "sourceBbox": {
+            "x": 107,
+            "y": 410,
+            "width": 210,
+            "height": 77
+          },
+          "outputBbox": {
+            "x": 10,
+            "y": 14,
+            "width": 12,
+            "height": 4
+          },
+          "partialAlphaPixels": 0,
+          "visiblePixels": 19,
+          "visibleColorCount": 8,
+          "exactHash": "dce2288fd88ccd119e3822f51e2ec7754eac065e5c4a211c86322401cb3d6dcb"
+        },
+        {
+          "frame": 2,
+          "sourceBbox": {
+            "x": 60,
+            "y": 396,
+            "width": 290,
+            "height": 105
+          },
+          "outputBbox": {
+            "x": 7,
+            "y": 13,
+            "width": 17,
+            "height": 6
+          },
+          "partialAlphaPixels": 0,
+          "visiblePixels": 32,
+          "visibleColorCount": 11,
+          "exactHash": "06b068919a78147fbd40e8a51f7cd7c980a853ba317f480ca6009cd2154e288b"
+        },
+        {
+          "frame": 3,
+          "sourceBbox": {
+            "x": 42,
+            "y": 357,
+            "width": 464,
+            "height": 187
+          },
+          "outputBbox": {
+            "x": 2,
+            "y": 10,
+            "width": 28,
+            "height": 11
+          },
+          "partialAlphaPixels": 0,
+          "visiblePixels": 49,
+          "visibleColorCount": 14,
+          "exactHash": "87ee3090a5c2b35fd17a712af8490256712088e74f600e8b54e71b37c5b51c73"
+        },
+        {
+          "frame": 4,
+          "sourceBbox": {
+            "x": 42,
+            "y": 385,
+            "width": 336,
+            "height": 128
+          },
+          "outputBbox": {
+            "x": 6,
+            "y": 12,
+            "width": 20,
+            "height": 7
+          },
+          "partialAlphaPixels": 0,
+          "visiblePixels": 17,
+          "visibleColorCount": 9,
+          "exactHash": "8b2f348d5b91e2079f07dde506b60f0576f62f5a8d3d17c0261814eb29fa3f59"
+        }
+      ],
+      "pairDifferences": [
+        {
+          "left": 1,
+          "right": 2,
+          "changedPixels": 49,
+          "silhouetteChangedPixels": 49
+        },
+        {
+          "left": 1,
+          "right": 3,
+          "changedPixels": 68,
+          "silhouetteChangedPixels": 68
+        },
+        {
+          "left": 1,
+          "right": 4,
+          "changedPixels": 35,
+          "silhouetteChangedPixels": 34
+        },
+        {
+          "left": 2,
+          "right": 3,
+          "changedPixels": 81,
+          "silhouetteChangedPixels": 81
+        },
+        {
+          "left": 2,
+          "right": 4,
+          "changedPixels": 45,
+          "silhouetteChangedPixels": 41
+        },
+        {
+          "left": 3,
+          "right": 4,
+          "changedPixels": 64,
+          "silhouetteChangedPixels": 62
+        }
+      ]
+    }
+  ],
+  "accepted58TreeHashes": {
+    "before": {
+      "buildings": {
+        "building_dock-dade95d62820688d.json": "623253e8ff8423383f02dc175ef28729a5eae672d1b49f087c5bb65e879a88ba",
+        "building_dock-dade95d62820688d.png": "dade95d62820688d0ac8ad004b4c83bbd37c40f12262b8423f1733bc5bf1708f",
+        "building_dock-dade95d62820688d.source.png": "dade95d62820688d0ac8ad004b4c83bbd37c40f12262b8423f1733bc5bf1708f",
+        "building_dojo-77222549f874d140.json": "3d2379c973f8056f27088b227ca42852b10914bd875c2da38d59bbb2c36b76ea",
+        "building_dojo-77222549f874d140.png": "77222549f874d140f38a3b2ed7fc9510b5aa65a82a46e8e2dcf966215a9a0ef6",
+        "building_dojo-77222549f874d140.source.png": "77222549f874d140f38a3b2ed7fc9510b5aa65a82a46e8e2dcf966215a9a0ef6",
+        "building_gate-f85131d265539c67.json": "6d08c6ee92eccf1a0f91be665dbe3d6f63e1b5d65da09f3a51fe769010631b54",
+        "building_gate-f85131d265539c67.png": "f85131d265539c676cfc743e76dbfd813651c0518f0877e6be9daf89a9186e4e",
+        "building_gate-f85131d265539c67.source.png": "f85131d265539c676cfc743e76dbfd813651c0518f0877e6be9daf89a9186e4e",
+        "building_guild-14649f026c987b1a.json": "7d1e75e45ad6026ea8700b66554ea42e18de6b84c0eb6d986f1b7193c651948a",
+        "building_guild-14649f026c987b1a.png": "14649f026c987b1a4532ceeb7444508602e049472143209bf9bd4cd36823cb6c",
+        "building_guild-14649f026c987b1a.source.png": "14649f026c987b1a4532ceeb7444508602e049472143209bf9bd4cd36823cb6c",
+        "building_house_medium-30b3dffbf7016e29.json": "7c74b0a300f0676431d2c0f5015deb92bb351b0574dad1e4ec44df95fce2bdb9",
+        "building_house_medium-30b3dffbf7016e29.png": "30b3dffbf7016e29aedb31b2be5cec051677c7dd76932eecd195407a429434cb",
+        "building_house_medium-30b3dffbf7016e29.source.png": "30b3dffbf7016e29aedb31b2be5cec051677c7dd76932eecd195407a429434cb",
+        "building_house_small-4b95916b0ed94aea.json": "e1d6be21f8ac98bae3f9c138604f65455f8bae63307133e79aea6496992804d0",
+        "building_house_small-4b95916b0ed94aea.png": "4b95916b0ed94aea97d8f46840df4d31b30e294fadaa2697b628961751ea00af",
+        "building_house_small-4b95916b0ed94aea.source.png": "4b95916b0ed94aea97d8f46840df4d31b30e294fadaa2697b628961751ea00af",
+        "building_hut-39fd3b61ed5d4e67.json": "abb223bfaab284314c784f757eadbd66e3a1ebc500a6e9c29d2c0094f929bba3",
+        "building_hut-39fd3b61ed5d4e67.png": "39fd3b61ed5d4e6774d336862dbd833d1d2a6ab5d7fb2256bdfecae6eacb686b",
+        "building_hut-39fd3b61ed5d4e67.source.png": "39fd3b61ed5d4e6774d336862dbd833d1d2a6ab5d7fb2256bdfecae6eacb686b",
+        "building_inn-3952f1aeab543925.json": "f0d5898f0dbe90b069c42a9b6643d097c7d0014074076e0f67fa4a9a06ec703f",
+        "building_inn-3952f1aeab543925.png": "3952f1aeab54392548e10a2bec6b673085ff2dec0199330aed745160a4080e96",
+        "building_inn-3952f1aeab543925.source.png": "3952f1aeab54392548e10a2bec6b673085ff2dec0199330aed745160a4080e96",
+        "building_old_house-c38c0bdf995ecebc.json": "108930ffb3c046bf97b8426fde4ebea635c0834b3a31a852d044b506d402d690",
+        "building_old_house-c38c0bdf995ecebc.png": "c38c0bdf995ecebc4dd96f8f5667d8a89e9a2657bc50d85ca4e428b6e46e0c43",
+        "building_old_house-c38c0bdf995ecebc.source.png": "c38c0bdf995ecebc4dd96f8f5667d8a89e9a2657bc50d85ca4e428b6e46e0c43",
+        "building_pub-622b5760c38eacee.json": "c00664bc42fc76ce66f06d1e0a5acd191340521c87e6e1aa9e6efb5c1a9d5e2e",
+        "building_pub-622b5760c38eacee.png": "622b5760c38eacee4066512cdef231f45be29a7dd1f8f26822af7e2195d20e25",
+        "building_pub-622b5760c38eacee.source.png": "622b5760c38eacee4066512cdef231f45be29a7dd1f8f26822af7e2195d20e25",
+        "building_ruin-d2ed01eaea2bb54e.json": "03b7c8afdea2205753a71832bcec7e8738f8b82136a18804867fd974c7fba3a8",
+        "building_ruin-d2ed01eaea2bb54e.png": "d2ed01eaea2bb54e435dfbdf77112f81cb9d96d8bda19bba8726cecbac442459",
+        "building_ruin-d2ed01eaea2bb54e.source.png": "d2ed01eaea2bb54e435dfbdf77112f81cb9d96d8bda19bba8726cecbac442459",
+        "building_shop-9ced540efc5fc93b.json": "beeadf5780e81131e039fe90913b852671ab8ba581e97bff4aed1d74da4a5feb",
+        "building_shop-9ced540efc5fc93b.png": "9ced540efc5fc93b7fed7a7ccfe370cda1a8f202731f428437ea8733a84f00d3",
+        "building_shop-9ced540efc5fc93b.source.png": "9ced540efc5fc93b7fed7a7ccfe370cda1a8f202731f428437ea8733a84f00d3",
+        "building_town_hall-86480fef5d990728.json": "932b2288f0fa764e58904c9ee0690f95159ceabdd5317bc822dc17c4571bc5b6",
+        "building_town_hall-86480fef5d990728.png": "86480fef5d990728560ff1bb8c6d34d24ddb0b8e1b0ab9b21f3c28b01c472095",
+        "building_town_hall-86480fef5d990728.source.png": "86480fef5d990728560ff1bb8c6d34d24ddb0b8e1b0ab9b21f3c28b01c472095",
+        "building_warehouse-5903d7f18ae9be2c.json": "89905d7cc9bcafe2c192d5750e1987aa931d43825edac74380a020d696d7b905",
+        "building_warehouse-5903d7f18ae9be2c.png": "5903d7f18ae9be2cbea022ed7ccf61954feb4fb7f3091832ad3043d3568e563a",
+        "building_warehouse-5903d7f18ae9be2c.source.png": "5903d7f18ae9be2cbea022ed7ccf61954feb4fb7f3091832ad3043d3568e563a",
+        "building_watchtower-05d7e8ec505c3538.json": "24357c1405c41e0f34442b8b57d4f0c6f72da999d8bd5dabc5faea02c68bfbcf",
+        "building_watchtower-05d7e8ec505c3538.png": "05d7e8ec505c35389d625a53bc9b1d8a8fc041f2d41a59756be5155a0b5ce9e3",
+        "building_watchtower-05d7e8ec505c3538.source.png": "05d7e8ec505c35389d625a53bc9b1d8a8fc041f2d41a59756be5155a0b5ce9e3",
+        "building_well-7c8854e1d89db1ae.json": "a80c682e1d179f9e402a9bac8c289022632478acf2d28bd0a57c610c1238796a",
+        "building_well-7c8854e1d89db1ae.png": "7c8854e1d89db1ae370552e924bea2b7f917280369e5083957d8389ef9ab2d54",
+        "building_well-7c8854e1d89db1ae.source.png": "7c8854e1d89db1ae370552e924bea2b7f917280369e5083957d8389ef9ab2d54",
+        "building_workshop-bb0e116b92c11d97.json": "0e7d3c6f31624ec87af631aecab49d54224e551d1de11d56502766a14bbc9cd8",
+        "building_workshop-bb0e116b92c11d97.png": "bb0e116b92c11d97adb04550c9ba5c9fbcf9939896ba88b892a04c274b51e62b",
+        "building_workshop-bb0e116b92c11d97.source.png": "bb0e116b92c11d97adb04550c9ba5c9fbcf9939896ba88b892a04c274b51e62b"
+      },
+      "fields": {
+        "field_bridge_stone-cf3bfc300a137c2b.json": "4dad6fd0affa75d479a3df824c1ad626efc7ccb8576ea54f6f5bd5ee0f89716e",
+        "field_bridge_stone-cf3bfc300a137c2b.png": "adeb44abf559513eaa3077f183304b88473d9edc0bbe5575abc03cf38b2eee2a",
+        "field_bridge_stone-cf3bfc300a137c2b.source.png": "cf3bfc300a137c2bfd8db13e4597e432c3fc3e44d918fd4a0a3ed22d480c9d5c",
+        "field_bridge_wood-105f0264a795b0bb.json": "dd87c40eaae267bec8bfb6b66b6aa3d09e9b2e8879279023424692ccbf0252ed",
+        "field_bridge_wood-105f0264a795b0bb.png": "0ed0d4495775f2b4cf31b39a4db166b266a8560863aec5c55d80625753795863",
+        "field_bridge_wood-105f0264a795b0bb.source.png": "105f0264a795b0bb0ef690ddbc2e1e852f5b962627ed0496c20174cf76f7b3d9",
+        "field_cliff-9bce6e4a5b812998.json": "9063050b6874394eefef3cad06e0b829bb862ba507c4db20e244069a73bf9699",
+        "field_cliff-9bce6e4a5b812998.png": "4089488794d9e6af1ff61246f206e6ba666f40f6cad510fc297f41aa9d6cafa6",
+        "field_cliff-9bce6e4a5b812998.source.png": "9bce6e4a5b81299851c100a31f01181319c4cecfebe463d41744511a832d2f16",
+        "field_cobblestone-a94c75cc8bbbe435.json": "e1e1b250eeef02ea83ac15a688c1d70195ae5dc5e317977be5acae3598d5d646",
+        "field_cobblestone-a94c75cc8bbbe435.png": "0f4f78f8ecd73be769f16d6b15c07c2671113e8f69bdda0d6897c4e7609969bc",
+        "field_cobblestone-a94c75cc8bbbe435.source.png": "a94c75cc8bbbe435d79da7a20d0ee3ccad73356c12266aac998615168524bd0f",
+        "field_dock_floor-2f6bc91a3574b307.json": "e92686cfbd5de00d73896f45a9b4a7333cbac776995ee4529f69c8604d3bcd39",
+        "field_dock_floor-2f6bc91a3574b307.png": "8fd0e89e4f8d7eb350f1644eae3a69a499c979b92c0b020a1b07f9fb7f271683",
+        "field_dock_floor-2f6bc91a3574b307.source.png": "2f6bc91a3574b307ce3c7950cd62293699ec7d4e9a02d97fca10e53ae6b4325d",
+        "field_fence_wood-4813d903742a414a.json": "cf28bdd9ad3619a4f6f87e9bdcf9b901a9fbe2d047fb3d02c8908bf6b491914c",
+        "field_fence_wood-4813d903742a414a.png": "f754b577a7ed4a00196479554c22105e4031ca89d49875c3d72b30d0619077eb",
+        "field_fence_wood-4813d903742a414a.source.png": "4813d903742a414afce534032ebc4c1c775f9c441d50bbe40a9697f8befbaeb6",
+        "field_plaza-7545509ca5a15d15.json": "1cbf910c0fe6579130b31c2caf6c5b88065821332024c07b2b7757e613d4b67b",
+        "field_plaza-7545509ca5a15d15.png": "7d6fe88976dafa76f49cbb83165e28b8b6931a065b289145a877f9ac3da4faff",
+        "field_plaza-7545509ca5a15d15.source.png": "7545509ca5a15d15a569752956c682db32f65fb4b72aef6c23ac2a628ff98ed3",
+        "field_river_edge-34cc72afa526e55d.json": "d9b6edc782261d2833076bc5c3ce48a23cd5ff095ec00ed5c4a2659786d631f4",
+        "field_river_edge-34cc72afa526e55d.png": "5e42ba2aa43e70a46bbf999b30441ddb18ee8ab8afcd4fa9b5ef0c628e90b81b",
+        "field_river_edge-34cc72afa526e55d.source.png": "34cc72afa526e55d50b2bf17a92cfeba256953bac79ad93ec19761472484672e",
+        "field_sand-4cc76f7385717c09.json": "ef0f01178eb4f1a7f829c9e7fbc8262a6952fa46c96aa00134ae8655692bf99a",
+        "field_sand-4cc76f7385717c09.png": "b0f574a6963f2a3669b976c3bcd9adc93a0fa3cf70596a8d2a73662278e36d2f",
+        "field_sand-4cc76f7385717c09.source.png": "4cc76f7385717c09322feaf678cc3ba5efc5598c02f01ad75af338327228a771",
+        "field_stairs_stone-c180cddf2a5032b9.json": "4309e0da90b09209795bbeafd203304bd3541eea3dd22b22a47f05c9fc332b45",
+        "field_stairs_stone-c180cddf2a5032b9.png": "1dd6c3b5d69dd5af1044258a5fef18c85fba60491411476ec165c4907fddd4c3",
+        "field_stairs_stone-c180cddf2a5032b9.source.png": "c180cddf2a5032b9adf895a74da0dcfaa853a7eab5caf51e80cf8e872bc33cf8",
+        "field_wall_stone-eac6e3b47b73180a.json": "a76d023d4003430df5ba53d4a2e27d51021954019f8c181b9eb1767bc4589612",
+        "field_wall_stone-eac6e3b47b73180a.png": "06fef4fbdc56b574140a6a9461778b8e44cfea9cc1d66f88676060016653dff0",
+        "field_wall_stone-eac6e3b47b73180a.source.png": "eac6e3b47b73180a5ea605142c44850fc0886cbd7a9596ccbf06aa8239de2a19",
+        "field_water-9b57124d158f556d.json": "0f7e547cf6aecee138131ba93350fb7419b24637b5b899d6d406a0a0fcbc8fb4",
+        "field_water-9b57124d158f556d.png": "694a4a43f6385feb8cc50243e479793e9e2482150dc5129672f8aeaa9d43571a",
+        "field_water-9b57124d158f556d.source.png": "9b57124d158f556d61e352d024b5e8eb908df33b5695bac00cb302916a977f1c"
+      },
+      "characters": {
+        "character_dock_ferryman-600a2cbff6749093.json": "a65a56a073e60d9de266e0c0d056254eae2375c2fe75c72f6d26115b504ceaca",
+        "character_dock_ferryman-600a2cbff6749093.png": "2b9f13e14cb61913c0d617466803b6d7daf82daed9053eb1e236d8fdc4c3af2c",
+        "character_dock_ferryman-600a2cbff6749093.source.png": "600a2cbff6749093db7a078ad5c416e5bf78e1a0b8e2740c19ed0d22ed6ad72f",
+        "character_dojo_inspector-85eafad85a1c05e2.json": "04d9c711f16a66a23c38a48102cd746c6c089a32a98457b7de20158eb11b479b",
+        "character_dojo_inspector-85eafad85a1c05e2.png": "8ef4c90c817e504bcc073b93b6698af13c61f97021f7d630a7a2c602f3b5acec",
+        "character_dojo_inspector-85eafad85a1c05e2.source.png": "85eafad85a1c05e268967b5c136628e334d522e71b83ad84d37bf77bb81f530f",
+        "character_gatekeeper-1412983fdc92acc5.json": "0692bf6c198724bd8fa48947b67f0862dd63a8ab68c6dc9beba63ef82d42641d",
+        "character_gatekeeper-1412983fdc92acc5.png": "9d6b4a501916e3eb518bdac3f158583868ac37ca8337f033f89966df11c86601",
+        "character_gatekeeper-1412983fdc92acc5.source.png": "1412983fdc92acc54b62dfd548f14bddbe2489b1f49bd9456dc0d3fb22eaa1b1",
+        "character_guildmaster-aacaffa9f4027f1f.json": "0598e471e03a11c5847cf97c80fd5190483caa8f8c171c46e72bc84a2723dec0",
+        "character_guildmaster-aacaffa9f4027f1f.png": "17bb295857231bb7675c85a53f02c1824339bb3611a2f2249e4990f4f8bf1a74",
+        "character_guildmaster-aacaffa9f4027f1f.source.png": "aacaffa9f4027f1f0352d592996f36ea79ec3be989c337974405807c19c9144b",
+        "character_innkeeper-473d3a6709019c4d.json": "e0935f1b9bde37902fb79734522c82be3d89ba499b219db3ac8899defdd056ea",
+        "character_innkeeper-473d3a6709019c4d.png": "9688b329d8ac3c594b0210690bfd821b85a2f80e6c777b91772a57cbe64f311a",
+        "character_innkeeper-473d3a6709019c4d.source.png": "473d3a6709019c4d3293164629c2fcb993ea49c2b5330ed834e9e67c441f9a10",
+        "character_mob_artisan-f8459fbe119ba413.json": "fdd9f9f1da9d4cbffb10aaa858b792e0252eeb9064b4cb012ad68fb7ed2091fa",
+        "character_mob_artisan-f8459fbe119ba413.png": "5198b8b6115230ddb184ab4297b3f817238fa0b0273f1880e0f647306c893429",
+        "character_mob_artisan-f8459fbe119ba413.source.png": "f8459fbe119ba413eaa9ad358907978a5ffdc70c08a9025f357d8fd5e1cfcb1e",
+        "character_mob_child-4e78d18adbe9ad0f.json": "70293b76bb92562c562590e995a59c0451ee6b34efe3a77a02d75c67c49883bc",
+        "character_mob_child-4e78d18adbe9ad0f.png": "d5c68379573e0fa0ec339ff6a8bc8d9dd66104d3619bb8c73916d0af74b52a0b",
+        "character_mob_child-4e78d18adbe9ad0f.source.png": "4e78d18adbe9ad0f7d6e85f2e32775409557cbde6af920a074230636f62a7657",
+        "character_mob_delivery_person-1e4c72b8e6af5d22.json": "1d7b08530fa21bc2c497d53540e131de483cbf66aab0c41c376793aabffbf97d",
+        "character_mob_delivery_person-1e4c72b8e6af5d22.png": "d7100b27eabdf26d409c14dd0bd292af401c528e43e5251ae42d6c6a57fbfa58",
+        "character_mob_delivery_person-1e4c72b8e6af5d22.source.png": "1e4c72b8e6af5d22aee3628a4d95d1f9630796bbb42e6af056de265229f3ad5b",
+        "character_mob_dock_worker-e282ef1cdc1ebe54.json": "2f221b065b4ee5d2804685e5779f050ecd7a439381928b3f58b87b3c1747682a",
+        "character_mob_dock_worker-e282ef1cdc1ebe54.png": "4966fea0f209e4c71e9dfe4c17cac7ea74a7548d7e3420a53cd56420ad06aa3b",
+        "character_mob_dock_worker-e282ef1cdc1ebe54.source.png": "e282ef1cdc1ebe546a1bf10a4127b92cb17feb6562c5dbe50e13a78610a5866c",
+        "character_mob_elder-fb5ed91f59673668.json": "566b2d252218d8b55f706f9720c307e10b4427eff28759b0951ce240b1f7ee08",
+        "character_mob_elder-fb5ed91f59673668.png": "c9fd8ecc2da78dac72048044fb99ad31369b2a92a41fb9562d4d36df9be99c60",
+        "character_mob_elder-fb5ed91f59673668.source.png": "fb5ed91f59673668f5458c908db43bc4d86d5720e81d175045882b463af76bdd",
+        "character_mob_inn_guest-7bea8fe424410cb3.json": "f2a605c5d68851d6f067446373393afceed964f03365d0956a77eca4fb080366",
+        "character_mob_inn_guest-7bea8fe424410cb3.png": "25691dabb82ca97c1f85429b5b55b2e80cde1b28d697308516a78ad941c2999a",
+        "character_mob_inn_guest-7bea8fe424410cb3.source.png": "7bea8fe424410cb3854c909481e089c5af8acf57af1548e6517a3ebd4a12e81b",
+        "character_mob_merchant-9a98a2469909c135.json": "d15bbee762f780b8f55276835e32a085371f98878f266f626979f04f2359b74a",
+        "character_mob_merchant-9a98a2469909c135.png": "94644e6d646b3d96f874de18b1cb39a9849315f8fa5675744346cf86a2090e95",
+        "character_mob_merchant-9a98a2469909c135.source.png": "9a98a2469909c135622f61baa6e924600683a5368a3d4adc141aeeb5f1b3b9a3",
+        "character_mob_tavern_guest-117d9bc12c49eda8.json": "c673520aa9743d4fed7f0c6f42cb03a60818cf950ddeed3121e7f6c34a5dd6c0",
+        "character_mob_tavern_guest-117d9bc12c49eda8.png": "a4f4752d320f9b0b6a24f163e23e25ebb5af0da842de91660b8f8eabdd58bd8b",
+        "character_mob_tavern_guest-117d9bc12c49eda8.source.png": "117d9bc12c49eda86cbc7b226bc11f02a1ca18d7c0616c2b7e612687e37dc50f",
+        "character_mob_townsfolk_female-417085e4bb73a28d.json": "aa57fbfbfed8d47a2d2a25c7d2eb9b638a3f9d66fce31aefc469bb961706e2cd",
+        "character_mob_townsfolk_female-417085e4bb73a28d.png": "62b5d2f9867cdc2ebabac5527d51c96a7f8146dda7b9c4dc1489b99c63c5f206",
+        "character_mob_townsfolk_female-417085e4bb73a28d.source.png": "417085e4bb73a28d5b567764ca3cdf9425f47cbe7daee232b23bb43e04bd9593",
+        "character_mob_townsfolk_male-0c8af03939a7f7ab.json": "d15353ed02440e15d364856cdc7e6698bea922fbe3f5562d110b5ef74b3d9b91",
+        "character_mob_townsfolk_male-0c8af03939a7f7ab.png": "a00883d85ab0f8197ffef77820706bbb34e07b990c99376e67250d2016e70de6",
+        "character_mob_townsfolk_male-0c8af03939a7f7ab.source.png": "0c8af03939a7f7abf3535973e05b20d0f611c09681ce9cc20013fbf3a93d9def",
+        "character_mob_traveler-971694a489f95eea.json": "8c9344158ca47be9db7ee4aeca0d7972931fe3b33d599694992814e457916be8",
+        "character_mob_traveler-971694a489f95eea.png": "f58bc56ae0b48fe57ba06c59aa0f901e8607d8939937e9e6080d4756c2b4827a",
+        "character_mob_traveler-971694a489f95eea.source.png": "971694a489f95eea999750cd9b8723f5de13c209e9d0495d19e1f85ef3608537",
+        "character_player-e5fe552d67555899.json": "20327f8d10ab15f9ef88f38e17959d105e015e07c11d5d1f4b0fed1346b55113",
+        "character_player-e5fe552d67555899.png": "c44d99132e20ac85a9a600373c0e3281fe80e4726e46a633be8242c3a850af97",
+        "character_player-e5fe552d67555899.source.png": "e5fe552d6755589975638241ea49f51dae8f1218731a9fa37ef97949b81ee908",
+        "character_tavern_master-1cde0c07979ff4e4.json": "4ee5adff4d03214beb038d9b25db10178ec519c89fae3af89bf3df60eff12ffb",
+        "character_tavern_master-1cde0c07979ff4e4.png": "a1c182ee6a03bec2d6a03fc3adbddac0a4501469b6231a501251b29c6db314a5",
+        "character_tavern_master-1cde0c07979ff4e4.source.png": "1cde0c07979ff4e405532619f106bc60998d8e91db849da4ac163975f8e42267",
+        "character_town_clerk-81a2d44f8f5e3083.json": "e4cfa7e7dfc23edddd9b00b2efa5529ed0458f3f23c83bab845539ec89d44bfa",
+        "character_town_clerk-81a2d44f8f5e3083.png": "a7066c3b013a46f84142219612dbeec3e7d9667c273cda279f8bafeffec09784",
+        "character_town_clerk-81a2d44f8f5e3083.source.png": "81a2d44f8f5e3083c006bf43206ac92952ee822f33420fc2aa3d6a139d54ab36",
+        "character_warehouse_keeper-805fe2cbfacd0479.json": "ca3bfd01738e63616203ff14e8ec659f965dfd31e78eb82334115027968b5de4",
+        "character_warehouse_keeper-805fe2cbfacd0479.png": "19a51352061e10cc7f6f2cc677b6efca4cfdb2aaa3f1af6d6166cc3f7ddd52f5",
+        "character_warehouse_keeper-805fe2cbfacd0479.source.png": "805fe2cbfacd047967a441afd76e3c190bdd1d1dbe60c85b48ce8053b5c3a7b5",
+        "character_watchtower_guard-1f9ae516147735c2.json": "e0f69ab15612b5ec6f598a725f03fa8ec192956ac5024749cb7d448df88d1fce",
+        "character_watchtower_guard-1f9ae516147735c2.png": "169fdd9960cbfa5cf49bedf35638dc46ebfcb687888cfe08460ae880519560ca",
+        "character_watchtower_guard-1f9ae516147735c2.source.png": "1f9ae516147735c2da6787a4f916f9fcedd406bfb771b2b3cabe56ddcba1eed9",
+        "character_workshop_artisan-37a4132d517258b6.json": "22420e12e919df521bddf01df6194dcd1fa21eab7698742805bf137ccab8ae52",
+        "character_workshop_artisan-37a4132d517258b6.png": "e36bbc9306ee037aaba2a6471f352df175ad207931424f99204eb664405e2e5f",
+        "character_workshop_artisan-37a4132d517258b6.source.png": "37a4132d517258b681a5f1b21fcb6f1aee27c752aab580c7c876ec9181cb7582"
+      }
+    },
+    "after": {
+      "buildings": {
+        "building_dock-dade95d62820688d.json": "623253e8ff8423383f02dc175ef28729a5eae672d1b49f087c5bb65e879a88ba",
+        "building_dock-dade95d62820688d.png": "dade95d62820688d0ac8ad004b4c83bbd37c40f12262b8423f1733bc5bf1708f",
+        "building_dock-dade95d62820688d.source.png": "dade95d62820688d0ac8ad004b4c83bbd37c40f12262b8423f1733bc5bf1708f",
+        "building_dojo-77222549f874d140.json": "3d2379c973f8056f27088b227ca42852b10914bd875c2da38d59bbb2c36b76ea",
+        "building_dojo-77222549f874d140.png": "77222549f874d140f38a3b2ed7fc9510b5aa65a82a46e8e2dcf966215a9a0ef6",
+        "building_dojo-77222549f874d140.source.png": "77222549f874d140f38a3b2ed7fc9510b5aa65a82a46e8e2dcf966215a9a0ef6",
+        "building_gate-f85131d265539c67.json": "6d08c6ee92eccf1a0f91be665dbe3d6f63e1b5d65da09f3a51fe769010631b54",
+        "building_gate-f85131d265539c67.png": "f85131d265539c676cfc743e76dbfd813651c0518f0877e6be9daf89a9186e4e",
+        "building_gate-f85131d265539c67.source.png": "f85131d265539c676cfc743e76dbfd813651c0518f0877e6be9daf89a9186e4e",
+        "building_guild-14649f026c987b1a.json": "7d1e75e45ad6026ea8700b66554ea42e18de6b84c0eb6d986f1b7193c651948a",
+        "building_guild-14649f026c987b1a.png": "14649f026c987b1a4532ceeb7444508602e049472143209bf9bd4cd36823cb6c",
+        "building_guild-14649f026c987b1a.source.png": "14649f026c987b1a4532ceeb7444508602e049472143209bf9bd4cd36823cb6c",
+        "building_house_medium-30b3dffbf7016e29.json": "7c74b0a300f0676431d2c0f5015deb92bb351b0574dad1e4ec44df95fce2bdb9",
+        "building_house_medium-30b3dffbf7016e29.png": "30b3dffbf7016e29aedb31b2be5cec051677c7dd76932eecd195407a429434cb",
+        "building_house_medium-30b3dffbf7016e29.source.png": "30b3dffbf7016e29aedb31b2be5cec051677c7dd76932eecd195407a429434cb",
+        "building_house_small-4b95916b0ed94aea.json": "e1d6be21f8ac98bae3f9c138604f65455f8bae63307133e79aea6496992804d0",
+        "building_house_small-4b95916b0ed94aea.png": "4b95916b0ed94aea97d8f46840df4d31b30e294fadaa2697b628961751ea00af",
+        "building_house_small-4b95916b0ed94aea.source.png": "4b95916b0ed94aea97d8f46840df4d31b30e294fadaa2697b628961751ea00af",
+        "building_hut-39fd3b61ed5d4e67.json": "abb223bfaab284314c784f757eadbd66e3a1ebc500a6e9c29d2c0094f929bba3",
+        "building_hut-39fd3b61ed5d4e67.png": "39fd3b61ed5d4e6774d336862dbd833d1d2a6ab5d7fb2256bdfecae6eacb686b",
+        "building_hut-39fd3b61ed5d4e67.source.png": "39fd3b61ed5d4e6774d336862dbd833d1d2a6ab5d7fb2256bdfecae6eacb686b",
+        "building_inn-3952f1aeab543925.json": "f0d5898f0dbe90b069c42a9b6643d097c7d0014074076e0f67fa4a9a06ec703f",
+        "building_inn-3952f1aeab543925.png": "3952f1aeab54392548e10a2bec6b673085ff2dec0199330aed745160a4080e96",
+        "building_inn-3952f1aeab543925.source.png": "3952f1aeab54392548e10a2bec6b673085ff2dec0199330aed745160a4080e96",
+        "building_old_house-c38c0bdf995ecebc.json": "108930ffb3c046bf97b8426fde4ebea635c0834b3a31a852d044b506d402d690",
+        "building_old_house-c38c0bdf995ecebc.png": "c38c0bdf995ecebc4dd96f8f5667d8a89e9a2657bc50d85ca4e428b6e46e0c43",
+        "building_old_house-c38c0bdf995ecebc.source.png": "c38c0bdf995ecebc4dd96f8f5667d8a89e9a2657bc50d85ca4e428b6e46e0c43",
+        "building_pub-622b5760c38eacee.json": "c00664bc42fc76ce66f06d1e0a5acd191340521c87e6e1aa9e6efb5c1a9d5e2e",
+        "building_pub-622b5760c38eacee.png": "622b5760c38eacee4066512cdef231f45be29a7dd1f8f26822af7e2195d20e25",
+        "building_pub-622b5760c38eacee.source.png": "622b5760c38eacee4066512cdef231f45be29a7dd1f8f26822af7e2195d20e25",
+        "building_ruin-d2ed01eaea2bb54e.json": "03b7c8afdea2205753a71832bcec7e8738f8b82136a18804867fd974c7fba3a8",
+        "building_ruin-d2ed01eaea2bb54e.png": "d2ed01eaea2bb54e435dfbdf77112f81cb9d96d8bda19bba8726cecbac442459",
+        "building_ruin-d2ed01eaea2bb54e.source.png": "d2ed01eaea2bb54e435dfbdf77112f81cb9d96d8bda19bba8726cecbac442459",
+        "building_shop-9ced540efc5fc93b.json": "beeadf5780e81131e039fe90913b852671ab8ba581e97bff4aed1d74da4a5feb",
+        "building_shop-9ced540efc5fc93b.png": "9ced540efc5fc93b7fed7a7ccfe370cda1a8f202731f428437ea8733a84f00d3",
+        "building_shop-9ced540efc5fc93b.source.png": "9ced540efc5fc93b7fed7a7ccfe370cda1a8f202731f428437ea8733a84f00d3",
+        "building_town_hall-86480fef5d990728.json": "932b2288f0fa764e58904c9ee0690f95159ceabdd5317bc822dc17c4571bc5b6",
+        "building_town_hall-86480fef5d990728.png": "86480fef5d990728560ff1bb8c6d34d24ddb0b8e1b0ab9b21f3c28b01c472095",
+        "building_town_hall-86480fef5d990728.source.png": "86480fef5d990728560ff1bb8c6d34d24ddb0b8e1b0ab9b21f3c28b01c472095",
+        "building_warehouse-5903d7f18ae9be2c.json": "89905d7cc9bcafe2c192d5750e1987aa931d43825edac74380a020d696d7b905",
+        "building_warehouse-5903d7f18ae9be2c.png": "5903d7f18ae9be2cbea022ed7ccf61954feb4fb7f3091832ad3043d3568e563a",
+        "building_warehouse-5903d7f18ae9be2c.source.png": "5903d7f18ae9be2cbea022ed7ccf61954feb4fb7f3091832ad3043d3568e563a",
+        "building_watchtower-05d7e8ec505c3538.json": "24357c1405c41e0f34442b8b57d4f0c6f72da999d8bd5dabc5faea02c68bfbcf",
+        "building_watchtower-05d7e8ec505c3538.png": "05d7e8ec505c35389d625a53bc9b1d8a8fc041f2d41a59756be5155a0b5ce9e3",
+        "building_watchtower-05d7e8ec505c3538.source.png": "05d7e8ec505c35389d625a53bc9b1d8a8fc041f2d41a59756be5155a0b5ce9e3",
+        "building_well-7c8854e1d89db1ae.json": "a80c682e1d179f9e402a9bac8c289022632478acf2d28bd0a57c610c1238796a",
+        "building_well-7c8854e1d89db1ae.png": "7c8854e1d89db1ae370552e924bea2b7f917280369e5083957d8389ef9ab2d54",
+        "building_well-7c8854e1d89db1ae.source.png": "7c8854e1d89db1ae370552e924bea2b7f917280369e5083957d8389ef9ab2d54",
+        "building_workshop-bb0e116b92c11d97.json": "0e7d3c6f31624ec87af631aecab49d54224e551d1de11d56502766a14bbc9cd8",
+        "building_workshop-bb0e116b92c11d97.png": "bb0e116b92c11d97adb04550c9ba5c9fbcf9939896ba88b892a04c274b51e62b",
+        "building_workshop-bb0e116b92c11d97.source.png": "bb0e116b92c11d97adb04550c9ba5c9fbcf9939896ba88b892a04c274b51e62b"
+      },
+      "fields": {
+        "field_bridge_stone-cf3bfc300a137c2b.json": "4dad6fd0affa75d479a3df824c1ad626efc7ccb8576ea54f6f5bd5ee0f89716e",
+        "field_bridge_stone-cf3bfc300a137c2b.png": "adeb44abf559513eaa3077f183304b88473d9edc0bbe5575abc03cf38b2eee2a",
+        "field_bridge_stone-cf3bfc300a137c2b.source.png": "cf3bfc300a137c2bfd8db13e4597e432c3fc3e44d918fd4a0a3ed22d480c9d5c",
+        "field_bridge_wood-105f0264a795b0bb.json": "dd87c40eaae267bec8bfb6b66b6aa3d09e9b2e8879279023424692ccbf0252ed",
+        "field_bridge_wood-105f0264a795b0bb.png": "0ed0d4495775f2b4cf31b39a4db166b266a8560863aec5c55d80625753795863",
+        "field_bridge_wood-105f0264a795b0bb.source.png": "105f0264a795b0bb0ef690ddbc2e1e852f5b962627ed0496c20174cf76f7b3d9",
+        "field_cliff-9bce6e4a5b812998.json": "9063050b6874394eefef3cad06e0b829bb862ba507c4db20e244069a73bf9699",
+        "field_cliff-9bce6e4a5b812998.png": "4089488794d9e6af1ff61246f206e6ba666f40f6cad510fc297f41aa9d6cafa6",
+        "field_cliff-9bce6e4a5b812998.source.png": "9bce6e4a5b81299851c100a31f01181319c4cecfebe463d41744511a832d2f16",
+        "field_cobblestone-a94c75cc8bbbe435.json": "e1e1b250eeef02ea83ac15a688c1d70195ae5dc5e317977be5acae3598d5d646",
+        "field_cobblestone-a94c75cc8bbbe435.png": "0f4f78f8ecd73be769f16d6b15c07c2671113e8f69bdda0d6897c4e7609969bc",
+        "field_cobblestone-a94c75cc8bbbe435.source.png": "a94c75cc8bbbe435d79da7a20d0ee3ccad73356c12266aac998615168524bd0f",
+        "field_dock_floor-2f6bc91a3574b307.json": "e92686cfbd5de00d73896f45a9b4a7333cbac776995ee4529f69c8604d3bcd39",
+        "field_dock_floor-2f6bc91a3574b307.png": "8fd0e89e4f8d7eb350f1644eae3a69a499c979b92c0b020a1b07f9fb7f271683",
+        "field_dock_floor-2f6bc91a3574b307.source.png": "2f6bc91a3574b307ce3c7950cd62293699ec7d4e9a02d97fca10e53ae6b4325d",
+        "field_fence_wood-4813d903742a414a.json": "cf28bdd9ad3619a4f6f87e9bdcf9b901a9fbe2d047fb3d02c8908bf6b491914c",
+        "field_fence_wood-4813d903742a414a.png": "f754b577a7ed4a00196479554c22105e4031ca89d49875c3d72b30d0619077eb",
+        "field_fence_wood-4813d903742a414a.source.png": "4813d903742a414afce534032ebc4c1c775f9c441d50bbe40a9697f8befbaeb6",
+        "field_plaza-7545509ca5a15d15.json": "1cbf910c0fe6579130b31c2caf6c5b88065821332024c07b2b7757e613d4b67b",
+        "field_plaza-7545509ca5a15d15.png": "7d6fe88976dafa76f49cbb83165e28b8b6931a065b289145a877f9ac3da4faff",
+        "field_plaza-7545509ca5a15d15.source.png": "7545509ca5a15d15a569752956c682db32f65fb4b72aef6c23ac2a628ff98ed3",
+        "field_river_edge-34cc72afa526e55d.json": "d9b6edc782261d2833076bc5c3ce48a23cd5ff095ec00ed5c4a2659786d631f4",
+        "field_river_edge-34cc72afa526e55d.png": "5e42ba2aa43e70a46bbf999b30441ddb18ee8ab8afcd4fa9b5ef0c628e90b81b",
+        "field_river_edge-34cc72afa526e55d.source.png": "34cc72afa526e55d50b2bf17a92cfeba256953bac79ad93ec19761472484672e",
+        "field_sand-4cc76f7385717c09.json": "ef0f01178eb4f1a7f829c9e7fbc8262a6952fa46c96aa00134ae8655692bf99a",
+        "field_sand-4cc76f7385717c09.png": "b0f574a6963f2a3669b976c3bcd9adc93a0fa3cf70596a8d2a73662278e36d2f",
+        "field_sand-4cc76f7385717c09.source.png": "4cc76f7385717c09322feaf678cc3ba5efc5598c02f01ad75af338327228a771",
+        "field_stairs_stone-c180cddf2a5032b9.json": "4309e0da90b09209795bbeafd203304bd3541eea3dd22b22a47f05c9fc332b45",
+        "field_stairs_stone-c180cddf2a5032b9.png": "1dd6c3b5d69dd5af1044258a5fef18c85fba60491411476ec165c4907fddd4c3",
+        "field_stairs_stone-c180cddf2a5032b9.source.png": "c180cddf2a5032b9adf895a74da0dcfaa853a7eab5caf51e80cf8e872bc33cf8",
+        "field_wall_stone-eac6e3b47b73180a.json": "a76d023d4003430df5ba53d4a2e27d51021954019f8c181b9eb1767bc4589612",
+        "field_wall_stone-eac6e3b47b73180a.png": "06fef4fbdc56b574140a6a9461778b8e44cfea9cc1d66f88676060016653dff0",
+        "field_wall_stone-eac6e3b47b73180a.source.png": "eac6e3b47b73180a5ea605142c44850fc0886cbd7a9596ccbf06aa8239de2a19",
+        "field_water-9b57124d158f556d.json": "0f7e547cf6aecee138131ba93350fb7419b24637b5b899d6d406a0a0fcbc8fb4",
+        "field_water-9b57124d158f556d.png": "694a4a43f6385feb8cc50243e479793e9e2482150dc5129672f8aeaa9d43571a",
+        "field_water-9b57124d158f556d.source.png": "9b57124d158f556d61e352d024b5e8eb908df33b5695bac00cb302916a977f1c"
+      },
+      "characters": {
+        "character_dock_ferryman-600a2cbff6749093.json": "a65a56a073e60d9de266e0c0d056254eae2375c2fe75c72f6d26115b504ceaca",
+        "character_dock_ferryman-600a2cbff6749093.png": "2b9f13e14cb61913c0d617466803b6d7daf82daed9053eb1e236d8fdc4c3af2c",
+        "character_dock_ferryman-600a2cbff6749093.source.png": "600a2cbff6749093db7a078ad5c416e5bf78e1a0b8e2740c19ed0d22ed6ad72f",
+        "character_dojo_inspector-85eafad85a1c05e2.json": "04d9c711f16a66a23c38a48102cd746c6c089a32a98457b7de20158eb11b479b",
+        "character_dojo_inspector-85eafad85a1c05e2.png": "8ef4c90c817e504bcc073b93b6698af13c61f97021f7d630a7a2c602f3b5acec",
+        "character_dojo_inspector-85eafad85a1c05e2.source.png": "85eafad85a1c05e268967b5c136628e334d522e71b83ad84d37bf77bb81f530f",
+        "character_gatekeeper-1412983fdc92acc5.json": "0692bf6c198724bd8fa48947b67f0862dd63a8ab68c6dc9beba63ef82d42641d",
+        "character_gatekeeper-1412983fdc92acc5.png": "9d6b4a501916e3eb518bdac3f158583868ac37ca8337f033f89966df11c86601",
+        "character_gatekeeper-1412983fdc92acc5.source.png": "1412983fdc92acc54b62dfd548f14bddbe2489b1f49bd9456dc0d3fb22eaa1b1",
+        "character_guildmaster-aacaffa9f4027f1f.json": "0598e471e03a11c5847cf97c80fd5190483caa8f8c171c46e72bc84a2723dec0",
+        "character_guildmaster-aacaffa9f4027f1f.png": "17bb295857231bb7675c85a53f02c1824339bb3611a2f2249e4990f4f8bf1a74",
+        "character_guildmaster-aacaffa9f4027f1f.source.png": "aacaffa9f4027f1f0352d592996f36ea79ec3be989c337974405807c19c9144b",
+        "character_innkeeper-473d3a6709019c4d.json": "e0935f1b9bde37902fb79734522c82be3d89ba499b219db3ac8899defdd056ea",
+        "character_innkeeper-473d3a6709019c4d.png": "9688b329d8ac3c594b0210690bfd821b85a2f80e6c777b91772a57cbe64f311a",
+        "character_innkeeper-473d3a6709019c4d.source.png": "473d3a6709019c4d3293164629c2fcb993ea49c2b5330ed834e9e67c441f9a10",
+        "character_mob_artisan-f8459fbe119ba413.json": "fdd9f9f1da9d4cbffb10aaa858b792e0252eeb9064b4cb012ad68fb7ed2091fa",
+        "character_mob_artisan-f8459fbe119ba413.png": "5198b8b6115230ddb184ab4297b3f817238fa0b0273f1880e0f647306c893429",
+        "character_mob_artisan-f8459fbe119ba413.source.png": "f8459fbe119ba413eaa9ad358907978a5ffdc70c08a9025f357d8fd5e1cfcb1e",
+        "character_mob_child-4e78d18adbe9ad0f.json": "70293b76bb92562c562590e995a59c0451ee6b34efe3a77a02d75c67c49883bc",
+        "character_mob_child-4e78d18adbe9ad0f.png": "d5c68379573e0fa0ec339ff6a8bc8d9dd66104d3619bb8c73916d0af74b52a0b",
+        "character_mob_child-4e78d18adbe9ad0f.source.png": "4e78d18adbe9ad0f7d6e85f2e32775409557cbde6af920a074230636f62a7657",
+        "character_mob_delivery_person-1e4c72b8e6af5d22.json": "1d7b08530fa21bc2c497d53540e131de483cbf66aab0c41c376793aabffbf97d",
+        "character_mob_delivery_person-1e4c72b8e6af5d22.png": "d7100b27eabdf26d409c14dd0bd292af401c528e43e5251ae42d6c6a57fbfa58",
+        "character_mob_delivery_person-1e4c72b8e6af5d22.source.png": "1e4c72b8e6af5d22aee3628a4d95d1f9630796bbb42e6af056de265229f3ad5b",
+        "character_mob_dock_worker-e282ef1cdc1ebe54.json": "2f221b065b4ee5d2804685e5779f050ecd7a439381928b3f58b87b3c1747682a",
+        "character_mob_dock_worker-e282ef1cdc1ebe54.png": "4966fea0f209e4c71e9dfe4c17cac7ea74a7548d7e3420a53cd56420ad06aa3b",
+        "character_mob_dock_worker-e282ef1cdc1ebe54.source.png": "e282ef1cdc1ebe546a1bf10a4127b92cb17feb6562c5dbe50e13a78610a5866c",
+        "character_mob_elder-fb5ed91f59673668.json": "566b2d252218d8b55f706f9720c307e10b4427eff28759b0951ce240b1f7ee08",
+        "character_mob_elder-fb5ed91f59673668.png": "c9fd8ecc2da78dac72048044fb99ad31369b2a92a41fb9562d4d36df9be99c60",
+        "character_mob_elder-fb5ed91f59673668.source.png": "fb5ed91f59673668f5458c908db43bc4d86d5720e81d175045882b463af76bdd",
+        "character_mob_inn_guest-7bea8fe424410cb3.json": "f2a605c5d68851d6f067446373393afceed964f03365d0956a77eca4fb080366",
+        "character_mob_inn_guest-7bea8fe424410cb3.png": "25691dabb82ca97c1f85429b5b55b2e80cde1b28d697308516a78ad941c2999a",
+        "character_mob_inn_guest-7bea8fe424410cb3.source.png": "7bea8fe424410cb3854c909481e089c5af8acf57af1548e6517a3ebd4a12e81b",
+        "character_mob_merchant-9a98a2469909c135.json": "d15bbee762f780b8f55276835e32a085371f98878f266f626979f04f2359b74a",
+        "character_mob_merchant-9a98a2469909c135.png": "94644e6d646b3d96f874de18b1cb39a9849315f8fa5675744346cf86a2090e95",
+        "character_mob_merchant-9a98a2469909c135.source.png": "9a98a2469909c135622f61baa6e924600683a5368a3d4adc141aeeb5f1b3b9a3",
+        "character_mob_tavern_guest-117d9bc12c49eda8.json": "c673520aa9743d4fed7f0c6f42cb03a60818cf950ddeed3121e7f6c34a5dd6c0",
+        "character_mob_tavern_guest-117d9bc12c49eda8.png": "a4f4752d320f9b0b6a24f163e23e25ebb5af0da842de91660b8f8eabdd58bd8b",
+        "character_mob_tavern_guest-117d9bc12c49eda8.source.png": "117d9bc12c49eda86cbc7b226bc11f02a1ca18d7c0616c2b7e612687e37dc50f",
+        "character_mob_townsfolk_female-417085e4bb73a28d.json": "aa57fbfbfed8d47a2d2a25c7d2eb9b638a3f9d66fce31aefc469bb961706e2cd",
+        "character_mob_townsfolk_female-417085e4bb73a28d.png": "62b5d2f9867cdc2ebabac5527d51c96a7f8146dda7b9c4dc1489b99c63c5f206",
+        "character_mob_townsfolk_female-417085e4bb73a28d.source.png": "417085e4bb73a28d5b567764ca3cdf9425f47cbe7daee232b23bb43e04bd9593",
+        "character_mob_townsfolk_male-0c8af03939a7f7ab.json": "d15353ed02440e15d364856cdc7e6698bea922fbe3f5562d110b5ef74b3d9b91",
+        "character_mob_townsfolk_male-0c8af03939a7f7ab.png": "a00883d85ab0f8197ffef77820706bbb34e07b990c99376e67250d2016e70de6",
+        "character_mob_townsfolk_male-0c8af03939a7f7ab.source.png": "0c8af03939a7f7abf3535973e05b20d0f611c09681ce9cc20013fbf3a93d9def",
+        "character_mob_traveler-971694a489f95eea.json": "8c9344158ca47be9db7ee4aeca0d7972931fe3b33d599694992814e457916be8",
+        "character_mob_traveler-971694a489f95eea.png": "f58bc56ae0b48fe57ba06c59aa0f901e8607d8939937e9e6080d4756c2b4827a",
+        "character_mob_traveler-971694a489f95eea.source.png": "971694a489f95eea999750cd9b8723f5de13c209e9d0495d19e1f85ef3608537",
+        "character_player-e5fe552d67555899.json": "20327f8d10ab15f9ef88f38e17959d105e015e07c11d5d1f4b0fed1346b55113",
+        "character_player-e5fe552d67555899.png": "c44d99132e20ac85a9a600373c0e3281fe80e4726e46a633be8242c3a850af97",
+        "character_player-e5fe552d67555899.source.png": "e5fe552d6755589975638241ea49f51dae8f1218731a9fa37ef97949b81ee908",
+        "character_tavern_master-1cde0c07979ff4e4.json": "4ee5adff4d03214beb038d9b25db10178ec519c89fae3af89bf3df60eff12ffb",
+        "character_tavern_master-1cde0c07979ff4e4.png": "a1c182ee6a03bec2d6a03fc3adbddac0a4501469b6231a501251b29c6db314a5",
+        "character_tavern_master-1cde0c07979ff4e4.source.png": "1cde0c07979ff4e405532619f106bc60998d8e91db849da4ac163975f8e42267",
+        "character_town_clerk-81a2d44f8f5e3083.json": "e4cfa7e7dfc23edddd9b00b2efa5529ed0458f3f23c83bab845539ec89d44bfa",
+        "character_town_clerk-81a2d44f8f5e3083.png": "a7066c3b013a46f84142219612dbeec3e7d9667c273cda279f8bafeffec09784",
+        "character_town_clerk-81a2d44f8f5e3083.source.png": "81a2d44f8f5e3083c006bf43206ac92952ee822f33420fc2aa3d6a139d54ab36",
+        "character_warehouse_keeper-805fe2cbfacd0479.json": "ca3bfd01738e63616203ff14e8ec659f965dfd31e78eb82334115027968b5de4",
+        "character_warehouse_keeper-805fe2cbfacd0479.png": "19a51352061e10cc7f6f2cc677b6efca4cfdb2aaa3f1af6d6166cc3f7ddd52f5",
+        "character_warehouse_keeper-805fe2cbfacd0479.source.png": "805fe2cbfacd047967a441afd76e3c190bdd1d1dbe60c85b48ce8053b5c3a7b5",
+        "character_watchtower_guard-1f9ae516147735c2.json": "e0f69ab15612b5ec6f598a725f03fa8ec192956ac5024749cb7d448df88d1fce",
+        "character_watchtower_guard-1f9ae516147735c2.png": "169fdd9960cbfa5cf49bedf35638dc46ebfcb687888cfe08460ae880519560ca",
+        "character_watchtower_guard-1f9ae516147735c2.source.png": "1f9ae516147735c2da6787a4f916f9fcedd406bfb771b2b3cabe56ddcba1eed9",
+        "character_workshop_artisan-37a4132d517258b6.json": "22420e12e919df521bddf01df6194dcd1fa21eab7698742805bf137ccab8ae52",
+        "character_workshop_artisan-37a4132d517258b6.png": "e36bbc9306ee037aaba2a6471f352df175ad207931424f99204eb664405e2e5f",
+        "character_workshop_artisan-37a4132d517258b6.source.png": "37a4132d517258b681a5f1b21fcb6f1aee27c752aab580c7c876ec9181cb7582"
+      }
+    }
+  }
+}

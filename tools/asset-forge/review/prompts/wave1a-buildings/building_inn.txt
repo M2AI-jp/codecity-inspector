@@ -1,0 +1,15 @@
+Create one production game asset for CodeCity Inspector.
+
+ASSET: building.inn — a welcoming medieval Japanese-fantasy inn/tavern building.
+
+Use the two attached reference images strictly for visual language and identity:
+1) the world visual master defines the exact pixel-art palette, 3/4 top-down camera, clustered pixel treatment, teal-blue roofs, warm amber windows, stone and moss detail;
+2) the inn reference sheet defines the inn's recognizable silhouette and architectural cues.
+
+Deliver exactly ONE complete freestanding building, centered and fully visible, seen from a consistent 3/4 top-down game camera. Make it a substantial large-class building: broad timber-and-stone inn, blue-green tiled roof, readable warm-lit entrance, several warm windows, modest hanging inn sign with NO letters or symbols, stone foundation, restrained moss. Preserve a clean readable silhouette suitable for later downsampling to a 256×256 transparent sprite.
+
+BACKGROUND CONTRACT: use a perfectly flat uniform chroma-magenta background #ff00ff covering every non-building pixel. No ground patch, no grass tile, no rectangular base, no cast shadow, no atmospheric gradient.
+
+DO NOT include: people, animals, carts, adjacent buildings, trees, smoke, particles, labels, letters, signage text, UI, sprite sheet, multiple variants, crop, frame, enlarged individual pixels, blur, painterly rendering, perspective mismatch.
+
+Pixel-art quality should be dense and production-ready, with crisp hard edges and coherent lighting. The doorway must remain obvious at small game scale.

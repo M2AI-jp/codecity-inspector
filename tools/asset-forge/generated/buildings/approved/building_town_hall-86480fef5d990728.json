@@ -1,0 +1,141 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-15T04:37:02.273Z",
+    "approvedPath": "generated/buildings/approved/building_town_hall-86480fef5d990728.png",
+    "approvedSha256": "86480fef5d990728560ff1bb8c6d34d24ddb0b8e1b0ab9b21f3c28b01c472095",
+    "note": "Required 78 batch approval cb4aa5f67c91a329c140f4a09bdc39b960ccce8a76334957066d7c0e83540042",
+    "reviewer": "human"
+  },
+  "assetId": "building.town_hall",
+  "category": "building",
+  "createdAt": "2026-07-14T00:00:00.000Z",
+  "dryRun": false,
+  "id": "gen_import_6f930adb8f4d8c61f1f0",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 256x256.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_9effc52665351ad459c5",
+  "manualImport": true,
+  "metadataPath": "generated/buildings/approved/building_town_hall-86480fef5d990728.json",
+  "outputInspection": {
+    "bytes": 90561,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 256,
+    "width": 256
+  },
+  "outputPath": "generated/buildings/approved/building_town_hall-86480fef5d990728.png",
+  "outputSha256": "86480fef5d990728560ff1bb8c6d34d24ddb0b8e1b0ab9b21f3c28b01c472095",
+  "productionRecipe": {
+    "assetId": "building.town_hall",
+    "backgroundRemoval": {
+      "autoKey": "border",
+      "cleanup": {
+        "alphaCutoff": 16,
+        "componentMinPixels": 128,
+        "resizeKernel": "nearest",
+        "targetMaxHeight": 222,
+        "targetMaxWidth": 232
+      },
+      "despill": true,
+      "keyColor": null,
+      "method": "official-chroma-key-helper",
+      "opaqueThreshold": 220,
+      "softMatte": true,
+      "transparentThreshold": 12
+    },
+    "canvas": {
+      "baselineY": 244,
+      "height": 256,
+      "width": 256
+    },
+    "generationPromptPath": "review/prompts/wave1a-buildings/building_town_hall.txt",
+    "generationPromptSha256": "cf3c85621e5dc342b096638fadabf5afa36ebfc510a1d706e948b19ab8fab252",
+    "generator": "codex-imagegen-built-in",
+    "inputReferences": [
+      {
+        "id": "world_visual_master",
+        "role": "global-style",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_building_town_hall",
+        "role": "primary-subject",
+        "sha256": "af560250efd3d45fb00c7ba4a486e6245db5318c564bc72a8a11ba84bbbfb1c9"
+      }
+    ],
+    "method": "imagegen",
+    "outputSha256": "86480fef5d990728560ff1bb8c6d34d24ddb0b8e1b0ab9b21f3c28b01c472095",
+    "referenceImages": [
+      {
+        "id": "world_visual_master",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_building_town_hall",
+        "sha256": "af560250efd3d45fb00c7ba4a486e6245db5318c564bc72a8a11ba84bbbfb1c9"
+      }
+    ],
+    "scaleClass": "landmark",
+    "source": {
+      "comparisonRect": {
+        "height": 380,
+        "width": 600,
+        "x": 540,
+        "y": 0
+      },
+      "cropRect": null,
+      "height": 1055,
+      "path": "tmp/imagegen/wave1a/raw/building_town_hall.png",
+      "sha256": "07c47f3d7d9779573f99df3384aee2af2444ee9bf705bb525c6298eb6cbaee93",
+      "width": 1491
+    },
+    "sourceSnapshot": {
+      "height": 1055,
+      "path": "generated/buildings/approved/source-07c47f3d7d9779573f99df3384aee2af2444ee9bf705bb525c6298eb6cbaee93.source-original.png",
+      "sha256": "07c47f3d7d9779573f99df3384aee2af2444ee9bf705bb525c6298eb6cbaee93",
+      "width": 1491
+    },
+    "subjectBbox": {
+      "height": 205,
+      "width": 232,
+      "x": 12,
+      "y": 40
+    },
+    "toolMode": "built-in",
+    "waveId": "wave1a-buildings"
+  },
+  "promptHash": "982d62b89c3c4cc3d545275bc615cf17f677c1ce407197b368e8f8974cded63b",
+  "provenanceKey": "6f930adb8f4d8c61f1f0bbf9355d8ae962927e4065a7fb5fa4ab7d6e73d8ff21",
+  "provider": "manual-import",
+  "referenceImageHashes": [
+    "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+    "af560250efd3d45fb00c7ba4a486e6245db5318c564bc72a8a11ba84bbbfb1c9"
+  ],
+  "referenceImageIds": [
+    "world_visual_master",
+    "intake_20260713_building_town_hall"
+  ],
+  "sourceFormat": "png",
+  "sourcePath": "generated/buildings/pending/building_town_hall-86480fef5d990728.source.png",
+  "sourceSha256": "86480fef5d990728560ff1bb8c6d34d24ddb0b8e1b0ab9b21f3c28b01c472095",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

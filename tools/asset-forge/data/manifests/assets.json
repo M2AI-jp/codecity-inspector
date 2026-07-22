@@ -1,0 +1,1041 @@
+{
+  "assets": [
+    {
+      "approvedPath": "generated/characters/approved/character_player-c44d99132e20ac85.png",
+      "assetId": "character.player",
+      "category": "character",
+      "exportPath": "/assets/forge/v1/c44d99132e20ac85/character_player.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/characters/approved/character_innkeeper-9688b329d8ac3c59.png",
+      "assetId": "character.innkeeper",
+      "category": "character",
+      "exportPath": "/assets/forge/v1/9688b329d8ac3c59/character_innkeeper.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/characters/approved/character_tavern_master-a1c182ee6a03bec2.png",
+      "assetId": "character.tavern_master",
+      "category": "character",
+      "exportPath": "/assets/forge/v1/a1c182ee6a03bec2/character_tavern_master.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/characters/approved/character_town_clerk-a7066c3b013a46f8.png",
+      "assetId": "character.town_clerk",
+      "category": "character",
+      "exportPath": "/assets/forge/v1/a7066c3b013a46f8/character_town_clerk.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/characters/approved/character_workshop_artisan-e36bbc9306ee037a.png",
+      "assetId": "character.workshop_artisan",
+      "category": "character",
+      "exportPath": "/assets/forge/v1/e36bbc9306ee037a/character_workshop_artisan.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/characters/approved/character_dojo_inspector-8ef4c90c817e504b.png",
+      "assetId": "character.dojo_inspector",
+      "category": "character",
+      "exportPath": "/assets/forge/v1/8ef4c90c817e504b/character_dojo_inspector.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/characters/approved/character_watchtower_guard-169fdd9960cbfa5c.png",
+      "assetId": "character.watchtower_guard",
+      "category": "character",
+      "exportPath": "/assets/forge/v1/169fdd9960cbfa5c/character_watchtower_guard.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/characters/approved/character_dock_ferryman-2b9f13e14cb61913.png",
+      "assetId": "character.dock_ferryman",
+      "category": "character",
+      "exportPath": "/assets/forge/v1/2b9f13e14cb61913/character_dock_ferryman.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/characters/approved/character_warehouse_keeper-19a51352061e10cc.png",
+      "assetId": "character.warehouse_keeper",
+      "category": "character",
+      "exportPath": "/assets/forge/v1/19a51352061e10cc/character_warehouse_keeper.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "assetId": "character.external_contractor_agent",
+      "category": "character",
+      "lastUpdated": null,
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "missing"
+    },
+    {
+      "assetId": "character.llm_librarian",
+      "category": "character",
+      "lastUpdated": null,
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "missing"
+    },
+    {
+      "assetId": "character.llm_bard",
+      "category": "character",
+      "lastUpdated": null,
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "missing"
+    },
+    {
+      "assetId": "character.llm_counselor",
+      "category": "character",
+      "lastUpdated": null,
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "missing"
+    },
+    {
+      "assetId": "character.treasurer",
+      "category": "character",
+      "lastUpdated": null,
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "missing"
+    },
+    {
+      "assetId": "character.mail_carrier",
+      "category": "character",
+      "lastUpdated": null,
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "missing"
+    },
+    {
+      "approvedPath": "generated/characters/approved/character_gatekeeper-9d6b4a501916e3eb.png",
+      "assetId": "character.gatekeeper",
+      "category": "character",
+      "exportPath": "/assets/forge/v1/9d6b4a501916e3eb/character_gatekeeper.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/characters/approved/character_mob_townsfolk_male-a00883d85ab0f819.png",
+      "assetId": "character.mob.townsfolk_male",
+      "category": "character",
+      "exportPath": "/assets/forge/v1/a00883d85ab0f819/character_mob_townsfolk_male.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/characters/approved/character_mob_townsfolk_female-62b5d2f9867cdc2e.png",
+      "assetId": "character.mob.townsfolk_female",
+      "category": "character",
+      "exportPath": "/assets/forge/v1/62b5d2f9867cdc2e/character_mob_townsfolk_female.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/characters/approved/character_mob_elder-c9fd8ecc2da78dac.png",
+      "assetId": "character.mob.elder",
+      "category": "character",
+      "exportPath": "/assets/forge/v1/c9fd8ecc2da78dac/character_mob_elder.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/characters/approved/character_mob_child-d5c68379573e0fa0.png",
+      "assetId": "character.mob.child",
+      "category": "character",
+      "exportPath": "/assets/forge/v1/d5c68379573e0fa0/character_mob_child.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/characters/approved/character_mob_traveler-f58bc56ae0b48fe5.png",
+      "assetId": "character.mob.traveler",
+      "category": "character",
+      "exportPath": "/assets/forge/v1/f58bc56ae0b48fe5/character_mob_traveler.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/characters/approved/character_mob_merchant-94644e6d646b3d96.png",
+      "assetId": "character.mob.merchant",
+      "category": "character",
+      "exportPath": "/assets/forge/v1/94644e6d646b3d96/character_mob_merchant.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/characters/approved/character_mob_artisan-5198b8b6115230dd.png",
+      "assetId": "character.mob.artisan",
+      "category": "character",
+      "exportPath": "/assets/forge/v1/5198b8b6115230dd/character_mob_artisan.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/characters/approved/character_mob_tavern_guest-a4f4752d320f9b0b.png",
+      "assetId": "character.mob.tavern_guest",
+      "category": "character",
+      "exportPath": "/assets/forge/v1/a4f4752d320f9b0b/character_mob_tavern_guest.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/characters/approved/character_mob_inn_guest-25691dabb82ca97c.png",
+      "assetId": "character.mob.inn_guest",
+      "category": "character",
+      "exportPath": "/assets/forge/v1/25691dabb82ca97c/character_mob_inn_guest.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/characters/approved/character_mob_dock_worker-4966fea0f209e4c7.png",
+      "assetId": "character.mob.dock_worker",
+      "category": "character",
+      "exportPath": "/assets/forge/v1/4966fea0f209e4c7/character_mob_dock_worker.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/characters/approved/character_mob_delivery_person-d7100b27eabdf26d.png",
+      "assetId": "character.mob.delivery_person",
+      "category": "character",
+      "exportPath": "/assets/forge/v1/d7100b27eabdf26d/character_mob_delivery_person.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/buildings/approved/building_inn-3952f1aeab543925.png",
+      "assetId": "building.inn",
+      "category": "building",
+      "exportPath": "/assets/forge/v1/3952f1aeab543925/building_inn.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/buildings/approved/building_pub-622b5760c38eacee.png",
+      "assetId": "building.pub",
+      "category": "building",
+      "exportPath": "/assets/forge/v1/622b5760c38eacee/building_pub.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/buildings/approved/building_town_hall-86480fef5d990728.png",
+      "assetId": "building.town_hall",
+      "category": "building",
+      "exportPath": "/assets/forge/v1/86480fef5d990728/building_town_hall.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/buildings/approved/building_dock-dade95d62820688d.png",
+      "assetId": "building.dock",
+      "category": "building",
+      "exportPath": "/assets/forge/v1/dade95d62820688d/building_dock.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/buildings/approved/building_workshop-bb0e116b92c11d97.png",
+      "assetId": "building.workshop",
+      "category": "building",
+      "exportPath": "/assets/forge/v1/bb0e116b92c11d97/building_workshop.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/buildings/approved/building_dojo-77222549f874d140.png",
+      "assetId": "building.dojo",
+      "category": "building",
+      "exportPath": "/assets/forge/v1/77222549f874d140/building_dojo.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/buildings/approved/building_watchtower-05d7e8ec505c3538.png",
+      "assetId": "building.watchtower",
+      "category": "building",
+      "exportPath": "/assets/forge/v1/05d7e8ec505c3538/building_watchtower.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/buildings/approved/building_warehouse-5903d7f18ae9be2c.png",
+      "assetId": "building.warehouse",
+      "category": "building",
+      "exportPath": "/assets/forge/v1/5903d7f18ae9be2c/building_warehouse.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/buildings/approved/building_well-7c8854e1d89db1ae.png",
+      "assetId": "building.well",
+      "category": "building",
+      "exportPath": "/assets/forge/v1/7c8854e1d89db1ae/building_well.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/buildings/approved/building_gate-f85131d265539c67.png",
+      "assetId": "building.gate",
+      "category": "building",
+      "exportPath": "/assets/forge/v1/f85131d265539c67/building_gate.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/buildings/approved/building_house_small-4b95916b0ed94aea.png",
+      "assetId": "building.house.small",
+      "category": "building",
+      "exportPath": "/assets/forge/v1/4b95916b0ed94aea/building_house_small.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/buildings/approved/building_house_medium-30b3dffbf7016e29.png",
+      "assetId": "building.house.medium",
+      "category": "building",
+      "exportPath": "/assets/forge/v1/30b3dffbf7016e29/building_house_medium.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/buildings/approved/building_shop-9ced540efc5fc93b.png",
+      "assetId": "building.shop",
+      "category": "building",
+      "exportPath": "/assets/forge/v1/9ced540efc5fc93b/building_shop.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/buildings/approved/building_hut-39fd3b61ed5d4e67.png",
+      "assetId": "building.hut",
+      "category": "building",
+      "exportPath": "/assets/forge/v1/39fd3b61ed5d4e67/building_hut.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/buildings/approved/building_ruin-d2ed01eaea2bb54e.png",
+      "assetId": "building.ruin",
+      "category": "building",
+      "exportPath": "/assets/forge/v1/d2ed01eaea2bb54e/building_ruin.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/buildings/approved/building_old_house-c38c0bdf995ecebc.png",
+      "assetId": "building.old_house",
+      "category": "building",
+      "exportPath": "/assets/forge/v1/c38c0bdf995ecebc/building_old_house.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/fields/approved/field_cobblestone-0f4f78f8ecd73be7.png",
+      "assetId": "field.cobblestone",
+      "category": "field",
+      "exportPath": "/assets/forge/v1/0f4f78f8ecd73be7/field_cobblestone.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/fields/approved/field_dirt_path-3de53aeaf2a0eaec.png",
+      "assetId": "field.dirt_path",
+      "category": "field",
+      "exportPath": "/assets/forge/v1/3de53aeaf2a0eaec/field_dirt_path.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/fields/approved/field_grass-71bf5f0a74b80669.png",
+      "assetId": "field.grass",
+      "category": "field",
+      "exportPath": "/assets/forge/v1/71bf5f0a74b80669/field_grass.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/fields/approved/field_snow-7bfa23c40818ebae.png",
+      "assetId": "field.snow",
+      "category": "field",
+      "exportPath": "/assets/forge/v1/7bfa23c40818ebae/field_snow.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/fields/approved/field_water-694a4a43f6385feb.png",
+      "assetId": "field.water",
+      "category": "field",
+      "exportPath": "/assets/forge/v1/694a4a43f6385feb/field_water.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/fields/approved/field_river_edge-5e42ba2aa43e70a4.png",
+      "assetId": "field.river_edge",
+      "category": "field",
+      "exportPath": "/assets/forge/v1/5e42ba2aa43e70a4/field_river_edge.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/fields/approved/field_bridge_stone-adeb44abf559513e.png",
+      "assetId": "field.bridge_stone",
+      "category": "field",
+      "exportPath": "/assets/forge/v1/adeb44abf559513e/field_bridge_stone.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/fields/approved/field_bridge_wood-0ed0d4495775f2b4.png",
+      "assetId": "field.bridge_wood",
+      "category": "field",
+      "exportPath": "/assets/forge/v1/0ed0d4495775f2b4/field_bridge_wood.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/fields/approved/field_stairs_stone-1dd6c3b5d69dd5af.png",
+      "assetId": "field.stairs_stone",
+      "category": "field",
+      "exportPath": "/assets/forge/v1/1dd6c3b5d69dd5af/field_stairs_stone.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/fields/approved/field_cliff-4089488794d9e6af.png",
+      "assetId": "field.cliff",
+      "category": "field",
+      "exportPath": "/assets/forge/v1/4089488794d9e6af/field_cliff.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/fields/approved/field_wall_stone-06fef4fbdc56b574.png",
+      "assetId": "field.wall_stone",
+      "category": "field",
+      "exportPath": "/assets/forge/v1/06fef4fbdc56b574/field_wall_stone.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/fields/approved/field_fence_wood-f754b577a7ed4a00.png",
+      "assetId": "field.fence_wood",
+      "category": "field",
+      "exportPath": "/assets/forge/v1/f754b577a7ed4a00/field_fence_wood.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/fields/approved/field_dock_floor-8fd0e89e4f8d7eb3.png",
+      "assetId": "field.dock_floor",
+      "category": "field",
+      "exportPath": "/assets/forge/v1/8fd0e89e4f8d7eb3/field_dock_floor.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/fields/approved/field_plaza-7d6fe88976dafa76.png",
+      "assetId": "field.plaza",
+      "category": "field",
+      "exportPath": "/assets/forge/v1/7d6fe88976dafa76/field_plaza.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/fields/approved/field_road_corner-317eed2026bc424e.png",
+      "assetId": "field.road_corner",
+      "category": "field",
+      "exportPath": "/assets/forge/v1/317eed2026bc424e/field_road_corner.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/fields/approved/field_road_edge-bb00489351d01dc9.png",
+      "assetId": "field.road_edge",
+      "category": "field",
+      "exportPath": "/assets/forge/v1/bb00489351d01dc9/field_road_edge.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/fields/approved/field_road_intersection-58f0931adc5f0290.png",
+      "assetId": "field.road_intersection",
+      "category": "field",
+      "exportPath": "/assets/forge/v1/58f0931adc5f0290/field_road_intersection.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/objects/approved/object_barrel-71fc318a616e8e81.png",
+      "assetId": "object.barrel",
+      "category": "object",
+      "exportPath": "/assets/forge/v1/71fc318a616e8e81/object_barrel.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/objects/approved/object_crate-f47ed882f797ccd5.png",
+      "assetId": "object.crate",
+      "category": "object",
+      "exportPath": "/assets/forge/v1/f47ed882f797ccd5/object_crate.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/objects/approved/object_stacked_crates-173f6375ff416799.png",
+      "assetId": "object.stacked_crates",
+      "category": "object",
+      "exportPath": "/assets/forge/v1/173f6375ff416799/object_stacked_crates.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "assetId": "object.cart",
+      "category": "object",
+      "lastUpdated": null,
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "missing"
+    },
+    {
+      "approvedPath": "generated/objects/approved/object_lamp-e06588c0ea81851a.png",
+      "assetId": "object.lamp",
+      "category": "object",
+      "exportPath": "/assets/forge/v1/e06588c0ea81851a/object_lamp.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/objects/approved/object_streetlight-639def25b22eba56.png",
+      "assetId": "object.streetlight",
+      "category": "object",
+      "exportPath": "/assets/forge/v1/639def25b22eba56/object_streetlight.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/objects/approved/object_signboard-3db5b06ff4eb548f.png",
+      "assetId": "object.signboard",
+      "category": "object",
+      "exportPath": "/assets/forge/v1/3db5b06ff4eb548f/object_signboard.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/objects/approved/object_notice_board-93fa43cb4c9c85f2.png",
+      "assetId": "object.notice_board",
+      "category": "object",
+      "exportPath": "/assets/forge/v1/93fa43cb4c9c85f2/object_notice_board.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "assetId": "object.guild_roster_stand",
+      "category": "object",
+      "lastUpdated": null,
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "missing"
+    },
+    {
+      "assetId": "object.menu_board",
+      "category": "object",
+      "lastUpdated": null,
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "missing"
+    },
+    {
+      "approvedPath": "generated/objects/approved/object_well-abf65f2948387c77.png",
+      "assetId": "object.well",
+      "category": "object",
+      "exportPath": "/assets/forge/v1/abf65f2948387c77/object_well.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/objects/approved/object_bench-7cd0d87c46f5fb28.png",
+      "assetId": "object.bench",
+      "category": "object",
+      "exportPath": "/assets/forge/v1/7cd0d87c46f5fb28/object_bench.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/objects/approved/object_flowerbed-6f366b7c3622efd0.png",
+      "assetId": "object.flowerbed",
+      "category": "object",
+      "exportPath": "/assets/forge/v1/6f366b7c3622efd0/object_flowerbed.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/objects/approved/object_grass_patch-80ed192572cbb825.png",
+      "assetId": "object.grass_patch",
+      "category": "object",
+      "exportPath": "/assets/forge/v1/80ed192572cbb825/object_grass_patch.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "assetId": "object.snow_pile",
+      "category": "object",
+      "lastUpdated": null,
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "missing"
+    },
+    {
+      "assetId": "object.firewood",
+      "category": "object",
+      "lastUpdated": null,
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "missing"
+    },
+    {
+      "assetId": "object.rope",
+      "category": "object",
+      "lastUpdated": null,
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "missing"
+    },
+    {
+      "approvedPath": "generated/objects/approved/object_construction_sign-843680770e687357.png",
+      "assetId": "object.construction_sign",
+      "category": "object",
+      "exportPath": "/assets/forge/v1/843680770e687357/object_construction_sign.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/objects/approved/object_unverified_tag-c0ad3a68ea16181b.png",
+      "assetId": "object.unverified_tag",
+      "category": "object",
+      "exportPath": "/assets/forge/v1/c0ad3a68ea16181b/object_unverified_tag.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/objects/approved/object_warning_stake-a482ba544c8ddaf6.png",
+      "assetId": "object.warning_stake",
+      "category": "object",
+      "exportPath": "/assets/forge/v1/a482ba544c8ddaf6/object_warning_stake.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/objects/approved/object_red_flag-88e900e6c6f57131.png",
+      "assetId": "object.red_flag",
+      "category": "object",
+      "exportPath": "/assets/forge/v1/88e900e6c6f57131/object_red_flag.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/objects/approved/object_yellow_flag-a6f483074440a1a6.png",
+      "assetId": "object.yellow_flag",
+      "category": "object",
+      "exportPath": "/assets/forge/v1/a6f483074440a1a6/object_yellow_flag.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/objects/approved/object_blue_flag-96876238dec26ac1.png",
+      "assetId": "object.blue_flag",
+      "category": "object",
+      "exportPath": "/assets/forge/v1/96876238dec26ac1/object_blue_flag.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "assetId": "object.harbor_cargo",
+      "category": "object",
+      "lastUpdated": null,
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "missing"
+    },
+    {
+      "assetId": "object.ledger",
+      "category": "object",
+      "lastUpdated": null,
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "missing"
+    },
+    {
+      "assetId": "object.inspection_table",
+      "category": "object",
+      "lastUpdated": null,
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "missing"
+    },
+    {
+      "assetId": "object.tool_table",
+      "category": "object",
+      "lastUpdated": null,
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "missing"
+    },
+    {
+      "assetId": "object.smoke_white",
+      "category": "object",
+      "lastUpdated": null,
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "missing"
+    },
+    {
+      "assetId": "object.smoke_black",
+      "category": "object",
+      "lastUpdated": null,
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "missing"
+    },
+    {
+      "assetId": "ui.dialogue_window",
+      "category": "ui",
+      "lastUpdated": null,
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "missing"
+    },
+    {
+      "assetId": "ui.choice_window",
+      "category": "ui",
+      "lastUpdated": null,
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "missing"
+    },
+    {
+      "assetId": "ui.small_menu",
+      "category": "ui",
+      "lastUpdated": null,
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "missing"
+    },
+    {
+      "assetId": "ui.guild_roster",
+      "category": "ui",
+      "lastUpdated": null,
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "missing"
+    },
+    {
+      "assetId": "ui.town_hall_report",
+      "category": "ui",
+      "lastUpdated": null,
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "missing"
+    },
+    {
+      "assetId": "ui.status_badges",
+      "category": "ui",
+      "lastUpdated": null,
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "missing"
+    },
+    {
+      "assetId": "ui.cursor",
+      "category": "ui",
+      "lastUpdated": null,
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "missing"
+    },
+    {
+      "assetId": "ui.icons.facilities",
+      "category": "ui",
+      "lastUpdated": null,
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "missing"
+    },
+    {
+      "assetId": "effect.window_light",
+      "category": "effect",
+      "lastUpdated": null,
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "missing"
+    },
+    {
+      "assetId": "effect.lantern_light",
+      "category": "effect",
+      "lastUpdated": null,
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "missing"
+    },
+    {
+      "assetId": "effect.warning_flash",
+      "category": "effect",
+      "lastUpdated": null,
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "missing"
+    },
+    {
+      "approvedPath": "generated/effects/approved/effect_construction_dust-48ce213abf1f1ec9.png",
+      "assetId": "effect.construction_dust",
+      "category": "effect",
+      "exportPath": "/assets/forge/v1/48ce213abf1f1ec9/effect_construction_dust.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/effects/approved/effect_water_ripple-8586e1d16331790a.png",
+      "assetId": "effect.water_ripple",
+      "category": "effect",
+      "exportPath": "/assets/forge/v1/8586e1d16331790a/effect_water_ripple.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "assetId": "effect.ship_departure",
+      "category": "effect",
+      "lastUpdated": null,
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "missing"
+    },
+    {
+      "assetId": "effect.resident_walk_marker",
+      "category": "effect",
+      "lastUpdated": null,
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "missing"
+    },
+    {
+      "assetId": "field.sand",
+      "category": "field",
+      "lastUpdated": null,
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "missing"
+    },
+    {
+      "approvedPath": "generated/fields/approved/field_rock-f292aad060cbd541.png",
+      "assetId": "field.rock",
+      "category": "field",
+      "exportPath": "/assets/forge/v1/f292aad060cbd541/field_rock.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/fields/approved/field_tree-79e80ff835bfd3fd.png",
+      "assetId": "field.tree",
+      "category": "field",
+      "exportPath": "/assets/forge/v1/79e80ff835bfd3fd/field_tree.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/characters/approved/character_guildmaster-17bb295857231bb7.png",
+      "assetId": "character.guildmaster",
+      "category": "character",
+      "exportPath": "/assets/forge/v1/17bb295857231bb7/character_guildmaster.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/objects/approved/object_rubble-6be08b76e6e790a3.png",
+      "assetId": "object.rubble",
+      "category": "object",
+      "exportPath": "/assets/forge/v1/6be08b76e6e790a3/object_rubble.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    },
+    {
+      "approvedPath": "generated/buildings/approved/building_guild-14649f026c987b1a.png",
+      "assetId": "building.guild",
+      "category": "building",
+      "exportPath": "/assets/forge/v1/14649f026c987b1a/building_guild.png",
+      "lastUpdated": "2026-07-15T04:45:31.085Z",
+      "pendingGenerationIds": [],
+      "rejectedGenerationIds": [],
+      "status": "exported"
+    }
+  ],
+  "schemaVersion": 1
+}

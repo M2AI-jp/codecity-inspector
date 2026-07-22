@@ -1,0 +1,184 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-15T04:37:06.934Z",
+    "approvedPath": "generated/characters/approved/character_mob_inn_guest-25691dabb82ca97c.png",
+    "approvedSha256": "25691dabb82ca97c1f85429b5b55b2e80cde1b28d697308516a78ad941c2999a",
+    "note": "Required 78 batch approval cb4aa5f67c91a329c140f4a09bdc39b960ccce8a76334957066d7c0e83540042",
+    "reviewer": "human"
+  },
+  "assetId": "character.mob.inn_guest",
+  "category": "character",
+  "createdAt": "2026-07-14T09:00:00.000Z",
+  "dryRun": false,
+  "id": "gen_import_a84cbc53658c72314dce",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 96x120.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_150d1b81efa8277ddd97",
+  "manualImport": true,
+  "metadataPath": "generated/characters/approved/character_mob_inn_guest-25691dabb82ca97c.json",
+  "outputInspection": {
+    "bytes": 3562,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 120,
+    "width": 96
+  },
+  "outputPath": "generated/characters/approved/character_mob_inn_guest-25691dabb82ca97c.png",
+  "outputSha256": "25691dabb82ca97c1f85429b5b55b2e80cde1b28d697308516a78ad941c2999a",
+  "productionRecipe": {
+    "assetId": "character.mob.inn_guest",
+    "backgroundRemoval": {
+      "autoKey": "border",
+      "cleanup": {
+        "alphaCutoff": 96,
+        "componentMinPixels": 64,
+        "resizeKernel": "nearest",
+        "targetMaxHeight": 32,
+        "targetMaxWidth": 22
+      },
+      "despill": true,
+      "keyColor": null,
+      "method": "official-chroma-key-helper",
+      "opaqueThreshold": 110,
+      "softMatte": true,
+      "transparentThreshold": 35
+    },
+    "canvas": {
+      "baselineY": 119,
+      "height": 120,
+      "width": 96
+    },
+    "generationPromptPath": "review/prompts/wave1c-characters/mob_inn_guest.txt",
+    "generationPromptSha256": "fd00a67fb506729754c3d7a6666a7657eea13be3e6ce81448676535144129a9e",
+    "generator": "codex-imagegen-built-in",
+    "inputReferences": [
+      {
+        "id": "world_visual_master",
+        "role": "global-style",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "character_visual_master",
+        "role": "primary-subject",
+        "sha256": "78436f089e03ae6fb15605ccaeae12513cd9393dd0e3355d4ef6df04bfb430ea"
+      }
+    ],
+    "method": "imagegen",
+    "outputSha256": "25691dabb82ca97c1f85429b5b55b2e80cde1b28d697308516a78ad941c2999a",
+    "referenceImages": [
+      {
+        "id": "world_visual_master",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "character_visual_master",
+        "sha256": "78436f089e03ae6fb15605ccaeae12513cd9393dd0e3355d4ef6df04bfb430ea"
+      }
+    ],
+    "scaleClass": "tiny",
+    "source": {
+      "cropRect": null,
+      "height": 1086,
+      "path": "tmp/imagegen/wave1c-characters/raw/mob_inn_guest.png",
+      "sha256": "ee3ec14d110522bcd7e5a3cd73ddfe705c58c5820e48b567ee8c28b505f636fd",
+      "width": 1448
+    },
+    "sourceSnapshot": {
+      "height": 1086,
+      "path": "generated/characters/approved/source-ee3ec14d110522bcd7e5a3cd73ddfe705c58c5820e48b567ee8c28b505f636fd.source-original.png",
+      "sha256": "ee3ec14d110522bcd7e5a3cd73ddfe705c58c5820e48b567ee8c28b505f636fd",
+      "width": 1448
+    },
+    "spriteContract": {
+      "allowEnlargement": false,
+      "commonFootBaseline": true,
+      "frame": {
+        "height": 40,
+        "width": 24
+      },
+      "normalizedColumnOrder": [
+        "front",
+        "back",
+        "left",
+        "right"
+      ],
+      "normalizedColumnSources": [
+        0,
+        1,
+        3,
+        2
+      ],
+      "partialAlphaPixels": 0,
+      "resizeKernel": "nearest",
+      "rowOrder": [
+        "idle",
+        "walk1",
+        "walk2"
+      ],
+      "sourceColumnOrderObserved": [
+        "front",
+        "back",
+        "right",
+        "left"
+      ],
+      "visibleBboxHeight": {
+        "class": "adult",
+        "max": 32,
+        "min": 28,
+        "target": 30
+      }
+    },
+    "subjectBbox": {
+      "height": 109,
+      "width": 88,
+      "x": 4,
+      "y": 11
+    },
+    "toolMode": "built-in",
+    "transformSteps": [
+      "full-frame",
+      "chroma-key-remove",
+      "cell-extract",
+      "shared-scale-normalize",
+      "nearest-downscale",
+      "hard-alpha",
+      "column-reorder",
+      "palette-quantize"
+    ],
+    "waveId": "wave1c-characters"
+  },
+  "promptHash": "3af1a2acacf29027af5fb6e666cbd945185c21ade66bef0dee8416f2981cb995",
+  "provenanceKey": "a84cbc53658c72314dce265baba9dd53ac1b5b95ddb21cb16fe3eca57141d0cf",
+  "provider": "manual-import",
+  "referenceImageHashes": [
+    "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+    "78436f089e03ae6fb15605ccaeae12513cd9393dd0e3355d4ef6df04bfb430ea"
+  ],
+  "referenceImageIds": [
+    "world_visual_master",
+    "character_visual_master"
+  ],
+  "sourceFormat": "png",
+  "sourcePath": "generated/characters/pending/character_mob_inn_guest-7bea8fe424410cb3.source.png",
+  "sourceSha256": "7bea8fe424410cb3854c909481e089c5af8acf57af1548e6517a3ebd4a12e81b",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

@@ -1,0 +1,15 @@
+Create one production game asset for CodeCity Inspector.
+
+ASSET: building.watchtower — a tall defensive watchtower landmark for a medieval Japanese-fantasy code-inspection town.
+
+Use the two attached references strictly:
+1) world visual master for palette, dense crisp pixel clusters, lighting, stone/moss accents, teal-blue roofs and consistent 3/4 top-down game camera;
+2) watchtower sheet for the tower's recognizable vertical silhouette and defensive architectural cues.
+
+Deliver exactly ONE complete freestanding watchtower, centered and fully visible from roof finial to foundation. Landmark/tall scale: narrow compared with town hall but clearly the tallest structure. Include a blue-green steep roof or roofed lookout, open/readable watch level, sturdy timber braces, stone base, warm lantern/window accents, restrained moss, and a clearly readable ground-level entrance. Maintain believable 3/4 top-down perspective and a clean silhouette for downsampling to 256×256.
+
+BACKGROUND CONTRACT: perfectly uniform flat chroma-magenta #ff00ff for every non-building pixel. No ground, hill, cliff, paving, grass tile, rectangular pad, cast shadow, sky or gradient.
+
+DO NOT include: guards or people, flags with letters/symbols, walls or neighboring structures, trees, smoke, particles, text, label, UI, multiple variants, sprite sheet, frame, crop, blur, painterly style, enlarged pixels.
+
+Production-ready hard-edged pixel art with coherent lighting. Keep all extreme tips and edges safely inside the image.

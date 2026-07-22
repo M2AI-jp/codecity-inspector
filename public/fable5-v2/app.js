@@ -5,17 +5,20 @@ import {
   GAMEPLAY_ZOOM,
   INN_CONTRACT,
   buildInvestigation,
+  cameraSmoothingRateForMotionPreference,
   createCamera,
   createDoorAutoState,
   evaluateDoorAutoTransition,
   fadeOverlayAlpha,
+  isClosedEntranceId,
   isTransitionExpired,
-  ledgerCompletionPulse,
+  ledgerPulseForMotionPreference,
   lerpCameraFocus,
   moveActor,
   nearbyInteraction,
   rectsOverlap,
   spriteFrame,
+  transitionDurationForMotionPreference,
   worldToScreen,
   wrapCanvasText
 } from './world-runtime.mjs';
@@ -61,13 +64,33 @@ context.imageSmoothingEnabled = false;
 // state swap itself (see applyModeSwitch) lands exactly at the midpoint,
 // when fadeOverlayAlpha() reports the screen fully covered. This also feeds
 // state.transitionUntil, so it is the single knob for how long input stays
-// locked across a door transition.
+// locked across a door transition. TRANSITION_TOTAL_MS_REDUCED is the
+// prefers-reduced-motion replacement for it (see beginModeTransition and
+// transitionDurationForMotionPreference in world-runtime.mjs) -- shortened
+// rather than eliminated so a transition still reads as a scene change
+// instead of a jarring instant pop, while cutting the sustained-motion
+// fade time by more than half.
 const TRANSITION_TOTAL_MS = 200;
-const TRANSITION_HALF_MS = TRANSITION_TOTAL_MS / 2;
+const TRANSITION_TOTAL_MS_REDUCED = 80;
 // Fraction of the remaining camera-to-target distance closed per 60fps
 // frame; see smoothingFactor() in world-runtime.mjs for the frame-rate
-// independent conversion.
+// independent conversion. Under prefers-reduced-motion this is replaced by
+// a rate of 1 (see cameraSmoothingRateForMotionPreference), which makes the
+// camera follow the player immediately instead of easing.
 const CAMERA_SMOOTHING_RATE = 0.15;
+
+// prefers-reduced-motion is read once here at module load (state.reduceMotion's
+// initial value below) and again on every 'change' event (see the
+// addEventListener call near the other window listeners at the bottom of
+// this file), so a user who toggles the OS/browser setting mid-session sees
+// every motion-driven system -- camera easing, the ledger completion pulse,
+// door transition fade duration -- adjust immediately, with no reload
+// required. matchMedia is guarded for environments where it might be
+// missing (never actually true in a supported browser, but this keeps boot
+// from throwing rather than silently degrading motion preferences).
+const reducedMotionQuery = typeof window.matchMedia === 'function'
+  ? window.matchMedia('(prefers-reduced-motion: reduce)')
+  : null;
 
 const state = {
   ready: false,
@@ -105,7 +128,8 @@ const state = {
   foundClues: new Set(),
   completionStartedAt: 0,
   lastTimestamp: 0,
-  animationFrame: 0
+  animationFrame: 0,
+  reduceMotion: reducedMotionQuery?.matches ?? false
 };
 
 function setStatus(message) {
@@ -220,7 +244,14 @@ function updateNearby(timestamp) {
     : nearbyInteraction(state.player, state.mode);
   elements.mission.hidden = state.nearby?.id === 'talk-innkeeper';
   elements.prompt.hidden = !state.nearby || state.nearby.id === 'talk-innkeeper';
-  elements.action.disabled = !state.nearby;
+  // A closed entrance (town hall / house / east market shop -- see
+  // CLOSED_ENTRANCES in world-runtime.mjs) is honestly non-actionable: unlike
+  // enter-inn/exit-inn there is no auto-transition and no manual fallback
+  // that does anything for it (performAction's id checks simply don't match
+  // 'closed-*'), so the action button stays disabled for it exactly like it
+  // does with no nearby interaction at all.
+  const isClosed = isClosedEntranceId(state.nearby?.id);
+  elements.action.disabled = !state.nearby || isClosed;
   if (!state.nearby) {
     if (state.lastNearbyId) setStatus('近くに操作できるものはありません。');
     state.lastNearbyId = null;
@@ -229,14 +260,17 @@ function updateNearby(timestamp) {
   // Doors now auto-enter/exit on approach (see updateAutoTransition), so
   // their prompt describes walking in rather than a key press; the key
   // hint chip is hidden for them too. NPC talk and clue inspection stay
-  // manual-only and keep the key hint.
+  // manual-only and keep the key hint. Closed entrances are hidden the same
+  // way as auto doors: there is nothing to press Enter/E for, only a reason
+  // to read (Fable5VerticalSlice24x16.md requirement 4).
   const isAutoDoor = state.nearby.id === 'enter-inn' || state.nearby.id === 'exit-inn';
+  const noKeyAction = isAutoDoor || isClosed;
   elements.promptPlace.textContent = state.nearby.place;
   elements.promptAction.textContent = state.nearby.label;
-  elements.promptKey.hidden = isAutoDoor;
+  elements.promptKey.hidden = noKeyAction;
   if (state.lastNearbyId !== state.nearby.id) {
     state.lastNearbyId = state.nearby.id;
-    setStatus(isAutoDoor
+    setStatus(noKeyAction
       ? `${state.nearby.place}。${state.nearby.label}。`
       : `${state.nearby.place}。${state.nearby.label}。EnterまたはEキー。`);
   }
@@ -310,12 +344,22 @@ function beginModeTransition(mode, timestamp) {
   // manual Enter/E/action-button fallback in performAction) must be a
   // strict no-op here, never restarting the clock or overwriting
   // startedAt/doorAuto -- otherwise a transition could never finish
-  // (perpetually reset before elapsed reaches TRANSITION_TOTAL_MS), which
+  // (perpetually reset before elapsed reaches its own totalMs), which
   // means a perpetually stuck black fade overlay. See
   // test/town/transition-and-camera.test.mjs for a direct regression test.
   if (state.pendingTransition) return;
-  state.transitionUntil = timestamp + TRANSITION_TOTAL_MS;
-  state.pendingTransition = { targetMode: mode, startedAt: timestamp, applied: false };
+  // The duration is resolved once, here, from whatever state.reduceMotion is
+  // *right now* and stored on the transition itself (pending.totalMs) rather
+  // than re-read from the live setting on every later frame -- so a
+  // prefers-reduced-motion toggle mid-flight can never change an
+  // already-running transition's speed out from under
+  // updateModeTransition/currentFadeAlpha, only the next transition that
+  // begins after the toggle (see this function's own module-level comment
+  // on state.reduceMotion for why that is still "live" enough to satisfy
+  // the no-reload requirement).
+  const totalMs = transitionDurationForMotionPreference(state.reduceMotion, TRANSITION_TOTAL_MS, TRANSITION_TOTAL_MS_REDUCED);
+  state.transitionUntil = timestamp + totalMs;
+  state.pendingTransition = { targetMode: mode, startedAt: timestamp, applied: false, totalMs };
   state.doorAuto = { latched: true, cooldownUntil: timestamp + DOOR_AUTO_COOLDOWN_MS };
 }
 
@@ -332,23 +376,23 @@ function updateModeTransition(timestamp) {
   // is pure insurance -- with timestamp sanitized at the top of frame() and
   // a single, consistent clock basis everywhere a transition's startedAt is
   // recorded (see performAction), `elapsed` should always cross
-  // TRANSITION_HALF_MS/TOTAL_MS well before this fires -- but a stuck
-  // transition means a stuck black overlay and permanently locked input, so
-  // it must never be possible to get wedged here for any reason, including
-  // ones not yet imagined.
-  const expired = isTransitionExpired(elapsed, TRANSITION_TOTAL_MS);
-  if (!pending.applied && (elapsed >= TRANSITION_HALF_MS || expired)) {
+  // pending.totalMs/2 and pending.totalMs well before this fires -- but a
+  // stuck transition means a stuck black overlay and permanently locked
+  // input, so it must never be possible to get wedged here for any reason,
+  // including ones not yet imagined.
+  const expired = isTransitionExpired(elapsed, pending.totalMs);
+  if (!pending.applied && (elapsed >= pending.totalMs / 2 || expired)) {
     applyModeSwitch(pending.targetMode, timestamp);
     pending.applied = true;
   }
-  if (elapsed >= TRANSITION_TOTAL_MS || expired) {
+  if (elapsed >= pending.totalMs || expired) {
     state.pendingTransition = null;
   }
 }
 
 function currentFadeAlpha(timestamp) {
   const pending = state.pendingTransition;
-  return pending ? fadeOverlayAlpha(timestamp - pending.startedAt, TRANSITION_TOTAL_MS) : 0;
+  return pending ? fadeOverlayAlpha(timestamp - pending.startedAt, pending.totalMs) : 0;
 }
 
 // Per-frame edge/latch/cooldown evaluation for the door the player is
@@ -373,7 +417,11 @@ function updateAutoTransition(timestamp) {
 // switch so this never has to chase a same-frame teleport.
 function updateCamera(deltaSeconds) {
   const target = state.mode === 'interior' ? INN_CONTRACT.interior.cameraFocus : state.player;
-  state.cameraFocus = lerpCameraFocus(state.cameraFocus, target, deltaSeconds, CAMERA_SMOOTHING_RATE);
+  // Read live every frame (not captured once like a transition's totalMs)
+  // so toggling prefers-reduced-motion mid-session takes effect on the very
+  // next frame instead of waiting for some future event.
+  const rate = cameraSmoothingRateForMotionPreference(state.reduceMotion, CAMERA_SMOOTHING_RATE);
+  state.cameraFocus = lerpCameraFocus(state.cameraFocus, target, deltaSeconds, rate);
 }
 
 function beginDialogue({ pages, speaker, anchor, kind }) {
@@ -447,11 +495,25 @@ function openClueDialogue(clue) {
   });
 }
 
+// Bumping a wall right at a closed entrance (town hall / house / east market
+// shop) used to give the exact same generic message as bumping a bench or a
+// lamp post, which is exactly what Fable5VerticalSlice24x16.md requirement 4
+// rules out: an unimplemented door must not read as "just another obstacle".
+// This looks up nearbyInteraction() fresh (rather than trusting
+// state.nearby, whose value this frame -- see frame()'s call order -- was
+// computed from the position *before* this failed move attempt) so the
+// closed-door reason and the ambient prompt shown while merely standing
+// nearby always agree, matching requirement 4's "一貫したUXで示す". Any
+// other obstacle (bench, lamp, planter, the flowerbed) keeps the original
+// generic message.
 function registerBump(timestamp) {
   state.bumpUntil = Math.max(state.bumpUntil, timestamp + 300);
   if (!state.lastBumpStatusAt || timestamp - state.lastBumpStatusAt >= 700) {
     state.lastBumpStatusAt = timestamp;
-    setStatus('ここは通れません。別の道を探してください。');
+    const blockedNearby = nearbyInteraction(state.player, state.mode);
+    setStatus(isClosedEntranceId(blockedNearby?.id)
+      ? `${blockedNearby.place}。${blockedNearby.label}`
+      : 'ここは通れません。別の道を探してください。');
   }
 }
 
@@ -463,8 +525,10 @@ function drawLedgerCompletion(timestamp) {
   // timestamp reaches it, which is what turns a single bad frame into a
   // permanently dead rAF loop. frame()'s sanitizeTimestamp() should make
   // that unreachable in practice; the guard inside ledgerCompletionPulse
-  // itself is the last line of defense.
-  const pulse = ledgerCompletionPulse(timestamp);
+  // itself is the last line of defense. ledgerPulseForMotionPreference
+  // wraps that same guarded function and additionally freezes the glow at
+  // its rest brightness under prefers-reduced-motion instead of pulsing.
+  const pulse = ledgerPulseForMotionPreference(state.reduceMotion, timestamp);
   context.save();
   const glow = context.createRadialGradient(224, 315, 3, 224, 315, 46);
   glow.addColorStop(0, `rgba(255, 228, 145, ${0.38 * pulse})`);
@@ -877,6 +941,16 @@ window.addEventListener('blur', () => {
   state.heldDirections.clear();
 });
 window.addEventListener('resize', resizeCanvas);
+// Live reflection of the OS/browser motion preference: updateCamera() reads
+// state.reduceMotion fresh every frame and beginModeTransition()/
+// drawLedgerCompletion() read it whenever they next run, so flipping this
+// mid-session takes effect immediately -- no reload, no re-entering the
+// game -- matching the same MediaQueryList 'change' event the .spinner's
+// own @media (prefers-reduced-motion: reduce) rule in styles.css responds
+// to automatically via CSS.
+reducedMotionQuery?.addEventListener('change', (event) => {
+  state.reduceMotion = event.matches;
+});
 elements.action.addEventListener('click', () => performAction());
 elements.zoomOut.addEventListener('click', () => changeZoom(-1));
 elements.zoomIn.addEventListener('click', () => changeZoom(1));

@@ -1,0 +1,71 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://codecity-inspector.local/asset-forge/legacy-disposition-v3.schema.json",
+  "title": "Fable5LegacyDispositionV3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "contract", "legacyRequiredSet", "legacyFreezeDigest", "counts",
+    "waveARemakes", "waveBRemakes", "retired", "dispositionDigest"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contract": { "const": "fable5-legacy-disposition-v1" },
+    "legacyRequiredSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "assetCount", "assetIdsSha256"],
+      "properties": {
+        "id": { "const": "legacy-approved-78" },
+        "assetCount": { "const": 78 },
+        "assetIdsSha256": { "$ref": "#/definitions/sha256" }
+      }
+    },
+    "legacyFreezeDigest": { "$ref": "#/definitions/sha256" },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["keep", "remake", "retire", "waveARemake", "waveBRemake"],
+      "properties": {
+        "keep": { "const": 0 },
+        "remake": { "const": 65 },
+        "retire": { "const": 13 },
+        "waveARemake": { "const": 45 },
+        "waveBRemake": { "const": 20 }
+      }
+    },
+    "waveARemakes": {
+      "type": "array", "minItems": 45, "maxItems": 45,
+      "items": { "$ref": "#/definitions/remake" }
+    },
+    "waveBRemakes": {
+      "type": "array", "minItems": 20, "maxItems": 20,
+      "items": { "$ref": "#/definitions/remake" }
+    },
+    "retired": {
+      "type": "array", "minItems": 13, "maxItems": 13, "uniqueItems": true,
+      "items": { "$ref": "#/definitions/legacyAssetId" }
+    },
+    "dispositionDigest": { "$ref": "#/definitions/sha256" }
+  },
+  "definitions": {
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "legacyAssetId": {
+      "type": "string",
+      "pattern": "^(building|character|field|object|effect)\\.[a-z0-9_]+(?:\\.[a-z0-9_]+)*$"
+    },
+    "successorAssetId": {
+      "type": "string",
+      "pattern": "^(building|character|terrain|structure|prop|effect)\\.[a-z0-9_]+(?:\\.[a-z0-9_]+)*$"
+    },
+    "remake": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["legacyAssetId", "successorAssetId"],
+      "properties": {
+        "legacyAssetId": { "$ref": "#/definitions/legacyAssetId" },
+        "successorAssetId": { "$ref": "#/definitions/successorAssetId" }
+      }
+    }
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://codecity-inspector.local/asset-forge/reference-authorization-v2.schema.json",
+  "title": "Fable5WaveReferenceAuthorization",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "requiredSetId", "waveId", "status", "ownerAuthorization",
+    "ownerAuthorizationSha256", "independentReview", "assetReferenceMapSha256",
+    "allowedReferenceIds", "forbiddenReferenceIds"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "requiredSetId": { "const": "fable5-v2" },
+    "waveId": { "const": "A" },
+    "status": { "enum": ["pending-independent-review", "approved", "rejected"] },
+    "ownerAuthorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "recordedAt", "source", "scope", "rightsLimitation"],
+      "properties": {
+        "status": { "const": "confirmed" },
+        "recordedAt": { "type": "string", "format": "date-time" },
+        "source": { "type": "string", "minLength": 1 },
+        "scope": { "type": "string", "minLength": 1 },
+        "rightsLimitation": { "type": "string", "minLength": 1 }
+      }
+    },
+    "ownerAuthorizationSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "independentReview": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status"],
+          "properties": { "status": { "const": "pending" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "reviewPath", "reviewSha256", "reviewedAt"],
+          "properties": {
+            "status": { "enum": ["pass", "fail"] },
+            "reviewPath": { "type": "string", "pattern": "^review/[a-zA-Z0-9_./-]+\\.json$" },
+            "reviewSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+            "reviewedAt": { "type": "string", "format": "date-time" }
+          }
+        }
+      ]
+    },
+    "assetReferenceMapSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "allowedReferenceIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[a-z0-9_]+(?:\\.[a-z0-9_]+)*$" }
+    },
+    "forbiddenReferenceIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[a-z0-9_]+(?:\\.[a-z0-9_]+)*$" }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "const": "approved" } }, "required": ["status"] },
+      "then": {
+        "properties": {
+          "independentReview": {
+            "type": "object",
+            "properties": { "status": { "const": "pass" } },
+            "required": ["status"]
+          }
+        }
+      }
+    }
+  ]
+}

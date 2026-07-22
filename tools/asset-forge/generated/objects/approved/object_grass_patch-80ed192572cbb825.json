@@ -1,0 +1,132 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-15T04:37:20.643Z",
+    "approvedPath": "generated/objects/approved/object_grass_patch-80ed192572cbb825.png",
+    "approvedSha256": "80ed192572cbb825a41ee9804693e0f0debe18b80698039a1c0f47d417392c1e",
+    "note": "Required 78 batch approval cb4aa5f67c91a329c140f4a09bdc39b960ccce8a76334957066d7c0e83540042",
+    "reviewer": "human"
+  },
+  "assetId": "object.grass_patch",
+  "category": "object",
+  "createdAt": "2026-07-14T10:00:00.000Z",
+  "dryRun": false,
+  "id": "gen_import_a9cd52251d8b5fc5a7d2",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 64x64.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_d90d1e35db8ff89b9a0c",
+  "manualImport": true,
+  "metadataPath": "generated/objects/approved/object_grass_patch-80ed192572cbb825.json",
+  "outputInspection": {
+    "bytes": 1318,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 64,
+    "width": 64
+  },
+  "outputPath": "generated/objects/approved/object_grass_patch-80ed192572cbb825.png",
+  "outputSha256": "80ed192572cbb825a41ee9804693e0f0debe18b80698039a1c0f47d417392c1e",
+  "productionRecipe": {
+    "assetId": "object.grass_patch",
+    "backgroundRemoval": {
+      "autoKey": "border",
+      "cleanup": {
+        "alphaCutoff": 128,
+        "componentMinPixels": 1,
+        "resizeKernel": "nearest",
+        "targetMaxHeight": 60,
+        "targetMaxWidth": 60
+      },
+      "despill": true,
+      "keyColor": null,
+      "method": "official-chroma-key-helper",
+      "opaqueThreshold": 110,
+      "softMatte": true,
+      "transparentThreshold": 20
+    },
+    "canvas": {
+      "baselineY": 63,
+      "height": 64,
+      "width": 64
+    },
+    "generator": "approved-reference-direct-extraction",
+    "method": "direct-extraction",
+    "orientationContract": "complete standalone prop centered on a 64x64 transparent canvas and aligned to baseline y=63",
+    "outputSha256": "80ed192572cbb825a41ee9804693e0f0debe18b80698039a1c0f47d417392c1e",
+    "referenceImages": [
+      {
+        "id": "world_visual_master",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_object_street_props",
+        "sha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85"
+      }
+    ],
+    "scaleClass": "tiny",
+    "source": {
+      "cropRect": {
+        "height": 58,
+        "width": 72,
+        "x": 12,
+        "y": 332
+      },
+      "height": 1024,
+      "path": "references/approved/object_street_props_sheet.png",
+      "sha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "width": 1536
+    },
+    "sourceSnapshot": {
+      "height": 1024,
+      "path": "generated/objects/approved/source-b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85.source-original.png",
+      "sha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "width": 1536
+    },
+    "subjectBbox": {
+      "height": 40,
+      "width": 50,
+      "x": 7,
+      "y": 24
+    },
+    "transformSteps": [
+      "crop",
+      "chroma-key-remove",
+      "hard-alpha",
+      "palette-quantize"
+    ],
+    "waveId": "wave1d-objects-effects"
+  },
+  "promptHash": "422bce337d2a5cb66102734f96e2bbcccf619563899e5015ad3ba6f6496f4e41",
+  "provenanceKey": "a9cd52251d8b5fc5a7d24d6c5350a4406afcee6f0a841582b63c83afc9ece60b",
+  "provider": "manual-import",
+  "referenceImageHashes": [
+    "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+    "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85"
+  ],
+  "referenceImageIds": [
+    "world_visual_master",
+    "intake_20260713_object_street_props"
+  ],
+  "sourceFormat": "png",
+  "sourcePath": "generated/objects/pending/object_grass_patch-2bacea849f457a52.source.png",
+  "sourceSha256": "2bacea849f457a52b127afe56323def15f1d610ba981511a394cf5aa3c8e031c",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

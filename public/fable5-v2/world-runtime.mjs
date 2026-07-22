@@ -91,6 +91,68 @@ export const CLUE_INTERACTIONS = Object.freeze([
   })
 ]);
 
+// Fable5VerticalSlice24x16.md requirement 4: "未実装入口は装飾扉として偽らず、閉鎖状態と
+// 理由を一貫したUXで示す". Before this, walking up to the town hall / a house / an east
+// market shop produced no signal at all beyond the same generic bump message every other
+// obstacle (a bench, a lamp post) already gives via registerBump() in app.js -- the player
+// could not tell "this is a real, permanently closed entrance" from "this is scenery you
+// should walk around". Each entry below pairs a doorway visually confirmed against
+// target-town-user-direct-v1.png (1586x992, the exact runtime background -- see
+// PRODUCTION_ASSETS.worldMaster in site-runtime.mjs) with a walkable approach point in
+// front of it (verified with isExteriorWalkable against this same file) and a
+// world-appropriate reason. nearbyInteraction() below reports these only after the
+// CLUE_INTERACTIONS loop, so a genuine investigation hotspot (e.g. clue-east-shop's sign,
+// 195px away from closed-eastshop's own point) always keeps priority over the ambient
+// "this is closed" message when both would otherwise be in range.
+//
+// Door measurements (pixel rects visually confirmed against the runtime background):
+//   - town hall: recessed double-door arch approx x 605-675, y 155-222, at the top of a
+//     staircase whose bottom step meets the plaza's own north edge (CIVIC_PLAZA's y=285
+//     top edge) around x 590-690. closed-townhall's point (640,296) is the nearest
+//     confirmed-walkable spot centred under that door.
+//   - house: a residential door approx x 965-1030, y 210-270, in the townhouse row east of
+//     the town hall (Fable5VerticalSlice24x16.md's "一般家屋"). closed-house's point
+//     (997,296) is the nearest confirmed-walkable spot centred under it.
+//   - east market shop: the second (east) market stall's open counter/doorway approx
+//     x 1370-1420, y 380-440, distinct from the first stall's signboard that
+//     clue-east-shop already investigates. closed-eastshop's point (1395,480) is the
+//     nearest confirmed-walkable spot in front of it.
+export const CLOSED_ENTRANCES = Object.freeze([
+  Object.freeze({
+    id: 'closed-townhall',
+    label: '市庁舎は現在閉まっている。役人は出払っているようだ。',
+    shortLabel: '市庁舎の正面扉',
+    place: '古町の市庁舎',
+    point: Object.freeze({ x: 640, y: 296 }),
+    radius: 55
+  }),
+  Object.freeze({
+    id: 'closed-house',
+    label: 'この家の扉は閉ざされている。住人は留守のようだ。',
+    shortLabel: '住宅の扉',
+    place: '古町の住宅',
+    point: Object.freeze({ x: 997, y: 296 }),
+    radius: 55
+  }),
+  Object.freeze({
+    id: 'closed-eastshop',
+    label: 'この店の扉も閉ざされている。看板と同じく、今日は開いていないようだ。',
+    shortLabel: '東市場の店の扉',
+    place: '東市場の店',
+    point: Object.freeze({ x: 1395, y: 480 }),
+    radius: 55
+  })
+]);
+
+// Pure classification helper so app.js (registerBump, updateNearby) never has to repeat
+// the 'closed-' id-prefix convention inline. A closed entrance is deliberately
+// non-actionable -- there is nothing to press Enter/E/the action button for -- so callers
+// use this to suppress the key hint and disable the action button, not just to pick which
+// message string to show.
+export function isClosedEntranceId(id) {
+  return typeof id === 'string' && id.startsWith('closed-');
+}
+
 const MAIN_ROAD = Object.freeze([
   // Include the visible north cobble edge so the actor footprint, not just its
   // centre point, can cross the plaza/road join at y=480.
@@ -339,6 +401,13 @@ export function nearbyInteraction(position, mode) {
       const clueDistance = distanceBetween(position, clue.point);
       if (clueDistance <= clue.radius) return Object.freeze({ ...clue, distance: clueDistance });
     }
+    // Checked after CLUE_INTERACTIONS so a genuine investigation hotspot never loses its
+    // prompt to the ambient "this is closed" message merely because the two happen to sit
+    // near each other (see CLOSED_ENTRANCES's own comment for the exact separation).
+    for (const entrance of CLOSED_ENTRANCES) {
+      const entranceDistance = distanceBetween(position, entrance.point);
+      if (entranceDistance <= entrance.radius) return Object.freeze({ ...entrance, distance: entranceDistance });
+    }
     return null;
   }
   const npcDistance = distanceBetween(position, INN_CONTRACT.interior.npcInteractionPoint);
@@ -557,6 +626,45 @@ export function spriteFrame(actor, timestamp) {
 // source.
 export function ledgerCompletionPulse(timestamp) {
   return Number.isFinite(timestamp) ? 0.86 + Math.sin(timestamp / 260) * 0.08 : 0.86;
+}
+
+// --- prefers-reduced-motion ------------------------------------------------
+//
+// window.matchMedia('(prefers-reduced-motion: reduce)') is a browser API and
+// deliberately never touches this module (every function here stays DOM-free
+// so it can be unit tested under plain Node -- the same convention every
+// other pure function in this file already follows). app.js is the only
+// place that reads the media query, once at boot and again on every 'change'
+// event so a user who toggles the OS setting mid-session sees the effect
+// immediately with no reload -- but it hands the resulting boolean to these
+// three pure functions rather than branching inline, so *what value each
+// motion-driven system switches to* is directly testable here, not just "did
+// app.js call matchMedia". Each one degrades a specific animated system
+// app.js drives every frame or per-transition:
+//   - cameraSmoothingRateForMotionPreference: feeds lerpCameraFocus's own
+//     `rate` (see smoothingFactor above). A rate of 1 makes smoothingFactor
+//     return 1 for any deltaSeconds>0, so lerpCameraFocus snaps `current`
+//     fully onto `target` every single frame instead of easing -- the camera
+//     follows the player immediately, with no lag to perceive as motion.
+//   - ledgerPulseForMotionPreference: replaces ledgerCompletionPulse's own
+//     Math.sin(...) oscillation with that same function's rest/midpoint
+//     value (0.86), so the completion glow's *brightness* is unchanged on
+//     average, it simply stops pulsing.
+//   - transitionDurationForMotionPreference: shortens (or, with
+//     reducedDurationMs=0, eliminates) the black fade app.js's
+//     beginModeTransition/updateModeTransition/currentFadeAlpha drive across
+//     a door transition. Generic over the specific millisecond values so
+//     app.js's own constants stay the single source of truth for timing.
+export function cameraSmoothingRateForMotionPreference(reduceMotion, baseRate) {
+  return reduceMotion ? 1 : baseRate;
+}
+
+export function ledgerPulseForMotionPreference(reduceMotion, timestamp) {
+  return reduceMotion ? 0.86 : ledgerCompletionPulse(timestamp);
+}
+
+export function transitionDurationForMotionPreference(reduceMotion, baseDurationMs, reducedDurationMs) {
+  return reduceMotion ? reducedDurationMs : baseDurationMs;
 }
 
 export function evidenceDialoguePages(payload) {

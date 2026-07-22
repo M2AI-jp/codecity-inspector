@@ -1,0 +1,151 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-15T04:37:15.131Z",
+    "approvedPath": "generated/fields/approved/field_road_corner-317eed2026bc424e.png",
+    "approvedSha256": "317eed2026bc424efb6c5d2930b0a45c21d1dca3cbeaa105ff75e24d9eff1aff",
+    "note": "Required 78 batch approval cb4aa5f67c91a329c140f4a09bdc39b960ccce8a76334957066d7c0e83540042",
+    "reviewer": "human"
+  },
+  "assetId": "field.road_corner",
+  "category": "field",
+  "createdAt": "2026-07-14T17:49:05.991Z",
+  "dryRun": false,
+  "id": "gen_import_7463dd862d80eacca18d",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 64x64.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_1709ca9e55e467ce558f",
+  "manualImport": true,
+  "metadataPath": "generated/fields/approved/field_road_corner-317eed2026bc424e.json",
+  "outputInspection": {
+    "bytes": 3474,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 64,
+    "width": 64
+  },
+  "outputPath": "generated/fields/approved/field_road_corner-317eed2026bc424e.png",
+  "outputSha256": "317eed2026bc424efb6c5d2930b0a45c21d1dca3cbeaa105ff75e24d9eff1aff",
+  "productionRecipe": {
+    "assetId": "field.road_corner",
+    "backgroundRemoval": {
+      "autoKey": null,
+      "cleanup": {
+        "alphaCutoff": 0,
+        "componentMinPixels": 1,
+        "resizeKernel": "nearest",
+        "targetMaxHeight": 64,
+        "targetMaxWidth": 64
+      },
+      "despill": false,
+      "keyColor": null,
+      "method": "none",
+      "opaqueThreshold": 255,
+      "softMatte": false,
+      "transparentThreshold": 0
+    },
+    "canvas": {
+      "baselineY": 63,
+      "height": 64,
+      "width": 64
+    },
+    "compositeMask": {
+      "backgroundAssetId": "field.grass",
+      "backgroundPath": "review/production-evidence/legacy-v2/wave1b-fields/field_grass_composite_background.png",
+      "backgroundSha256": "8181c28a71f221650ca0240b8183143a3a558ddca062b3679264788b836fd2f8",
+      "height": 64,
+      "path": "review/production-evidence/legacy-v2/wave1b-fields/field_road_corner_mask.png",
+      "sha256": "197087081c7f5259ac9c559e742e64b2d529f673879c2a830a57b41c3f4c6e30",
+      "width": 64
+    },
+    "generationPromptPath": "review/prompts/wave1b-fields/field_road_corner.txt",
+    "generationPromptSha256": "6e6252b1ed88f5a419ce91eef8e9d7c37437d8fbddb795763458db355366ddec",
+    "generator": "codex-imagegen-built-in",
+    "inputReferences": [
+      {
+        "id": "world_visual_master",
+        "role": "global-style",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_field_cobblestone_roads",
+        "role": "primary-subject",
+        "sha256": "f732a849dd88138e3acccc24970bef9e923302fec1aa01ffac195b8195cfff3d"
+      }
+    ],
+    "method": "imagegen",
+    "orientationContract": "cobblestone road enters from top and exits right in a ninety-degree corner",
+    "outputSha256": "317eed2026bc424efb6c5d2930b0a45c21d1dca3cbeaa105ff75e24d9eff1aff",
+    "referenceImages": [
+      {
+        "id": "world_visual_master",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_field_cobblestone_roads",
+        "sha256": "f732a849dd88138e3acccc24970bef9e923302fec1aa01ffac195b8195cfff3d"
+      }
+    ],
+    "scaleClass": "medium",
+    "source": {
+      "cropRect": null,
+      "height": 1254,
+      "path": "tmp/imagegen/wave1b-fields/raw/field_road_corner.png",
+      "sha256": "0e0809bfeae1cd56a08b880c8534104a7aa1f9e7512db76f1d9c430a5035dca6",
+      "width": 1254
+    },
+    "sourceSnapshot": {
+      "height": 1254,
+      "path": "generated/fields/approved/source-0e0809bfeae1cd56a08b880c8534104a7aa1f9e7512db76f1d9c430a5035dca6.source-original.png",
+      "sha256": "0e0809bfeae1cd56a08b880c8534104a7aa1f9e7512db76f1d9c430a5035dca6",
+      "width": 1254
+    },
+    "subjectBbox": {
+      "height": 64,
+      "width": 64,
+      "x": 0,
+      "y": 0
+    },
+    "toolMode": "built-in",
+    "transformSteps": [
+      "full-frame",
+      "nearest-downscale",
+      "palette-quantize",
+      "grass-background-composite"
+    ],
+    "waveId": "wave4-ground-surfaces"
+  },
+  "promptHash": "d24cb3ba481285038ffff0edc27ce7410cef258517c133c25c0ba5a1e669e0bd",
+  "provenanceKey": "7463dd862d80eacca18d2beee4601c13b37a3fa2b770d45ccdd613e17c372c28",
+  "provider": "manual-import",
+  "referenceImageHashes": [
+    "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+    "f732a849dd88138e3acccc24970bef9e923302fec1aa01ffac195b8195cfff3d"
+  ],
+  "referenceImageIds": [
+    "world_visual_master",
+    "intake_20260713_field_cobblestone_roads"
+  ],
+  "sourceFormat": "png",
+  "sourcePath": "generated/fields/pending/field_road_corner-317eed2026bc424e.source.png",
+  "sourceSha256": "317eed2026bc424efb6c5d2930b0a45c21d1dca3cbeaa105ff75e24d9eff1aff",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

@@ -1,0 +1,204 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://codecity-inspector.local/asset-forge/job-pack-v2.schema.json",
+  "title": "Fable5WaveAJobPack",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "requiredSetId", "waveId", "status", "jobId", "assetId",
+    "category", "generationMode", "generationUnitSetSha256", "generationExpectations",
+    "generationUnitIds", "identityMasterPlanId", "members", "references", "artifactRoles",
+    "contentDigest"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 2 },
+    "requiredSetId": { "const": "fable5-v2" },
+    "waveId": { "const": "A" },
+    "status": { "const": "job-pack" },
+    "jobId": { "type": "string", "pattern": "^job_v2_[a-f0-9]{20}$" },
+    "assetId": {
+      "type": "string",
+      "pattern": "^(character|building|terrain|overlay|structure|interior|prop|ui|effect)\\.[a-z0-9_]+(?:\\.[a-z0-9_]+)*$"
+    },
+    "category": {
+      "enum": ["character", "building", "terrain", "overlay", "structure", "interior", "prop", "ui", "effect"]
+    },
+    "generationMode": { "enum": ["per-unit", "monolithic-atlas", "character-direction-strips", "terrain-composed-atlas"] },
+    "generationUnitSetSha256": { "$ref": "#/definitions/sha256" },
+    "generationExpectations": { "$ref": "#/definitions/expectations" },
+    "generationUnitIds": {
+      "type": "array", "minItems": 1, "maxItems": 100, "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^unit_[a-z0-9_]+$" }
+    },
+    "identityMasterPlanId": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "string", "pattern": "^identity_[a-f0-9]{20}$" }
+      ]
+    },
+    "characterAtlasLayoutPlan": {
+      "$ref": "generation-job-v2.schema.json#/definitions/characterAtlasLayoutPlan"
+    },
+    "characterDirectionStripPlan": {
+      "$ref": "generation-job-v2.schema.json#/definitions/characterDirectionStripPlan"
+    },
+    "members": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["job", "prompt", "definition", "unitPlan", "authorization", "independentReview"],
+      "properties": {
+        "job": { "$ref": "#/definitions/member" },
+        "prompt": { "$ref": "#/definitions/member" },
+        "definition": { "$ref": "#/definitions/member" },
+        "unitPlan": { "$ref": "#/definitions/member" },
+        "authorization": { "$ref": "#/definitions/member" },
+        "independentReview": { "$ref": "#/definitions/member" }
+      }
+    },
+    "references": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": [
+        {
+          "allOf": [
+            { "$ref": "#/definitions/referenceMember" },
+            { "type": "object", "properties": { "role": { "const": "global-style" } } }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/definitions/referenceMember" },
+            { "type": "object", "properties": { "role": { "const": "primary-subject" } } }
+          ]
+        }
+      ],
+      "additionalItems": false
+    },
+    "artifactRoles": {
+      "oneOf": [
+        {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "items": [{ "const": "primary" }],
+          "additionalItems": false
+        },
+        {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": [{ "const": "base" }, { "const": "roof" }],
+          "additionalItems": false
+        }
+      ]
+    },
+    "contentDigest": { "$ref": "#/definitions/sha256" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "category": { "const": "building" } }, "required": ["category"] },
+      "then": {
+        "properties": {
+          "artifactRoles": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": [{ "const": "base" }, { "const": "roof" }],
+            "additionalItems": false
+          },
+          "identityMasterPlanId": { "type": "null" }
+        }
+      },
+      "else": {
+        "properties": {
+          "artifactRoles": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 1,
+            "items": [{ "const": "primary" }],
+            "additionalItems": false
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "category": { "const": "character" } }, "required": ["category"] },
+      "then": {
+        "properties": {
+          "identityMasterPlanId": { "type": "string", "pattern": "^identity_[a-f0-9]{20}$" }
+        }
+      },
+      "else": { "properties": { "identityMasterPlanId": { "type": "null" } } }
+    },
+    {
+      "if": {
+        "properties": { "characterAtlasLayoutPlan": {} },
+        "required": ["characterAtlasLayoutPlan"]
+      },
+      "then": {
+        "properties": {
+          "category": { "const": "character" },
+          "generationMode": { "const": "monolithic-atlas" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "generationMode": { "const": "character-direction-strips" } },
+        "required": ["generationMode"]
+      },
+      "then": {
+        "properties": {
+          "category": { "const": "character" },
+          "characterDirectionStripPlan": {
+            "$ref": "generation-job-v2.schema.json#/definitions/characterDirectionStripPlan"
+          }
+        },
+        "required": ["characterDirectionStripPlan"]
+      },
+      "else": {
+        "not": {
+          "properties": { "characterDirectionStripPlan": {} },
+          "required": ["characterDirectionStripPlan"]
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "expectations": {
+      "type": "object", "additionalProperties": false,
+      "required": ["expected-nonempty", "semantic-transparent", "reserved-transparent"],
+      "properties": {
+        "expected-nonempty": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "semantic-transparent": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "reserved-transparent": { "type": "integer", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "packPath": {
+      "type": "string",
+      "pattern": "^generated/jobs/v2/fable5-v2/wave-a/[a-z0-9_-]+-job_v2_[a-f0-9]{20}/[a-zA-Z0-9_./-]+$"
+    },
+    "member": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "$ref": "#/definitions/packPath" },
+        "sha256": { "$ref": "#/definitions/sha256" }
+      }
+    },
+    "referenceMember": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "role", "path", "sha256"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "role": { "enum": ["global-style", "primary-subject"] },
+        "path": { "$ref": "#/definitions/packPath" },
+        "sha256": { "$ref": "#/definitions/sha256" }
+      }
+    }
+  }
+}

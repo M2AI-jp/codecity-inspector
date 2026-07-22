@@ -1,0 +1,131 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-15T04:37:13.253Z",
+    "approvedPath": "generated/fields/approved/field_dock_floor-8fd0e89e4f8d7eb3.png",
+    "approvedSha256": "8fd0e89e4f8d7eb350f1644eae3a69a499c979b92c0b020a1b07f9fb7f271683",
+    "note": "Required 78 batch approval cb4aa5f67c91a329c140f4a09bdc39b960ccce8a76334957066d7c0e83540042",
+    "reviewer": "human"
+  },
+  "assetId": "field.dock_floor",
+  "category": "field",
+  "createdAt": "2026-07-14T00:00:00.000Z",
+  "dryRun": false,
+  "id": "gen_import_57701766e977d76bda12",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 64x64.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_6470e545a7864b2b4440",
+  "manualImport": true,
+  "metadataPath": "generated/fields/approved/field_dock_floor-8fd0e89e4f8d7eb3.json",
+  "outputInspection": {
+    "bytes": 2668,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 64,
+    "width": 64
+  },
+  "outputPath": "generated/fields/approved/field_dock_floor-8fd0e89e4f8d7eb3.png",
+  "outputSha256": "8fd0e89e4f8d7eb350f1644eae3a69a499c979b92c0b020a1b07f9fb7f271683",
+  "productionRecipe": {
+    "assetId": "field.dock_floor",
+    "backgroundRemoval": {
+      "autoKey": null,
+      "cleanup": {
+        "alphaCutoff": 0,
+        "componentMinPixels": 1,
+        "resizeKernel": "nearest",
+        "targetMaxHeight": 64,
+        "targetMaxWidth": 64
+      },
+      "despill": false,
+      "keyColor": null,
+      "method": "none",
+      "opaqueThreshold": 255,
+      "softMatte": false,
+      "transparentThreshold": 0
+    },
+    "canvas": {
+      "baselineY": 63,
+      "height": 64,
+      "width": 64
+    },
+    "generator": "asset-forge-direct-extraction",
+    "method": "direct-extraction",
+    "orientationContract": "non-directional walkable wooden dock planks with no water, post, or outer edge",
+    "outputSha256": "8fd0e89e4f8d7eb350f1644eae3a69a499c979b92c0b020a1b07f9fb7f271683",
+    "referenceImages": [
+      {
+        "id": "world_visual_master",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_field_harbor_docks_tiles",
+        "sha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580"
+      }
+    ],
+    "scaleClass": "medium",
+    "source": {
+      "cropRect": {
+        "height": 64,
+        "width": 64,
+        "x": 1090,
+        "y": 175
+      },
+      "height": 1024,
+      "path": "references/approved/field_harbor_docks_tiles_sheet.png",
+      "sha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580",
+      "width": 1536
+    },
+    "sourceSnapshot": {
+      "height": 1024,
+      "path": "generated/fields/approved/source-44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580.source-original.png",
+      "sha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580",
+      "width": 1536
+    },
+    "subjectBbox": {
+      "height": 64,
+      "width": 64,
+      "x": 0,
+      "y": 0
+    },
+    "transformSteps": [
+      "crop",
+      "wrap-edge-reconcile",
+      "palette-quantize"
+    ],
+    "waveId": "wave1b-fields"
+  },
+  "promptHash": "d24cb3ba481285038ffff0edc27ce7410cef258517c133c25c0ba5a1e669e0bd",
+  "provenanceKey": "57701766e977d76bda1203fe0727f57536b386e8cbf11a7676d79a7d52a3a5c4",
+  "provider": "manual-import",
+  "referenceImageHashes": [
+    "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+    "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580"
+  ],
+  "referenceImageIds": [
+    "world_visual_master",
+    "intake_20260713_field_harbor_docks_tiles"
+  ],
+  "sourceFormat": "png",
+  "sourcePath": "generated/fields/pending/field_dock_floor-2f6bc91a3574b307.source.png",
+  "sourceSha256": "2f6bc91a3574b307ce3c7950cd62293699ec7d4e9a02d97fca10e53ae6b4325d",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

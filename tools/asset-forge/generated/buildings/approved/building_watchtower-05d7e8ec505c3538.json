@@ -1,0 +1,141 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-15T04:37:02.974Z",
+    "approvedPath": "generated/buildings/approved/building_watchtower-05d7e8ec505c3538.png",
+    "approvedSha256": "05d7e8ec505c35389d625a53bc9b1d8a8fc041f2d41a59756be5155a0b5ce9e3",
+    "note": "Required 78 batch approval cb4aa5f67c91a329c140f4a09bdc39b960ccce8a76334957066d7c0e83540042",
+    "reviewer": "human"
+  },
+  "assetId": "building.watchtower",
+  "category": "building",
+  "createdAt": "2026-07-14T00:00:00.000Z",
+  "dryRun": false,
+  "id": "gen_import_21dc1cdc8a191c809823",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 256x256.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_4a9378db73a3c6793a99",
+  "manualImport": true,
+  "metadataPath": "generated/buildings/approved/building_watchtower-05d7e8ec505c3538.json",
+  "outputInspection": {
+    "bytes": 56885,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 256,
+    "width": 256
+  },
+  "outputPath": "generated/buildings/approved/building_watchtower-05d7e8ec505c3538.png",
+  "outputSha256": "05d7e8ec505c35389d625a53bc9b1d8a8fc041f2d41a59756be5155a0b5ce9e3",
+  "productionRecipe": {
+    "assetId": "building.watchtower",
+    "backgroundRemoval": {
+      "autoKey": "border",
+      "cleanup": {
+        "alphaCutoff": 16,
+        "componentMinPixels": 128,
+        "resizeKernel": "nearest",
+        "targetMaxHeight": 236,
+        "targetMaxWidth": 170
+      },
+      "despill": true,
+      "keyColor": null,
+      "method": "official-chroma-key-helper",
+      "opaqueThreshold": 220,
+      "softMatte": true,
+      "transparentThreshold": 12
+    },
+    "canvas": {
+      "baselineY": 244,
+      "height": 256,
+      "width": 256
+    },
+    "generationPromptPath": "review/prompts/wave1a-buildings/building_watchtower.txt",
+    "generationPromptSha256": "bc38abd39212f1fad47e1d16c2c67cffd6b8d82470c77225a254e2752af74559",
+    "generator": "codex-imagegen-built-in",
+    "inputReferences": [
+      {
+        "id": "world_visual_master",
+        "role": "global-style",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_building_watchtower",
+        "role": "primary-subject",
+        "sha256": "414a38a8621c25a0b812426abbc40b46a97444923148b967be8493bc4e2a277a"
+      }
+    ],
+    "method": "imagegen",
+    "outputSha256": "05d7e8ec505c35389d625a53bc9b1d8a8fc041f2d41a59756be5155a0b5ce9e3",
+    "referenceImages": [
+      {
+        "id": "world_visual_master",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_building_watchtower",
+        "sha256": "414a38a8621c25a0b812426abbc40b46a97444923148b967be8493bc4e2a277a"
+      }
+    ],
+    "scaleClass": "landmark",
+    "source": {
+      "comparisonRect": {
+        "height": 360,
+        "width": 330,
+        "x": 20,
+        "y": 0
+      },
+      "cropRect": null,
+      "height": 1402,
+      "path": "tmp/imagegen/wave1a/raw/building_watchtower.png",
+      "sha256": "471b003e3986a9b42ba1bc29c5e8ede9ecf5dd5c07e9c093b7895ad959ff9b50",
+      "width": 1122
+    },
+    "sourceSnapshot": {
+      "height": 1402,
+      "path": "generated/buildings/approved/source-471b003e3986a9b42ba1bc29c5e8ede9ecf5dd5c07e9c093b7895ad959ff9b50.source-original.png",
+      "sha256": "471b003e3986a9b42ba1bc29c5e8ede9ecf5dd5c07e9c093b7895ad959ff9b50",
+      "width": 1122
+    },
+    "subjectBbox": {
+      "height": 236,
+      "width": 109,
+      "x": 73,
+      "y": 9
+    },
+    "toolMode": "built-in",
+    "waveId": "wave1a-buildings"
+  },
+  "promptHash": "982d62b89c3c4cc3d545275bc615cf17f677c1ce407197b368e8f8974cded63b",
+  "provenanceKey": "21dc1cdc8a191c809823767a120668c2985f433d9b1160dac01edfa4351f6c1e",
+  "provider": "manual-import",
+  "referenceImageHashes": [
+    "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+    "414a38a8621c25a0b812426abbc40b46a97444923148b967be8493bc4e2a277a"
+  ],
+  "referenceImageIds": [
+    "world_visual_master",
+    "intake_20260713_building_watchtower"
+  ],
+  "sourceFormat": "png",
+  "sourcePath": "generated/buildings/pending/building_watchtower-05d7e8ec505c3538.source.png",
+  "sourceSha256": "05d7e8ec505c35389d625a53bc9b1d8a8fc041f2d41a59756be5155a0b5ce9e3",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}

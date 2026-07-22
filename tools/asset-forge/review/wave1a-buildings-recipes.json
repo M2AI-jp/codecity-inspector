@@ -1,0 +1,1265 @@
+{
+  "schemaVersion": 1,
+  "waveId": "wave1a-buildings",
+  "state": "pending-inspection",
+  "recipes": [
+    {
+      "outputPath": "generated/buildings/pending/building_inn-3952f1aeab543925.png",
+      "waveId": "wave1a-buildings",
+      "assetId": "building.inn",
+      "method": "imagegen",
+      "generator": "codex-imagegen-built-in",
+      "scaleClass": "large",
+      "generationPromptPath": "review/prompts/wave1a-buildings/building_inn.txt",
+      "generationPromptSha256": "8cf94208f7a4531ed189ef2b7f6a491de5b5a14ebc938c1f9f4e94478b8cd1c3",
+      "toolMode": "built-in",
+      "inputReferences": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+          "role": "global-style"
+        },
+        {
+          "id": "intake_20260713_building_inn",
+          "sha256": "78b18d8ee84c8bd57444babe6923cdb3b16fcfcf592ebbf3411df74bd16c069a",
+          "role": "primary-subject"
+        }
+      ],
+      "referenceImages": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+        },
+        {
+          "id": "intake_20260713_building_inn",
+          "sha256": "78b18d8ee84c8bd57444babe6923cdb3b16fcfcf592ebbf3411df74bd16c069a"
+        }
+      ],
+      "source": {
+        "path": "tmp/imagegen/wave1a/raw/building_inn.png",
+        "sha256": "1ff1bd222dcf162e7591ae90f2959ba51d4bebf876325889e2c248013ff1b29a",
+        "width": 1402,
+        "height": 1122,
+        "cropRect": null,
+        "comparisonRect": {
+          "x": 20,
+          "y": 20,
+          "width": 410,
+          "height": 390
+        }
+      },
+      "backgroundRemoval": {
+        "method": "official-chroma-key-helper",
+        "keyColor": null,
+        "autoKey": "border",
+        "softMatte": true,
+        "transparentThreshold": 12,
+        "opaqueThreshold": 220,
+        "despill": true,
+        "cleanup": {
+          "alphaCutoff": 16,
+          "componentMinPixels": 128,
+          "targetMaxWidth": 210,
+          "targetMaxHeight": 210,
+          "resizeKernel": "nearest"
+        }
+      },
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "baselineY": 244
+      },
+      "subjectBbox": {
+        "x": 23,
+        "y": 55,
+        "width": 210,
+        "height": 190
+      },
+      "outputSha256": "3952f1aeab54392548e10a2bec6b673085ff2dec0199330aed745160a4080e96"
+    },
+    {
+      "outputPath": "generated/buildings/pending/building_pub-622b5760c38eacee.png",
+      "waveId": "wave1a-buildings",
+      "assetId": "building.pub",
+      "method": "imagegen",
+      "generator": "codex-imagegen-built-in",
+      "scaleClass": "medium",
+      "generationPromptPath": "review/prompts/wave1a-buildings/building_pub.txt",
+      "generationPromptSha256": "4dbf32e4a7e1dd78f505795fe289bc1d3becdc4ccd77056c08bd22603c7f0903",
+      "toolMode": "built-in",
+      "inputReferences": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+          "role": "global-style"
+        },
+        {
+          "id": "intake_20260713_building_houses_shops_ruins",
+          "sha256": "ec8afeadfe709cc6ae489d3e895a2a290eff79cb598db8c1925f548fd9e14225",
+          "role": "primary-subject"
+        }
+      ],
+      "referenceImages": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+        },
+        {
+          "id": "intake_20260713_building_houses_shops_ruins",
+          "sha256": "ec8afeadfe709cc6ae489d3e895a2a290eff79cb598db8c1925f548fd9e14225"
+        }
+      ],
+      "source": {
+        "path": "tmp/imagegen/wave1a/raw/building_pub.png",
+        "sha256": "8618043138a19554787f2c9a5363ad800a1cac89346c1891f57bf87db37d8543",
+        "width": 1402,
+        "height": 1122,
+        "cropRect": null,
+        "comparisonRect": {
+          "x": 10,
+          "y": 175,
+          "width": 205,
+          "height": 170
+        }
+      },
+      "backgroundRemoval": {
+        "method": "official-chroma-key-helper",
+        "keyColor": null,
+        "autoKey": "border",
+        "softMatte": true,
+        "transparentThreshold": 12,
+        "opaqueThreshold": 220,
+        "despill": true,
+        "cleanup": {
+          "alphaCutoff": 16,
+          "componentMinPixels": 128,
+          "targetMaxWidth": 188,
+          "targetMaxHeight": 188,
+          "resizeKernel": "nearest"
+        }
+      },
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "baselineY": 244
+      },
+      "subjectBbox": {
+        "x": 34,
+        "y": 85,
+        "width": 188,
+        "height": 160
+      },
+      "outputSha256": "622b5760c38eacee4066512cdef231f45be29a7dd1f8f26822af7e2195d20e25"
+    },
+    {
+      "outputPath": "generated/buildings/pending/building_town_hall-86480fef5d990728.png",
+      "waveId": "wave1a-buildings",
+      "assetId": "building.town_hall",
+      "method": "imagegen",
+      "generator": "codex-imagegen-built-in",
+      "scaleClass": "landmark",
+      "generationPromptPath": "review/prompts/wave1a-buildings/building_town_hall.txt",
+      "generationPromptSha256": "cf3c85621e5dc342b096638fadabf5afa36ebfc510a1d706e948b19ab8fab252",
+      "toolMode": "built-in",
+      "inputReferences": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+          "role": "global-style"
+        },
+        {
+          "id": "intake_20260713_building_town_hall",
+          "sha256": "af560250efd3d45fb00c7ba4a486e6245db5318c564bc72a8a11ba84bbbfb1c9",
+          "role": "primary-subject"
+        }
+      ],
+      "referenceImages": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+        },
+        {
+          "id": "intake_20260713_building_town_hall",
+          "sha256": "af560250efd3d45fb00c7ba4a486e6245db5318c564bc72a8a11ba84bbbfb1c9"
+        }
+      ],
+      "source": {
+        "path": "tmp/imagegen/wave1a/raw/building_town_hall.png",
+        "sha256": "07c47f3d7d9779573f99df3384aee2af2444ee9bf705bb525c6298eb6cbaee93",
+        "width": 1491,
+        "height": 1055,
+        "cropRect": null,
+        "comparisonRect": {
+          "x": 540,
+          "y": 0,
+          "width": 600,
+          "height": 380
+        }
+      },
+      "backgroundRemoval": {
+        "method": "official-chroma-key-helper",
+        "keyColor": null,
+        "autoKey": "border",
+        "softMatte": true,
+        "transparentThreshold": 12,
+        "opaqueThreshold": 220,
+        "despill": true,
+        "cleanup": {
+          "alphaCutoff": 16,
+          "componentMinPixels": 128,
+          "targetMaxWidth": 232,
+          "targetMaxHeight": 222,
+          "resizeKernel": "nearest"
+        }
+      },
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "baselineY": 244
+      },
+      "subjectBbox": {
+        "x": 12,
+        "y": 40,
+        "width": 232,
+        "height": 205
+      },
+      "outputSha256": "86480fef5d990728560ff1bb8c6d34d24ddb0b8e1b0ab9b21f3c28b01c472095"
+    },
+    {
+      "outputPath": "generated/buildings/pending/building_dock-dade95d62820688d.png",
+      "waveId": "wave1a-buildings",
+      "assetId": "building.dock",
+      "method": "imagegen",
+      "generator": "codex-imagegen-built-in",
+      "scaleClass": "large",
+      "generationPromptPath": "review/prompts/wave1a-buildings/building_dock.txt",
+      "generationPromptSha256": "90e3c171094fc518d1a4c49e0df4ebd889dfb8b1490103ce83a8856ab9a4c56c",
+      "toolMode": "built-in",
+      "inputReferences": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+          "role": "global-style"
+        },
+        {
+          "id": "intake_20260713_field_harbor_docks_tiles",
+          "sha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580",
+          "role": "primary-subject"
+        }
+      ],
+      "referenceImages": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+        },
+        {
+          "id": "intake_20260713_field_harbor_docks_tiles",
+          "sha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580"
+        }
+      ],
+      "source": {
+        "path": "tmp/imagegen/wave1a/raw/building_dock.png",
+        "sha256": "ec3fdc9ec888bc0e5c821960feea6f411d7fdcb73aea95e1a36aa0ab38d8a040",
+        "width": 1536,
+        "height": 1024,
+        "cropRect": null,
+        "comparisonRect": {
+          "x": 0,
+          "y": 0,
+          "width": 535,
+          "height": 475
+        }
+      },
+      "backgroundRemoval": {
+        "method": "official-chroma-key-helper",
+        "keyColor": null,
+        "autoKey": "border",
+        "softMatte": true,
+        "transparentThreshold": 12,
+        "opaqueThreshold": 220,
+        "despill": true,
+        "cleanup": {
+          "alphaCutoff": 16,
+          "componentMinPixels": 128,
+          "targetMaxWidth": 218,
+          "targetMaxHeight": 190,
+          "resizeKernel": "nearest"
+        }
+      },
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "baselineY": 244
+      },
+      "subjectBbox": {
+        "x": 19,
+        "y": 105,
+        "width": 218,
+        "height": 140
+      },
+      "outputSha256": "dade95d62820688d0ac8ad004b4c83bbd37c40f12262b8423f1733bc5bf1708f"
+    },
+    {
+      "outputPath": "generated/buildings/pending/building_workshop-bb0e116b92c11d97.png",
+      "waveId": "wave1a-buildings",
+      "assetId": "building.workshop",
+      "method": "imagegen",
+      "generator": "codex-imagegen-built-in",
+      "scaleClass": "large",
+      "generationPromptPath": "review/prompts/wave1a-buildings/building_workshop.txt",
+      "generationPromptSha256": "a14a5dfb8c6f626183b071f7a5f66634a7ce488154810e81fe9a27e00ad8e0a0",
+      "toolMode": "built-in",
+      "inputReferences": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+          "role": "global-style"
+        },
+        {
+          "id": "intake_20260713_building_workshop",
+          "sha256": "a28070edeec7d93df772ffe856bcaa49a11ba8ec55e60ddd5af15eab56f23ac7",
+          "role": "primary-subject"
+        }
+      ],
+      "referenceImages": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+        },
+        {
+          "id": "intake_20260713_building_workshop",
+          "sha256": "a28070edeec7d93df772ffe856bcaa49a11ba8ec55e60ddd5af15eab56f23ac7"
+        }
+      ],
+      "source": {
+        "path": "tmp/imagegen/wave1a/raw/building_workshop.png",
+        "sha256": "c6f98680fc728603647ba71dc349b8ace61b529ae1dcdf8f65640a3b5a4069b1",
+        "width": 1402,
+        "height": 1122,
+        "cropRect": null,
+        "comparisonRect": {
+          "x": 0,
+          "y": 0,
+          "width": 500,
+          "height": 380
+        }
+      },
+      "backgroundRemoval": {
+        "method": "official-chroma-key-helper",
+        "keyColor": null,
+        "autoKey": "border",
+        "softMatte": true,
+        "transparentThreshold": 12,
+        "opaqueThreshold": 220,
+        "despill": true,
+        "cleanup": {
+          "alphaCutoff": 16,
+          "componentMinPixels": 128,
+          "targetMaxWidth": 214,
+          "targetMaxHeight": 205,
+          "resizeKernel": "nearest"
+        }
+      },
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "baselineY": 244
+      },
+      "subjectBbox": {
+        "x": 21,
+        "y": 82,
+        "width": 214,
+        "height": 163
+      },
+      "outputSha256": "bb0e116b92c11d97adb04550c9ba5c9fbcf9939896ba88b892a04c274b51e62b"
+    },
+    {
+      "outputPath": "generated/buildings/pending/building_dojo-77222549f874d140.png",
+      "waveId": "wave1a-buildings",
+      "assetId": "building.dojo",
+      "method": "imagegen",
+      "generator": "codex-imagegen-built-in",
+      "scaleClass": "large",
+      "generationPromptPath": "review/prompts/wave1a-buildings/building_dojo.txt",
+      "generationPromptSha256": "91848283ca6e170844b1fe1895f5721b1e4b7e89cd8c5238466d3190c6efe45f",
+      "toolMode": "built-in",
+      "inputReferences": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+          "role": "global-style"
+        },
+        {
+          "id": "intake_20260713_building_guild_variant_01",
+          "sha256": "e6d0904d6b2ac1af8ebf8d01df1662ccab49489ead967e0e244f4db6135701c9",
+          "role": "primary-subject"
+        }
+      ],
+      "referenceImages": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+        },
+        {
+          "id": "intake_20260713_building_guild_variant_01",
+          "sha256": "e6d0904d6b2ac1af8ebf8d01df1662ccab49489ead967e0e244f4db6135701c9"
+        }
+      ],
+      "source": {
+        "path": "tmp/imagegen/wave1a/raw/building_dojo.png",
+        "sha256": "a1987dc665ac303cf9ececbc538cd8d3c03e26bf72c9d43c22b41c58be0c94a6",
+        "width": 1448,
+        "height": 1086,
+        "cropRect": null,
+        "comparisonRect": {
+          "x": 160,
+          "y": 0,
+          "width": 975,
+          "height": 590
+        }
+      },
+      "backgroundRemoval": {
+        "method": "official-chroma-key-helper",
+        "keyColor": null,
+        "autoKey": "border",
+        "softMatte": true,
+        "transparentThreshold": 12,
+        "opaqueThreshold": 220,
+        "despill": true,
+        "cleanup": {
+          "alphaCutoff": 16,
+          "componentMinPixels": 128,
+          "targetMaxWidth": 212,
+          "targetMaxHeight": 205,
+          "resizeKernel": "nearest"
+        }
+      },
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "baselineY": 244
+      },
+      "subjectBbox": {
+        "x": 22,
+        "y": 88,
+        "width": 212,
+        "height": 157
+      },
+      "outputSha256": "77222549f874d140f38a3b2ed7fc9510b5aa65a82a46e8e2dcf966215a9a0ef6"
+    },
+    {
+      "outputPath": "generated/buildings/pending/building_watchtower-05d7e8ec505c3538.png",
+      "waveId": "wave1a-buildings",
+      "assetId": "building.watchtower",
+      "method": "imagegen",
+      "generator": "codex-imagegen-built-in",
+      "scaleClass": "landmark",
+      "generationPromptPath": "review/prompts/wave1a-buildings/building_watchtower.txt",
+      "generationPromptSha256": "bc38abd39212f1fad47e1d16c2c67cffd6b8d82470c77225a254e2752af74559",
+      "toolMode": "built-in",
+      "inputReferences": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+          "role": "global-style"
+        },
+        {
+          "id": "intake_20260713_building_watchtower",
+          "sha256": "414a38a8621c25a0b812426abbc40b46a97444923148b967be8493bc4e2a277a",
+          "role": "primary-subject"
+        }
+      ],
+      "referenceImages": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+        },
+        {
+          "id": "intake_20260713_building_watchtower",
+          "sha256": "414a38a8621c25a0b812426abbc40b46a97444923148b967be8493bc4e2a277a"
+        }
+      ],
+      "source": {
+        "path": "tmp/imagegen/wave1a/raw/building_watchtower.png",
+        "sha256": "471b003e3986a9b42ba1bc29c5e8ede9ecf5dd5c07e9c093b7895ad959ff9b50",
+        "width": 1122,
+        "height": 1402,
+        "cropRect": null,
+        "comparisonRect": {
+          "x": 20,
+          "y": 0,
+          "width": 330,
+          "height": 360
+        }
+      },
+      "backgroundRemoval": {
+        "method": "official-chroma-key-helper",
+        "keyColor": null,
+        "autoKey": "border",
+        "softMatte": true,
+        "transparentThreshold": 12,
+        "opaqueThreshold": 220,
+        "despill": true,
+        "cleanup": {
+          "alphaCutoff": 16,
+          "componentMinPixels": 128,
+          "targetMaxWidth": 170,
+          "targetMaxHeight": 236,
+          "resizeKernel": "nearest"
+        }
+      },
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "baselineY": 244
+      },
+      "subjectBbox": {
+        "x": 73,
+        "y": 9,
+        "width": 109,
+        "height": 236
+      },
+      "outputSha256": "05d7e8ec505c35389d625a53bc9b1d8a8fc041f2d41a59756be5155a0b5ce9e3"
+    },
+    {
+      "outputPath": "generated/buildings/pending/building_warehouse-5903d7f18ae9be2c.png",
+      "waveId": "wave1a-buildings",
+      "assetId": "building.warehouse",
+      "method": "imagegen",
+      "generator": "codex-imagegen-built-in",
+      "scaleClass": "large",
+      "generationPromptPath": "review/prompts/wave1a-buildings/building_warehouse.txt",
+      "generationPromptSha256": "dcebec819b212165cf3eccbdda9b2dd6e86007066fe4736d90f3997349ca31d1",
+      "toolMode": "built-in",
+      "inputReferences": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+          "role": "global-style"
+        },
+        {
+          "id": "intake_20260713_building_warehouse",
+          "sha256": "36b9a4f7dc5c9d7693fd1346a559735a36062aadeac8483beb2992e0ca3be4bc",
+          "role": "primary-subject"
+        }
+      ],
+      "referenceImages": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+        },
+        {
+          "id": "intake_20260713_building_warehouse",
+          "sha256": "36b9a4f7dc5c9d7693fd1346a559735a36062aadeac8483beb2992e0ca3be4bc"
+        }
+      ],
+      "source": {
+        "path": "tmp/imagegen/wave1a/raw/building_warehouse.png",
+        "sha256": "4a85d7cdd074175364370d92cd3766e668a78f1e24a738cfbebed8d4b22d9db9",
+        "width": 1402,
+        "height": 1122,
+        "cropRect": null,
+        "comparisonRect": {
+          "x": 0,
+          "y": 0,
+          "width": 500,
+          "height": 370
+        }
+      },
+      "backgroundRemoval": {
+        "method": "official-chroma-key-helper",
+        "keyColor": null,
+        "autoKey": "border",
+        "softMatte": true,
+        "transparentThreshold": 12,
+        "opaqueThreshold": 220,
+        "despill": true,
+        "cleanup": {
+          "alphaCutoff": 16,
+          "componentMinPixels": 128,
+          "targetMaxWidth": 216,
+          "targetMaxHeight": 188,
+          "resizeKernel": "nearest"
+        }
+      },
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "baselineY": 244
+      },
+      "subjectBbox": {
+        "x": 20,
+        "y": 106,
+        "width": 216,
+        "height": 139
+      },
+      "outputSha256": "5903d7f18ae9be2cbea022ed7ccf61954feb4fb7f3091832ad3043d3568e563a"
+    },
+    {
+      "outputPath": "generated/buildings/pending/building_well-7c8854e1d89db1ae.png",
+      "waveId": "wave1a-buildings",
+      "assetId": "building.well",
+      "method": "imagegen",
+      "generator": "codex-imagegen-built-in",
+      "scaleClass": "tiny",
+      "generationPromptPath": "review/prompts/wave1a-buildings/building_well.txt",
+      "generationPromptSha256": "c70eae98b3378661a0445c229187ed78a4cd860d06057b299fe90f9e1f6e004c",
+      "toolMode": "built-in",
+      "inputReferences": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+          "role": "global-style"
+        },
+        {
+          "id": "intake_20260713_object_street_props",
+          "sha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+          "role": "primary-subject"
+        }
+      ],
+      "referenceImages": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+        },
+        {
+          "id": "intake_20260713_object_street_props",
+          "sha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85"
+        }
+      ],
+      "source": {
+        "path": "tmp/imagegen/wave1a/raw/building_well.png",
+        "sha256": "1f319b0963ff89e9f04fd2d60bd2c2a2bb9b059a44a2b9d4e91a6cc9c716c785",
+        "width": 1254,
+        "height": 1254,
+        "cropRect": null,
+        "comparisonRect": {
+          "x": 770,
+          "y": 145,
+          "width": 205,
+          "height": 190
+        }
+      },
+      "backgroundRemoval": {
+        "method": "official-chroma-key-helper",
+        "keyColor": null,
+        "autoKey": "border",
+        "softMatte": true,
+        "transparentThreshold": 12,
+        "opaqueThreshold": 220,
+        "despill": true,
+        "cleanup": {
+          "alphaCutoff": 16,
+          "componentMinPixels": 128,
+          "targetMaxWidth": 110,
+          "targetMaxHeight": 112,
+          "resizeKernel": "nearest"
+        }
+      },
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "baselineY": 244
+      },
+      "subjectBbox": {
+        "x": 88,
+        "y": 133,
+        "width": 79,
+        "height": 112
+      },
+      "outputSha256": "7c8854e1d89db1ae370552e924bea2b7f917280369e5083957d8389ef9ab2d54"
+    },
+    {
+      "outputPath": "generated/buildings/pending/building_gate-f85131d265539c67.png",
+      "waveId": "wave1a-buildings",
+      "assetId": "building.gate",
+      "method": "imagegen",
+      "generator": "codex-imagegen-built-in",
+      "scaleClass": "medium",
+      "generationPromptPath": "review/prompts/wave1a-buildings/building_gate.txt",
+      "generationPromptSha256": "c4f728250367b41a1cbfb8ebc83e72af8066cef2125cc084a8cad7243c70e52c",
+      "toolMode": "built-in",
+      "inputReferences": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+          "role": "global-style"
+        },
+        {
+          "id": "intake_20260713_object_status_markers",
+          "sha256": "e3d2f177bf10bc07d1362251d8aa80d490fc6f58999d24b06a66c34a177e1d1b",
+          "role": "primary-subject"
+        }
+      ],
+      "referenceImages": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+        },
+        {
+          "id": "intake_20260713_object_status_markers",
+          "sha256": "e3d2f177bf10bc07d1362251d8aa80d490fc6f58999d24b06a66c34a177e1d1b"
+        }
+      ],
+      "source": {
+        "path": "tmp/imagegen/wave1a/raw/building_gate.png",
+        "sha256": "1d32b0d287d430e799f03239515558ab80def94916c9146a8c64dfb8d4919fcd",
+        "width": 1448,
+        "height": 1086,
+        "cropRect": null,
+        "comparisonRect": {
+          "x": 0,
+          "y": 430,
+          "width": 650,
+          "height": 210
+        }
+      },
+      "backgroundRemoval": {
+        "method": "official-chroma-key-helper",
+        "keyColor": null,
+        "autoKey": "border",
+        "softMatte": true,
+        "transparentThreshold": 12,
+        "opaqueThreshold": 220,
+        "despill": true,
+        "cleanup": {
+          "alphaCutoff": 16,
+          "componentMinPixels": 128,
+          "targetMaxWidth": 208,
+          "targetMaxHeight": 190,
+          "resizeKernel": "nearest"
+        }
+      },
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "baselineY": 244
+      },
+      "subjectBbox": {
+        "x": 24,
+        "y": 84,
+        "width": 208,
+        "height": 161
+      },
+      "outputSha256": "f85131d265539c676cfc743e76dbfd813651c0518f0877e6be9daf89a9186e4e"
+    },
+    {
+      "outputPath": "generated/buildings/pending/building_house_small-4b95916b0ed94aea.png",
+      "waveId": "wave1a-buildings",
+      "assetId": "building.house.small",
+      "method": "imagegen",
+      "generator": "codex-imagegen-built-in",
+      "scaleClass": "small",
+      "generationPromptPath": "review/prompts/wave1a-buildings/building_house_small.txt",
+      "generationPromptSha256": "75748f89507ede9ee255185a7d164df31f856e4510d5a7fa2c80e4155dbf92e6",
+      "toolMode": "built-in",
+      "inputReferences": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+          "role": "global-style"
+        },
+        {
+          "id": "intake_20260713_building_houses_shops_ruins",
+          "sha256": "ec8afeadfe709cc6ae489d3e895a2a290eff79cb598db8c1925f548fd9e14225",
+          "role": "primary-subject"
+        }
+      ],
+      "referenceImages": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+        },
+        {
+          "id": "intake_20260713_building_houses_shops_ruins",
+          "sha256": "ec8afeadfe709cc6ae489d3e895a2a290eff79cb598db8c1925f548fd9e14225"
+        }
+      ],
+      "source": {
+        "path": "tmp/imagegen/wave1a/raw/building_house_small.png",
+        "sha256": "6847d74c6c26ceeb98c8a49c8cb2586f033012aeae78692c8c3390b8219f866f",
+        "width": 1254,
+        "height": 1254,
+        "cropRect": null,
+        "comparisonRect": {
+          "x": 0,
+          "y": 0,
+          "width": 175,
+          "height": 175
+        }
+      },
+      "backgroundRemoval": {
+        "method": "official-chroma-key-helper",
+        "keyColor": null,
+        "autoKey": "border",
+        "softMatte": true,
+        "transparentThreshold": 12,
+        "opaqueThreshold": 220,
+        "despill": true,
+        "cleanup": {
+          "alphaCutoff": 16,
+          "componentMinPixels": 128,
+          "targetMaxWidth": 150,
+          "targetMaxHeight": 154,
+          "resizeKernel": "nearest"
+        }
+      },
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "baselineY": 244
+      },
+      "subjectBbox": {
+        "x": 61,
+        "y": 91,
+        "width": 134,
+        "height": 154
+      },
+      "outputSha256": "4b95916b0ed94aea97d8f46840df4d31b30e294fadaa2697b628961751ea00af"
+    },
+    {
+      "outputPath": "generated/buildings/pending/building_house_medium-30b3dffbf7016e29.png",
+      "waveId": "wave1a-buildings",
+      "assetId": "building.house.medium",
+      "method": "imagegen",
+      "generator": "codex-imagegen-built-in",
+      "scaleClass": "medium",
+      "generationPromptPath": "review/prompts/wave1a-buildings/building_house_medium.txt",
+      "generationPromptSha256": "ed7a70295fe8399f5cfc367c82273d995fe4aaf775aff5c09dc66c342542a550",
+      "toolMode": "built-in",
+      "inputReferences": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+          "role": "global-style"
+        },
+        {
+          "id": "intake_20260713_building_houses_shops_ruins",
+          "sha256": "ec8afeadfe709cc6ae489d3e895a2a290eff79cb598db8c1925f548fd9e14225",
+          "role": "primary-subject"
+        }
+      ],
+      "referenceImages": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+        },
+        {
+          "id": "intake_20260713_building_houses_shops_ruins",
+          "sha256": "ec8afeadfe709cc6ae489d3e895a2a290eff79cb598db8c1925f548fd9e14225"
+        }
+      ],
+      "source": {
+        "path": "tmp/imagegen/wave1a/raw/building_house_medium.png",
+        "sha256": "f5201cb5d309c224d1c17a9deed43b54e88eae5a747428d48fa8714e7b534b6b",
+        "width": 1254,
+        "height": 1254,
+        "cropRect": null,
+        "comparisonRect": {
+          "x": 165,
+          "y": 0,
+          "width": 185,
+          "height": 180
+        }
+      },
+      "backgroundRemoval": {
+        "method": "official-chroma-key-helper",
+        "keyColor": null,
+        "autoKey": "border",
+        "softMatte": true,
+        "transparentThreshold": 12,
+        "opaqueThreshold": 220,
+        "despill": true,
+        "cleanup": {
+          "alphaCutoff": 16,
+          "componentMinPixels": 128,
+          "targetMaxWidth": 184,
+          "targetMaxHeight": 184,
+          "resizeKernel": "nearest"
+        }
+      },
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "baselineY": 244
+      },
+      "subjectBbox": {
+        "x": 36,
+        "y": 82,
+        "width": 184,
+        "height": 163
+      },
+      "outputSha256": "30b3dffbf7016e29aedb31b2be5cec051677c7dd76932eecd195407a429434cb"
+    },
+    {
+      "outputPath": "generated/buildings/pending/building_shop-9ced540efc5fc93b.png",
+      "waveId": "wave1a-buildings",
+      "assetId": "building.shop",
+      "method": "imagegen",
+      "generator": "codex-imagegen-built-in",
+      "scaleClass": "medium",
+      "generationPromptPath": "review/prompts/wave1a-buildings/building_shop.txt",
+      "generationPromptSha256": "260770b20b28e06946a2901265fa48e822e0147eb06c849c98c5aee21870ddb7",
+      "toolMode": "built-in",
+      "inputReferences": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+          "role": "global-style"
+        },
+        {
+          "id": "intake_20260713_building_houses_shops_ruins",
+          "sha256": "ec8afeadfe709cc6ae489d3e895a2a290eff79cb598db8c1925f548fd9e14225",
+          "role": "primary-subject"
+        }
+      ],
+      "referenceImages": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+        },
+        {
+          "id": "intake_20260713_building_houses_shops_ruins",
+          "sha256": "ec8afeadfe709cc6ae489d3e895a2a290eff79cb598db8c1925f548fd9e14225"
+        }
+      ],
+      "source": {
+        "path": "tmp/imagegen/wave1a/raw/building_shop.png",
+        "sha256": "4e6e776e6b358c5377d30768ef5d0b670cd7f4d64fcad795d0e20bcd9e8403f3",
+        "width": 1254,
+        "height": 1254,
+        "cropRect": null,
+        "comparisonRect": {
+          "x": 215,
+          "y": 175,
+          "width": 215,
+          "height": 175
+        }
+      },
+      "backgroundRemoval": {
+        "method": "official-chroma-key-helper",
+        "keyColor": null,
+        "autoKey": "border",
+        "softMatte": true,
+        "transparentThreshold": 12,
+        "opaqueThreshold": 220,
+        "despill": true,
+        "cleanup": {
+          "alphaCutoff": 16,
+          "componentMinPixels": 128,
+          "targetMaxWidth": 180,
+          "targetMaxHeight": 184,
+          "resizeKernel": "nearest"
+        }
+      },
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "baselineY": 244
+      },
+      "subjectBbox": {
+        "x": 43,
+        "y": 61,
+        "width": 170,
+        "height": 184
+      },
+      "outputSha256": "9ced540efc5fc93b7fed7a7ccfe370cda1a8f202731f428437ea8733a84f00d3"
+    },
+    {
+      "outputPath": "generated/buildings/pending/building_hut-39fd3b61ed5d4e67.png",
+      "waveId": "wave1a-buildings",
+      "assetId": "building.hut",
+      "method": "imagegen",
+      "generator": "codex-imagegen-built-in",
+      "scaleClass": "small",
+      "generationPromptPath": "review/prompts/wave1a-buildings/building_hut.txt",
+      "generationPromptSha256": "f6ae7900523d7fa012a7560b9ffdc8c837932ec3d25fd24e099d5bc5d7e967bb",
+      "toolMode": "built-in",
+      "inputReferences": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+          "role": "global-style"
+        },
+        {
+          "id": "intake_20260713_building_houses_shops_ruins",
+          "sha256": "ec8afeadfe709cc6ae489d3e895a2a290eff79cb598db8c1925f548fd9e14225",
+          "role": "primary-subject"
+        }
+      ],
+      "referenceImages": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+        },
+        {
+          "id": "intake_20260713_building_houses_shops_ruins",
+          "sha256": "ec8afeadfe709cc6ae489d3e895a2a290eff79cb598db8c1925f548fd9e14225"
+        }
+      ],
+      "source": {
+        "path": "tmp/imagegen/wave1a/raw/building_hut.png",
+        "sha256": "66909407768dd79e10719cc85575892459f18caaf0128e04da75f47df8163703",
+        "width": 1254,
+        "height": 1254,
+        "cropRect": null,
+        "comparisonRect": {
+          "x": 680,
+          "y": 175,
+          "width": 205,
+          "height": 180
+        }
+      },
+      "backgroundRemoval": {
+        "method": "official-chroma-key-helper",
+        "keyColor": null,
+        "autoKey": "border",
+        "softMatte": true,
+        "transparentThreshold": 12,
+        "opaqueThreshold": 220,
+        "despill": true,
+        "cleanup": {
+          "alphaCutoff": 16,
+          "componentMinPixels": 128,
+          "targetMaxWidth": 142,
+          "targetMaxHeight": 148,
+          "resizeKernel": "nearest"
+        }
+      },
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "baselineY": 244
+      },
+      "subjectBbox": {
+        "x": 57,
+        "y": 108,
+        "width": 142,
+        "height": 137
+      },
+      "outputSha256": "39fd3b61ed5d4e6774d336862dbd833d1d2a6ab5d7fb2256bdfecae6eacb686b"
+    },
+    {
+      "outputPath": "generated/buildings/pending/building_ruin-d2ed01eaea2bb54e.png",
+      "waveId": "wave1a-buildings",
+      "assetId": "building.ruin",
+      "method": "imagegen",
+      "generator": "codex-imagegen-built-in",
+      "scaleClass": "medium",
+      "generationPromptPath": "review/prompts/wave1a-buildings/building_ruin.txt",
+      "generationPromptSha256": "7657b455fbab2a2de1df9cc6208d3a2219f70c2e16ea9d43f992913fe0a7bad9",
+      "toolMode": "built-in",
+      "inputReferences": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+          "role": "global-style"
+        },
+        {
+          "id": "intake_20260713_building_houses_shops_ruins",
+          "sha256": "ec8afeadfe709cc6ae489d3e895a2a290eff79cb598db8c1925f548fd9e14225",
+          "role": "primary-subject"
+        }
+      ],
+      "referenceImages": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+        },
+        {
+          "id": "intake_20260713_building_houses_shops_ruins",
+          "sha256": "ec8afeadfe709cc6ae489d3e895a2a290eff79cb598db8c1925f548fd9e14225"
+        }
+      ],
+      "source": {
+        "path": "tmp/imagegen/wave1a/raw/building_ruin.png",
+        "sha256": "669e6de28b60618b2a54e9ef8e13608a36ab94628b9d9a5bda2c2454f2b55101",
+        "width": 1254,
+        "height": 1254,
+        "cropRect": null,
+        "comparisonRect": {
+          "x": 0,
+          "y": 340,
+          "width": 215,
+          "height": 190
+        }
+      },
+      "backgroundRemoval": {
+        "method": "official-chroma-key-helper",
+        "keyColor": null,
+        "autoKey": "border",
+        "softMatte": true,
+        "transparentThreshold": 12,
+        "opaqueThreshold": 220,
+        "despill": true,
+        "cleanup": {
+          "alphaCutoff": 16,
+          "componentMinPixels": 128,
+          "targetMaxWidth": 184,
+          "targetMaxHeight": 178,
+          "resizeKernel": "nearest"
+        }
+      },
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "baselineY": 244
+      },
+      "subjectBbox": {
+        "x": 36,
+        "y": 81,
+        "width": 184,
+        "height": 164
+      },
+      "outputSha256": "d2ed01eaea2bb54e435dfbdf77112f81cb9d96d8bda19bba8726cecbac442459"
+    },
+    {
+      "outputPath": "generated/buildings/pending/building_old_house-c38c0bdf995ecebc.png",
+      "waveId": "wave1a-buildings",
+      "assetId": "building.old_house",
+      "method": "imagegen",
+      "generator": "codex-imagegen-built-in",
+      "scaleClass": "medium",
+      "generationPromptPath": "review/prompts/wave1a-buildings/building_old_house.txt",
+      "generationPromptSha256": "707206435ee0230b48bf2fede1ee5427c12bf98015c3bdf1400b928d48de9ba1",
+      "toolMode": "built-in",
+      "inputReferences": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+          "role": "global-style"
+        },
+        {
+          "id": "intake_20260713_building_houses_shops_ruins",
+          "sha256": "ec8afeadfe709cc6ae489d3e895a2a290eff79cb598db8c1925f548fd9e14225",
+          "role": "primary-subject"
+        }
+      ],
+      "referenceImages": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+        },
+        {
+          "id": "intake_20260713_building_houses_shops_ruins",
+          "sha256": "ec8afeadfe709cc6ae489d3e895a2a290eff79cb598db8c1925f548fd9e14225"
+        }
+      ],
+      "source": {
+        "path": "tmp/imagegen/wave1a/raw/building_old_house.png",
+        "sha256": "5a5a4fcff6713923e49a2a803b495d90238a674dcb3e44da419696a9b34c0a0a",
+        "width": 1254,
+        "height": 1254,
+        "cropRect": null,
+        "comparisonRect": {
+          "x": 210,
+          "y": 335,
+          "width": 215,
+          "height": 200
+        }
+      },
+      "backgroundRemoval": {
+        "method": "official-chroma-key-helper",
+        "keyColor": null,
+        "autoKey": "border",
+        "softMatte": true,
+        "transparentThreshold": 12,
+        "opaqueThreshold": 220,
+        "despill": true,
+        "cleanup": {
+          "alphaCutoff": 16,
+          "componentMinPixels": 128,
+          "targetMaxWidth": 180,
+          "targetMaxHeight": 184,
+          "resizeKernel": "nearest"
+        }
+      },
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "baselineY": 244
+      },
+      "subjectBbox": {
+        "x": 38,
+        "y": 61,
+        "width": 179,
+        "height": 184
+      },
+      "outputSha256": "c38c0bdf995ecebc4dd96f8f5667d8a89e9a2657bc50d85ca4e428b6e46e0c43"
+    },
+    {
+      "outputPath": "generated/buildings/pending/building_guild-14649f026c987b1a.png",
+      "waveId": "wave1a-buildings",
+      "assetId": "building.guild",
+      "method": "imagegen",
+      "generator": "codex-imagegen-built-in",
+      "scaleClass": "large",
+      "generationPromptPath": "review/prompts/wave1a-buildings/building_guild.txt",
+      "generationPromptSha256": "a32567e784c4779c06de380b46f88d1abbb88d83100d3c1aa5d313b493e95842",
+      "toolMode": "built-in",
+      "inputReferences": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+          "role": "global-style"
+        },
+        {
+          "id": "intake_20260713_building_guild_variant_01",
+          "sha256": "e6d0904d6b2ac1af8ebf8d01df1662ccab49489ead967e0e244f4db6135701c9",
+          "role": "primary-subject"
+        }
+      ],
+      "referenceImages": [
+        {
+          "id": "world_visual_master",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+        },
+        {
+          "id": "intake_20260713_building_guild_variant_01",
+          "sha256": "e6d0904d6b2ac1af8ebf8d01df1662ccab49489ead967e0e244f4db6135701c9"
+        }
+      ],
+      "source": {
+        "path": "tmp/imagegen/wave1a/raw/building_guild.png",
+        "sha256": "e5281851d906c6f6d238d91315111eff92350c94506c0ab100f7aac3ec60d5ec",
+        "width": 1470,
+        "height": 1070,
+        "cropRect": null,
+        "comparisonRect": {
+          "x": 160,
+          "y": 0,
+          "width": 975,
+          "height": 590
+        }
+      },
+      "backgroundRemoval": {
+        "method": "official-chroma-key-helper",
+        "keyColor": null,
+        "autoKey": "border",
+        "softMatte": true,
+        "transparentThreshold": 12,
+        "opaqueThreshold": 220,
+        "despill": true,
+        "cleanup": {
+          "alphaCutoff": 16,
+          "componentMinPixels": 128,
+          "targetMaxWidth": 218,
+          "targetMaxHeight": 210,
+          "resizeKernel": "nearest"
+        }
+      },
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "baselineY": 244
+      },
+      "subjectBbox": {
+        "x": 19,
+        "y": 82,
+        "width": 218,
+        "height": 163
+      },
+      "outputSha256": "14649f026c987b1a4532ceeb7444508602e049472143209bf9bd4cd36823cb6c"
+    }
+  ]
+}

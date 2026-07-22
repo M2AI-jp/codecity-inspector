@@ -146,8 +146,12 @@ button:focus-visible,
 }
 
 .zoom-control button {
-  min-width: 40px;
-  min-height: 40px;
+  /* WCAG 2.5.8 / iOS HIG minimum touch target is 44x44px. This used to be
+     40x40, the only control in this UI actually measuring under that floor
+     (the plain `button` rule elsewhere defaults to 48px min, and the dpad's
+     50x50 grid tracks and the 84x64 action button both already clear it). */
+  min-width: 44px;
+  min-height: 44px;
   padding: 0;
   border: 0;
   border-radius: 2px;

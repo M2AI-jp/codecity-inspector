@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "providers": {
+    "codexSubscription": {
+      "enabled": false,
+      "command": null,
+      "args": [],
+      "timeoutMs": 600000,
+      "inputMode": "job-json",
+      "outputMode": "file",
+      "requiresYesSubscription": true
+    }
+  },
+  "limits": {
+    "maxBatchJobs": 8,
+    "maxOutputBytes": 33554432
+  }
+}

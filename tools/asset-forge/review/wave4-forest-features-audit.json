@@ -1,0 +1,191 @@
+{
+  "schemaVersion": 1,
+  "waveId": "wave4-forest-features",
+  "state": "pending-inspection",
+  "retiredCandidatePolicy": "superseded tree/rock candidates are deleted, not rejected or archived; exact retired identifiers are kept out of repository evidence",
+  "assets": [
+    {
+      "assetId": "field.tree",
+      "generationId": "gen_import_1443f13a721aab290a63",
+      "prompt": {
+        "path": "review/prompts/wave4-forest-features/field_tree.txt",
+        "sha256": "1c704746c3546f75bd4eec52ee323f524eb83220269925f7aa8a45e4fe468bef",
+        "exactBuiltInCallSnapshot": true
+      },
+      "inputReferences": [
+        {
+          "id": "world_visual_master",
+          "role": "global-style",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+        },
+        {
+          "id": "intake_20260713_field_stairs_bridges_cliffs",
+          "role": "primary-subject",
+          "sha256": "24e899bfb25552aa96e453a74e574337fc65481791fa572accdd8758615387bd"
+        }
+      ],
+      "rawSource": {
+        "cropRect": null,
+        "height": 1254,
+        "path": "tmp/imagegen/wave4-forest-features/raw/field_tree.png",
+        "sha256": "b5f35ec88db3f7f5df718abf0363550ecc4c42be4f0127c36c7e66a30f80ed0d",
+        "width": 1254
+      },
+      "sourceSnapshot": {
+        "height": 1254,
+        "path": "generated/fields/approved/source-b5f35ec88db3f7f5df718abf0363550ecc4c42be4f0127c36c7e66a30f80ed0d.source-original.png",
+        "sha256": "b5f35ec88db3f7f5df718abf0363550ecc4c42be4f0127c36c7e66a30f80ed0d",
+        "width": 1254
+      },
+      "candidate": {
+        "path": "generated/fields/pending/field_tree-79e80ff835bfd3fd.png",
+        "sha256": "79e80ff835bfd3fdaeec32a79bc17b2dd8acbf57f54f62104f0f3b9466b69cf7",
+        "width": 64,
+        "height": 64
+      },
+      "alpha": {
+        "width": 64,
+        "height": 64,
+        "visiblePixels": 1821,
+        "opaquePixels": 1821,
+        "partialAlphaPixels": 0,
+        "transparentPixels": 2275,
+        "visibleCoverage": 0.444580078125,
+        "borderVisiblePixels": 0,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "subjectBbox": {
+          "x": 6,
+          "y": 4,
+          "width": 55,
+          "height": 54
+        }
+      },
+      "gates": {
+        "rgba": true,
+        "transparentCorners": true,
+        "coverage": true,
+        "hardAlpha": true,
+        "noOpaqueRectangle": true,
+        "bboxContained": true
+      },
+      "coverageRange": [
+        0.35,
+        0.85
+      ],
+      "promotionPreview": {
+        "generationId": "gen_import_1443f13a721aab290a63",
+        "assetId": "field.tree",
+        "sourcePath": "generated/fields/pending/field_tree-79e80ff835bfd3fd.png",
+        "sourceSha256": "79e80ff835bfd3fdaeec32a79bc17b2dd8acbf57f54f62104f0f3b9466b69cf7",
+        "approvedPath": "generated/fields/approved/field_tree-79e80ff835bfd3fd.png",
+        "approvedSha256": "79e80ff835bfd3fdaeec32a79bc17b2dd8acbf57f54f62104f0f3b9466b69cf7"
+      }
+    },
+    {
+      "assetId": "field.rock",
+      "generationId": "gen_import_d3d5274c160a399e84ae",
+      "prompt": {
+        "path": "review/prompts/wave4-forest-features/field_rock.txt",
+        "sha256": "d4d48c8da8ab6d5f19916e1cd1fdf5b7d0ca03640db44a7200c0b5a0ac3e38fa",
+        "exactBuiltInCallSnapshot": true
+      },
+      "inputReferences": [
+        {
+          "id": "world_visual_master",
+          "role": "global-style",
+          "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+        },
+        {
+          "id": "intake_20260713_field_stairs_bridges_cliffs",
+          "role": "primary-subject",
+          "sha256": "24e899bfb25552aa96e453a74e574337fc65481791fa572accdd8758615387bd"
+        }
+      ],
+      "rawSource": {
+        "cropRect": null,
+        "height": 1254,
+        "path": "tmp/imagegen/wave4-forest-features/raw/field_rock.png",
+        "sha256": "3f53bfc4965cb959cfe2ef77f5a9f1258ea90abc40806576add0f69095936561",
+        "width": 1254
+      },
+      "sourceSnapshot": {
+        "height": 1254,
+        "path": "generated/fields/approved/source-3f53bfc4965cb959cfe2ef77f5a9f1258ea90abc40806576add0f69095936561.source-original.png",
+        "sha256": "3f53bfc4965cb959cfe2ef77f5a9f1258ea90abc40806576add0f69095936561",
+        "width": 1254
+      },
+      "candidate": {
+        "path": "generated/fields/pending/field_rock-f292aad060cbd541.png",
+        "sha256": "f292aad060cbd541285b6fd95d2f8415a9a800828852504994ba605a7705c7cb",
+        "width": 64,
+        "height": 64
+      },
+      "alpha": {
+        "width": 64,
+        "height": 64,
+        "visiblePixels": 1708,
+        "opaquePixels": 1708,
+        "partialAlphaPixels": 0,
+        "transparentPixels": 2388,
+        "visibleCoverage": 0.4169921875,
+        "borderVisiblePixels": 0,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "subjectBbox": {
+          "x": 5,
+          "y": 16,
+          "width": 55,
+          "height": 47
+        }
+      },
+      "gates": {
+        "rgba": true,
+        "transparentCorners": true,
+        "coverage": true,
+        "hardAlpha": true,
+        "noOpaqueRectangle": true,
+        "bboxContained": true
+      },
+      "coverageRange": [
+        0.15,
+        0.65
+      ],
+      "promotionPreview": {
+        "generationId": "gen_import_d3d5274c160a399e84ae",
+        "assetId": "field.rock",
+        "sourcePath": "generated/fields/pending/field_rock-f292aad060cbd541.png",
+        "sourceSha256": "f292aad060cbd541285b6fd95d2f8415a9a800828852504994ba605a7705c7cb",
+        "approvedPath": "generated/fields/approved/field_rock-f292aad060cbd541.png",
+        "approvedSha256": "f292aad060cbd541285b6fd95d2f8415a9a800828852504994ba605a7705c7cb"
+      }
+    }
+  ],
+  "contacts": {
+    "nativeCheckerAndGrassComposite": "review/wave4-forest-features-native.png",
+    "woodlandRepresentative": "review/wave4-woodland-representative.png"
+  },
+  "humanApproved": false,
+  "exported": false,
+  "observed": [
+    "Both candidates are RGBA 64x64 PNGs with transparent corners, hard alpha, contained bounding boxes, and in-range visible coverage.",
+    "Both production recipes retain built-in imagegen prompts, two approved reference hashes, raw source snapshots, and promotion previews.",
+    "Representative woodland composites paint field.grass before every field.tree/field.rock feature."
+  ],
+  "inferred": [
+    "The technical gates make square mattes and soft alpha regressions unlikely to reach human review."
+  ],
+  "unknown": [
+    "human approval",
+    "final export",
+    "subjective visual acceptance in every town context"
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "$comment": "DRAFT — not generated, not approved, not wired into any runtime path. Target shape follows Fable5PrefabSpec.md section 7 and matches the char_player entry already present in tools/asset-forge/contracts/asset-contract.sample.json (png/pivot/sheet fields are intentionally identical to that sample). This file adds draftMeta for traceability only; draftMeta is not part of the Fable5PrefabSpec section 7 field set and a future normalize-check.mjs lint should ignore it or this file should be stripped down to the core fields before promotion.",
+  "status": "draft-pending-generation",
+  "assetId": "char_player",
+  "category": "character",
+  "png": { "file": "character/char_player.png", "w": 640, "h": 512 },
+  "nativeScale": 1,
+  "logicalTileSize": 64,
+  "pivot": { "x": 32, "y": 120 },
+  "footprint": { "w": 1, "h": 1 },
+  "collision": [],
+  "layers": { "base": "character/char_player.png" },
+  "sheet": {
+    "rows": 4,
+    "cols": 10,
+    "frameW": 64,
+    "frameH": 128,
+    "anims": {
+      "rowOrder": ["south", "west", "east", "north"],
+      "idle": { "cols": [0, 1], "fps": 4 },
+      "walk": { "cols": [2, 3, 4, 5, 6, 7], "fps": 10 },
+      "interact": { "cols": [8, 9], "fps": 6 }
+    }
+  },
+  "palette": "common",
+  "allowedZoom": [1, 2, 3],
+  "districts": ["old_town", "port", "snow", "forest"],
+  "draftMeta": {
+    "purpose": "Re-production per product-owner decision: restore tools/asset-forge, retarget character.player at the current Fable5PrefabSpec section 6/7 contract with the correct (green) identity.",
+    "supersedesRejectedIdentity": {
+      "rejectedReferenceId": "character_visual_master",
+      "rejectedReferenceSha256": "78436f089e03ae6fb15605ccaeae12513cd9393dd0e3355d4ef6df04bfb430ea",
+      "rejectionAuthority": "docs/user-provided-image-policy.md section 7 (2026-07-19): 'Codex生成物...現在のプレイヤー同一性とruntime用途では不採用'",
+      "note": "This tool's own data/v2/art-direction/characters.json character.player entry and data/asset-definitions/characters.json character.player entry still describe this rejected navy-coat/satchel/badge identity and still point at this reference. Do not regenerate from those definitions as-is; they need the same rewrite this draft performs before any job-pack is cut against them."
+    },
+    "identitySource": {
+      "directory": "art/references/user-provided/",
+      "resolveExactPathAndHashFrom": "art/contracts/user-provided-images.json → sources[] where sourceId equals ledgerSourceId below",
+      "whyNotInlinedHere": "tools/asset-forge/test/reference-integrity.test.mjs (RETIRED_CHARACTER_REFERENCE) asserts this specific reference's exact basename and SHA-256 must not appear anywhere inside tools/asset-forge — the corrective work that produced docs/user-provided-image-policy.md deliberately kept this image's provenance authority outside this tool. This draft respects that boundary instead of working around it.",
+      "dimensions": { "width": 1536, "height": 1024 },
+      "custody": "user-direct",
+      "ledgerSourceId": "user_character_style_reference",
+      "verifiedIndependently": "path and sha256 recomputed 2026-07-21 directly from the working-tree file at the ledger's canonicalPath; matched art/contracts/user-provided-images.json and docs/user-provided-image-policy.md section 7 exactly"
+    },
+    "backgroundShadingReference": {
+      "path": "public/fable5-v2/assets/world/target-town-user-direct-v1.png",
+      "canonicalPath": "art/references/user-provided/target-town.png",
+      "sha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607",
+      "dimensions": { "width": 1586, "height": 992 },
+      "custody": "user-direct",
+      "ledgerSourceId": "user_target_town_current",
+      "useAs": "lighting/shading-density match only (twilight upper-left light, 2-3 shading steps, ambient palette) — not a crop or composition source for the character sheet itself",
+      "verifiedIndependently": "sha256 recomputed 2026-07-21 from both public/fable5-v2/assets/world/target-town-user-direct-v1.png and art/references/user-provided/target-town.png, byte-identical, matches public/fable5-v2/assets/world/target-town-user-direct-v1.lineage.json"
+    },
+    "prefabSpecAuthority": "Fable5PrefabSpec.md section 6 (canvas 64x128, footPivot 32,120 fixed, 640x512 sheet, idle2/walk6/interact2, east not a mirror of west) and section 7 (this JSON's field set)",
+    "promptDrafts": [
+      "tools/asset-forge/prompts/fable5-prefab/00_common_fable5_character_sheet_style.md",
+      "tools/asset-forge/prompts/fable5-prefab/character.player.prompt-draft.md"
+    ],
+    "provenanceTemplate": "tools/asset-forge/review/provenance/character.player.candidate-provenance-draft.json",
+    "generationRoute": [
+      "make-job / make-job-v2 (job-pack, no image produced) — requires rewriting the character.player v2 art-direction entry to this identity/contract first; the current entry still encodes the rejected navy-coat identity and a different (48x96, idle2+walk4+talk2+work2) frame grid",
+      "external human-supervised generation session (Codex built-in image_gen or a signed-in ChatGPT session) — outside this tool, no API key held or used by asset-forge itself",
+      "import / import-v2 (hash-verified pending candidate)",
+      "process (alpha/trim as needed)",
+      "interactive promote (human-only, requires TTY + --reviewer human + --write + note)",
+      "export (dry-run by default; --write only after the v2 manifest is complete)"
+    ],
+    "notGeneratedReason": "Task scope for this pass excludes real image generation (API cost and out-of-band approval); this file only prepares the contract/prompt pair so generation can start without re-deriving identity/background facts."
+  }
+}

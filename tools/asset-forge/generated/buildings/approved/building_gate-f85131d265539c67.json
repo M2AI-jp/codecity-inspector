@@ -1,0 +1,141 @@
+{
+  "approval": {
+    "approvedAt": "2026-07-15T04:36:58.789Z",
+    "approvedPath": "generated/buildings/approved/building_gate-f85131d265539c67.png",
+    "approvedSha256": "f85131d265539c676cfc743e76dbfd813651c0518f0877e6be9daf89a9186e4e",
+    "note": "Required 78 batch approval cb4aa5f67c91a329c140f4a09bdc39b960ccce8a76334957066d7c0e83540042",
+    "reviewer": "human"
+  },
+  "assetId": "building.gate",
+  "category": "building",
+  "createdAt": "2026-07-14T00:00:00.000Z",
+  "dryRun": false,
+  "id": "gen_import_81fb966e460202ba498d",
+  "inspection": {
+    "inferred": [
+      "The normalized image satisfies the technical output dimensions."
+    ],
+    "observed": [
+      "PNG signature and bounded Sharp decode succeeded.",
+      "Normalized PNG is 256x256.",
+      "A human-only promotion ceremony recorded an immutable approved copy."
+    ],
+    "status": "pending-inspection",
+    "unknown": [
+      "source license confirmation",
+      "visual suitability",
+      "runtime integration"
+    ]
+  },
+  "jobId": "job_f53605bdb3bbe30ed076",
+  "manualImport": true,
+  "metadataPath": "generated/buildings/approved/building_gate-f85131d265539c67.json",
+  "outputInspection": {
+    "bytes": 71508,
+    "channels": 4,
+    "format": "png",
+    "frames": 1,
+    "height": 256,
+    "width": 256
+  },
+  "outputPath": "generated/buildings/approved/building_gate-f85131d265539c67.png",
+  "outputSha256": "f85131d265539c676cfc743e76dbfd813651c0518f0877e6be9daf89a9186e4e",
+  "productionRecipe": {
+    "assetId": "building.gate",
+    "backgroundRemoval": {
+      "autoKey": "border",
+      "cleanup": {
+        "alphaCutoff": 16,
+        "componentMinPixels": 128,
+        "resizeKernel": "nearest",
+        "targetMaxHeight": 190,
+        "targetMaxWidth": 208
+      },
+      "despill": true,
+      "keyColor": null,
+      "method": "official-chroma-key-helper",
+      "opaqueThreshold": 220,
+      "softMatte": true,
+      "transparentThreshold": 12
+    },
+    "canvas": {
+      "baselineY": 244,
+      "height": 256,
+      "width": 256
+    },
+    "generationPromptPath": "review/prompts/wave1a-buildings/building_gate.txt",
+    "generationPromptSha256": "c4f728250367b41a1cbfb8ebc83e72af8066cef2125cc084a8cad7243c70e52c",
+    "generator": "codex-imagegen-built-in",
+    "inputReferences": [
+      {
+        "id": "world_visual_master",
+        "role": "global-style",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_object_status_markers",
+        "role": "primary-subject",
+        "sha256": "e3d2f177bf10bc07d1362251d8aa80d490fc6f58999d24b06a66c34a177e1d1b"
+      }
+    ],
+    "method": "imagegen",
+    "outputSha256": "f85131d265539c676cfc743e76dbfd813651c0518f0877e6be9daf89a9186e4e",
+    "referenceImages": [
+      {
+        "id": "world_visual_master",
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+      },
+      {
+        "id": "intake_20260713_object_status_markers",
+        "sha256": "e3d2f177bf10bc07d1362251d8aa80d490fc6f58999d24b06a66c34a177e1d1b"
+      }
+    ],
+    "scaleClass": "medium",
+    "source": {
+      "comparisonRect": {
+        "height": 210,
+        "width": 650,
+        "x": 0,
+        "y": 430
+      },
+      "cropRect": null,
+      "height": 1086,
+      "path": "tmp/imagegen/wave1a/raw/building_gate.png",
+      "sha256": "1d32b0d287d430e799f03239515558ab80def94916c9146a8c64dfb8d4919fcd",
+      "width": 1448
+    },
+    "sourceSnapshot": {
+      "height": 1086,
+      "path": "generated/buildings/approved/source-1d32b0d287d430e799f03239515558ab80def94916c9146a8c64dfb8d4919fcd.source-original.png",
+      "sha256": "1d32b0d287d430e799f03239515558ab80def94916c9146a8c64dfb8d4919fcd",
+      "width": 1448
+    },
+    "subjectBbox": {
+      "height": 161,
+      "width": 208,
+      "x": 24,
+      "y": 84
+    },
+    "toolMode": "built-in",
+    "waveId": "wave1a-buildings"
+  },
+  "promptHash": "982d62b89c3c4cc3d545275bc615cf17f677c1ce407197b368e8f8974cded63b",
+  "provenanceKey": "81fb966e460202ba498de4f55015b1cfff6201f110889aa4f2a4de0cdb950b15",
+  "provider": "manual-import",
+  "referenceImageHashes": [
+    "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+    "e3d2f177bf10bc07d1362251d8aa80d490fc6f58999d24b06a66c34a177e1d1b"
+  ],
+  "referenceImageIds": [
+    "world_visual_master",
+    "intake_20260713_object_status_markers"
+  ],
+  "sourceFormat": "png",
+  "sourcePath": "generated/buildings/pending/building_gate-f85131d265539c67.source.png",
+  "sourceSha256": "f85131d265539c676cfc743e76dbfd813651c0518f0877e6be9daf89a9186e4e",
+  "status": "approved",
+  "subscriptionRun": false,
+  "warnings": [
+    "Imported candidate remains pending until explicit human approval."
+  ]
+}
