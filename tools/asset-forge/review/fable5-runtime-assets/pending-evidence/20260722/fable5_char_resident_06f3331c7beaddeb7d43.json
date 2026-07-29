@@ -1,0 +1,49 @@
+{
+  "format": "fable5-prefab-character-review-candidate-v1",
+  "id": "fable5_pending_char_resident_06f3331c7beaddeb7d43",
+  "assetId": "char_resident",
+  "category": "character",
+  "status": "pending-inspection",
+  "custody": {
+    "kind": "workshop-produced",
+    "userDirect": false,
+    "note": "The pending candidate is not user-provided and does not inherit user-direct custody from any reference."
+  },
+  "origin": {
+    "reportedKind": "built-in-imagegen style-transform",
+    "reportedReference": "approved innkeeper",
+    "provenanceStatus": "reported in task handoff; generation-session record is not included in this packet"
+  },
+  "artifact": {
+    "path": "review/fable5-runtime-assets/pending-evidence/20260722/fable5_char_resident_06f3331c7beaddeb7d43.png",
+    "sha256": "06f3331c7beaddeb7d43ed09125de131fb8cb14f0764c4f28c09d57566a64d4d",
+    "format": "png",
+    "dimensions": { "width": 640, "height": 512 },
+    "channels": 4,
+    "sheet": { "rows": 4, "cols": 10, "cellWidth": 64, "cellHeight": 128, "intendedFootPivot": { "x": 32, "y": 120 } }
+  },
+  "contractPath": "contracts/fable5-prefab/character.resident.contract-draft.json",
+  "promptPath": "prompts/fable5-prefab/character.resident.prompt-draft.md",
+  "provenanceReceiptPath": "review/fable5-runtime-assets/pending-evidence/20260722/fable5_char_resident_06f3331c7beaddeb7d43.receipt.json",
+  "assetForgeIntake": {
+    "status": "unresolved-awaiting-formal-intake",
+    "executed": false,
+    "note": "No Asset Forge import, process, or mechanical validation was executed for this review-only packet."
+  },
+  "approval": { "humanOnly": true, "status": "not-yet-submitted", "promotionAllowed": false },
+  "runtime": { "allowed": false, "path": null },
+  "observed": [
+    "SHA-256 was recomputed with shasum for the evidence PNG and matches the artifact hash recorded here.",
+    "Task handoff specifies 640x512 RGBA, a 4x10 grid of 64x128 cells, and intended foot pivot (32,120).",
+    "Task handoff reports all 40 cells nonempty and transparent corners."
+  ],
+  "inferred": [
+    "The candidate is a review artifact only because no formal intake, approval, promotion, export, or runtime path is recorded."
+  ],
+  "unknown": [
+    "Formal Asset Forge intake and mechanical-validation outcome.",
+    "Visual role/identity fidelity, artistic quality, and target-town style compatibility.",
+    "Human review decision and runtime behavior."
+  ],
+  "repositoryHeadAtPacketAssembly": "b59f3d739230f09c76b78debbdb792508da57e64"
+}

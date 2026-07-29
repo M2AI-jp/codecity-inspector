@@ -1,0 +1,52 @@
+{
+  "$comment": "DRAFT GENERATION CONTRACT — this describes the intended Fable5 prefab shape for a new char_town_clerk candidate. It does not constitute Asset Forge intake, human approval, promotion, export, or runtime wiring. Keep draftMeta out of a promoted runtime contract.",
+  "status": "draft-pending-generation",
+  "assetId": "char_town_clerk",
+  "category": "character",
+  "png": { "file": "character/char_town_clerk.png", "w": 640, "h": 512 },
+  "nativeScale": 1,
+  "logicalTileSize": 64,
+  "pivot": { "x": 32, "y": 120 },
+  "footprint": { "w": 1, "h": 1 },
+  "collision": [],
+  "layers": { "base": "character/char_town_clerk.png" },
+  "sheet": {
+    "rows": 4,
+    "cols": 10,
+    "frameW": 64,
+    "frameH": 128,
+    "anims": {
+      "rowOrder": ["south", "west", "east", "north"],
+      "idle": { "cols": [0, 1], "fps": 4 },
+      "walk": { "cols": [2, 3, 4, 5, 6, 7], "fps": 10 },
+      "interact": { "cols": [8, 9], "fps": 6 }
+    }
+  },
+  "palette": "district_old_town",
+  "allowedZoom": [1, 2, 3],
+  "districts": ["old_town"],
+  "draftMeta": {
+    "purpose": "New-generation contract for char_town_clerk; no runtime asset is authorized by this file.",
+    "roleIdentityLimits": {
+      "intendedRole": "Adult civic town clerk: orderly administrative silhouette, with a compact ledger or document gesture permitted only as a role signifier.",
+      "individualIdentity": "A new NPC individual, distinct from the player and every other NPC. The candidate must not be represented as a user-direct source, a user identity, or a continuation of any historical character candidate.",
+      "distinguishFrom": [
+        "The innkeeper: no required apron, serving prop, or tavern-worker identity.",
+        "A general resident: the clerk's limited civic/document signifier must remain legible without introducing a playable-player identity.",
+        "Combatants: no weapon, armor, official-looking badge, or readable document text."
+      ]
+    },
+    "characterStyleAuthority": {
+      "sourceId": "user_character_style_authority_20260722_v1",
+      "canonicalPath": "art/references/user-provided/character_style_authority_20260722_v1.png",
+      "sha256": "446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932",
+      "custody": "user-direct",
+      "role": "sole style authority for this distinct NPC"
+    },
+    "styleLock": "Use the exact sole authority for crisp pixel density, stable head/body proportions, contour weight, silhouette readability, and restrained 2–3-step shading. Preserve the fixed 4x10 sheet, independently drawn east row, transparent surroundings, no chroma residue, and no UI/text.",
+    "historicalCandidatePolicy": "All earlier character candidates, generated sheets, and deployed character art are prohibited as visual references, derivation inputs, comparison authorities, or runtime-promotion sources. They may remain quarantined as historical records only.",
+    "formalIntake": "required for a future new candidate; no historical candidate carries forward.",
+    "humanReview": "required for a future new candidate; not submitted or authorized by this contract.",
+    "runtime": "explicitly disallowed; no runtime path is assigned."
+  }
+}

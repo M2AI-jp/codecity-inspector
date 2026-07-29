@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1536" height="1024" viewBox="0 0 1536 1024">
+  <defs>
+    <pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse">
+      <path d="M64 0H0V64" fill="none" stroke="#7de9ff" stroke-width="1" stroke-opacity="0.22"/>
+    </pattern>
+    <filter id="label-shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feMorphology in="SourceAlpha" operator="dilate" radius="1.4" result="outline"/>
+      <feFlood flood-color="#071019" flood-opacity="0.98" result="color"/>
+      <feComposite in="color" in2="outline" operator="in" result="stroke"/>
+      <feMerge><feMergeNode in="stroke"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <g id="foot-proof">
+      <ellipse cx="0" cy="0" rx="12" ry="7" fill="#ff4f73" fill-opacity="0.78" stroke="#fff" stroke-width="2"/>
+      <path d="M-16 0H16M0-11V11" stroke="#fff" stroke-width="1"/>
+    </g>
+    <g id="actor-proof">
+      <rect x="-32" y="-120" width="64" height="128" fill="#19e7ff" fill-opacity="0.10" stroke="#19e7ff" stroke-width="2" stroke-dasharray="6 4"/>
+      <circle cx="0" cy="-62" r="13" fill="#275a92" stroke="#ffe36e" stroke-width="2"/>
+      <path d="M-14-48L-18-12 0 0 18-12 14-48Z" fill="#275a92" stroke="#ffe36e" stroke-width="2"/>
+      <use xlink:href="#foot-proof"/>
+    </g>
+  </defs>
+
+  <image x="0" y="0" width="1536" height="1024" xlink:href="../boards/old-town-exterior-master-v1.png"/>
+  <rect x="0" y="0" width="1536" height="1024" fill="url(#grid)"/>
+
+  <!-- Spawn camera rectangles at zoom2. -->
+  <rect x="256" y="466" width="960" height="540" fill="none" stroke="#26f58b" stroke-width="4"/>
+  <rect x="416" y="556" width="640" height="360" fill="none" stroke="#19e7ff" stroke-width="4"/>
+  <rect x="256" y="906" width="960" height="100" fill="#26f58b" fill-opacity="0.12" stroke="#26f58b" stroke-dasharray="8 5"/>
+  <rect x="416" y="816" width="640" height="100" fill="#19e7ff" fill-opacity="0.12" stroke="#19e7ff" stroke-dasharray="8 5"/>
+
+  <!-- 64x128 placeholder at exact spawn and route-critical 24x14 collider samples. -->
+  <g transform="translate(736 736)"><use xlink:href="#actor-proof"/></g>
+  <g>
+    <g transform="translate(738 288)"><use xlink:href="#foot-proof"/></g>
+    <g transform="translate(790 400)"><use xlink:href="#foot-proof"/></g>
+    <g transform="translate(742 520)"><use xlink:href="#foot-proof"/></g>
+    <g transform="translate(207 480)"><use xlink:href="#foot-proof"/></g>
+    <g transform="translate(320 544)"><use xlink:href="#foot-proof"/></g>
+    <g transform="translate(352 640)"><use xlink:href="#foot-proof"/></g>
+    <g transform="translate(1148 544)"><use xlink:href="#foot-proof"/></g>
+    <g transform="translate(1140 640)"><use xlink:href="#foot-proof"/></g>
+    <g transform="translate(1406 520)"><use xlink:href="#foot-proof"/></g>
+    <g transform="translate(1406 640)"><use xlink:href="#foot-proof"/></g>
+  </g>
+
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" font-weight="800" filter="url(#label-shadow)">
+    <text x="266" y="486" fill="#26f58b">1920×1080 zoom2 · 960×540 world viewport</text>
+    <text x="426" y="576" fill="#19e7ff">1280×720 zoom2 · 640×360 world viewport</text>
+    <text x="784" y="724" fill="#ffe36e">SPAWN foot(736,736) · north</text>
+    <text x="264" y="930" fill="#26f58b">dialogue UI safe band (100 world px = 200 screen px)</text>
+    <text x="424" y="840" fill="#19e7ff">smaller viewport safe band</text>
+  </g>
+
+  <g transform="translate(12 12)">
+    <rect x="0" y="0" width="518" height="68" rx="6" fill="#071019" fill-opacity="0.91" stroke="#7de9ff"/>
+    <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" fill="#f7fbff">
+      <text x="12" y="21">CYAN box: 64×128 frame · BLUE/GOLD: 72px placeholder body</text>
+      <text x="12" y="42">RED ellipse: exact 24×14 foot collider sample</text>
+      <text x="12" y="61">Geometry proof only · final generated character/UI still unapproved</text>
+    </g>
+  </g>
+</svg>

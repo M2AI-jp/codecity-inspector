@@ -15,14 +15,13 @@ CodeCity Inspectorは、点検対象のリポジトリを信頼できない入�
 - `CodeCity.command` は依存を自動インストールせず、不足時は停止します。
 - レポートは現在メモリ内だけに保持され、明示的な保存機能はありません。
 
-## Asset Forge
+## アート棚
 
-- Asset Forgeは `tools/asset-forge/` に隔離され、独立したlockfileでAjvとSharpを利用します。通常のリポジトリ点検にこれらの依存は不要です。
-- mockとdry-runが安全な既定です。job packは画像を生成せず、manual importはPNG/JPEG/WEBPのsignature、入力byte数、decode後の寸法・pixel数・frame数を制限してからPNGへ正規化します。SVGは受け付けません。
-- pending、rejected、processedはローカル状態です。自動処理はapprovedへ移動しません。promoteはTTY、人間reviewer、`--write`、note、hash表示後の明示確認を要求し、成功操作は人間だけが行います。
-- exportはapproval ledger、category別approved path、SHA-256、game bindingを照合し、approvedだけをversioned public pathへno-overwriteで書きます。spritesheetは宣言したframe gridとPNG実寸も照合し、必須画像の未承認一覧が空になるまでmanifestをcompleteとしません。既定はdry-runです。
-- `codex-subscription` はunavailable stubです。子プロセスを起動せず、OpenAI API、`OPENAI_API_KEY`、paid API fallback、外部upload経路はありません。
-- 画像のライセンス、出所、美観、ゲーム内での適合性は人間の確認事項です。技術検査に通ったpending画像を承認済みとは扱いません。
+- 旧 Asset Forge、旧runtime素材、互換fallbackは削除済みです。
+- `art/references/` は品質参照専用で、public配下へ置かずruntimeから配信しません。
+- `art/production/` の候補はN1–N9と人間審査を通るまでpublicへexportしません。
+- runtime assetが不足・不一致の場合は旧画像やCSS図形で代替せず、理由を表示して停止します。
+- 画像のライセンス、出所、美観、ゲーム内での適合性は人間の確認事項です。
 
 ブラウザには対象リポジトリ内のファイル名や相対パスが表示されます。画面共有やスクリーンショットには機密性のある名称が写る可能性があります。
 

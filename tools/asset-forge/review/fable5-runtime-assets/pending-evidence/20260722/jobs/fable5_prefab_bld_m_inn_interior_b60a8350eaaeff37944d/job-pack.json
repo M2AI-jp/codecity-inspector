@@ -1,0 +1,13 @@
+{
+  "assetId": "bld_m_inn.interior",
+  "importCommandPath": "generated/jobs/fable5_prefab_bld_m_inn_interior_b60a8350eaaeff37944d/intake-guide.md",
+  "jobId": "fable5_prefab_bld_m_inn_interior_b60a8350eaaeff37944d",
+  "outputContractPath": "generated/jobs/fable5_prefab_bld_m_inn_interior_b60a8350eaaeff37944d/output-contract.json",
+  "promptPath": "generated/jobs/fable5_prefab_bld_m_inn_interior_b60a8350eaaeff37944d/prompt.md",
+  "referenceIds": [
+    "user_target_town_current",
+    "user_building_inn"
+  ],
+  "schemaVersion": 1,
+  "status": "job-pack"
+}

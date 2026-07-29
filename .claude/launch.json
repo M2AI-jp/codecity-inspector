@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "codecity",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["src/server.mjs", "--repo", "./sample/tiny-town"],
+      "port": 4173
+    }
+  ]
+}

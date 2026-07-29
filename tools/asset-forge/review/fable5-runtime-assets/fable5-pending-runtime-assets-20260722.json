@@ -1,0 +1,78 @@
+{
+  "format": "fable5-runtime-asset-inventory-v1",
+  "status": "historical-superseded",
+  "purpose": "Historical, audit-only inventory of superseded candidate evidence. It preserves the recorded candidate paths and receipts, but it is not a current pending-review queue and cannot authorize promotion or runtime installation.",
+  "supersededBy": {
+    "sourceId": "user_character_style_authority_20260722_v1",
+    "sha256": "446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932",
+    "reviewPacketPath": "review/fable5-runtime-assets/style-authority-20260722-v1/index.json"
+  },
+  "assets": [
+    {
+      "assetId": "char_player",
+      "category": "character",
+      "state": "pending-inspection",
+      "artifactPath": "generated/characters/pending/fable5_char_player_d947cf60b90d892a6104.png",
+      "metadataPath": "generated/characters/pending/fable5_char_player_d947cf60b90d892a6104.json",
+      "contractPath": "contracts/fable5-prefab/character.player.contract-draft.json",
+      "jobPackPath": "generated/jobs/fable5_prefab_char_player_30aecfcddcbb054c5b59/job-pack.json",
+      "approvalRecordPath": null,
+      "runtimePath": null
+    },
+    {
+      "assetId": "char_resident",
+      "category": "character",
+      "state": "pending-inspection",
+      "artifactPath": "review/fable5-runtime-assets/pending-evidence/20260722/fable5_char_resident_06f3331c7beaddeb7d43.png",
+      "metadataPath": "review/fable5-runtime-assets/pending-evidence/20260722/fable5_char_resident_06f3331c7beaddeb7d43.json",
+      "contractPath": "contracts/fable5-prefab/character.resident.contract-draft.json",
+      "jobPackPath": null,
+      "approvalRecordPath": null,
+      "runtimePath": null
+    },
+    {
+      "assetId": "char_town_clerk",
+      "category": "character",
+      "state": "pending-inspection",
+      "artifactPath": "review/fable5-runtime-assets/pending-evidence/20260722/fable5_char_town_clerk_773ba726697e445cb648.png",
+      "metadataPath": "review/fable5-runtime-assets/pending-evidence/20260722/fable5_char_town_clerk_773ba726697e445cb648.json",
+      "contractPath": "contracts/fable5-prefab/character.town-clerk.contract-draft.json",
+      "jobPackPath": null,
+      "approvalRecordPath": null,
+      "runtimePath": null
+    },
+    {
+      "assetId": "bld_m_inn.interior",
+      "category": "interior",
+      "state": "pending-inspection",
+      "artifactPath": "generated/interiors/pending/fable5_bld_m_inn_interior_ee1097a034ed0ee772bd.png",
+      "metadataPath": "generated/interiors/pending/fable5_bld_m_inn_interior_ee1097a034ed0ee772bd.json",
+      "contractPath": "contracts/fable5-prefab/interior.inn.contract-draft.json",
+      "jobPackPath": "generated/jobs/fable5_prefab_bld_m_inn_interior_b60a8350eaaeff37944d/job-pack.json",
+      "approvalRecordPath": null,
+      "runtimePath": null
+    },
+    {
+      "assetId": "bld_l_town_hall.interior",
+      "category": "interior",
+      "state": "pending-inspection",
+      "artifactPath": "generated/interiors/pending/fable5_bld_l_town_hall_interior_cd60b78e58ae39aec409.png",
+      "metadataPath": "generated/interiors/pending/fable5_bld_l_town_hall_interior_cd60b78e58ae39aec409.json",
+      "contractPath": "contracts/fable5-prefab/interior.city-hall.contract-draft.json",
+      "jobPackPath": "generated/jobs/fable5_prefab_bld_l_town_hall_interior_060b70bca123e9a747bf/job-pack.json",
+      "approvalRecordPath": null,
+      "runtimePath": null
+    },
+    {
+      "assetId": "bld_m_house.interior",
+      "category": "interior",
+      "state": "pending-inspection",
+      "artifactPath": "generated/interiors/pending/fable5_bld_m_house_interior_02fa6bbf58649065372a.png",
+      "metadataPath": "generated/interiors/pending/fable5_bld_m_house_interior_02fa6bbf58649065372a.json",
+      "contractPath": "contracts/fable5-prefab/interior.residence.contract-draft.json",
+      "jobPackPath": "generated/jobs/fable5_prefab_bld_m_house_interior_512102244bae5f00d91d/job-pack.json",
+      "approvalRecordPath": null,
+      "runtimePath": null
+    }
+  ]
+}

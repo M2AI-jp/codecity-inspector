@@ -1,0 +1,52 @@
+{
+  "animations": {
+    "idle": {
+      "cols": [
+        0,
+        1
+      ],
+      "fps": 4
+    },
+    "interact": {
+      "cols": [
+        8,
+        9
+      ],
+      "fps": 6
+    },
+    "rowOrder": [
+      "south",
+      "west",
+      "east",
+      "north"
+    ],
+    "walk": {
+      "cols": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "fps": 10
+    }
+  },
+  "background": "transparent",
+  "format": "png",
+  "grid": {
+    "columns": 10,
+    "frameHeight": 128,
+    "frameWidth": 64,
+    "rows": 4
+  },
+  "height": 512,
+  "kind": "spritesheet",
+  "nativeScale": 1,
+  "needsTransparency": true,
+  "pivot": {
+    "x": 32,
+    "y": 120
+  },
+  "width": 640
+}

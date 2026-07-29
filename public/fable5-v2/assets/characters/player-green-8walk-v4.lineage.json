@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "assetId": "player-green-8walk-v4",
+  "status": "runtime-integrated-independent-visual-eval-passed",
+  "runtime": {
+    "path": "public/fable5-v2/assets/characters/player-green-8walk-v4.png",
+    "sha256": "f55e954d04304fd0c05c329b2477ef4980d50f23b172823aea7c912fe553f913",
+    "bytes": 118169,
+    "dimensions": { "width": 576, "height": 512 },
+    "frame": { "width": 64, "height": 128, "footPivot": { "x": 32, "y": 120 } },
+    "rows": ["south", "west", "east", "north"],
+    "columns": ["idle", "walk-1", "walk-2", "walk-3", "walk-4", "walk-5", "walk-6", "walk-7", "walk-8"],
+    "motion": { "speedPixelsPerSecond": 75, "phaseDurationMs": 70, "rootPixelsPerPhase": 5.25 }
+  },
+  "userSource": {
+    "path": "art/references/user-provided/character_style_reference_sheet.png",
+    "sha256": "910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b",
+    "custody": "user-direct",
+    "role": "identity, palette, clothing, proportions, and pixel-style authority"
+  },
+  "generation": {
+    "provider": "codex-imagegen-built-in",
+    "model": "managed-built-in-model-not-exposed",
+    "intent": "four direction-specific eight-phase classic JRPG walk strips with planted-foot and alternating arm/leg motion",
+    "sourcePaths": [
+      "art/production/vertical-slice/boards/candidates/player-green-imagegen-8walk-v3/south-strip-source.png",
+      "art/production/vertical-slice/boards/candidates/player-green-imagegen-8walk-v3/west-strip-source.png",
+      "art/production/vertical-slice/boards/candidates/player-green-imagegen-8walk-v3/east-strip-source.png",
+      "art/production/vertical-slice/boards/candidates/player-green-imagegen-8walk-v3/north-strip-source.png"
+    ],
+    "alphaMethod": "imagegen remove_chroma_key.py, border auto-key, soft matte, despill"
+  },
+  "assembly": {
+    "script": "art/production/vertical-slice/scripts/assemble-rpg-state-assets-v2.py",
+    "scriptSha256": "c14328b1df64d4b588c6c81bacb19c6223fdac4e9c2f638bab374fb442911512",
+    "rules": [
+      "one scale per direction strip",
+      "common head/body anchor",
+      "two-phase planted-foot pairs",
+      "vertical-only nearest-neighbour height normalization",
+      "all 36 frames end at physical sole y=120",
+      "all directions share a 60/61px head-height rhythm",
+      "largest 8-connected component cleanup",
+      "idle is pixel-identical to walk phase 8 before height normalization"
+    ]
+  },
+  "qa": {
+    "contactSheet": {
+      "path": "art/production/vertical-slice/qa/player-green-imagegen-8walk-v4-contact.png",
+      "sha256": "1aaedda925599078d19b90a264ab93bbe7417474b4ac4cabe3dc152351336e3e"
+    },
+    "runtimeGif": {
+      "path": "art/production/vertical-slice/qa/player-green-imagegen-8walk-v4-runtime.gif",
+      "sha256": "721afe484449515a7057d035eaaf03622c5be55f9e123918c4613229841fc05a",
+      "frameCount": 24,
+      "frameDurationMs": 70
+    },
+    "browserEvidence": [
+      {
+        "path": "art/production/vertical-slice/qa/v4-browser-spawn-1x.png",
+        "sha256": "d72e133a1ae5d11b01a0eff7ee3f6279b480b5d1f7695fff3633b3d8a3ae57d5",
+        "state": "fresh spawn at native 1x"
+      },
+      {
+        "path": "art/production/vertical-slice/qa/v4-browser-npc-prompt-1x.png",
+        "sha256": "639992700069c142098963202503ba5498fa8e69b81a387b17af4d0aa1e26128",
+        "state": "player and innkeeper at native 1x with transparent prompt"
+      },
+      {
+        "path": "art/production/vertical-slice/qa/v4-browser-side-approach-north-dialogue-1x.png",
+        "sha256": "fcade36c10f3d7984f26811f320498e3fe192b4ec4a0aae244786e7600962b38",
+        "state": "side approach normalized to north-facing dialogue"
+      }
+    ],
+    "mechanical": "36/36 cells use top y=60 or 61 and final opaque sole y=120; direction idle height difference is 0px; walk bob is 1px",
+    "independentReviewer": "Sol animation manager PASS on 2026-07-19: P0=0, P1=0; 36 cells, 1px maximum head bob, zero direction idle height difference, stable sole y=120, native 1x browser traversal, matching NPC scale/style, and side-approach dialogue facing verified"
+  }
+}

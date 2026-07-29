@@ -1,0 +1,89 @@
+{
+  "format": "fable5-pending-runtime-evidence-v1",
+  "status": "historical-superseded",
+  "purpose": "Historical, audit-only evidence for superseded locally imported candidates. These copies preserve exact candidate bytes, metadata, provenance receipts, and job-pack receipts, but are not a current pending-review queue and cannot authorize promotion or runtime installation.",
+  "supersededBy": {
+    "sourceId": "user_character_style_authority_20260722_v1",
+    "sha256": "446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932",
+    "reviewPacketPath": "review/fable5-runtime-assets/style-authority-20260722-v1/index.json"
+  },
+  "approval": {
+    "humanDecision": null,
+    "runtimeInstallAllowed": false,
+    "promotionAllowed": false
+  },
+  "assets": [
+    {
+      "assetId": "char_player",
+      "category": "character",
+      "artifactPath": "review/fable5-runtime-assets/pending-evidence/20260722/fable5_char_player_d947cf60b90d892a6104.png",
+      "artifactSha256": "d947cf60b90d892a61046f84150e501dfcfcc3d54bec85c704c797ecb489f266",
+      "metadataPath": "review/fable5-runtime-assets/pending-evidence/20260722/fable5_char_player_d947cf60b90d892a6104.json",
+      "metadataSha256": "30d7b7a46c6a40f4d4ee8920e7f11dc45a20890e7de4b841a8558586ebea1ff5",
+      "jobPackPath": "review/fable5-runtime-assets/pending-evidence/20260722/jobs/fable5_prefab_char_player_30aecfcddcbb054c5b59/job-pack.json",
+      "jobPackSha256": "2379bbc48b3730ff497dec79b7ae2f24c9fce3705e88de4dd59bd2f9cbd72a43",
+      "contractPath": "contracts/fable5-prefab/character.player.contract-draft.json"
+    },
+    {
+      "assetId": "char_resident",
+      "category": "character",
+      "artifactPath": "review/fable5-runtime-assets/pending-evidence/20260722/fable5_char_resident_06f3331c7beaddeb7d43.png",
+      "artifactSha256": "06f3331c7beaddeb7d43ed09125de131fb8cb14f0764c4f28c09d57566a64d4d",
+      "metadataPath": "review/fable5-runtime-assets/pending-evidence/20260722/fable5_char_resident_06f3331c7beaddeb7d43.json",
+      "metadataSha256": "2b5998f732378ce29192ad441b67ba804bcbd4139e9fac4e6267dbee5f9d169c",
+      "provenanceReceiptPath": "review/fable5-runtime-assets/pending-evidence/20260722/fable5_char_resident_06f3331c7beaddeb7d43.receipt.json",
+      "provenanceReceiptSha256": "d50bb4a3813d7036710949b051b878c78d80ebebd0221fa6ed3cae45076cb152",
+      "jobPackPath": null,
+      "jobPackSha256": null,
+      "contractPath": "contracts/fable5-prefab/character.resident.contract-draft.json",
+      "formalIntake": "unresolved-awaiting-formal-intake"
+    },
+    {
+      "assetId": "char_town_clerk",
+      "category": "character",
+      "artifactPath": "review/fable5-runtime-assets/pending-evidence/20260722/fable5_char_town_clerk_773ba726697e445cb648.png",
+      "artifactSha256": "773ba726697e445cb648e1558d7225e11a520d51ca705c68a28361e642bbe5ce",
+      "metadataPath": "review/fable5-runtime-assets/pending-evidence/20260722/fable5_char_town_clerk_773ba726697e445cb648.json",
+      "metadataSha256": "f9c6327ae383fcef274a8184b5958143cb7743d1775ed75d50e3432e2eedd5b7",
+      "provenanceReceiptPath": "review/fable5-runtime-assets/pending-evidence/20260722/fable5_char_town_clerk_773ba726697e445cb648.receipt.json",
+      "provenanceReceiptSha256": "0b5a206fc004ce4d7080a5c6efa5538cc048700e65ba04c7e3c163bd2a3ce32a",
+      "jobPackPath": null,
+      "jobPackSha256": null,
+      "contractPath": "contracts/fable5-prefab/character.town-clerk.contract-draft.json",
+      "formalIntake": "unresolved-awaiting-formal-intake"
+    },
+    {
+      "assetId": "bld_m_inn.interior",
+      "category": "interior",
+      "artifactPath": "review/fable5-runtime-assets/pending-evidence/20260722/fable5_bld_m_inn_interior_ee1097a034ed0ee772bd.png",
+      "artifactSha256": "ee1097a034ed0ee772bdad304606f9cdd1e68f53cb2fd79755a8406fc5eed437",
+      "metadataPath": "review/fable5-runtime-assets/pending-evidence/20260722/fable5_bld_m_inn_interior_ee1097a034ed0ee772bd.json",
+      "metadataSha256": "764e8f55520434e97a72f1512ec07bb2de00ba8faeab1c0d62cee40150cf8f6c",
+      "jobPackPath": "review/fable5-runtime-assets/pending-evidence/20260722/jobs/fable5_prefab_bld_m_inn_interior_b60a8350eaaeff37944d/job-pack.json",
+      "jobPackSha256": "8810520dd40323dc0717abc38c040aec71f9df42988154ce97379bbcfc11a0f7",
+      "contractPath": "contracts/fable5-prefab/interior.inn.contract-draft.json"
+    },
+    {
+      "assetId": "bld_l_town_hall.interior",
+      "category": "interior",
+      "artifactPath": "review/fable5-runtime-assets/pending-evidence/20260722/fable5_bld_l_town_hall_interior_cd60b78e58ae39aec409.png",
+      "artifactSha256": "cd60b78e58ae39aec4090779d83df769169655bab249e855d0c181753948e174",
+      "metadataPath": "review/fable5-runtime-assets/pending-evidence/20260722/fable5_bld_l_town_hall_interior_cd60b78e58ae39aec409.json",
+      "metadataSha256": "c3cb97711cbe303d924d5c5ba35a359781a24132a296bfba7626ef7bca18f78e",
+      "jobPackPath": "review/fable5-runtime-assets/pending-evidence/20260722/jobs/fable5_prefab_bld_l_town_hall_interior_060b70bca123e9a747bf/job-pack.json",
+      "jobPackSha256": "314b76aea15bc43bfaa27673e7559e3632bd7e202a0e33b643a10306b0abc04a",
+      "contractPath": "contracts/fable5-prefab/interior.city-hall.contract-draft.json"
+    },
+    {
+      "assetId": "bld_m_house.interior",
+      "category": "interior",
+      "artifactPath": "review/fable5-runtime-assets/pending-evidence/20260722/fable5_bld_m_house_interior_02fa6bbf58649065372a.png",
+      "artifactSha256": "02fa6bbf58649065372a3fe0ad5e436f75581904a66e7db94a5abc20ac53bf7b",
+      "metadataPath": "review/fable5-runtime-assets/pending-evidence/20260722/fable5_bld_m_house_interior_02fa6bbf58649065372a.json",
+      "metadataSha256": "333d74077787c222eedefe07263f968bebc22ee3c56dcb240d7ba6e5438d0322",
+      "jobPackPath": "review/fable5-runtime-assets/pending-evidence/20260722/jobs/fable5_prefab_bld_m_house_interior_512102244bae5f00d91d/job-pack.json",
+      "jobPackSha256": "a52e7fb9bf34c4ce319737a0e053129ad6425746885be33ac46e843b4476d48e",
+      "contractPath": "contracts/fable5-prefab/interior.residence.contract-draft.json"
+    }
+  ]
+}

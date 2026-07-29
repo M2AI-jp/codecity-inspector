@@ -1,11 +1,16 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { request } from 'node:http';
-import { mkdtemp, mkdir, rename, symlink, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, rename, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
+import { PRODUCTION_ASSETS, WORLD_PREFABS } from '../public/fable5-v2/site-runtime.mjs';
 import { parseCliArgs, startServer } from '../src/server.mjs';
-import { buildLegacyTownPayload, buildTownPayload } from '../src/town/index.mjs';
+import { buildTownPayload } from '../src/town/index.mjs';
+
+const PUBLIC_ROOT = fileURLToPath(new URL('../public', import.meta.url));
 
 function rawRequest(port, requestPath, method = 'GET', headers = {}) {
   return new Promise((resolve, reject) => {
@@ -50,6 +55,19 @@ test('CLI parsing accepts explicit local options and rejects invalid ports', () 
   assert.throws(() => parseCliArgs(['--unknown']), /Unknown option/);
 });
 
+test('target-town production asset contracts match the packaged PNG bytes, hashes, and dimensions', async () => {
+  for (const contract of [...Object.values(PRODUCTION_ASSETS), ...WORLD_PREFABS]) {
+    const bytes = await readFile(path.join(PUBLIC_ROOT, contract.url.slice(1)));
+    assert.equal(bytes.length, contract.bytes, contract.id);
+    assert.equal(createHash('sha256').update(bytes).digest('hex'), contract.sha256, contract.id);
+    assert.deepEqual([...bytes.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10], contract.id);
+    assert.equal(bytes.readUInt32BE(16), contract.width, contract.id);
+    assert.equal(bytes.readUInt32BE(20), contract.height, contract.id);
+  }
+  assert.equal(Object.isFrozen(PRODUCTION_ASSETS), true);
+  assert.equal(Object.isFrozen(WORLD_PREFABS), true);
+});
+
 test('serves the city report and assets on loopback without source bodies', async (t) => {
   const fixture = await serverFixture();
   const running = await startServer({ ...fixture, repoPath: fixture.repo, port: 0 });
@@ -61,6 +79,7 @@ test('serves the city report and assets on loopback without source bodies', asyn
   assert.equal(page.status, 200);
   assert.match(page.body, /CodeCity/);
   assert.match(page.headers['content-security-policy'], /default-src 'self'/);
+  assert.match(page.headers['content-security-policy'], /img-src 'self' data: blob:/);
 
   const api = await rawRequest(port, '/api/city');
   assert.equal(api.status, 200);
@@ -127,73 +146,37 @@ test('serves the exact WorldPlan v2 payload without leaking source', async (t) =
   assert.equal(post.status, 405);
 });
 
-test('serves the isolated deterministic legacy TownLayout without leaking source', async (t) => {
+test('serves the target-town n=1 shell, runtime modules, and exact production assets', async (t) => {
   const fixture = await serverFixture();
-  const running = await startServer({ ...fixture, repoPath: fixture.repo, port: 0 });
+  const running = await startServer({ repoPath: fixture.repo, port: 0 });
   t.after(running.close);
   const port = running.server.address().port;
 
-  const api = await rawRequest(port, '/api/town/legacy');
-  assert.equal(api.status, 200);
-  assert.match(api.headers['content-type'], /application\/json/);
-  assert.equal(api.body.includes('SOURCE_MUST_NOT_LEAK'), false);
-  const town = JSON.parse(api.body);
-  assert.deepEqual(Object.keys(town), [
-    'schemaVersion', 'repository', 'generatorVersion', 'seed', 'habitability', 'model', 'layout'
-  ]);
-  assert.equal(town.schemaVersion, 1);
-  assert.equal(town.repository.name, 'repo');
-  assert.equal(town.layout.validation.ok, true);
-  assert.equal(Array.isArray(town.model.facilities), true);
-  assert.equal(Object.hasOwn(town, 'worldPlan'), false);
+  const page = await rawRequest(port, '/fable5-v2/');
+  assert.equal(page.status, 200);
+  assert.match(page.body, /CodeCity Inspector — 古町の宿屋/);
+  assert.match(page.body, /\/fable5-v2\/app\.js/);
 
-  const repeat = await rawRequest(port, '/api/town/legacy');
-  assert.equal(repeat.body, api.body);
-  const head = await rawRequest(port, '/api/town/legacy', 'HEAD');
-  assert.equal(head.status, 200);
-  assert.equal(head.body, '');
-  assert.match(head.headers['content-type'], /application\/json/);
-});
+  for (const modulePath of [
+    '/fable5-v2/app.js',
+    '/fable5-v2/site-runtime.mjs',
+    '/fable5-v2/world-runtime.mjs'
+  ]) {
+    const response = await rawRequest(port, modulePath, 'HEAD');
+    assert.equal(response.status, 200, modulePath);
+    assert.equal(response.body, '');
+    assert.match(response.headers['content-type'], /text\/javascript/, modulePath);
+  }
 
-test('legacy endpoint revalidates layout instead of trusting a forged embedded verdict', async (t) => {
-  const fixture = await serverFixture();
-  const running = await startServer({
-    ...fixture,
-    repoPath: fixture.repo,
-    port: 0,
-    legacyTownPayloadBuilder: async (repoPath, inspection) => {
-      const payload = structuredClone(await buildLegacyTownPayload(repoPath, inspection));
-      payload.layout.buildings[1].x = payload.layout.buildings[0].x;
-      payload.layout.buildings[1].y = payload.layout.buildings[0].y;
-      assert.equal(payload.layout.validation.ok, true);
-      return payload;
-    }
-  });
-  t.after(running.close);
+  for (const contract of [...Object.values(PRODUCTION_ASSETS), ...WORLD_PREFABS]) {
+    const response = await rawRequest(port, contract.url, 'HEAD');
+    assert.equal(response.status, 200, contract.id);
+    assert.equal(Number(response.headers['content-length']), contract.bytes, contract.id);
+    assert.equal(response.headers['content-type'], 'image/png', contract.id);
+  }
 
-  const response = await rawRequest(running.server.address().port, '/api/town/legacy');
-  assert.equal(response.status, 500);
-  assert.equal(response.body, 'Unable to generate legacy town\n');
-  assert.equal(response.body.includes('validation'), false);
-});
-
-test('legacy endpoint fails closed on a cross-channel payload', async (t) => {
-  const fixture = await serverFixture();
-  const running = await startServer({
-    ...fixture,
-    repoPath: fixture.repo,
-    port: 0,
-    legacyTownPayloadBuilder: async () => ({
-      schemaVersion: 2,
-      worldPlan: { validation: { ok: true } }
-    })
-  });
-  t.after(running.close);
-
-  const response = await rawRequest(running.server.address().port, '/api/town/legacy');
-  assert.equal(response.status, 500);
-  assert.equal(response.body, 'Unable to generate legacy town\n');
-  assert.equal(response.body.includes('validation'), false);
+  const removedLegacyChannel = await rawRequest(port, '/api/town/legacy');
+  assert.equal(removedLegacyChannel.status, 404);
 });
 
 test('refuses to return a town payload whose WorldPlan did not pass validation', async (t) => {

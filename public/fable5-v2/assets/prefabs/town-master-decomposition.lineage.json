@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "assetSetId": "target-town-master-prefab-decomposition-v1",
+  "status": "extracted-reconstruction-verification-pending",
+  "manifestPath": "public/fable5-v2/assets/prefabs/manifest.json",
+  "source": {
+    "ledgerSourceId": "user_target_town_current",
+    "path": "public/fable5-v2/assets/world/target-town-user-direct-v1.png",
+    "canonicalPath": "art/references/user-provided/target-town.png",
+    "activeAlias": "art/references/target-town.png",
+    "sha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607",
+    "dimensions": {
+      "width": 1586,
+      "height": 992
+    },
+    "custody": "user-direct"
+  },
+  "extraction": {
+    "scripts": [
+      "art/production/vertical-slice/scripts/extract-target-town-terrain-plates.py",
+      "art/production/vertical-slice/scripts/extract-target-town-buildings.py",
+      "art/production/vertical-slice/scripts/extract-target-town-trees.py",
+      "art/production/vertical-slice/scripts/extract-target-town-props.py",
+      "art/production/vertical-slice/scripts/build-target-town-prefab-manifest.py"
+    ],
+    "method": "exact-source-rgb-copy-under-binary-alpha-mask-or-opaque-grid-crop",
+    "generatedPixels": false,
+    "resampling": false,
+    "colorTransform": false,
+    "hiddenBackgroundReconstruction": false
+  },
+  "assetIds": [
+    "ter_plate_r0c0",
+    "ter_plate_r0c1",
+    "ter_plate_r0c2",
+    "ter_plate_r0c3",
+    "ter_plate_r1c0",
+    "ter_plate_r1c1",
+    "ter_plate_r1c2",
+    "ter_plate_r1c3",
+    "ter_plate_r2c0",
+    "ter_plate_r2c1",
+    "ter_plate_r2c2",
+    "ter_plate_r2c3",
+    "road_path_east_branch",
+    "road_path_plaza_south",
+    "bld_inn_shell",
+    "bld_civic_row_east",
+    "bld_civic_row_west",
+    "bld_town_hall",
+    "target-town-inn-bartender-source-visible-v1",
+    "bld_market_shop_a",
+    "bld_market_shop_b",
+    "bld_ruins",
+    "bld_south_west_house",
+    "bld_south_center_house",
+    "bld_south_east_row",
+    "tree_backdrop_nw",
+    "tree_backdrop_ne",
+    "prop_bench_plaza_a",
+    "prop_barrels_market_a",
+    "tree_market_gap",
+    "prop_streetlamp_plaza_west",
+    "prop_bench_plaza_b",
+    "prop_flower_bed",
+    "prop_well",
+    "prop_barrels_well",
+    "prop_barrels_market_b",
+    "prop_streetlamp_market_mid",
+    "prop_barrels_inn_yard",
+    "tree_ruins_side",
+    "target-town-route-streetlamp-foreground-v1",
+    "tree_center_path",
+    "tree_gate_left",
+    "tree_gate_right_cluster",
+    "tree_south_center_left",
+    "tree_bottom_right_cluster",
+    "tree_sw_yard",
+    "target-town-inn-entrance-foreground-v1",
+    "fg_gate_wall_sw"
+  ],
+  "observed": [
+    "target-town-user-direct-v1.png bakes every visible building, tree, prop, and terrain feature into one flattened 1586x992 RGB image; there is no separate background/foreground layer data.",
+    "The terrain grid (4 cols x 3 rows, town_prefab_geometry.TERRAIN_GRID_COLS/_ROWS) tiles the full canvas with shared edges (0..1586 horizontally, 0..992 vertically), verified by extract-target-town-terrain-plates.py's assertions before any file is written.",
+    "Three prefabs (bartender, entrance foreground, route streetlamp) were already extracted and lineage-tracked by earlier scripts (extract-target-town-n1.py, extract-target-town-streetlamp.py); this pass reuses them by reference (provenance=pre-existing) instead of re-deriving them."
+  ],
+  "inferred": [
+    "Building alpha masks are hand-measured polygons tracing each roofline/wall mass at a level of detail appropriate to pixel art (whole gables and eaves, not brick-by-brick); tree/well/flower-bed masks are deterministic ellipse polygons inscribed in a measured bounding box, not hand-traced leaf clusters.",
+    "zIndex assignments encode PlacementGuide S2.1's world-pass y-sort rule (ascending pivot.y) plus a fixed foreground-always-last rule; they have not been rendered through the live runtime, only proven correct against the static master in verify-target-town-prefab-reconstruction.py."
+  ],
+  "unknown": [
+    "Whether every alpha mask's silhouette is tight enough for artifact-free reuse once these prefabs are repositioned into a *different* WorldPlan layout (a later-phase renderer concern); this pass only proves byte-exact reconstruction of the *current* master's own layout.",
+    "Runtime integration behavior (public/fable5-v2/app.js etc. are unmodified by this pass)."
+  ]
+}

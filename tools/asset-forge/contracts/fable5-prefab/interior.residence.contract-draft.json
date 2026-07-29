@@ -1,0 +1,49 @@
+{
+  "$comment": "DRAFT ONLY — not generated, not approved, and not installed into runtime. The current building-runtime residence polygon is taller than the retired 4x3 provisional table can safely cover, so this P1 contract intentionally uses a 4x4 256px canvas rather than silently clipping entry or resident interaction anchors.",
+  "status": "draft-pending-generation",
+  "assetId": "bld_m_house.interior",
+  "category": "interior",
+  "png": { "file": "interior/bld_m_house.interior.png", "w": 256, "h": 256 },
+  "nativeScale": 1,
+  "logicalTileSize": 64,
+  "pivot": { "x": 0, "y": 256 },
+  "footprint": { "w": 4, "h": 4 },
+  "collision": [],
+  "layers": { "base": "interior/bld_m_house.interior.png" },
+  "allowedZoom": [1, 2, 3],
+  "materialProfile": "old-town / occupied timber residence / current target-town scale",
+  "districts": ["old_town"],
+  "composition": {
+    "buildingId": "residence",
+    "layer": "ground",
+    "worldRect": { "x": 869, "y": 132, "width": 256, "height": 256 },
+    "worldPivot": { "x": 869, "y": 388, "anchor": "southwest" },
+    "coordinateEvidence": { "exterior": "observed", "interior": "inferred", "authority": "public/fable5-v2/building-runtime.mjs" },
+    "walkPolygon": [[918, 178], [1076, 178], [1076, 348], [1038, 348], [1038, 388], [956, 388], [956, 348], [918, 348]],
+    "runtimeAnchors": {
+      "entryFoot": { "x": 997, "y": 376 },
+      "exitFoot": { "x": 997, "y": 366 },
+      "cameraFocus": { "x": 997, "y": 264 },
+      "interaction": { "id": "talk-resident", "point": { "x": 997, "y": 246 }, "radius": 54 }
+    },
+    "semanticSource": {
+      "minimumOpaqueCoverage": 0.75,
+      "requiredOpaqueRects": [
+        { "id": "entry-floor", "x": 124, "y": 240, "width": 8, "height": 8 },
+        { "id": "exit-threshold", "x": 124, "y": 230, "width": 8, "height": 8 },
+        { "id": "resident-floor", "x": 124, "y": 110, "width": 8, "height": 8 }
+      ]
+    },
+    "visibleKit": {
+      "required": ["walkable floor", "north-wall trim", "fixed table-or-hearth", "storage-or-bed detail", "door threshold continuity"],
+      "forbidden": ["character", "text", "dialogue UI", "baked lighting halo", "black-hole doorway"]
+    }
+  },
+  "draftMeta": {
+    "canonicalTownReference": "user_target_town_current",
+    "buildingReference": "user_building_houses_shops_ruins",
+    "humanApprovalRequiredBeforeRuntime": true,
+    "runtimeInstallAuthorized": false,
+    "interiorGeometryStatus": "inferred-until-owner-approved-visual-review"
+  }
+}

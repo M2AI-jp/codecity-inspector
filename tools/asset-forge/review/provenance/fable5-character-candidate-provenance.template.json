@@ -1,0 +1,67 @@
+{
+  "$comment": "Fill-in template for recording provenance of a GENERATED character-sheet candidate (not a user-provided source image). Matches the rigor of docs/user-provided-image-policy.md at the same level of detail as an entry in art/contracts/user-provided-images.json's sources[] array, extended with the derivative-specific fields that policy section 5 requires (sourceId/sourceSha256/method/crop-or-mask/outputSha256/comparisonEvidence). This template itself is not consumed by any tools/asset-forge script; copy it per candidate and fill it in as each fact becomes known. Leave a field as the literal string \"unknown\" or null (matching the field's own placeholder) rather than guessing — docs/user-provided-image-policy.md section 2: '不明な値は推測せず unknown とする'.",
+  "instructions": {
+    "whenToFillEachSection": {
+      "identity": "fill immediately — known before generation, from the contract draft",
+      "generation": "fill after an external session actually produces bytes",
+      "derivation": "fill after import (hash/dimensions become concrete facts)",
+      "review": "fill only after a human review actually happens; never pre-fill an approval"
+    },
+    "hardRules": [
+      "Never write 'user-provided', 'user source', or 'user original' for this record's own output — it is a derivative, per docs/user-provided-image-policy.md section 5.",
+      "A missing source file or a hash mismatch against the identity/background references below is a hard failure of this record, not a note.",
+      "approval.status must start as \"not-yet-submitted\" and can only become \"approved\"/\"rejected\" after the interactive tools/asset-forge promote/reject ceremony actually runs (AGENTS.md: 'Only a human may approve assets'; Codex/agents must not run promote to approve project assets).",
+      "If a candidate is rejected or superseded, keep this record (append a new one for the replacement) — do not delete or silently overwrite it, per docs/user-provided-image-policy.md section 4."
+    ]
+  },
+  "assetId": "REPLACE — e.g. character.player or character.innkeeper (asset-forge dotted id) / char_player or char_innkeeper (Fable5PrefabSpec contract id)",
+  "candidateGenerationId": "REPLACE — tools/asset-forge generation id once a job/import exists (e.g. from data/local/generations.json); null until then",
+  "origin": {
+    "kind": "REPLACE — one of: external-ai-generation-codex-imagegen-built-in | external-ai-generation-chatgpt-session | external-ai-generation-other | unknown",
+    "toolName": "REPLACE — e.g. 'Codex CLI built-in image_gen' or the specific ChatGPT model/session — null until known",
+    "notInferredFromCustody": true
+  },
+  "custody": {
+    "kind": "workshop-produced",
+    "note": "This image is produced by/for the CodeCity Inspector workshop from a user-provided identity/background reference; it is not itself something the user attached directly. It does not inherit 'user-direct' custody from the reference it was generated against.",
+    "intakeManifestId": null,
+    "intakeCommit": null,
+    "gitBlob": null
+  },
+  "derivation": {
+    "sourceId": "REPLACE — ledgerSourceId of the identity reference this was generated against, e.g. user_character_style_reference",
+    "sourceSha256": "REPLACE — sha256 of that identity reference file",
+    "secondarySourceId": "user_target_town_current",
+    "secondarySourceSha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607",
+    "secondarySourceRole": "shading/lighting-density reference only, not a crop/composition source",
+    "method": "REPLACE — e.g. 'external image-generation session, chroma-key removal, nearest-neighbour normalization, footPivot alignment to (32,120)' — describe what actually happened, not what was planned",
+    "cropOrMask": "none — full 640x512 sheet output expected, not a crop of a larger board",
+    "outputPath": "REPLACE — e.g. generated/characters/pending/character_player-<hash>.png — null until a candidate file exists",
+    "outputSha256": null,
+    "outputDimensions": null,
+    "comparisonEvidence": {
+      "contactSheetPath": null,
+      "sideBySideWithIdentitySourcePath": null,
+      "note": "docs/user-provided-image-policy.md section 8: lay the original and the derivative side by side and confirm they are not a different person before anything downstream treats this as accepted"
+    }
+  },
+  "review": {
+    "mechanicalChecks": {
+      "footPivotAt32_120AllFrames": "unknown",
+      "eastNotAMirrorOfWest": "unknown",
+      "fortyCellsIndependentlyExtractable": "unknown",
+      "shadingMatchesTargetTown": "unknown"
+    },
+    "approval": {
+      "status": "not-yet-submitted",
+      "scope": [],
+      "approvedBy": null,
+      "decisionRef": null,
+      "note": "status may only become approved/rejected through tools/asset-forge's interactive promote/reject command, run by the human project owner or an authorized reviewer — never by an agent on their behalf"
+    }
+  },
+  "protection": {
+    "state": "not-yet-created",
+    "note": "becomes 'worktree-protected-pending-versioning' once a pending candidate file exists on disk, and only a later human commit decision changes this further — see docs/user-provided-image-policy.md section 4 on who may commit/stage/push"
+  }
+}

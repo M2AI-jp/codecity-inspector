@@ -1,0 +1,99 @@
+{
+  "format": "fable5-style-authority-candidate-evidence-v1",
+  "packetId": "style-authority-20260722-v1",
+  "status": "pending-human-review",
+  "purpose": "Review-only, hash-bound custody evidence for four v3-segmented character candidates. This standalone packet neither changes nor extends any existing pending-evidence index, inventory, contract, approval, promotion, or runtime state.",
+  "soleCurrentStyleReferenceAuthority": {
+    "sourceId": "user_character_style_authority_20260722_v1",
+    "originalPath": "art/references/user-provided/character_style_authority_20260722_v1.png",
+    "sha256": "446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932",
+    "packetCopyPath": "review/fable5-runtime-assets/style-authority-20260722-v1/source-authority/character_style_authority_20260722_v1.png",
+    "packetCopySha256": "446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932",
+    "dimensions": { "width": 1402, "height": 1122 },
+    "userProvided": true
+  },
+  "reviewControls": {
+    "humanVisualReviewRequired": true,
+    "humanDecision": null,
+    "promotionAllowed": false,
+    "runtimeAllowed": false,
+    "formalAssetForgeIntakeExecuted": false,
+    "formalAssetForgeIntakeClaimed": false,
+    "assetForgeMechanicalValidationExecuted": false,
+    "assetForgeMechanicalValidationClaimed": false
+  },
+  "packetDocuments": {
+    "readmePath": "review/fable5-runtime-assets/style-authority-20260722-v1/README.md",
+    "readmeSha256": "af09cf45e343c86cb15a6aec79f1002e53e31c728bc0232121fed28659c58c51"
+  },
+  "staticChecks": {
+    "packetAssemblyObserved": [
+      "SHA-256 was recomputed for the authority copy, every candidate copy, and every available intermediate copy.",
+      "PNG-header inspection reports that every v3 candidate is 640x512 PNG with alpha; file-header inspection reports 8-bit RGBA."
+    ],
+    "leadHandoffObserved": [
+      "All four v3 candidates are RGBA 640x512.",
+      "Each candidate has four transparent corners and 40 nonempty cells.",
+      "Each candidate's east is not an exact west mirror.",
+      "Every cell baseline bounding box ends at y=121 with fixed foot pivot y=120."
+    ],
+    "notFormalAssetForgeValidation": true
+  },
+  "assets": [
+    {
+      "assetId": "char_player",
+      "category": "character",
+      "generationClass": "deterministic-derivative-of-user-provided-authority",
+      "candidatePath": "review/fable5-runtime-assets/style-authority-20260722-v1/candidates/char_player-alpha.png",
+      "candidateSha256": "4a9acd472664dab515060a7fb8a988d70272cccd67b3e01c5d5503c4f9b37e5f",
+      "metadataPath": "review/fable5-runtime-assets/style-authority-20260722-v1/metadata/char_player.json",
+      "metadataSha256": "e1d82eb2b4f57cbd3244721598c552399abb4bc9f51a68df69c53299a9a70839",
+      "receiptPath": "review/fable5-runtime-assets/style-authority-20260722-v1/receipts/char_player.json",
+      "receiptSha256": "8a14c38cfed3ee8d1023aa2aea02dc28d093d7159d283a2a6984a7610f5de87a"
+    },
+    {
+      "assetId": "char_innkeeper",
+      "category": "character",
+      "generationClass": "built-in-imagegen-output",
+      "candidatePath": "review/fable5-runtime-assets/style-authority-20260722-v1/candidates/char_innkeeper-alpha.png",
+      "candidateSha256": "ee3e5185925cdb283b4461a04c5752d961d9a4864900024a88225edd6c3bc14b",
+      "metadataPath": "review/fable5-runtime-assets/style-authority-20260722-v1/metadata/char_innkeeper.json",
+      "metadataSha256": "ac1b9d319d0b79032b4198c1838cc1de89ad51a94cbd3d7a854d5566091a92a4",
+      "receiptPath": "review/fable5-runtime-assets/style-authority-20260722-v1/receipts/char_innkeeper.json",
+      "receiptSha256": "e03ac4fd419492a9f012663ca12e689d630baf5126b80780b7a988ced330f7d4"
+    },
+    {
+      "assetId": "char_town_clerk",
+      "category": "character",
+      "generationClass": "built-in-imagegen-output",
+      "candidatePath": "review/fable5-runtime-assets/style-authority-20260722-v1/candidates/char_town_clerk-alpha.png",
+      "candidateSha256": "86249a770b58118190449a711bba6cbca7750cd03fd09d26a992dc927dda409c",
+      "metadataPath": "review/fable5-runtime-assets/style-authority-20260722-v1/metadata/char_town_clerk.json",
+      "metadataSha256": "29fc5f65c76565163c13f7e9ac1be5d4ba3d13db5751ae5e8200eef47a5d255c",
+      "receiptPath": "review/fable5-runtime-assets/style-authority-20260722-v1/receipts/char_town_clerk.json",
+      "receiptSha256": "f4a8a1adc3ec0d0375b148fa735e2d1161b100b44bc11877e942ad806dd7cd6a"
+    },
+    {
+      "assetId": "char_resident",
+      "category": "character",
+      "generationClass": "built-in-imagegen-output",
+      "candidatePath": "review/fable5-runtime-assets/style-authority-20260722-v1/candidates/char_resident-alpha.png",
+      "candidateSha256": "93d0f647ebe4ad949100474c1ba54a83852c68f35e6cc962f94bd61a28e328fb",
+      "metadataPath": "review/fable5-runtime-assets/style-authority-20260722-v1/metadata/char_resident.json",
+      "metadataSha256": "27d5c786bb90c30c2c5c5dfda2799113b650dbe5fe70d6b78e229c271f8d25ae",
+      "receiptPath": "review/fable5-runtime-assets/style-authority-20260722-v1/receipts/char_resident.json",
+      "receiptSha256": "586badc6a1d8f5b951599ef1358ed4e5a5838989700f1864c9273f8e927c9976"
+    }
+  ],
+  "observed": [
+    "The authority image and four candidates are preserved as separately copied, hash-bound packet bytes.",
+    "The candidate and intermediate evidence in this packet is v3-segmented; no v2 alpha or chroma candidate/intermediate bytes are included."
+  ],
+  "inferred": [
+    "The evidence is suitable for a human review queue but cannot itself grant a terminal decision, promotion, or runtime installation."
+  ],
+  "unknown": [
+    "Human visual approval, artistic quality, role identity, and compatibility with the target-town rendering language.",
+    "Future formal Asset Forge intake/mechanical-validation result and runtime behaviour."
+  ]
+}

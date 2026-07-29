@@ -1,1010 +1,889 @@
-export const FORGE_MANIFEST_URL = '/assets/forge/v3/manifest.json';
-export const REQUIRED_SET_ID = 'fable5-v2';
-export const WAVE_A_ASSET_COUNT = 109;
-export const WAVE_A_ASSET_IDS = Object.freeze(`terrain.grass
-terrain.snow
-terrain.dirt
-terrain.cobble
-terrain.plaza
-terrain.deck
-terrain.water
-terrain.cliff
-terrain.road
-overlay.flowers.a
-overlay.flowers.b
-overlay.flowers.c
-overlay.pebbles.a
-overlay.pebbles.b
-overlay.pebbles.c
-structure.bridge_stone
-structure.bridge_wood
-structure.stairs_stone
-structure.fence
-structure.wall_stone
-structure.tree.a
-structure.tree.b
-structure.tree.c
-structure.rock.a
-structure.rock.b
-structure.rock.c
-structure.stone_lantern
-structure.pier
-structure.well
-structure.barricade
-structure.signpost_broken
-structure.cycle_wellcurb
-structure.ferry_shelter
-structure.searoute_marker
-structure.survey_plot
-building.gate
-building.town_hall
-building.dojo
-building.inn
-building.warehouse
-building.dock
-building.guild
-building.pub
-building.shop
-building.workshop
-building.watchtower
-building.ruin
-building.house_s
-building.house_m
-building.house_old
-building.hut
-building.rowhouse_s
-building.rowhouse_l
-building.survey_tower
-overlay.ivy.s
-overlay.ivy.m
-overlay.ivy.l
-overlay.scaffold.s
-overlay.scaffold.m
-overlay.scaffold.l
-overlay.snowcap.s
-overlay.snowcap.m
-overlay.snowcap.l
-overlay.snowcap.xl
-overlay.tarp
-interior.floor_wood
-interior.floor_stone
-interior.wall_trim
-prop.lamp
-prop.streetlight
-prop.signboard
-prop.notice_board
-prop.warning_stake
-prop.barrel
-prop.crate
-prop.bench
-prop.table
-prop.chair
-prop.counter
-prop.shelf
-prop.desk_ledger
-prop.bed
-prop.hearth
-prop.training_dummy
-prop.practice_target
-prop.lantern_warning
-character.player
-character.town_clerk
-character.gatekeeper
-character.dojo_inspector
-character.mob.townsfolk_male
-character.mob.townsfolk_female
-character.dojo_student
-effect.water_ripple
-effect.construction_dust
-effect.window_glow
-effect.discovery_glint
-ui.dialogue_window
-ui.choice_button
-ui.speech_bubble
-ui.journal_book
-ui.evidence_panel
-ui.facility_icons
-ui.evidence_icons
-ui.key_prompts
-ui.touch_action
-ui.cursor
-ui.footstep
-ui.town_crest`.split('\n').sort());
+import { PRODUCTION_ASSETS } from './runtime-asset-manifest.mjs';
 
-const PINNED_LEGACY = Object.freeze({
-  recordSha256: 'd1edad762c364d003984c9906875c7683e966babd5f31388e7158738f7cca881',
-  dispositionDigest: 'b52d7631352f8d5ac7cd4c9972c7380c905c837a0802b22d63c5e07afb3f9642',
-  freezeDigest: '54983dee954c7892865305e6b57bb9f2452f65301f369df8908d72aba4bcf5b8',
-  assetIdsSha256: '1035cfc0c269a6c6f40f99655c030aaf5f91cb1de217aad0fed6bbf67cfb0065'
-});
-const PINNED_REFERENCE_AUTHORIZATION_SHA256 = '6f02d72f10711ecf50c9d525a7762431f2548252f8071d9035c425f1c8e32f14';
+export { PRODUCTION_ASSETS } from './runtime-asset-manifest.mjs';
 
-export const FORGE_RELEASE_TRUST = Object.freeze({
-  ...PINNED_LEGACY,
-  referenceAuthorizationSha256: PINNED_REFERENCE_AUTHORIZATION_SHA256,
-  approvalDigest: null,
-  planDigest: null,
-  selectionDigest: null,
-  evidenceCoverageDigest: null,
-  cellAuditDigest: null,
-  artifactSetDigest: null,
-  assetBindingDigest: null
-});
-
-const SHA256 = /^[a-f0-9]{64}$/;
-const BLOB_PATH = /^\/assets\/forge\/v3\/blobs\/[a-f0-9]{64}\.png$/;
-const ASSET_ID = /^(character|building|terrain|overlay|structure|interior|prop|ui|effect)\.[a-z0-9_]+(?:\.[a-z0-9_]+)*$/;
-const LEGACY_ASSET_ID = /^(building|character|field|object|effect)\.[a-z0-9_]+(?:\.[a-z0-9_]+)*$/;
-const SUCCESSOR_ASSET_ID = /^(building|character|terrain|structure|prop|effect)\.[a-z0-9_]+(?:\.[a-z0-9_]+)*$/;
-
-function isRecord(value) {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-}
-
-function positiveInteger(value) {
-  return Number.isInteger(value) && value > 0;
-}
-
-function compareCodeUnits(left, right) {
-  return left < right ? -1 : left > right ? 1 : 0;
-}
-
-function exactKeys(value, expected, label, issues) {
-  if (!isRecord(value)) {
-    issues.push(`${label} must be an object`);
-    return false;
-  }
-  const actual = Object.keys(value).sort(compareCodeUnits);
-  const wanted = [...expected].sort(compareCodeUnits);
-  if (actual.length !== wanted.length || actual.some((key, index) => key !== wanted[index])) {
-    issues.push(`${label} must contain exactly: ${wanted.join(', ')}`);
-    return false;
-  }
-  return true;
-}
-
-function allowedKeys(value, allowed, label, issues) {
-  if (!isRecord(value)) {
-    issues.push(`${label} must be an object`);
-    return false;
-  }
-  const allowedSet = new Set(allowed);
-  const extras = Object.keys(value).filter((key) => !allowedSet.has(key));
-  if (extras.length > 0) issues.push(`${label} contains unsupported fields: ${extras.join(', ')}`);
-  return extras.length === 0;
-}
-
-const DEFINITION_KEYS = Object.freeze([
-  'visualContractVersion', 'id', 'category', 'displayName', 'gameMeaning', 'required',
-  'promptFiles', 'defaultReferenceIds', 'output', 'pixelArt', 'sprites', 'states',
-  'characterSpriteContract', 'outputSize', 'placementSpace', 'perspective', 'lighting',
-  'scaleClass', 'pivot', 'baseline', 'footprint', 'entrance', 'collision', 'occlusion',
-  'roofMask', 'windowAnchors', 'inspectionGates', 'autotileContract', 'buildingLayerContract',
-  'productionDecision', 'usage', 'palette', 'silhouette', 'variants', 'acceptance',
-  'artDirection', 'priority', 'tags', 'constraints', 'reviewChecklist', 'gameBinding'
-]);
-const DEFINITION_CORE = Object.freeze([
-  'id', 'category', 'displayName', 'gameMeaning', 'required', 'promptFiles',
-  'defaultReferenceIds', 'output', 'pixelArt', 'tags', 'constraints', 'reviewChecklist', 'gameBinding'
-]);
-const DEFINITION_V2 = Object.freeze([
-  'outputSize', 'placementSpace', 'perspective', 'lighting', 'scaleClass', 'pivot', 'baseline',
-  'footprint', 'entrance', 'collision', 'occlusion', 'roofMask', 'windowAnchors',
-  'inspectionGates', 'productionDecision', 'usage', 'palette', 'silhouette', 'variants',
-  'acceptance', 'artDirection', 'priority'
-]);
-
-function nonemptyStrings(value, { minimum = 0, unique = false } = {}) {
-  return Array.isArray(value) && value.length >= minimum
-    && value.every((entry) => typeof entry === 'string' && entry.length > 0)
-    && (!unique || new Set(value).size === value.length);
-}
-
-function validateAssetDefinition(definition, asset, issues) {
-  const label = `${asset.assetId}.definition`;
-  if (!allowedKeys(definition, DEFINITION_KEYS, label, issues)) return;
-  for (const key of [...DEFINITION_CORE, ...DEFINITION_V2]) {
-    if (!Object.hasOwn(definition, key)) issues.push(`${label}.${key} is required by visual contract v2`);
-  }
-  if (definition.visualContractVersion !== 2) issues.push(`${label}.visualContractVersion must be 2`);
-  if (definition.id !== asset.assetId || definition.category !== asset.category) issues.push(`${label} identity mismatch`);
-  if (typeof definition.displayName !== 'string' || !definition.displayName) issues.push(`${label}.displayName is required`);
-  if (typeof definition.gameMeaning !== 'string' || !definition.gameMeaning) issues.push(`${label}.gameMeaning is required`);
-  if (definition.required !== true) issues.push(`${label}.required must be true for Wave A`);
-  if (!nonemptyStrings(definition.promptFiles, { minimum: 1, unique: true })
-    || definition.promptFiles.some((entry) => !/^prompts\/[a-z0-9_/-]+\.md$/.test(entry))) {
-    issues.push(`${label}.promptFiles is invalid`);
-  }
-  if (!nonemptyStrings(definition.defaultReferenceIds, { unique: true })) issues.push(`${label}.defaultReferenceIds is invalid`);
-  exactKeys(definition.output, ['kind', 'preferredFormat', 'background', 'needsTransparency', 'needsTrim'], `${label}.output`, issues);
-  if (definition.output?.preferredFormat !== 'png' || definition.output?.background !== 'transparent'
-    || definition.output?.needsTransparency !== true || definition.output?.needsTrim !== false) {
-    issues.push(`${label}.output must use the transparent PNG Wave A contract`);
-  }
-  allowedKeys(definition.pixelArt, ['logicalSpriteSize', 'tileSize', 'scalePreview', 'nearestNeighbor', 'allowAntiAlias'], `${label}.pixelArt`, issues);
-  if (definition.pixelArt?.nearestNeighbor !== true || definition.pixelArt?.allowAntiAlias !== false) {
-    issues.push(`${label}.pixelArt must use hard nearest-neighbor pixels`);
-  }
-  if (!positiveInteger(definition.outputSize?.width) || !positiveInteger(definition.outputSize?.height)) issues.push(`${label}.outputSize is invalid`);
-  if (definition.perspective !== 'three-quarter-overhead' || definition.lighting !== 'upper-left-twilight') {
-    issues.push(`${label} projection or lighting contract is invalid`);
-  }
-  if (!isRecord(definition.placementSpace) || !isRecord(definition.pivot)
-    || !isRecord(definition.baseline) || !isRecord(definition.footprint)
-    || !isRecord(definition.collision) || !isRecord(definition.occlusion)
-    || !isRecord(definition.inspectionGates) || !isRecord(definition.productionDecision)
-    || !isRecord(definition.usage) || !isRecord(definition.palette)
-    || !isRecord(definition.acceptance) || !isRecord(definition.artDirection)
-    || !isRecord(definition.gameBinding)) issues.push(`${label} is missing a required structured v2 contract`);
-  if (!Array.isArray(definition.windowAnchors) || !nonemptyStrings(definition.variants, { minimum: 1, unique: true })
-    || !nonemptyStrings(definition.tags, { unique: true })
-    || !nonemptyStrings(definition.reviewChecklist, { minimum: 1 })) issues.push(`${label} list contracts are invalid`);
-  exactKeys(definition.constraints, ['must', 'mustNot'], `${label}.constraints`, issues);
-  if (!Array.isArray(definition.constraints?.must) || !Array.isArray(definition.constraints?.mustNot)) issues.push(`${label}.constraints is invalid`);
-  exactKeys(definition.priority, ['requiredSetId', 'wave'], `${label}.priority`, issues);
-  if (definition.priority?.requiredSetId !== REQUIRED_SET_ID || definition.priority?.wave !== 'A') issues.push(`${label}.priority is not Wave A`);
-  if (asset.category === 'building') {
-    const roles = definition.buildingLayerContract?.artifacts?.map(({ role }) => role);
-    if (definition.output?.kind !== 'layered-building' || roles?.length !== 2 || roles[0] !== 'base' || roles[1] !== 'roof') {
-      issues.push(`${label} must contain the atomic base + roof definition contract`);
-    }
-  }
-  if (asset.category === 'character' && definition.characterSpriteContract?.version !== 2) {
-    issues.push(`${label} must contain characterSpriteContract v2`);
-  }
-}
-
-function hasExactValues(value, expected) {
-  return Object.entries(expected).every(([key, candidate]) => value?.[key] === candidate);
-}
-
-function canonicalJson(value) {
-  const normalize = (item) => {
-    if (Array.isArray(item)) return item.map(normalize);
-    if (item && typeof item === 'object') {
-      return Object.fromEntries(Object.keys(item).sort(compareCodeUnits).map((key) => [key, normalize(item[key])]));
-    }
-    return item;
-  };
-  return `${JSON.stringify(normalize(value), null, 2)}\n`;
-}
-
-function asBytes(value) {
-  if (value instanceof Uint8Array) return value;
-  if (value instanceof ArrayBuffer) return new Uint8Array(value);
-  if (ArrayBuffer.isView(value)) return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
-  if (typeof value === 'string') return new TextEncoder().encode(value);
-  throw new TypeError('SHA-256 input must be bytes or text');
-}
-
-export async function sha256Hex(value) {
-  if (!globalThis.crypto?.subtle) throw new ForgeAssetError('SHA-256 verification is unavailable; play has been stopped.');
-  const digest = await globalThis.crypto.subtle.digest('SHA-256', asBytes(value));
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
-}
-
-function dimensionsFor(asset, role) {
-  if (asset.category === 'building') {
-    const layer = asset.definition?.buildingLayerContract?.artifacts?.find((entry) => entry.role === role);
-    if (positiveInteger(layer?.outputSize?.width) && positiveInteger(layer?.outputSize?.height)) return layer.outputSize;
-  }
-  return asset.definition?.outputSize ?? null;
-}
-
-export class ForgeAssetError extends Error {
+export class AssetContractError extends Error {
   constructor(message, issues = []) {
     super(message);
-    this.name = 'ForgeAssetError';
+    this.name = 'AssetContractError';
     this.issues = Object.freeze([...issues]);
   }
 }
 
-export function validateForgeManifest(manifest, { requiredAssetIds = [] } = {}) {
-  const issues = [];
-  if (!isRecord(manifest)) return { ok: false, issues: ['manifest must be an object'] };
-  exactKeys(manifest, [
-    'schemaVersion', 'scope', 'requiredSet', 'completeForDeclaredWaves', 'fullFable5SetComplete',
-    'bundleSetDigest', 'waveAApprovalEvidence', 'legacyMigration', 'assets'
-  ], 'manifest', issues);
-  if (manifest.schemaVersion !== 3) issues.push('asset manifest schemaVersion must be 3');
-  if (manifest.scope !== 'wave-a-only-not-full-fable5-set') issues.push('asset manifest must be the Wave A-only scope');
-  if (manifest.completeForDeclaredWaves !== true) issues.push('asset manifest is not complete for its declared waves');
-  if (manifest.fullFable5SetComplete !== false) issues.push('Wave A export must not claim the full Fable5 set');
-  if (!SHA256.test(manifest.bundleSetDigest ?? '')) issues.push('asset manifest has no valid bundle set digest');
-  exactKeys(manifest.requiredSet, ['id', 'waveIds', 'assetCount', 'minimumOutputPngCount'], 'requiredSet', issues);
-  if (!isRecord(manifest.requiredSet) || manifest.requiredSet.id !== REQUIRED_SET_ID) {
-    issues.push(`requiredSet.id must be ${REQUIRED_SET_ID}`);
-  }
-  if (!Array.isArray(manifest.requiredSet?.waveIds)
-    || manifest.requiredSet.waveIds.length !== 1
-    || manifest.requiredSet.waveIds[0] !== 'A') {
-    issues.push('requiredSet.waveIds must be exactly ["A"]');
-  }
-  if (manifest.requiredSet?.assetCount !== WAVE_A_ASSET_COUNT) {
-    issues.push(`requiredSet.assetCount must be exactly ${WAVE_A_ASSET_COUNT}`);
-  }
-  if (manifest.requiredSet?.minimumOutputPngCount !== 128) issues.push('requiredSet.minimumOutputPngCount must be exactly 128');
-  if (!Array.isArray(manifest.assets)) {
-    issues.push('manifest.assets must be an array');
-    return { ok: false, issues };
-  }
-  if (manifest.assets.length !== WAVE_A_ASSET_COUNT) issues.push(`manifest.assets must contain exactly ${WAVE_A_ASSET_COUNT} assets`);
+// HG-03/A1 (docs/qa/evidence-matrix.md): the runtime must reconstruct the
+// town from accepted prefabs + effects only, and must never load the
+// master/target/mask PNG directly. target-town-user-direct-v1.png (the
+// flattened 1586x992 master) is therefore intentionally absent from this
+// contract table -- see WORLD_PREFABS below, which replaces it with the 45
+// individually-verified prefab crops from
+// public/fable5-v2/assets/prefabs/manifest.json. The master PNG file itself
+// still exists on disk (it remains the read-only ground truth the prefabs
+// were cut from, and art/production/vertical-slice/scripts/
+// verify-target-town-prefab-reconstruction.py still reads it for offline
+// proof), it is simply never fetched by the browser runtime anymore.
+// The 45 prefab crops that reconstruct the town scene (public/fable5-v2/
+// assets/prefabs/manifest.json, HG-03/A1 in docs/qa/evidence-matrix.md).
+// Every placement/integrity field below was independently re-derived from
+// manifest.json and the PNG files on disk (see
+// test/town/world-prefabs-runtime-contract.test.mjs, which re-hashes every
+// file and cross-checks those fields against the manifest so this table can
+// never silently drift from it). `role` is deliberately separate: it is a
+// human-readable runtime explanation, not a manifest field.
+//   - id/url/width/height/sha256 come straight from the matching manifest
+//     "prefabs[]" record (url = "/" + record.path with the leading "public/"
+//     stripped, matching every other PRODUCTION_ASSETS entry's convention).
+//   - bytes is each PNG's actual on-disk size (stat), verified against the
+//     server's Content-Length the same way test/server.test.mjs already
+//     checks every PRODUCTION_ASSETS contract.
+//   - x/y is the manifest's cropOriginWorld -- every prefab is an unresampled
+//     sub-crop of the master's own pixels (manifest.extraction.resampling ===
+//     false), so drawing it unscaled at cropOriginWorld reproduces the
+//     master's own pixels exactly; no destination scaling is ever applied.
+//   - layer/zIndex are copied verbatim from the manifest record.
+//
+// Draw order: this array is pre-sorted ascending by (zIndex, id), matching
+// manifest.json's own drawOrder.rule prose verbatim -- "terrain plates
+// first (zIndex 0) ... then road segments (zIndex 1) ... then every
+// building/tree/prop record in ascending zIndex order (zIndex = 100 +
+// pivot.y) ... then foreground occluders last (zIndex = 100000 + pivot.y)".
+// zIndex's bands (terrain=0 < road=1 < building/prop=[100,99999] <
+// foreground=[100000,)) make one flat ascending sort produce exactly that:
+// terrain, then road, then building+prop interleaved by y (a real building/
+// tree/prop Y-sort, not buildings-as-a-block-then-props-as-a-block), then
+// foreground always last. drawWorldPrefabs() below walks this array in order
+// and draws each resolved image at its (x, y) -- see
+// art/production/vertical-slice/scripts/verify-target-town-prefab-reconstruction.py
+// for the independent pixel-diff proof of the complete 48-prefab source
+// reconstruction. The three documented dynamic exceptions below retain their
+// existing state-specific draw path in app.js.
+//
+// 3 of the master decomposition's 48 manifest prefabs are deliberately
+// absent from this array (they carry "provenance": "pre-existing" in
+// manifest.json because an earlier pass already extracted and wired them
+// into this same runtime, with mode-conditional/y-sorted draw logic this
+// pass must not disturb -- see app.js's drawWorld()):
+//   - target-town-route-streetlamp-foreground-v1: already loaded as
+//     PRODUCTION_ASSETS.routeStreetlamp (identical url/width/height/sha256)
+//     and drawn with its own playerBehindStreetlamp y-sort against the live
+//     player sprite, which a flat prefab-array draw cannot express.
+//   - target-town-inn-entrance-foreground-v1: already loaded as
+//     PRODUCTION_ASSETS.entranceForeground (identical url/width/height/
+//     sha256) and drawn only in interior mode, after the live bartender/
+//     player, matching the existing cutaway draw order.
+//   - target-town-inn-bartender-source-visible-v1 (the master's baked
+//     bartender pixels): not loaded at all. Its full footprint
+//     (202,255)-(247,310) is always repainted immediately afterward, in
+//     both modes, by the existing inn-open/close patch --
+//     PRODUCTION_ASSETS.innExteriorClosed at (8,72) sized 397x402 in
+//     exterior mode, or PRODUCTION_ASSETS.innCounterClean at (200,255)
+//     sized 49x57 (fully containing that footprint) plus the live animated
+//     bartender NPC in interior mode -- so drawing this baked crop would be
+//     immediately and completely overpainted either way.
+export const WORLD_PREFABS = Object.freeze([
+  Object.freeze({
+    id: 'ter_plate_r0c0',
+    url: '/fable5-v2/assets/prefabs/terrain/ter_plate_r0c0.png',
+    width: 397,
+    height: 331,
+    bytes: 257326,
+    sha256: '8d3f59ff73efc7a0551fc55fe2ef40e851c635d0d83ca620b172d073652dd516',
+    role: 'opaque base-ground plate; dominant surface noted per-plate below',
+    layer: 'terrain',
+    zIndex: 0,
+    x: 0,
+    y: 0
+  }),
+  Object.freeze({
+    id: 'ter_plate_r0c1',
+    url: '/fable5-v2/assets/prefabs/terrain/ter_plate_r0c1.png',
+    width: 396,
+    height: 331,
+    bytes: 265704,
+    sha256: '5d69c1bc196bc887837a1382146a7eab1c3cc431afaf5c79c1b39c959bd6aae2',
+    role: 'opaque base-ground plate; dominant surface noted per-plate below',
+    layer: 'terrain',
+    zIndex: 0,
+    x: 397,
+    y: 0
+  }),
+  Object.freeze({
+    id: 'ter_plate_r0c2',
+    url: '/fable5-v2/assets/prefabs/terrain/ter_plate_r0c2.png',
+    width: 397,
+    height: 331,
+    bytes: 263888,
+    sha256: '8e3c64299f078e1270d426f20b63d51b26bb6011406dad3ae675dafe4327d33e',
+    role: 'opaque base-ground plate; dominant surface noted per-plate below',
+    layer: 'terrain',
+    zIndex: 0,
+    x: 793,
+    y: 0
+  }),
+  Object.freeze({
+    id: 'ter_plate_r0c3',
+    url: '/fable5-v2/assets/prefabs/terrain/ter_plate_r0c3.png',
+    width: 396,
+    height: 331,
+    bytes: 245207,
+    sha256: '0a3022291887776e12c800970ef5b9e7f363a5acf26dfab9cdbafb926d4971e8',
+    role: 'opaque base-ground plate; dominant surface noted per-plate below',
+    layer: 'terrain',
+    zIndex: 0,
+    x: 1190,
+    y: 0
+  }),
+  Object.freeze({
+    id: 'ter_plate_r1c0',
+    url: '/fable5-v2/assets/prefabs/terrain/ter_plate_r1c0.png',
+    width: 397,
+    height: 330,
+    bytes: 264495,
+    sha256: 'f2c5ff1c322722d204dd1368b97ab99a066ee5c2743cefea41155fc1a1ca23ea',
+    role: 'opaque base-ground plate; dominant surface noted per-plate below',
+    layer: 'terrain',
+    zIndex: 0,
+    x: 0,
+    y: 331
+  }),
+  Object.freeze({
+    id: 'ter_plate_r1c1',
+    url: '/fable5-v2/assets/prefabs/terrain/ter_plate_r1c1.png',
+    width: 396,
+    height: 330,
+    bytes: 270810,
+    sha256: '262d07a7559d69926d3eaa4cc7d8ea0e65570731fb71a998a3ce8d0359f268ad',
+    role: 'opaque base-ground plate; dominant surface noted per-plate below',
+    layer: 'terrain',
+    zIndex: 0,
+    x: 397,
+    y: 331
+  }),
+  Object.freeze({
+    id: 'ter_plate_r1c2',
+    url: '/fable5-v2/assets/prefabs/terrain/ter_plate_r1c2.png',
+    width: 397,
+    height: 330,
+    bytes: 264292,
+    sha256: '935ba93262ab126d1f8a81cc9c6a91fddcaae8cde0e0752ed180759ced4ace13',
+    role: 'opaque base-ground plate; dominant surface noted per-plate below',
+    layer: 'terrain',
+    zIndex: 0,
+    x: 793,
+    y: 331
+  }),
+  Object.freeze({
+    id: 'ter_plate_r1c3',
+    url: '/fable5-v2/assets/prefabs/terrain/ter_plate_r1c3.png',
+    width: 396,
+    height: 330,
+    bytes: 258610,
+    sha256: '4d03b57e67cf03bb664ecaaf3f00e10b5dcdd64a823c9365de801cf3f6e3ebf6',
+    role: 'opaque base-ground plate; dominant surface noted per-plate below',
+    layer: 'terrain',
+    zIndex: 0,
+    x: 1190,
+    y: 331
+  }),
+  Object.freeze({
+    id: 'ter_plate_r2c0',
+    url: '/fable5-v2/assets/prefabs/terrain/ter_plate_r2c0.png',
+    width: 397,
+    height: 331,
+    bytes: 256910,
+    sha256: 'c605b60381b895f1ce0930784e2992b2a71031d2f5a5125bfb7ca89b2cea2be2',
+    role: 'opaque base-ground plate; dominant surface noted per-plate below',
+    layer: 'terrain',
+    zIndex: 0,
+    x: 0,
+    y: 661
+  }),
+  Object.freeze({
+    id: 'ter_plate_r2c1',
+    url: '/fable5-v2/assets/prefabs/terrain/ter_plate_r2c1.png',
+    width: 396,
+    height: 331,
+    bytes: 259499,
+    sha256: '8b99917cc9af2ed4b8a5beb33efdad3956758beb014a2f3fb1bc13e53baa5a1b',
+    role: 'opaque base-ground plate; dominant surface noted per-plate below',
+    layer: 'terrain',
+    zIndex: 0,
+    x: 397,
+    y: 661
+  }),
+  Object.freeze({
+    id: 'ter_plate_r2c2',
+    url: '/fable5-v2/assets/prefabs/terrain/ter_plate_r2c2.png',
+    width: 397,
+    height: 331,
+    bytes: 260627,
+    sha256: '1f3e978402872324181da9849702f3b77083b2526e8afd8ed965886ac27011f5',
+    role: 'opaque base-ground plate; dominant surface noted per-plate below',
+    layer: 'terrain',
+    zIndex: 0,
+    x: 793,
+    y: 661
+  }),
+  Object.freeze({
+    id: 'ter_plate_r2c3',
+    url: '/fable5-v2/assets/prefabs/terrain/ter_plate_r2c3.png',
+    width: 396,
+    height: 331,
+    bytes: 240883,
+    sha256: 'c3be478bfd458bdb511c1615d494abf1269603e5eca09f050afbc6b2fac1ed9e',
+    role: 'opaque base-ground plate; dominant surface noted per-plate below',
+    layer: 'terrain',
+    zIndex: 0,
+    x: 1190,
+    y: 661
+  }),
+  Object.freeze({
+    id: 'road_path_east_branch',
+    url: '/fable5-v2/assets/prefabs/road/road_path_east_branch.png',
+    width: 324,
+    height: 206,
+    bytes: 70666,
+    sha256: 'e8174000cd52d8fb31a318274cd6481b85248e5f96c3bf7ddb4593cee600b3dd',
+    role: 'east branch path near the south-east housing row',
+    layer: 'road',
+    zIndex: 1,
+    x: 978,
+    y: 456
+  }),
+  Object.freeze({
+    id: 'road_path_plaza_south',
+    url: '/fable5-v2/assets/prefabs/road/road_path_plaza_south.png',
+    width: 204,
+    height: 406,
+    bytes: 111441,
+    sha256: 'fe42040e0b7d4de2b29d260dd301114ec438bad57d7f6aa281127efe3f645a09',
+    role: 'main plaza-to-south winding dirt path',
+    layer: 'road',
+    zIndex: 1,
+    x: 598,
+    y: 456
+  }),
+  Object.freeze({
+    id: 'tree_backdrop_nw',
+    url: '/fable5-v2/assets/prefabs/trees/tree_backdrop_nw.png',
+    width: 300,
+    height: 175,
+    bytes: 119075,
+    sha256: 'ff24f9c2bafbb673621ce3923360bab7efc6e6df6b8cf1aaa02ad24e5838af56',
+    role: 'North-west corner background canopy mass, canvas-edge-clipped.',
+    layer: 'prop',
+    zIndex: 275,
+    x: 0,
+    y: 0
+  }),
+  Object.freeze({
+    id: 'bld_inn_shell',
+    url: '/fable5-v2/assets/prefabs/buildings/bld_inn_shell.png',
+    width: 260,
+    height: 100,
+    bytes: 52972,
+    sha256: '1a89a2fce478f242e90a3cf27a0969478e89f488a48431c77855bc1d560de9e4',
+    role: 'Roof + chimney silhouette only. The interior (bar, shelves) and the entrance foreground are already extracted and lineage-tracked by extract-target-town-n1.py; this prefab is the missing building envelope that the existing crops sit inside of.',
+    layer: 'building',
+    zIndex: 350,
+    x: 40,
+    y: 150
+  }),
+  Object.freeze({
+    id: 'tree_backdrop_ne',
+    url: '/fable5-v2/assets/prefabs/trees/tree_backdrop_ne.png',
+    width: 486,
+    height: 270,
+    bytes: 273821,
+    sha256: '07de0c252ee747c667e8b5373d664878e856f5ed59626c17b15a69ab374e6836',
+    role: 'North-east / east-edge background canopy mass behind the civic row and market.',
+    layer: 'prop',
+    zIndex: 370,
+    x: 1100,
+    y: 0
+  }),
+  Object.freeze({
+    id: 'bld_civic_row_east',
+    url: '/fable5-v2/assets/prefabs/buildings/bld_civic_row_east.png',
+    width: 282,
+    height: 300,
+    bytes: 120489,
+    sha256: 'c64ec80c8299afc2bf5aa4741983a685f7db5e4de35b71b6b20691f8b0cc936f',
+    role: 'Connected row of dormered wings east of the town hall, toward the market.',
+    layer: 'building',
+    zIndex: 400,
+    x: 800,
+    y: 0
+  }),
+  Object.freeze({
+    id: 'bld_civic_row_west',
+    url: '/fable5-v2/assets/prefabs/buildings/bld_civic_row_west.png',
+    width: 158,
+    height: 300,
+    bytes: 88392,
+    sha256: '7cd55abe53d00a460fb13f0b663b8666eea828f9a22157ba12d087b5afb61934',
+    role: 'Timber-frame gabled house west of the town hall (flower box, banner, bench in front).',
+    layer: 'building',
+    zIndex: 400,
+    x: 438,
+    y: 0
+  }),
+  Object.freeze({
+    id: 'bld_town_hall',
+    url: '/fable5-v2/assets/prefabs/buildings/bld_town_hall.png',
+    width: 204,
+    height: 300,
+    bytes: 119281,
+    sha256: '7cce178eaaa0036c3af66cc1045a1b7b2837b94c46248cf59fb2c708b6c295f6',
+    role: 'Clock tower + main civic facade + entrance door/steps. North-clipped by the canvas edge (matches PrefabSpec town_hall draft note).',
+    layer: 'building',
+    zIndex: 400,
+    x: 596,
+    y: 0
+  }),
+  Object.freeze({
+    id: 'prop_bench_plaza_a',
+    url: '/fable5-v2/assets/prefabs/props/prop_bench_plaza_a.png',
+    width: 103,
+    height: 47,
+    bytes: 10743,
+    sha256: 'fb28e370293fdcab5baccc74ea55d8e7798600cde2e920b13ce398c93d9a9940',
+    role: 'Upper plaza bench near the town hall steps.',
+    layer: 'prop',
+    zIndex: 412,
+    x: 483,
+    y: 266
+  }),
+  Object.freeze({
+    id: 'prop_barrels_market_a',
+    url: '/fable5-v2/assets/prefabs/props/prop_barrels_market_a.png',
+    width: 44,
+    height: 74,
+    bytes: 7183,
+    sha256: '01fd01f97d3c8c48d24cb42103c427505f0d1ea395b5d9fab583cb163694a3aa',
+    role: 'Barrels beside market shop A.',
+    layer: 'prop',
+    zIndex: 431,
+    x: 1058,
+    y: 258
+  }),
+  Object.freeze({
+    id: 'tree_market_gap',
+    url: '/fable5-v2/assets/prefabs/trees/tree_market_gap.png',
+    width: 100,
+    height: 202,
+    bytes: 37023,
+    sha256: '46732498a113a115047882549fbeefe78238a74e00d03381ef1b6c75d631277a',
+    role: 'Trees filling the gap between the two market shops.',
+    layer: 'prop',
+    zIndex: 446,
+    x: 1262,
+    y: 150
+  }),
+  Object.freeze({
+    id: 'prop_streetlamp_plaza_west',
+    url: '/fable5-v2/assets/prefabs/props/prop_streetlamp_plaza_west.png',
+    width: 40,
+    height: 110,
+    bytes: 6550,
+    sha256: '3afcae7b6e6b23357e22ea494a6a78b7a4fcd3cca902acc524ff44d96033de59',
+    role: 'Second plaza streetlamp (west side, distinct from the already-extracted route streetlamp).',
+    layer: 'prop',
+    zIndex: 485,
+    x: 423,
+    y: 283
+  }),
+  Object.freeze({
+    id: 'prop_bench_plaza_b',
+    url: '/fable5-v2/assets/prefabs/props/prop_bench_plaza_b.png',
+    width: 121,
+    height: 58,
+    bytes: 16437,
+    sha256: '27d964f748f7b4c15b6d689f76b7651ab6367ecf498dd4e30a1ae1c50f786314',
+    role: 'Lower plaza bench.',
+    layer: 'prop',
+    zIndex: 498,
+    x: 505,
+    y: 341
+  }),
+  Object.freeze({
+    id: 'prop_flower_bed',
+    url: '/fable5-v2/assets/prefabs/props/prop_flower_bed.png',
+    width: 180,
+    height: 118,
+    bytes: 40257,
+    sha256: 'dfb7eaa8f36679f3a0d48f9ec95c22b5591c307581f34163902b0f8607ba22db',
+    role: 'Circular raised flower bed, plaza center.',
+    layer: 'prop',
+    zIndex: 511,
+    x: 516,
+    y: 296
+  }),
+  Object.freeze({
+    id: 'prop_well',
+    url: '/fable5-v2/assets/prefabs/props/prop_well.png',
+    width: 93,
+    height: 126,
+    bytes: 23078,
+    sha256: '3a3ca7a0e7438b2d7d69df61702ed82991b731b8bdb5a83e33a55a79c2fb5bb1',
+    role: 'Wood-roofed stone well, plaza center-east.',
+    layer: 'prop',
+    zIndex: 514,
+    x: 815,
+    y: 288
+  }),
+  Object.freeze({
+    id: 'prop_barrels_well',
+    url: '/fable5-v2/assets/prefabs/props/prop_barrels_well.png',
+    width: 45,
+    height: 55,
+    bytes: 5896,
+    sha256: 'b538d4f931402040a67ac39efb6ffe19d2c623f01e98431e7f9cbf533e1674a4',
+    role: 'Barrel pair beside the well (west side).',
+    layer: 'prop',
+    zIndex: 527,
+    x: 783,
+    y: 373
+  }),
+  Object.freeze({
+    id: 'prop_barrels_market_b',
+    url: '/fable5-v2/assets/prefabs/props/prop_barrels_market_b.png',
+    width: 74,
+    height: 64,
+    bytes: 10694,
+    sha256: 'c925471a63ad7db151143ea3bd94fa0ea322bc166382e8648c72b6814b0f6640',
+    role: 'Barrels in front of market shop B.',
+    layer: 'prop',
+    zIndex: 556,
+    x: 1393,
+    y: 393
+  }),
+  Object.freeze({
+    id: 'bld_market_shop_a',
+    url: '/fable5-v2/assets/prefabs/buildings/bld_market_shop_a.png',
+    width: 120,
+    height: 312,
+    bytes: 62050,
+    sha256: '8cc693f1b908acf529217a05519a450249afda3cf3e3b8afb3d7df3e02acb56c',
+    role: 'West twin of the east-market shop pair (striped awning, barrels).',
+    layer: 'building',
+    zIndex: 562,
+    x: 1148,
+    y: 150
+  }),
+  Object.freeze({
+    id: 'bld_market_shop_b',
+    url: '/fable5-v2/assets/prefabs/buildings/bld_market_shop_b.png',
+    width: 122,
+    height: 320,
+    bytes: 64755,
+    sha256: 'eaef315e1338740c8cb1cc38456f852ae9c65337e0f5e2f16956a683ce6a8981',
+    role: 'East twin of the east-market shop pair.',
+    layer: 'building',
+    zIndex: 570,
+    x: 1348,
+    y: 150
+  }),
+  Object.freeze({
+    id: 'prop_streetlamp_market_mid',
+    url: '/fable5-v2/assets/prefabs/props/prop_streetlamp_market_mid.png',
+    width: 28,
+    height: 88,
+    bytes: 4176,
+    sha256: 'd1a46260c3566be0809131ac6112022ec5f5864960cab949ccd56cc46a09ca02',
+    role: 'Streetlamp between the two market shops.',
+    layer: 'prop',
+    zIndex: 579,
+    x: 1288,
+    y: 393
+  }),
+  Object.freeze({
+    id: 'prop_barrels_inn_yard',
+    url: '/fable5-v2/assets/prefabs/props/prop_barrels_inn_yard.png',
+    width: 89,
+    height: 65,
+    bytes: 11927,
+    sha256: 'dbb9b29d5675fd3c19b1eb50b222e5b40dab88d62ab9afef9a004bbc9e3a8c4a',
+    role: 'Fence + barrel cluster in the inn\'s west yard (outside the existing entrance-foreground crop).',
+    layer: 'prop',
+    zIndex: 599,
+    x: 55,
+    y: 435
+  }),
+  Object.freeze({
+    id: 'tree_ruins_side',
+    url: '/fable5-v2/assets/prefabs/trees/tree_ruins_side.png',
+    width: 144,
+    height: 139,
+    bytes: 35849,
+    sha256: '8b59567d9068516da464245de03442b03775af59cc1b1b04c3a6e7278dd98600',
+    role: 'Tree beside/behind the ruins spire.',
+    layer: 'prop',
+    zIndex: 722,
+    x: 718,
+    y: 483
+  }),
+  Object.freeze({
+    id: 'tree_center_path',
+    url: '/fable5-v2/assets/prefabs/trees/tree_center_path.png',
+    width: 245,
+    height: 184,
+    bytes: 73480,
+    sha256: '22554122e8128115100b1f3cea9c5b1d74a97cff0fb699f6ac576a5ce405ede5',
+    role: 'Prominent standalone tree overhanging the south path; occludes the road when reassembled.',
+    layer: 'prop',
+    zIndex: 743,
+    x: 410,
+    y: 478
+  }),
+  Object.freeze({
+    id: 'tree_gate_left',
+    url: '/fable5-v2/assets/prefabs/trees/tree_gate_left.png',
+    width: 112,
+    height: 192,
+    bytes: 46677,
+    sha256: '8a2b91bfe856cc2b7785dac72ea13664f7aaacc55eb4a5e473db24152c8f8579',
+    role: 'Trees flanking the south-west gate wall, canvas-edge-clipped on the west side.',
+    layer: 'prop',
+    zIndex: 760,
+    x: 0,
+    y: 468
+  }),
+  Object.freeze({
+    id: 'tree_gate_right_cluster',
+    url: '/fable5-v2/assets/prefabs/trees/tree_gate_right_cluster.png',
+    width: 114,
+    height: 117,
+    bytes: 24643,
+    sha256: '24695e030c8872e90e839246cbecb81d983247590e06f1de83fda4cac46c83ec',
+    role: 'Small cluster east of the gate wall.',
+    layer: 'prop',
+    zIndex: 762,
+    x: 368,
+    y: 545
+  }),
+  Object.freeze({
+    id: 'tree_south_center_left',
+    url: '/fable5-v2/assets/prefabs/trees/tree_south_center_left.png',
+    width: 94,
+    height: 104,
+    bytes: 18656,
+    sha256: '96adad65e5b41053ceca584422cc8a6b8cf809cae238017eb4cfb9e0f3d0d4f5',
+    role: 'Tree left of the south-center house.',
+    layer: 'prop',
+    zIndex: 802,
+    x: 878,
+    y: 598
+  }),
+  Object.freeze({
+    id: 'bld_ruins',
+    url: '/fable5-v2/assets/prefabs/buildings/bld_ruins.png',
+    width: 240,
+    height: 325,
+    bytes: 119889,
+    sha256: '9e5aec96464be65cc47cc79fee3b267cab2f99657412c22c894cff2a371f7b15',
+    role: 'Broken timber-frame ivy ruin south of the plaza.',
+    layer: 'building',
+    zIndex: 963,
+    x: 730,
+    y: 540
+  }),
+  Object.freeze({
+    id: 'bld_south_west_house',
+    url: '/fable5-v2/assets/prefabs/buildings/bld_south_west_house.png',
+    width: 412,
+    height: 262,
+    bytes: 207477,
+    sha256: 'd7abc378ebad4e5f570515b66b3c474a6f45449fa0a7aa4d79f67eb7ccfdfac5',
+    role: 'South-west housing cluster (two conjoined gables + chimney), west of the ruins.',
+    layer: 'building',
+    zIndex: 968,
+    x: 0,
+    y: 606
+  }),
+  Object.freeze({
+    id: 'bld_south_center_house',
+    url: '/fable5-v2/assets/prefabs/buildings/bld_south_center_house.png',
+    width: 204,
+    height: 290,
+    bytes: 113679,
+    sha256: '8728be3e2783fe4c6c12358647e8e789890ff9306ab26429c70c7299d7337f09',
+    role: 'Single gabled house between the ruins and the south-east row.',
+    layer: 'building',
+    zIndex: 1040,
+    x: 948,
+    y: 650
+  }),
+  Object.freeze({
+    id: 'bld_south_east_row',
+    url: '/fable5-v2/assets/prefabs/buildings/bld_south_east_row.png',
+    width: 438,
+    height: 290,
+    bytes: 238684,
+    sha256: 'cd037fa55b8736a1bd3a8f1e0907afde03d4cdd1522ff1195330fd7336083b27',
+    role: 'South-east housing row, canvas-edge-clipped on the east side.',
+    layer: 'building',
+    zIndex: 1040,
+    x: 1148,
+    y: 650
+  }),
+  Object.freeze({
+    id: 'tree_bottom_right_cluster',
+    url: '/fable5-v2/assets/prefabs/trees/tree_bottom_right_cluster.png',
+    width: 438,
+    height: 147,
+    bytes: 128508,
+    sha256: '0f675a2afa08a54fbd0a26dd90b3d89b37429c1c3b39ba088b3302103ff72f68',
+    role: 'Bottom-edge canopy mass along the south-east row, canvas-edge-clipped.',
+    layer: 'prop',
+    zIndex: 1092,
+    x: 1148,
+    y: 845
+  }),
+  Object.freeze({
+    id: 'tree_sw_yard',
+    url: '/fable5-v2/assets/prefabs/trees/tree_sw_yard.png',
+    width: 272,
+    height: 144,
+    bytes: 77571,
+    sha256: 'b2d2abcef19a0dd93a10f231293158fc94fa88ed15ee46f2f6df07fb1bfc8297',
+    role: 'Yard trees/bushes south of the south-west house, canvas-edge-clipped.',
+    layer: 'prop',
+    zIndex: 1092,
+    x: 148,
+    y: 848
+  }),
+  Object.freeze({
+    id: 'fg_gate_wall_sw',
+    url: '/fable5-v2/assets/prefabs/foreground/fg_gate_wall_sw.png',
+    width: 462,
+    height: 147,
+    bytes: 139249,
+    sha256: '92fd04c5db656a7ecd9a2927e7950fbbbdc40a11d11fe80f51083facd6c44e5f',
+    role: 'Low stone wall / archway south of the plaza; foreground occluder for the south-west approach.',
+    layer: 'foreground',
+    zIndex: 100700,
+    x: 0,
+    y: 553
+  })
+]);
 
-  const evidenceKeys = [
-    'approvalDigest', 'planDigest', 'selectionDigest', 'legacyDispositionDigest',
-    'referenceAuthorizationSha256', 'evidenceCoverageDigest', 'cellAuditDigest', 'artifactSetDigest',
-    'requiredAssetCount', 'outputPngCount', 'declaredLogicalSlotCount', 'semanticCellCount',
-    'expectedNonemptySemanticCellCount', 'expectedTransparentSemanticCellCount', 'reservedTransparentCellCount'
-  ];
-  exactKeys(manifest.waveAApprovalEvidence, evidenceKeys, 'waveAApprovalEvidence', issues);
-  const evidence = manifest.waveAApprovalEvidence;
-  for (const key of evidenceKeys.slice(0, 8)) {
-    if (!SHA256.test(evidence?.[key] ?? '')) issues.push(`waveAApprovalEvidence.${key} must be a SHA-256 digest`);
-  }
-  if (evidence?.referenceAuthorizationSha256 !== PINNED_REFERENCE_AUTHORIZATION_SHA256) {
-    issues.push('Wave A reference authorization does not match the reviewed release authorization');
-  }
-  if (!hasExactValues(evidence, {
-    requiredAssetCount: 109,
-    outputPngCount: 128,
-    declaredLogicalSlotCount: 771,
-    semanticCellCount: 708,
-    expectedNonemptySemanticCellCount: 696,
-    expectedTransparentSemanticCellCount: 12,
-    reservedTransparentCellCount: 63
-  })) {
-    issues.push('Wave A approval counts do not match the approved 109-asset/128-PNG/771-slot contract');
-  }
+export const DIALOGUE_CROPS = Object.freeze({
+  frame: Object.freeze({
+    x: 497,
+    y: 47,
+    width: 370,
+    height: 180,
+    safeInsets: Object.freeze({ left: 24, top: 22, right: 24, bottom: 40 })
+  }),
+  speechBubble: Object.freeze({
+    x: 15,
+    y: 600,
+    width: 202,
+    height: 124,
+    safeInsets: Object.freeze({ left: 20, top: 18, right: 20, bottom: 36 })
+  }),
+  choicePointer: Object.freeze({ x: 29, y: 542, width: 32, height: 24 }),
+  continueMarker: Object.freeze({ x: 449, y: 549, width: 24, height: 13 })
+});
 
-  exactKeys(manifest.legacyMigration, ['recordSha256', 'record'], 'legacyMigration', issues);
-  if (!SHA256.test(manifest.legacyMigration?.recordSha256 ?? '')) issues.push('legacyMigration.recordSha256 must be a SHA-256 digest');
-  if (manifest.legacyMigration?.recordSha256 !== PINNED_LEGACY.recordSha256) {
-    issues.push('legacyMigration.recordSha256 does not match the frozen legacy release contract');
-  }
-  const migration = manifest.legacyMigration?.record;
-  exactKeys(migration, [
-    'schemaVersion', 'contract', 'legacyRequiredSet', 'legacyFreezeDigest', 'counts',
-    'waveARemakes', 'waveBRemakes', 'retired', 'dispositionDigest'
-  ], 'legacyMigration.record', issues);
-  if (migration?.schemaVersion !== 1 || migration?.contract !== 'fable5-legacy-disposition-v1') {
-    issues.push('legacy migration contract must be fable5-legacy-disposition-v1 schema 1');
-  }
-  exactKeys(migration?.legacyRequiredSet, ['id', 'assetCount', 'assetIdsSha256'], 'legacyRequiredSet', issues);
-  if (!hasExactValues(migration?.legacyRequiredSet, { id: 'legacy-approved-78', assetCount: 78 })
-    || !SHA256.test(migration?.legacyRequiredSet?.assetIdsSha256 ?? '')) {
-    issues.push('legacyRequiredSet must bind the frozen approved 78 assets');
-  }
-  if (migration?.legacyRequiredSet?.assetIdsSha256 !== PINNED_LEGACY.assetIdsSha256) {
-    issues.push('legacyRequiredSet asset IDs differ from the frozen legacy catalog');
-  }
-  exactKeys(migration?.counts, ['keep', 'remake', 'retire', 'waveARemake', 'waveBRemake'], 'legacy counts', issues);
-  if (!hasExactValues(migration?.counts, { keep: 0, remake: 65, retire: 13, waveARemake: 45, waveBRemake: 20 })) {
-    issues.push('legacy disposition counts do not match the frozen 0/65/13 migration');
-  }
-  if (!SHA256.test(migration?.legacyFreezeDigest ?? '') || !SHA256.test(migration?.dispositionDigest ?? '')) {
-    issues.push('legacy migration digests are missing');
-  }
-  if (migration?.legacyFreezeDigest !== PINNED_LEGACY.freezeDigest
-    || migration?.dispositionDigest !== PINNED_LEGACY.dispositionDigest
-    || evidence?.legacyDispositionDigest !== PINNED_LEGACY.dispositionDigest) {
-    issues.push('legacy migration does not match the pinned freeze and disposition');
-  }
-  const waveARemakes = Array.isArray(migration?.waveARemakes) ? migration.waveARemakes : [];
-  const waveBRemakes = Array.isArray(migration?.waveBRemakes) ? migration.waveBRemakes : [];
-  const retired = Array.isArray(migration?.retired) ? migration.retired : [];
-  for (const [key, count, entries] of [['waveARemakes', 45, waveARemakes], ['waveBRemakes', 20, waveBRemakes]]) {
-    if (entries.length !== count) issues.push(`${key} must contain exactly ${count} entries`);
-    for (const [index, entry] of entries.entries()) {
-      exactKeys(entry, ['legacyAssetId', 'successorAssetId'], `${key}[${index}]`, issues);
-      if (!LEGACY_ASSET_ID.test(entry?.legacyAssetId ?? '') || !SUCCESSOR_ASSET_ID.test(entry?.successorAssetId ?? '')) {
-        issues.push(`${key}[${index}] is invalid`);
-      }
-    }
-  }
-  const legacyDispositionIds = [
-    ...waveARemakes.map((entry) => entry?.legacyAssetId),
-    ...waveBRemakes.map((entry) => entry?.legacyAssetId),
-    ...retired
-  ];
-  if (retired.length !== 13
-    || retired.some((assetId) => !LEGACY_ASSET_ID.test(assetId ?? ''))
-    || new Set(legacyDispositionIds).size !== 78) {
-    issues.push('legacy retired assets must contain exactly 13 unique IDs');
-  }
-  for (const entry of waveARemakes) {
-    if (!WAVE_A_ASSET_IDS.includes(entry.successorAssetId)) issues.push(`Wave A legacy successor is not in Wave A: ${entry.successorAssetId}`);
-  }
-
-  const assetIds = new Set();
-  const auditTotals = {
-    declaredLogicalSlotCount: 0,
-    semanticCellCount: 0,
-    expectedNonemptySemanticCellCount: 0,
-    expectedTransparentSemanticCellCount: 0,
-    reservedTransparentCellCount: 0
-  };
-  let outputPngCount = 0;
-  const artifactPaths = new Set();
-  const artifactHashes = new Set();
-  for (const [assetIndex, asset] of manifest.assets.entries()) {
-    exactKeys(asset, [
-      'assetId', 'category', 'definitionSha256', 'bundleDigest', 'generationRecordDigest',
-      'definition', 'cellAudit', 'artifacts'
-    ], `assets[${assetIndex}]`, issues);
-    if (!isRecord(asset) || typeof asset.assetId !== 'string' || !ASSET_ID.test(asset.assetId)) {
-      issues.push('every manifest asset needs a valid Fable5 assetId');
-      continue;
-    }
-    if (asset.assetId !== WAVE_A_ASSET_IDS[assetIndex]) {
-      issues.push(`assets[${assetIndex}] must be ${WAVE_A_ASSET_IDS[assetIndex]}`);
-    }
-    if (assetIds.has(asset.assetId)) issues.push(`duplicate assetId: ${asset.assetId}`);
-    assetIds.add(asset.assetId);
-    const category = asset.assetId.split('.')[0];
-    if (asset.category !== category || asset.definition?.category !== category) issues.push(`${asset.assetId} has a mismatched category`);
-    if (!SHA256.test(asset.definitionSha256 ?? '')) issues.push(`${asset.assetId} has an invalid definition digest`);
-    if (!SHA256.test(asset.bundleDigest ?? '')) issues.push(`${asset.assetId} has an invalid approval bundle digest`);
-    if (!SHA256.test(asset.generationRecordDigest ?? '')) issues.push(`${asset.assetId} has an invalid generation record digest`);
-    if (!isRecord(asset.definition) || asset.definition.id !== asset.assetId) issues.push(`${asset.assetId} has a mismatched definition`);
-    if (isRecord(asset.definition)) validateAssetDefinition(asset.definition, asset, issues);
-    exactKeys(asset.cellAudit, [
-      'declaredLogicalSlotCount', 'semanticCellCount', 'expectedNonemptySemanticCellCount',
-      'expectedTransparentSemanticCellCount', 'reservedTransparentCellCount', 'cellAuditDigest'
-    ], `${asset.assetId}.cellAudit`, issues);
-    const audit = asset.cellAudit;
-    if (!SHA256.test(audit?.cellAuditDigest ?? '')) issues.push(`${asset.assetId} has an invalid cell audit digest`);
-    for (const key of Object.keys(auditTotals)) {
-      const maximum = key === 'expectedTransparentSemanticCellCount' || key === 'reservedTransparentCellCount' ? 16 : 80;
-      if (!Number.isInteger(audit?.[key]) || audit[key] < 0 || audit[key] > maximum) {
-        issues.push(`${asset.assetId}.cellAudit.${key} must be an integer from 0 to ${maximum}`);
-      }
-      else auditTotals[key] += audit[key];
-    }
-    if (audit?.declaredLogicalSlotCount !== audit?.semanticCellCount + audit?.reservedTransparentCellCount
-      || audit?.semanticCellCount !== audit?.expectedNonemptySemanticCellCount + audit?.expectedTransparentSemanticCellCount
-      || !(audit?.semanticCellCount > 0)) {
-      issues.push(`${asset.assetId} has inconsistent cell audit counts`);
-    }
-    const expectedRoles = asset.category === 'building' ? ['base', 'roof'] : ['primary'];
-    const roles = Array.isArray(asset.artifacts) ? asset.artifacts.map((artifact) => artifact?.role) : [];
-    if (roles.length !== expectedRoles.length || roles.some((role, index) => role !== expectedRoles[index])) {
-      issues.push(`${asset.assetId} must declare ${expectedRoles.join(' + ')} artifacts in order`);
-      continue;
-    }
-    for (const artifact of asset.artifacts) {
-      exactKeys(artifact, ['role', 'sha256', 'publicPath'], `${asset.assetId}:${artifact?.role ?? 'unknown'}`, issues);
-      if (!SHA256.test(artifact.sha256 ?? '')) issues.push(`${asset.assetId}:${artifact.role} has an invalid digest`);
-      if (!BLOB_PATH.test(artifact.publicPath ?? '')) issues.push(`${asset.assetId}:${artifact.role} has an unsafe public path`);
-      if (artifact.publicPath !== `/assets/forge/v3/blobs/${artifact.sha256}.png`) {
-        issues.push(`${asset.assetId}:${artifact.role} path does not match its content digest`);
-      }
-      if (artifactPaths.has(artifact.publicPath)) issues.push(`duplicate artifact path: ${artifact.publicPath}`);
-      if (artifactHashes.has(artifact.sha256)) issues.push(`duplicate artifact SHA-256: ${artifact.sha256}`);
-      artifactPaths.add(artifact.publicPath);
-      artifactHashes.add(artifact.sha256);
-      const expectedSize = dimensionsFor(asset, artifact.role);
-      if (!positiveInteger(expectedSize?.width) || !positiveInteger(expectedSize?.height)) {
-        issues.push(`${asset.assetId}:${artifact.role} has no approved output dimensions`);
-      }
-    }
-    if (asset.category === 'building' && asset.artifacts?.[0]?.sha256 === asset.artifacts?.[1]?.sha256) {
-      issues.push(`${asset.assetId} base and roof must be distinct approved PNGs`);
-    }
-    outputPngCount += asset.artifacts?.length ?? 0;
-  }
-  if (outputPngCount !== 128 || artifactPaths.size !== 128 || artifactHashes.size !== 128) {
-    issues.push('manifest must declare exactly 128 globally unique approved PNG paths and hashes');
-  }
-  for (const key of Object.keys(auditTotals)) {
-    if (auditTotals[key] !== evidence?.[key]) issues.push(`cell audit total ${key} does not match Wave A evidence`);
-  }
-  for (const assetId of new Set(requiredAssetIds)) {
-    if (!assetIds.has(assetId)) issues.push(`WorldPlan requires missing approved asset: ${assetId}`);
-  }
-  return { ok: issues.length === 0, issues, assetIds };
-}
-
-function withoutKey(value, key) {
-  return Object.fromEntries(Object.entries(value).filter(([candidate]) => candidate !== key));
-}
-
-export async function createForgeTrustPolicy({
-  approval,
-  planCore,
-  selection,
-  referenceAuthorization,
-  legacyMigration,
-  bundleApprovals
-}) {
-  const issues = [];
-  if (![approval, planCore, selection, referenceAuthorization, legacyMigration].every(isRecord)
-    || !Array.isArray(bundleApprovals)) {
-    throw new ForgeAssetError('Release trust records are incomplete.');
-  }
-  const selectionDigest = await sha256Hex(canonicalJson(withoutKey(selection, 'selectionDigest')));
-  const planDigest = await sha256Hex(canonicalJson(planCore));
-  const referenceAuthorizationSha256 = await sha256Hex(canonicalJson(referenceAuthorization));
-  const evidenceCoverageDigest = await sha256Hex(canonicalJson({
-    contract: 'fable5-wave-a-evidence-coverage-v3',
-    assets: (approval.assets ?? []).map(({ assetId, visualEvidenceDigest }) => ({ assetId, visualEvidenceDigest }))
-  }));
-  const cellAuditDigest = await sha256Hex(canonicalJson({
-    contract: 'fable5-wave-a-cell-audit-set-v3',
-    assets: (approval.assets ?? []).map(({ assetId, cellAudit }) => ({ assetId, cellAudit }))
-  }));
-  const artifactSetDigest = await sha256Hex(canonicalJson({
-    contract: 'fable5-wave-a-artifact-set-v3',
-    assets: (approval.assets ?? []).map(({ assetId, artifacts }) => ({ assetId, artifacts }))
-  }));
-  const approvalDigest = await sha256Hex(canonicalJson(withoutKey(approval, 'approvalDigest')));
-  const recordSha256 = await sha256Hex(canonicalJson(legacyMigration));
-  const dispositionDigest = await sha256Hex(canonicalJson(withoutKey(legacyMigration, 'dispositionDigest')));
-
-  const selectedIds = (selection.assets ?? []).map(({ assetId }) => assetId);
-  const planIds = (planCore.assets ?? []).map(({ assetId }) => assetId);
-  const approvalIds = (approval.assets ?? []).map(({ assetId }) => assetId);
-  const hasCanonicalWaveAOrder = (assetIds) => assetIds.length === WAVE_A_ASSET_COUNT
-    && assetIds.every((assetId, index) => assetId === WAVE_A_ASSET_IDS[index]);
-  if (![selectedIds, planIds, approvalIds].every(hasCanonicalWaveAOrder)) {
-    issues.push('selection, plan, and approval must share the exact canonical 109 asset set and release order');
-  }
-  const exactCounts = {
-    requiredAssetCount: 109,
-    outputPngCount: 128,
-    declaredLogicalSlotCount: 771,
-    semanticCellCount: 708,
-    expectedNonemptySemanticCellCount: 696,
-    expectedTransparentSemanticCellCount: 12,
-    reservedTransparentCellCount: 63
-  };
-  for (const [label, record] of [['selection', selection], ['plan', planCore], ['approval', approval]]) {
-    if (!hasExactValues(record, exactCounts)) issues.push(`${label} does not match the exact Wave A counts`);
-  }
-  const bundleByAsset = new Map(bundleApprovals.map((bundle) => [bundle?.assetId, bundle]));
-  if (bundleApprovals.length !== WAVE_A_ASSET_COUNT || bundleByAsset.size !== WAVE_A_ASSET_COUNT) {
-    issues.push('bundle approvals must contain exactly one record for each Wave A asset');
-  }
-  const blueprintById = new Map((selection.sceneBlueprints ?? []).map((blueprint) => [blueprint.id, blueprint]));
-  const bindingAssets = [];
-  const approvedPaths = new Set();
-  const artifactHashes = new Set();
-  const generationIds = new Set();
-  for (let index = 0; index < WAVE_A_ASSET_COUNT; index += 1) {
-    const selected = selection.assets?.[index];
-    const planned = planCore.assets?.[index];
-    const approved = approval.assets?.[index];
-    if (![selected, planned, approved].every(isRecord)) continue;
-    const bundle = bundleByAsset.get(approved.assetId);
-    const selectedArtifacts = selected.artifacts ?? [];
-    const plannedArtifacts = planned.sourceArtifacts ?? [];
-    const approvedArtifacts = approved.artifacts ?? [];
-    const expectedRoles = approved.assetId.startsWith('building.') ? ['base', 'roof'] : ['primary'];
-    if (selected.generationId !== planned.pendingGenerationId
-      || selected.generationId !== approved.pendingGenerationId
-      || selected.pendingGenerationRecordDigest !== planned.pendingGenerationRecordDigest
-      || selected.pendingGenerationRecordDigest !== approved.pendingGenerationRecordDigest
-      || selected.definitionSha256 !== planned.definitionSha256
-      || selected.definitionSha256 !== approved.definitionSha256) {
-      issues.push(`${approved.assetId} selection, plan, and approval identities do not match`);
-    }
-    if (generationIds.has(selected.generationId)) issues.push(`${approved.assetId} reuses a generation id`);
-    generationIds.add(selected.generationId);
-    if (selectedArtifacts.length !== expectedRoles.length
-      || selectedArtifacts.some((artifact, artifactIndex) => artifact.role !== expectedRoles[artifactIndex])
-      || plannedArtifacts.length !== selectedArtifacts.length
-      || plannedArtifacts.some((artifact, artifactIndex) => canonicalJson(artifact) !== canonicalJson(selectedArtifacts[artifactIndex]))
-      || approvedArtifacts.length !== selectedArtifacts.length
-      || approvedArtifacts.some((artifact, artifactIndex) => artifact.role !== selectedArtifacts[artifactIndex].role
-        || artifact.sha256 !== selectedArtifacts[artifactIndex].sha256)) {
-      issues.push(`${approved.assetId} artifact membership differs across selection, plan, and approval`);
-    }
-    const visualBlueprints = (selected.visualReview?.ensemble ?? []).map(({ blueprintId }) => blueprintById.get(blueprintId));
-    if (visualBlueprints.some((blueprint) => !blueprint)) {
-      issues.push(`${approved.assetId} visual review points to a missing scene blueprint`);
-    } else {
-      const visualEvidenceDigest = await sha256Hex(canonicalJson({
-        visualReview: selected.visualReview,
-        sceneBlueprints: visualBlueprints
-      }));
-      if (planned.visualEvidenceDigest !== visualEvidenceDigest || approved.visualEvidenceDigest !== visualEvidenceDigest) {
-        issues.push(`${approved.assetId} visual evidence digest is not bound to selection blueprints`);
-      }
-    }
-    const calculatedCellAuditDigest = await sha256Hex(canonicalJson({
-      contract: 'fable5-cell-audit-v3',
-      ...withoutKey(approved.cellAudit ?? {}, 'cellAuditDigest')
-    }));
-    if (approved.cellAudit?.cellAuditDigest !== calculatedCellAuditDigest
-      || canonicalJson(planned.cellAudit) !== canonicalJson(approved.cellAudit)) {
-      issues.push(`${approved.assetId} cell audit is not canonical across plan and approval`);
-    }
-    if (!isRecord(bundle)) {
-      issues.push(`${approved.assetId} has no matching bundle approval`);
-    } else {
-      const canonicalBundle = {
-        contract: 'fable5-asset-bundle-v3',
-        assetId: bundle.assetId,
-        category: bundle.category,
-        definitionSha256: bundle.definitionSha256,
-        generationRecordDigest: bundle.generationRecordDigest,
-        artifacts: bundle.artifacts
-      };
-      const calculatedBundleDigest = await sha256Hex(canonicalJson(canonicalBundle));
-      const strippedBundleArtifacts = (bundle.artifacts ?? []).map(({ role, approvedPath, sha256 }) => ({ role, approvedPath, sha256 }));
-      if (bundle.bundleDigest !== calculatedBundleDigest || approved.bundleDigest !== calculatedBundleDigest
-        || bundle.definitionSha256 !== approved.definitionSha256
-        || bundle.generationRecordDigest !== approved.pendingGenerationRecordDigest
-        || bundle.reviewer !== approval.reviewer || bundle.note !== approval.note || bundle.approvedAt !== approval.approvedAt
-        || canonicalJson(strippedBundleArtifacts) !== canonicalJson(approvedArtifacts)
-        || (bundle.artifacts ?? []).some((artifact) => artifact.generationId !== approved.pendingGenerationId)) {
-        issues.push(`${approved.assetId} does not match its canonical bundle approval`);
-      }
-    }
-    for (const artifact of approvedArtifacts) {
-      if (approvedPaths.has(artifact.approvedPath) || artifactHashes.has(artifact.sha256)) {
-        issues.push(`${approved.assetId} reuses an approved artifact path or hash`);
-      }
-      approvedPaths.add(artifact.approvedPath);
-      artifactHashes.add(artifact.sha256);
-      if (!artifact.approvedPath?.startsWith(`${approval.bundleDirectory}/`)) {
-        issues.push(`${approved.assetId} artifact escapes the approved bundle directory`);
-      }
-    }
-    bindingAssets.push({
-      assetId: approved.assetId,
-      definitionSha256: approved.definitionSha256,
-      bundleDigest: approved.bundleDigest,
-      generationRecordDigest: approved.pendingGenerationRecordDigest,
-      cellAuditDigest: approved.cellAudit?.cellAuditDigest,
-      artifacts: approvedArtifacts.map(({ role, sha256 }) => ({ role, sha256 }))
-    });
-  }
-  if (approvedPaths.size !== 128 || artifactHashes.size !== 128) {
-    issues.push('approval must bind exactly 128 globally unique artifact paths and hashes');
-  }
-  const assetBindingDigest = await sha256Hex(canonicalJson({
-    contract: 'fable5-game-export-asset-bindings-v3',
-    assets: bindingAssets.sort((left, right) => compareCodeUnits(left.assetId, right.assetId))
-  }));
-
-  const expectedApproval = {
-    approvalDigest,
-    planDigest,
-    selectionDigest,
-    referenceAuthorizationSha256,
-    evidenceCoverageDigest,
-    cellAuditDigest,
-    artifactSetDigest,
-    legacyDispositionDigest: legacyMigration.dispositionDigest
-  };
-  for (const [key, expectedValue] of Object.entries(expectedApproval)) {
-    if (approval[key] !== expectedValue) issues.push(`approval.${key} does not match its canonical release record`);
-  }
-  if (selection.selectionDigest !== selectionDigest) issues.push('selection.selectionDigest mismatch');
-  if (selection.legacyDispositionDigest !== legacyMigration.dispositionDigest) issues.push('selection is not bound to the legacy disposition');
-  if (planCore.selectionDigest !== selectionDigest
-    || planCore.legacyDispositionDigest !== legacyMigration.dispositionDigest
-    || planCore.referenceAuthorizationSha256 !== referenceAuthorizationSha256) {
-    issues.push('approval plan is not bound to selection, legacy, and reference authorization');
-  }
-  if (approval.bundleDirectory !== `generated/v3/wave-bundles/${planDigest}`) issues.push('approval bundleDirectory does not match planDigest');
-  if (recordSha256 !== PINNED_LEGACY.recordSha256
-    || dispositionDigest !== PINNED_LEGACY.dispositionDigest
-    || legacyMigration.legacyFreezeDigest !== PINNED_LEGACY.freezeDigest
-    || legacyMigration.legacyRequiredSet?.assetIdsSha256 !== PINNED_LEGACY.assetIdsSha256) {
-    issues.push('legacy trust record differs from the pinned release contract');
-  }
-  if (referenceAuthorizationSha256 !== PINNED_REFERENCE_AUTHORIZATION_SHA256) {
-    issues.push('reference authorization differs from the reviewed release record');
-  }
-  if (issues.length > 0) throw new ForgeAssetError('Release trust records could not be verified.', issues);
-  return Object.freeze({
-    ...PINNED_LEGACY,
-    approvalDigest,
-    planDigest,
-    selectionDigest,
-    referenceAuthorizationSha256,
-    evidenceCoverageDigest,
-    cellAuditDigest,
-    artifactSetDigest,
-    assetBindingDigest
-  });
-}
-
-export async function verifyForgeManifestDigests(manifest, { trustPolicy = FORGE_RELEASE_TRUST } = {}) {
-  const validation = validateForgeManifest(manifest);
-  if (!validation.ok) throw new ForgeAssetError('Approved Fable5 assets are incomplete; play has been stopped.', validation.issues);
-
-  const issues = [];
-  const expected = async (actual, content, label) => {
-    const calculated = await sha256Hex(canonicalJson(content));
-    if (actual !== calculated) issues.push(`${label} does not match its canonical content`);
-  };
-  const migration = manifest.legacyMigration.record;
-  await expected(manifest.legacyMigration.recordSha256, migration, 'legacyMigration.recordSha256');
-  await expected(migration.dispositionDigest, withoutKey(migration, 'dispositionDigest'), 'legacy dispositionDigest');
-  if (manifest.waveAApprovalEvidence.legacyDispositionDigest !== migration.dispositionDigest) {
-    issues.push('Wave A approval is not bound to the frozen legacy disposition');
-  }
-  for (const asset of manifest.assets) {
-    await expected(asset.definitionSha256, asset.definition, `${asset.assetId}.definitionSha256`);
-  }
-  for (const [policyKey, evidenceKey = policyKey] of [
-    ['approvalDigest'], ['planDigest'], ['selectionDigest'], ['referenceAuthorizationSha256'],
-    ['evidenceCoverageDigest'], ['cellAuditDigest'], ['artifactSetDigest']
-  ]) {
-    if (!SHA256.test(trustPolicy?.[policyKey] ?? '')) issues.push(`release trust is not pinned for ${policyKey}`);
-    else if (manifest.waveAApprovalEvidence[evidenceKey] !== trustPolicy[policyKey]) {
-      issues.push(`waveAApprovalEvidence.${evidenceKey} differs from the pinned release trust`);
-    }
-  }
-  const assetBindingDigest = await sha256Hex(canonicalJson({
-    contract: 'fable5-game-export-asset-bindings-v3',
-    assets: manifest.assets.map((asset) => ({
-      assetId: asset.assetId,
-      definitionSha256: asset.definitionSha256,
-      bundleDigest: asset.bundleDigest,
-      generationRecordDigest: asset.generationRecordDigest,
-      cellAuditDigest: asset.cellAudit.cellAuditDigest,
-      artifacts: asset.artifacts.map(({ role, sha256 }) => ({ role, sha256 }))
-    }))
-  }));
-  if (!SHA256.test(trustPolicy?.assetBindingDigest ?? '')) issues.push('release trust is not pinned for assetBindingDigest');
-  else if (assetBindingDigest !== trustPolicy.assetBindingDigest) issues.push('game export asset bindings differ from the pinned release trust');
-  if (trustPolicy?.recordSha256 !== PINNED_LEGACY.recordSha256
-    || trustPolicy?.dispositionDigest !== PINNED_LEGACY.dispositionDigest
-    || trustPolicy?.freezeDigest !== PINNED_LEGACY.freezeDigest
-    || trustPolicy?.assetIdsSha256 !== PINNED_LEGACY.assetIdsSha256) {
-    issues.push('release trust does not pin the exact legacy migration');
-  }
-  await expected(manifest.bundleSetDigest, {
-    contract: 'fable5-required-bundle-set-v3',
-    requiredSetId: REQUIRED_SET_ID,
-    waveIds: ['A'],
-    waveAApprovalDigest: manifest.waveAApprovalEvidence.approvalDigest,
-    legacyDispositionDigest: migration.dispositionDigest,
-    bundles: manifest.assets.map(({ assetId, bundleDigest, generationRecordDigest }) => ({
-      assetId, bundleDigest, generationRecordDigest
-    }))
-  }, 'bundleSetDigest');
-  if (issues.length > 0) throw new ForgeAssetError('Approved Fable5 release trust could not be verified; play has been stopped.', issues);
-  return manifest;
-}
-
-function addAssetId(set, candidate, location) {
-  const assetId = typeof candidate === 'string' ? candidate : (isRecord(candidate) ? candidate.assetId : null);
-  if (assetId === null || assetId === undefined) return;
-  if (typeof assetId !== 'string' || !ASSET_ID.test(assetId)) {
-    throw new ForgeAssetError(`WorldPlan contains an invalid asset binding at ${location}.`);
-  }
-  set.add(assetId);
-}
-
-export function collectWorldPlanAssetIds(plan) {
-  const assetIds = new Set(['character.player']);
-  for (const [index, cell] of (plan?.terrain ?? []).entries()) addAssetId(assetIds, cell?.assetId, `terrain[${index}]`);
-  for (const [index, building] of (plan?.buildings ?? []).entries()) {
-    addAssetId(assetIds, building?.assetId, `buildings[${index}]`);
-    for (const [overlayIndex, overlay] of (building?.overlays ?? []).entries()) {
-      addAssetId(assetIds, overlay, `buildings[${index}].overlays[${overlayIndex}]`);
-    }
-  }
-  for (const [index, npc] of (plan?.npcs ?? []).entries()) addAssetId(assetIds, npc?.assetId, `npcs[${index}]`);
-  for (const [index, prop] of (plan?.props ?? []).entries()) addAssetId(assetIds, prop?.assetId, `props[${index}]`);
-  for (const [index, light] of (plan?.lights ?? []).entries()) addAssetId(assetIds, light?.assetId, `lights[${index}]`);
-  return [...assetIds].sort();
-}
-
-export function createAssetResolver(manifest, imageByKey = new Map()) {
-  const validation = validateForgeManifest(manifest);
-  if (!validation.ok) throw new ForgeAssetError('Approved Fable5 assets cannot be used.', validation.issues);
-  const assetById = new Map(manifest.assets.map((asset) => [asset.assetId, asset]));
-  return Object.freeze({
-    manifest,
-    assetById,
-    imageByKey,
-    asset(assetId) {
-      return assetById.get(assetId) ?? null;
-    },
-    definition(assetId) {
-      return assetById.get(assetId)?.definition ?? null;
-    },
-    artifact(assetId, role) {
-      const asset = assetById.get(assetId);
-      const effectiveRole = role ?? (asset?.category === 'building' ? 'base' : 'primary');
-      return asset?.artifacts.find((artifact) => artifact.role === effectiveRole) ?? null;
-    },
-    image(assetId, role) {
-      const asset = assetById.get(assetId);
-      const effectiveRole = role ?? (asset?.category === 'building' ? 'base' : 'primary');
-      return imageByKey.get(`${assetId}:${effectiveRole}`) ?? null;
-    }
-  });
-}
-
-async function defaultArtifactFetcher(url, { fetchImpl = globalThis.fetch } = {}) {
-  if (typeof fetchImpl !== 'function') throw new ForgeAssetError('The approved PNG loader is unavailable.');
-  let response;
-  try {
-    response = await fetchImpl(url, { cache: 'no-store', credentials: 'same-origin' });
-  } catch (error) {
-    throw new ForgeAssetError(`Approved PNG is unreachable: ${url} (${error.message})`);
-  }
-  if (!response?.ok) throw new ForgeAssetError(`Approved PNG is missing: ${url} (${response?.status ?? 'network error'})`);
-  return new Uint8Array(await response.arrayBuffer());
-}
-
-function defaultImageDecoder(bytes, url) {
-  if (typeof Image !== 'function') throw new ForgeAssetError('The browser image loader is unavailable.');
+function decodeImage(contract, sourceUrl, timeoutMs) {
   return new Promise((resolve, reject) => {
     const image = new Image();
-    const objectUrl = URL.createObjectURL(new Blob([bytes], { type: 'image/png' }));
-    image.decoding = 'async';
+    let settled = false;
+    const finish = (callback, value) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      image.onload = null;
+      image.onerror = null;
+      callback(value);
+    };
+    const timer = window.setTimeout(() => {
+      finish(reject, new AssetContractError(
+        `${contract.id} の読み込みが時間内に完了しませんでした。`,
+        [`${contract.url} — expected ${contract.width}×${contract.height}`]
+      ));
+    }, timeoutMs);
     image.onload = () => {
-      URL.revokeObjectURL(objectUrl);
-      resolve(image);
+      if (image.naturalWidth !== contract.width || image.naturalHeight !== contract.height) {
+        finish(reject, new AssetContractError(
+          `${contract.id} の寸法がasset contractと一致しません。`,
+          [`${contract.url}: actual ${image.naturalWidth}×${image.naturalHeight}, expected ${contract.width}×${contract.height}`]
+        ));
+        return;
+      }
+      finish(resolve, image);
     };
-    image.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      reject(new ForgeAssetError(`Approved image could not be decoded: ${url}`));
-    };
-    image.src = objectUrl;
+    image.onerror = () => finish(reject, new AssetContractError(
+      `${contract.id} を読み込めませんでした。代替画像では続行しません。`,
+      [`missing or unreadable: ${contract.url}`, `${contract.role}; ${contract.width}×${contract.height}`]
+    ));
+    image.decoding = 'async';
+    image.src = sourceUrl;
   });
 }
 
-function hasPngSignature(bytes) {
-  const signature = [137, 80, 78, 71, 13, 10, 26, 10];
-  return bytes.length >= signature.length && signature.every((byte, index) => bytes[index] === byte);
+async function sha256Hex(bytes) {
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes);
+  return [...new Uint8Array(digest)].map((value) => value.toString(16).padStart(2, '0')).join('');
 }
 
-export async function fetchForgeManifest({
-  manifestUrl = FORGE_MANIFEST_URL,
-  requiredAssetIds = [],
-  trustPolicy = FORGE_RELEASE_TRUST,
-  fetchImpl = globalThis.fetch
-} = {}) {
-  if (typeof fetchImpl !== 'function') throw new ForgeAssetError('The asset manifest loader is unavailable.');
-  let response;
+async function verifiedImagePromise(contract, timeoutMs) {
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    throw new AssetContractError('画像照合の制限時間が不正です。', [`timeoutMs: ${timeoutMs}`]);
+  }
+  const deadline = performance.now() + timeoutMs;
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
   try {
-    response = await fetchImpl(manifestUrl, { cache: 'no-store', credentials: 'same-origin' });
-  } catch (error) {
-    throw new ForgeAssetError(`Approved Fable5 asset manifest is unreachable: ${error.message}`);
-  }
-  if (!response?.ok) throw new ForgeAssetError(`Approved Fable5 asset manifest is missing (${response?.status ?? 'network error'}).`);
-  let manifest;
-  try {
-    manifest = await response.json();
-  } catch (error) {
-    throw new ForgeAssetError(`Approved Fable5 asset manifest is not valid JSON: ${error.message}`);
-  }
-  const validation = validateForgeManifest(manifest, { requiredAssetIds });
-  if (!validation.ok) throw new ForgeAssetError('Approved Fable5 assets are incomplete; play has been stopped.', validation.issues);
-  return verifyForgeManifestDigests(manifest, { trustPolicy });
-}
-
-export async function loadForgeAssetImages({
-  manifest: suppliedManifest = null,
-  manifestUrl = FORGE_MANIFEST_URL,
-  requiredAssetIds = [],
-  trustPolicy = FORGE_RELEASE_TRUST,
-  fetchImpl = globalThis.fetch,
-  artifactFetcher = defaultArtifactFetcher,
-  imageDecoder = defaultImageDecoder,
-  imageByKey: suppliedImageByKey = new Map(),
-  onImageLoaded = null
-} = {}) {
-  const manifest = suppliedManifest ?? await fetchForgeManifest({ manifestUrl, requiredAssetIds, trustPolicy, fetchImpl });
-  if (suppliedManifest) {
-    const validation = validateForgeManifest(manifest, { requiredAssetIds });
-    if (!validation.ok) throw new ForgeAssetError('Approved Fable5 assets are incomplete; play has been stopped.', validation.issues);
-  }
-  await verifyForgeManifestDigests(manifest, { trustPolicy });
-
-  const required = new Set(requiredAssetIds);
-  const assets = required.size > 0 ? manifest.assets.filter((asset) => required.has(asset.assetId)) : manifest.assets;
-  const imageByKey = suppliedImageByKey;
-  await Promise.all(assets.flatMap((asset) => asset.artifacts.map(async (artifact) => {
-    const key = `${asset.assetId}:${artifact.role}`;
-    if (imageByKey.has(key)) return;
-    let bytes;
-    try {
-      bytes = asBytes(await artifactFetcher(artifact.publicPath, {
-        asset,
-        artifact,
-        fetchImpl
-      }));
-    } catch (error) {
-      if (error instanceof ForgeAssetError) throw error;
-      throw new ForgeAssetError(`${asset.assetId}:${artifact.role} could not be loaded: ${error.message}`);
+    const response = await fetch(contract.url, {
+      cache: 'no-store',
+      credentials: 'same-origin',
+      signal: controller.signal
+    });
+    if (!response.ok) {
+      throw new AssetContractError(`${contract.id} を読み込めませんでした。`, [
+        `${contract.url}: HTTP ${response.status}`
+      ]);
+    }
+    const contentLength = Number(response.headers.get('content-length'));
+    if (!Number.isSafeInteger(contentLength) || contentLength !== contract.bytes) {
+      throw new AssetContractError(`${contract.id} の容量が承認済み画像と一致しません。`, [
+        `${contract.url}: actual Content-Length ${response.headers.get('content-length') ?? 'missing'}`,
+        `expected bytes ${contract.bytes}`
+      ]);
+    }
+    const bytes = await response.arrayBuffer();
+    if (bytes.byteLength !== contract.bytes) {
+      throw new AssetContractError(`${contract.id} の実データ容量が一致しません。`, [
+        `${contract.url}: actual bytes ${bytes.byteLength}, expected ${contract.bytes}`
+      ]);
     }
     const actualSha256 = await sha256Hex(bytes);
-    if (actualSha256 !== artifact.sha256) {
-      throw new ForgeAssetError(`${asset.assetId}:${artifact.role} bytes do not match the approved SHA-256 digest.`);
+    if (actualSha256 !== contract.sha256) {
+      throw new AssetContractError(`${contract.id} の内容が承認済み画像と一致しません。`, [
+        `${contract.url}: actual SHA-256 ${actualSha256}`,
+        `expected SHA-256 ${contract.sha256}`
+      ]);
     }
-    if (!hasPngSignature(bytes)) throw new ForgeAssetError(`${asset.assetId}:${artifact.role} is not a PNG.`);
-    let image;
+    const objectUrl = URL.createObjectURL(new Blob(
+      [bytes],
+      { type: response.headers.get('content-type') ?? 'image/png' }
+    ));
     try {
-      image = await imageDecoder(bytes, artifact.publicPath, asset, artifact);
-    } catch (error) {
-      if (error instanceof ForgeAssetError) throw error;
-      throw new ForgeAssetError(`${asset.assetId}:${artifact.role} could not be decoded: ${error.message}`);
+      const remainingMs = deadline - performance.now();
+      if (remainingMs <= 0) {
+        throw new AssetContractError(`${contract.id} の照合が時間内に完了しませんでした。`, [contract.url]);
+      }
+      return await decodeImage(contract, objectUrl, remainingMs);
+    } finally {
+      URL.revokeObjectURL(objectUrl);
     }
-    const expected = dimensionsFor(asset, artifact.role);
-    const width = image?.naturalWidth ?? image?.width;
-    const height = image?.naturalHeight ?? image?.height;
-    if (width !== expected.width || height !== expected.height) {
-      throw new ForgeAssetError(`${asset.assetId}:${artifact.role} is ${width}x${height}; approved size is ${expected.width}x${expected.height}.`);
-    }
-    imageByKey.set(key, image);
-    if (typeof onImageLoaded === 'function') onImageLoaded(asset.assetId, artifact.role);
-  })));
-  return createAssetResolver(manifest, imageByKey);
-}
-
-function numericVariant(variant) {
-  if (Number.isInteger(variant)) return variant;
-  if (typeof variant === 'string' && /^\d+$/.test(variant)) return Number(variant);
-  return null;
-}
-
-export function terrainFrame(definition, variant = 0, timestamp = 0) {
-  const contract = definition?.autotileContract;
-  if (!contract) return null;
-  let tileIndex = null;
-  if (isRecord(variant) && Number.isInteger(variant.tileIndex)) tileIndex = variant.tileIndex;
-  const direct = numericVariant(variant);
-  if (tileIndex === null && direct !== null && direct >= 0 && direct <= 24) tileIndex = direct;
-  const maskMatch = typeof variant === 'string' ? variant.match(/(?:mask|blob)[_:-]?(\d{1,2})/i) : null;
-  const mask = isRecord(variant) && Number.isInteger(variant.mask) ? variant.mask : (maskMatch ? Number(maskMatch[1]) : null);
-  if (tileIndex === null && mask !== null) tileIndex = contract.blob16.find((entry) => entry.mask === mask)?.tileIndex ?? null;
-  if (tileIndex === null && typeof variant === 'string' && /anim/i.test(variant) && contract.animationFrameIndices.length > 0) {
-    tileIndex = contract.animationFrameIndices[Math.floor(timestamp / 360) % contract.animationFrameIndices.length];
+  } catch (error) {
+    if (error instanceof AssetContractError) throw error;
+    throw new AssetContractError(`${contract.id} の照合に失敗しました。`, [
+      `${contract.url}: ${error?.name === 'AbortError' ? 'timeout' : String(error?.message ?? error)}`
+    ]);
+  } finally {
+    window.clearTimeout(timer);
   }
-  if (tileIndex === null) {
-    const baseIndex = typeof variant === 'string' ? Number(variant.match(/(?:base|variant)[_:-]?(\d+)/i)?.[1] ?? 0) : 0;
-    tileIndex = contract.baseVariantIndices[Math.abs(baseIndex) % contract.baseVariantIndices.length];
+}
+
+export async function loadProductionAssets({ timeoutMs = 15000 } = {}) {
+  // Treat the manifest-driven world prefabs exactly like every other
+  // production image: fetch the bytes, require the declared Content-Length,
+  // hash them, and decode at their declared native dimensions before a frame
+  // can render. The special inn/lamp prefabs intentionally remain in
+  // PRODUCTION_ASSETS because app.js gives them state- and actor-dependent
+  // draw order; WORLD_PREFABS contains only the 45 static scene layers.
+  const productionEntries = Object.entries(PRODUCTION_ASSETS);
+  const prefabEntries = WORLD_PREFABS.map((contract) => [contract.id, contract]);
+  const entries = [...productionEntries, ...prefabEntries];
+  const settled = await Promise.allSettled(entries.map(([, contract]) => verifiedImagePromise(contract, timeoutMs)));
+  const failures = settled.flatMap((result, index) => {
+    if (result.status === 'fulfilled') return [];
+    const contract = entries[index][1];
+    const details = Array.isArray(result.reason?.issues) ? result.reason.issues : [String(result.reason?.message ?? result.reason)];
+    return [`${contract.id}: ${details.join(' / ')}`];
+  });
+  if (failures.length > 0) {
+    const failedPrefabIds = settled.flatMap((result, index) => (
+      result.status === 'rejected' && index >= productionEntries.length && index < productionEntries.length + prefabEntries.length
+        ? [entries[index][1].id]
+        : []
+    ));
+    throw new AssetContractError(
+      failedPrefabIds.length > 0
+        ? `町を構成するprefabレイヤーが不完全なため、ゲームを開始できません。 (${failedPrefabIds.join(', ')})`
+        : 'production画像アセットが揃っていないため、ゲームを開始できません。',
+      failures
+    );
   }
-  if (!Number.isInteger(tileIndex) || tileIndex < 0 || tileIndex >= contract.sheet.columns * contract.sheet.rows) return null;
-  return Object.freeze({
-    tileIndex,
-    sx: (tileIndex % contract.sheet.columns) * contract.tileSize,
-    sy: Math.floor(tileIndex / contract.sheet.columns) * contract.tileSize,
-    sw: contract.tileSize,
-    sh: contract.tileSize
-  });
+  const productionAssets = Object.fromEntries(
+    productionEntries.map(([key], index) => [key, settled[index].value])
+  );
+  // Key decoded images by immutable prefab ID while leaving draw order in
+  // WORLD_PREFABS. This avoids duplicating order or coordinates in a second
+  // runtime collection that could drift or be reordered.
+  const worldPrefabs = Object.freeze(Object.fromEntries(
+    WORLD_PREFABS.map((contract, index) => [
+      contract.id,
+      settled[productionEntries.length + index].value
+    ])
+  ));
+  return Object.freeze({ ...productionAssets, worldPrefabs });
 }
 
-export function characterFrame(definition, direction = 'south', action = 'idle', timestamp = 0) {
-  const contract = definition?.characterSpriteContract;
-  if (!contract || contract.version !== 2) return null;
-  const rowName = ({ north: 'back', east: 'right', south: 'front', west: 'left' })[direction] ?? 'front';
-  const row = contract.directionRows.indexOf(rowName);
-  const animation = contract.animations[action] ?? contract.animations.idle;
-  const column = animation[Math.floor(timestamp / 180) % animation.length];
-  return Object.freeze({
-    column,
-    row,
-    sx: column * contract.frame.width,
-    sy: row * contract.frame.height,
-    sw: contract.frame.width,
-    sh: contract.frame.height
-  });
+// Native-coordinate prefab rendering is deliberately the only world draw
+// primitive exported by this module. Keeping both the asset bytes and their
+// crop origins in one verified record prevents a hidden whole-scene fallback
+// or a scaled composite from creeping back into the runtime.
+export function drawWorldPrefabs(context, prefabImages) {
+  const missingPrefabIds = WORLD_PREFABS.flatMap(({ id }) => (
+    prefabImages && typeof prefabImages === 'object' && prefabImages[id]
+      ? []
+      : [id]
+  ));
+  if (missingPrefabIds.length > 0) {
+    throw new AssetContractError(
+      '町を構成するprefabレイヤーが不完全なため、代替の統合画像では描画しません。',
+      missingPrefabIds.map((id) => `missing decoded prefab image: ${id}`)
+    );
+  }
+  for (const prefab of WORLD_PREFABS) {
+    context.drawImage(prefabImages[prefab.id], prefab.x, prefab.y);
+  }
 }
 
-export function spriteFrame(definition, frame = 0) {
-  const grid = definition?.sprites?.grid;
-  if (!positiveInteger(grid?.columns) || !positiveInteger(grid?.rows)) return null;
-  const outputWidth = definition.outputSize?.width;
-  const outputHeight = definition.outputSize?.height;
-  const frameWidth = grid.frameWidth ?? outputWidth / grid.columns;
-  const frameHeight = grid.frameHeight ?? outputHeight / grid.rows;
-  if (!positiveInteger(frameWidth) || !positiveInteger(frameHeight)) return null;
-  const index = Math.max(0, Math.min(grid.columns * grid.rows - 1, Number.isInteger(frame) ? frame : 0));
-  return Object.freeze({
-    index,
-    sx: (index % grid.columns) * frameWidth,
-    sy: Math.floor(index / grid.columns) * frameHeight,
-    sw: frameWidth,
-    sh: frameHeight
-  });
+export function drawCharacterFrame(context, image, frame, foot, { alpha = 1 } = {}) {
+  context.save();
+  context.globalAlpha = alpha;
+  context.drawImage(
+    image,
+    frame.sx,
+    frame.sy,
+    frame.sw,
+    frame.sh,
+    Math.round(foot.x - 32 + (frame.offsetX ?? 0)),
+    Math.round(foot.y - 120 + (frame.offsetY ?? 0)),
+    64,
+    128
+  );
+  context.restore();
+}
+
+// Crops are always drawn at their native source dimensions. Supplying a
+// destination size is intentionally unsupported so gold borders cannot stretch.
+export function drawNativeCrop(context, image, crop, destinationX, destinationY) {
+  context.drawImage(
+    image,
+    crop.x,
+    crop.y,
+    crop.width,
+    crop.height,
+    Math.round(destinationX),
+    Math.round(destinationY),
+    crop.width,
+    crop.height
+  );
 }

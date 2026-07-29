@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "assetId": "inn-counter-clean-plate-v1",
+  "status": "runtime-integrated-browser-visual-pass",
+  "runtime": {
+    "path": "public/fable5-v2/assets/objects/target-town-inn/inn-counter-clean-plate-v1.png",
+    "sha256": "f68b3a44ca25e741fd105e3b29c00273560f1f6de759cb6150e0e762350439f1",
+    "dimensions": { "width": 49, "height": 57 },
+    "worldOrigin": { "x": 200, "y": 255 }
+  },
+  "source": {
+    "worldPath": "art/references/target-town.png",
+    "editCrop": "art/production/vertical-slice/boards/candidates/inn-counter-with-baked-npc-edit-source.png",
+    "generatedCleanBackground": "art/production/vertical-slice/boards/candidates/inn-counter-clean-background-imagegen-v1-source.png",
+    "generatedCleanBackgroundSha256": "518638bb40be305cc8deeacbe848bd5f4b0fbcb73bf4d148f22bc1abfb9a4f94",
+    "provider": "codex-imagegen-built-in",
+    "intent": "remove only the baked bartender and reconstruct the wood shelf and counter background"
+  },
+  "scope": {
+    "measuredOldNpcBBox": { "x": 202, "y": 257, "width": 45, "height": 53 },
+    "repairBBoxWithPadding": { "x": 200, "y": 255, "width": 49, "height": 57 },
+    "rule": "all pixels outside the measured repair rectangle remain the exact user-provided town image"
+  },
+  "qa": {
+    "composite": {
+      "path": "art/production/vertical-slice/qa/inn-counter-clean-plate-composite-v1.png",
+      "sha256": "c07d1795f10fae8be6c69e7dc02be8d7a4aca4285fc0aa30081f4274fc3a1bd3"
+    },
+    "browserPrompt": {
+      "path": "art/production/vertical-slice/qa/browser-inn-prompt-clean-npc-v3.png",
+      "sha256": "714617a96426e92be9df109b25aed19ff1ffb2f9b2d30eb1666542866d4bfe38"
+    },
+    "browserDialogue": {
+      "path": "art/production/vertical-slice/qa/browser-inn-dialogue-clean-npc-v3.png",
+      "sha256": "b2ac017ec462c3ec926e6727d8fabeadcb549cecb622420c0f9e991dc4280069"
+    }
+  }
+}

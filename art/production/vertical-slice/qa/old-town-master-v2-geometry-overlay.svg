@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1536" height="1024" viewBox="0 0 1536 1024">
+  <defs>
+    <pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse">
+      <path d="M64 0H0V64" fill="none" stroke="#7de9ff" stroke-width="1" stroke-opacity="0.34"/>
+    </pattern>
+    <filter id="label-shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feMorphology in="SourceAlpha" operator="dilate" radius="1.4" result="outline"/>
+      <feFlood flood-color="#071019" flood-opacity="0.98" result="color"/>
+      <feComposite in="color" in2="outline" operator="in" result="stroke"/>
+      <feMerge><feMergeNode in="stroke"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <image x="0" y="0" width="1536" height="1024" xlink:href="../boards/old-town-exterior-master-v1.png"/>
+  <rect x="0" y="0" width="1536" height="1024" fill="url(#grid)"/>
+
+  <!-- Exact draft pixel corridors; bright lines are actor-foot centerlines. -->
+  <g fill="#26f58b" fill-opacity="0.16" stroke="#26f58b" stroke-width="3">
+    <polygon points="0,712 1536,712 1536,760 0,760"/>
+    <polygon points="712,760 760,760 760,1024 712,1024"/>
+    <polygon points="714,221 762,221 762,300 814,332 814,456 766,488 766,704 760,736 712,736 718,696 718,472 766,440 766,356 714,324"/>
+    <polygon points="183,439 231,439 231,488 268,496 356,496 376,532 376,736 328,736 328,560 320,544 244,544 183,512"/>
+    <polygon points="1124,476 1172,476 1172,512 1184,512 1184,704 1164,736 1116,736 1092,704 1092,512 1124,512"/>
+    <polygon points="1380,476 1432,476 1432,704 1430,736 1382,736 1380,704"/>
+  </g>
+  <g fill="none" stroke="#b6ffd4" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="0,736 1536,736"/>
+    <polyline points="736,736 736,1024"/>
+    <polyline points="738,221 738,300 790,340 790,448 742,480 742,704 736,736"/>
+    <polyline points="207,439 207,500 256,520 344,520 352,544 352,736"/>
+    <polyline points="1148,484 1148,512 1140,544 1140,736"/>
+    <polyline points="1406,484 1406,704 1406,736"/>
+  </g>
+
+  <!-- Exact inferred footprints: orange; visible RGB envelopes: yellow. -->
+  <g fill="#ff9f1a" fill-opacity="0.10" stroke="#ff9f1a" stroke-width="3" stroke-dasharray="12 7">
+    <rect x="512" y="0" width="512" height="256"/>
+    <rect x="64" y="256" width="320" height="192"/>
+    <rect x="1024" y="320" width="256" height="192"/>
+    <rect x="1344" y="320" width="192" height="192"/>
+  </g>
+  <g fill="none" stroke="#ffe36e" stroke-width="3">
+    <rect x="513" y="0" width="506" height="289"/>
+    <rect x="73" y="179" width="357" height="296"/>
+    <rect x="1043" y="218" width="272" height="318"/>
+    <rect x="1314" y="62" width="222" height="461"/>
+  </g>
+
+  <!-- Observed doors in blue; continuous-pixel production triggers in cyan. -->
+  <g fill="none" stroke="#3b82f6" stroke-width="4">
+    <rect x="714" y="155" width="49" height="66"/>
+    <rect x="185" y="356" width="43" height="83"/>
+    <rect x="1128" y="399" width="40" height="85"/>
+    <rect x="1383" y="400" width="46" height="84"/>
+  </g>
+  <g fill="#19e7ff" fill-opacity="0.62" stroke="#e6fcff" stroke-width="2">
+    <rect x="713" y="216" width="48" height="28"/>
+    <rect x="184" y="430" width="48" height="24"/>
+    <rect x="1124" y="476" width="48" height="28"/>
+    <rect x="1380" y="476" width="52" height="28"/>
+  </g>
+  <g fill="none" stroke="#19e7ff" stroke-width="4" stroke-dasharray="8 5">
+    <rect x="704" y="256" width="64" height="64"/>
+    <rect x="192" y="448" width="64" height="64"/>
+    <rect x="1088" y="512" width="64" height="64"/>
+    <rect x="1344" y="512" width="64" height="64"/>
+  </g>
+
+  <!-- Visible raised/blocking mass. -->
+  <g fill="#ff3b5c" fill-opacity="0.26" stroke="#ff3b5c" stroke-width="4">
+    <ellipse cx="684" cy="402" rx="76" ry="57"/>
+    <circle cx="862" cy="421" r="25"/>
+  </g>
+  <g fill="#ff3b5c" fill-opacity="0.12" stroke="#ff3b5c" stroke-width="4" stroke-dasharray="10 6">
+    <rect x="466" y="459" width="217" height="116"/>
+    <rect x="799" y="477" width="293" height="197"/>
+    <rect x="1184" y="493" width="216" height="189"/>
+  </g>
+  <rect x="1380" y="493" width="20" height="189" fill="#19e7ff" fill-opacity="0.34" stroke="#19e7ff" stroke-width="3"/>
+  <rect x="267" y="431" width="91" height="83" fill="#19e7ff" fill-opacity="0.20" stroke="#19e7ff" stroke-width="3"/>
+  <path d="M312 506V444m0 0l-9 14m9-14l9 14" fill="none" stroke="#19e7ff" stroke-width="4"/>
+  <rect x="812" y="286" width="101" height="161" fill="#c084fc" fill-opacity="0.10" stroke="#c084fc" stroke-width="3" stroke-dasharray="8 5"/>
+
+  <!-- Cropped boundary occluders. They require regenerated alpha and hidden plates. -->
+  <g fill="#e879f9" fill-opacity="0.08" stroke="#e879f9" stroke-width="3" stroke-dasharray="10 6">
+    <rect x="0" y="731" width="252" height="293"/>
+    <rect x="238" y="743" width="218" height="281"/>
+    <rect x="438" y="752" width="224" height="272"/>
+    <rect x="817" y="739" width="225" height="285"/>
+    <rect x="1057" y="748" width="231" height="276"/>
+    <rect x="1252" y="738" width="284" height="286"/>
+  </g>
+
+  <!-- Chosen boundary behavior: separate visible closed overlays before runtime. -->
+  <g fill="#ffef5a" fill-opacity="0.72" stroke="#151515" stroke-width="2">
+    <path d="M4 720l18-12v24z"/><path d="M1532 720l-18-12v24z"/>
+    <path d="M736 1020l-12-18h24z"/><path d="M352 4l-12 18h24z"/>
+  </g>
+
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" font-weight="800" filter="url(#label-shadow)">
+    <g fill="#ffe36e">
+      <text x="520" y="24">HALL bbox / footprint 8×4 · NORTH CLIPPED</text>
+      <text x="78" y="198">INN bbox · footprint 5×3 · FIRST CUTAWAY</text>
+      <text x="1048" y="238">HOUSE bbox · footprint 4×3</text>
+      <text x="1318" y="82">TOWER bbox · 3×3 provisional · EAST CLIPPED</text>
+    </g>
+    <g fill="#e6fcff">
+      <text x="772" y="238">hall portal</text>
+      <text x="237" y="450">inn portal</text>
+      <text x="1030" y="498">house portal</text>
+      <text x="1438" y="498">tower portal</text>
+    </g>
+    <g fill="#ff9aad">
+      <text x="608" y="398">RAISED · BLOCKING</text>
+      <text x="820" y="458">well base</text>
+      <text x="475" y="572">BLOCKING ENVELOPE · POLYGON TBD</text>
+      <text x="822" y="664">BLOCKING ENVELOPE · POLYGON TBD</text>
+      <text x="1192" y="674">ENVELOPE · DECLARED 20px NOTCH</text>
+    </g>
+    <g fill="#26f58b">
+      <text x="18" y="728">DRAFT 48px EAST/WEST PIXEL CORRIDOR</text>
+      <text x="775" y="985">SOUTH ROUTE x11</text>
+      <text x="780" y="382">HALL BENDS EAST OF GARDEN</text>
+      <text x="1386" y="620">52px AFTER REPAIR</text>
+      <text x="244" y="535">MOVE CLUSTER ↑18 · 48px SLOT</text>
+    </g>
+    <g fill="#ffef5a">
+      <text x="24" y="700">VISIBLE CLOSED OVERLAY</text>
+      <text x="1352" y="700">VISIBLE CLOSED OVERLAY</text>
+      <text x="775" y="1007">VISIBLE CLOSED OVERLAY</text>
+      <text x="370" y="42">NORTH STAIR: VISIBLE CLOSED GATE</text>
+    </g>
+  </g>
+
+  <g transform="translate(12 938)">
+    <rect x="0" y="0" width="678" height="74" rx="6" fill="#071019" fill-opacity="0.91" stroke="#7de9ff"/>
+    <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" fill="#f7fbff">
+      <text x="12" y="21">GREEN route · RED blocker · CYAN portal/approach · ORANGE footprint</text>
+      <text x="12" y="42">YELLOW observed RGB bbox · MAGENTA boundary occluder · PURPLE overhead</text>
+      <text x="12" y="63">DRAFT: exact alpha/collision/hidden plates still require independent approval</text>
+    </g>
+  </g>
+</svg>

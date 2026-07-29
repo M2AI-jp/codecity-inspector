@@ -1,0 +1,47 @@
+{
+  "format": "fable5-style-authority-review-candidate-v1",
+  "packetStatus": "pending-human-review",
+  "assetId": "char_player",
+  "category": "character",
+  "candidate": {
+    "path": "review/fable5-runtime-assets/style-authority-20260722-v1/candidates/char_player-alpha.png",
+    "sha256": "4a9acd472664dab515060a7fb8a988d70272cccd67b3e01c5d5503c4f9b37e5f",
+    "format": "png",
+    "dimensions": { "width": 640, "height": 512 },
+    "channels": 4,
+    "sheet": { "rows": 4, "columns": 10, "cellWidth": 64, "cellHeight": 128 }
+  },
+  "custody": {
+    "candidateKind": "deterministic-derivative-of-user-provided-authority",
+    "candidateDirectUserProvided": false,
+    "note": "The copied candidate is a derived artifact, not a replacement for the user-provided authority image."
+  },
+  "soleStyleReferenceAuthority": {
+    "sourceId": "user_character_style_authority_20260722_v1",
+    "sourcePath": "art/references/user-provided/character_style_authority_20260722_v1.png",
+    "sha256": "446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932",
+    "packetCopyPath": "review/fable5-runtime-assets/style-authority-20260722-v1/source-authority/character_style_authority_20260722_v1.png"
+  },
+  "reportedDerivation": {
+    "kind": "deterministic-local-transform",
+    "source": "soleStyleReferenceAuthority",
+    "steps": ["segment actual 4x10 sprite regions", "align each cell baseline to the fixed pivot", "crop", "nearest-neighbour resize", "chroma removal"],
+    "formalAssetForgeIntakeExecuted": false
+  },
+  "receiptPath": "review/fable5-runtime-assets/style-authority-20260722-v1/receipts/char_player.json",
+  "approval": { "humanVisualReviewRequired": true, "humanDecision": null, "promotionAllowed": false },
+  "runtime": { "allowed": false, "path": null },
+  "assetForge": { "formalIntake": "not-executed-not-claimed", "mechanicalValidation": "not-executed-not-claimed" },
+  "observed": [
+    "The packet copy SHA-256 matches the supplied alpha-candidate SHA-256.",
+    "Static PNG-header inspection reports 640x512, alpha present, and RGBA encoding.",
+    "Lead handoff records a static image check: all 40 cells are nonempty, all four corners are transparent, east is not an exact west mirror, and every cell baseline bounding box ends at y=121 for foot pivot y=120."
+  ],
+  "inferred": [
+    "The candidate is review-only because no human decision, promotion, runtime path, or formal Asset Forge intake is recorded."
+  ],
+  "unknown": [
+    "Human visual approval, artistic quality, role identity, and style-continuity judgment.",
+    "Formal Asset Forge intake/mechanical-validation outcome and runtime behaviour."
+  ]
+}
