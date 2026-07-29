@@ -5,6 +5,7 @@ import {
   GAMEPLAY_ZOOM,
   INN_CONTRACT,
   buildInvestigation,
+  bumpGlowProgress,
   cameraSmoothingRateForMotionPreference,
   createCamera,
   createDoorAutoState,
@@ -63,8 +64,11 @@ const elements = {
   startupMessage: document.querySelector('#startup-message'),
   mission: document.querySelector('.mission-card'),
   error: document.querySelector('#game-error'),
+  errorEyebrow: document.querySelector('#game-error-eyebrow'),
+  errorTitle: document.querySelector('#game-error-title'),
   errorMessage: document.querySelector('#game-error-message'),
   errorDetails: document.querySelector('#game-error-details'),
+  errorNote: document.querySelector('#game-error-note'),
   objective: document.querySelector('#objective-text'),
   location: document.querySelector('#location-text'),
   prompt: document.querySelector('#nearby-prompt'),
@@ -171,8 +175,11 @@ const state = {
   dialogueAnchor: null,
   modal: null,
   completionStartedAt: 0,
+  releaseGateNotice: null,
   progressDirty: false,
   lastProgressSavedAt: 0,
+  lastProgressSaveAttemptAt: 0,
+  saveFailureNotified: false,
   lastFootstepAt: 0,
   lastTimestamp: 0,
   animationFrame: 0,
@@ -186,14 +193,87 @@ function setStatus(message) {
   });
 }
 
+// `building-runtime.mjs` is the primary availability authority.  Keep this
+// small second check at the browser boundary as a release safety belt: a
+// future interaction/transition implementation must not make a design-only
+// room customer-reachable just because it still has useful navigation data.
+// The inn is currently withdrawn because its former character sheet no
+// longer matches the style authority. City hall and the residence also remain
+// data contracts until their matching interior kit and NPC have both passed
+// the asset-approval path.
+function isCustomerReachableInterior(buildingId) {
+  return getBuilding(buildingId)?.runtimeAvailability?.state === 'available';
+}
+
+function unavailableInteriorReason(buildingId) {
+  const building = getBuilding(buildingId);
+  const reason = building?.runtimeAvailability?.reason;
+  return typeof reason === 'string' && reason.trim()
+    ? reason
+    : 'この建物の承認済み室内素材を準備中です';
+}
+
+function unavailableInteriorNotice(buildingId, suffix = '') {
+  const building = getBuilding(buildingId);
+  return `${building?.label ?? 'この建物'}。${unavailableInteriorReason(buildingId)}${suffix}`;
+}
+
+// The normal runtime already returns this shape for blocked entries. This
+// defensive conversion prevents a future regression or stale interior state
+// from exposing a pending room; the exit remains an escape-only exception.
+function enforceInteriorReleaseGate(interaction) {
+  // Keep an exit available as a recovery route if a stale client state is
+  // ever encountered, but expose no pending room interaction or auto-entry.
+  if (!interaction || interaction.kind === 'exit'
+    || isCustomerReachableInterior(interaction.buildingId)) return interaction;
+  return Object.freeze({
+    ...interaction,
+    id: `unavailable-${interaction.buildingId}`,
+    kind: 'unavailable',
+    label: unavailableInteriorReason(interaction.buildingId),
+    enabled: false,
+    quest: null
+  });
+}
+
+function transitionIsReleased(transition) {
+  if (!transition) return false;
+  if (transition.mode === 'exterior') return true;
+  return transition.mode === 'interior' && isCustomerReachableInterior(transition.buildingId);
+}
+
+// A persisted session normally goes through session-runtime's equivalent
+// validation.  Looking for this one exact stale state before deserializing
+// lets us give the player the real release reason instead of a generic
+// corruption message if an interior is withdrawn after an earlier session.
+function blockedSavedInteriorNotice(savedState) {
+  const location = savedState?.location;
+  if (location?.mode !== 'interior' || typeof location.buildingId !== 'string') return null;
+  return isCustomerReachableInterior(location.buildingId)
+    ? null
+    : unavailableInteriorNotice(location.buildingId, ' 屋外から再開します。');
+}
+
 function stopWithError(error) {
   state.stopped = true;
   state.ready = false;
   elements.startup.hidden = true;
   elements.error.hidden = false;
-  elements.errorMessage.textContent = error instanceof AssetContractError
+  // A boot-time crash unrelated to image verification (a plain code defect
+  // in payload handling, session restore, etc.) must never be reported to
+  // the player -- or to whoever reads this screen next -- as "images
+  // missing". That mislabel previously sent investigation toward the asset
+  // pipeline for a bug that was actually a session-state shape mismatch in
+  // app.js. Only a genuine AssetContractError, thrown solely by the
+  // verified-image pipeline in site-runtime.mjs's loadProductionAssets(),
+  // gets the asset/production-gate framing; everything else gets an honest
+  // "failed to start" label instead.
+  const isAssetFailure = error instanceof AssetContractError;
+  elements.errorEyebrow.textContent = isAssetFailure ? 'production gate' : '起動エラー';
+  elements.errorTitle.textContent = isAssetFailure ? '必要な画像が揃っていません' : 'ゲームを起動できませんでした';
+  elements.errorMessage.textContent = isAssetFailure
     ? error.message
-    : '街の検査結果またはproduction画像を読み込めませんでした。';
+    : '予期しない不具合が発生しました。素材や検査結果の問題ではありません。';
   const details = Array.isArray(error?.issues) && error.issues.length > 0
     ? error.issues
     : [String(error?.message ?? error)];
@@ -202,7 +282,10 @@ function stopWithError(error) {
     item.textContent = detail;
     return item;
   }));
-  elements.assetBadge.textContent = '画像不足';
+  elements.errorNote.textContent = isAssetFailure
+    ? '見た目の代替物は描かず、asset contractを満たすまで開始しません。'
+    : 'ページの再読み込みで解決しない場合は開発者に連絡してください。';
+  elements.assetBadge.textContent = isAssetFailure ? '画像不足' : '起動失敗';
   elements.assetBadge.dataset.ready = 'false';
 }
 
@@ -293,7 +376,20 @@ function syncInteriorDisclosure() {
 function currentSessionSnapshot() {
   return createFable5SessionState({
     quest: state.quest,
-    player: state.player,
+    // session-runtime.mjs's validPlayer() requires the player record to have
+    // *exactly* the keys {x, y, facing} (see its exactKeys check) because
+    // that is the durable save contract. state.player additionally carries
+    // `moving` and `walkStartedAt`, which exist only to drive this frame's
+    // walk animation/audio and are meaningless once reloaded. Passing
+    // state.player through unfiltered made every single save attempt fail
+    // with 'invalid-player' -- from the very first frame, since even the
+    // freshly spawned player already has those two extra keys -- so no
+    // progress was ever actually persisted despite the UI staying silent
+    // about it (saveProgress() degrades this failure to a generic "check
+    // your browser storage settings" notice, which is misleading here too:
+    // this had nothing to do with storage availability). Only x/y/facing
+    // are ever meant to cross the save boundary.
+    player: { x: state.player.x, y: state.player.y, facing: state.player.facing },
     mode: state.mode,
     buildingId: state.buildingId,
     zoom: state.zoom,
@@ -305,14 +401,33 @@ function markProgressDirty() {
   state.progressDirty = true;
 }
 
+function reportSaveFailure(status) {
+  if (!state.saveFailureNotified) {
+    state.saveFailureNotified = true;
+    setStatus(status === 'invalid-session'
+      ? '進行を安全に保存できません。ブラウザーを再読み込みして、もう一度試してください。'
+      : '進行を保存できません。ブラウザーの保存設定を確認してください。ゲームはこのまま続けられます。');
+  }
+  return { status };
+}
+
 function saveProgress() {
+  // Failed persistence must be retried, but not once per animation frame.
+  // Keep this separate from lastProgressSavedAt, whose meaning remains a
+  // confirmed successful write.
+  state.lastProgressSaveAttemptAt = state.lastTimestamp;
   if (!state.persistence) return { status: 'not-saved' };
   const snapshot = currentSessionSnapshot();
-  if (!snapshot.ok) return { status: snapshot.code ?? 'invalid-session' };
+  if (!snapshot.ok) return reportSaveFailure(snapshot.code ?? 'invalid-session');
   const result = state.persistence.save(snapshot.state);
   if (result.status === 'saved') {
+    const recovered = state.saveFailureNotified;
+    state.saveFailureNotified = false;
     state.progressDirty = false;
     state.lastProgressSavedAt = state.lastTimestamp;
+    if (recovered) setStatus('進行の保存を再開しました。');
+  } else {
+    reportSaveFailure(result.status);
   }
   return result;
 }
@@ -344,6 +459,33 @@ function applyRestoredSession(session) {
   syncInteriorDisclosure();
 }
 
+// Both restoreSessionProgress() (fresh boot) and resetCurrentSession() (the
+// "最初から" button) need exactly the same "start over" runtime session.
+// createInitialFable5SessionState() (like createFable5SessionState()) returns
+// the versioned persistence-envelope shape -- state.location.mode/buildingId
+// and state.settings.zoom/audio -- because that is exactly what saveProgress()
+// writes to storage. applyRestoredSession() is the one place that fans a
+// session out into live `state`, and it has always consumed the flat
+// runtime shape (state.mode/buildingId/zoom/audioPreferences) that
+// restoreFable5SessionState() produces when reading a save back.
+// restoreSessionProgress() used to round-trip the fresh envelope through
+// restoreFable5SessionState() correctly inline, but resetCurrentSession()
+// separately re-derived the same "start over" session by hand and passed the
+// nested envelope straight to applyRestoredSession() -- skipping that
+// flattening step and reproducing, on a real button click, the exact same
+// "Cannot read properties of undefined (reading 'muted')" crash already
+// documented below for the boot path (session.audioPreferences does not
+// exist on the nested envelope). Both callers now share this one helper so
+// there is only one implementation that can ever get the flattening right or
+// wrong, matching the "fresh session round-trips through restore" contract
+// in test/town/session-runtime.test.mjs.
+function freshRuntimeSession() {
+  const initial = createInitialFable5SessionState();
+  if (!initial.ok) return null;
+  const runtime = restoreFable5SessionState(initial.state);
+  return runtime.ok ? runtime.state : null;
+}
+
 function restoreSessionProgress(payload) {
   state.persistence = createFable5Persistence({
     storage: safeBrowserStorage(),
@@ -352,10 +494,20 @@ function restoreSessionProgress(payload) {
   });
   const loaded = state.persistence.load();
   state.progressLoadStatus = loaded.status;
-  const initial = createInitialFable5SessionState();
-  if (!initial.ok) throw new Error('Fable5 initial session contract is invalid');
+  const initialRuntime = freshRuntimeSession();
+  if (!initialRuntime) throw new Error('Fable5 initial session contract is invalid');
   if (loaded.status !== 'loaded' || !loaded.state) {
-    applyRestoredSession(initial.state);
+    applyRestoredSession(initialRuntime);
+    return;
+  }
+  const blockedNotice = blockedSavedInteriorNotice(loaded.state);
+  if (blockedNotice) {
+    // Never revive a saved route into a room whose approved customer-facing
+    // asset set is no longer available. Start from the verified exterior
+    // snapshot instead; this is deliberately not an inferred-room fallback.
+    state.progressLoadStatus = 'release-blocked-interior';
+    state.releaseGateNotice = blockedNotice;
+    applyRestoredSession(initialRuntime);
     return;
   }
   const restored = restoreFable5SessionState(loaded.state);
@@ -363,7 +515,7 @@ function restoreSessionProgress(payload) {
     // A valid persistence envelope can still contain a stale or impossible
     // route state. Do not infer a nearby coordinate, room, or preference.
     state.progressLoadStatus = `corrupt-session:${restored.code}`;
-    applyRestoredSession(initial.state);
+    applyRestoredSession(initialRuntime);
     return;
   }
   applyRestoredSession(restored.state);
@@ -452,7 +604,7 @@ function currentInteraction() {
     position: state.player,
     questState: state.quest
   });
-  if (building) return building;
+  if (building) return enforceInteriorReleaseGate(building);
   if (state.mode !== 'exterior') return null;
 
   const legacy = nearbyInteraction(state.player, 'exterior');
@@ -489,7 +641,8 @@ function updateNearby(timestamp) {
   // manual-only and keep the key hint. Closed entrances are hidden the same
   // way as auto doors: there is nothing to press Enter/E for, only a reason
   // to read (Fable5VerticalSlice24x16.md requirement 4).
-  const isAutoDoor = state.nearby.id === 'enter-inn' || state.nearby.id === 'exit-inn';
+  const isAutoDoor = state.nearby.enabled === true
+    && (state.nearby.kind === 'enter' || state.nearby.kind === 'exit');
   const noKeyAction = isAutoDoor || isClosed || state.nearby.enabled === false;
   const promptLabel = state.nearby.enabled === false && state.nearby.quest?.label
     ? state.nearby.quest.label
@@ -510,6 +663,12 @@ function updateQuestMission() {
   const building = state.mode === 'interior' ? getBuilding(state.buildingId) : null;
   const location = building?.label ?? '古町・屋外';
   elements.mission.dataset.completed = phase === 'completed' ? 'true' : 'false';
+  if (!isCustomerReachableInterior('inn') && (phase === 'new' || phase === 'inn-dialogue')) {
+    const inn = getBuilding('inn');
+    elements.location.textContent = '古町・宿屋前';
+    elements.objective.textContent = `${inn?.label ?? '宿屋'}は${unavailableInteriorReason('inn')}。`;
+    return;
+  }
   if (phase === 'new' || phase === 'inn-dialogue') {
     elements.location.textContent = state.mode === 'interior' ? `${location}・室内` : '古町・宿屋前';
     elements.objective.textContent = state.mode === 'interior'
@@ -529,7 +688,7 @@ function updateQuestMission() {
   if (phase === 'reportable') {
     elements.location.textContent = '手掛かり　3/3';
     const cityHall = getBuilding('city-hall');
-    elements.objective.textContent = cityHall?.runtimeAvailability.state === 'available'
+    elements.objective.textContent = cityHall?.runtimeAvailability?.state === 'available'
       ? '市庁舎へ入り、記録係に報告する'
       : '市庁舎の承認済み内装を準備中のため、報告ルートは公開待ちです';
     return;
@@ -546,6 +705,10 @@ function updateQuestMission() {
 // reveals the new scene -- easing here would look like the camera visibly
 // catching up right after the reveal.
 function applyModeSwitch(transition, timestamp) {
+  if (!transitionIsReleased(transition)) {
+    setStatus(unavailableInteriorNotice(transition?.buildingId));
+    return false;
+  }
   state.mode = transition.mode;
   state.buildingId = transition.buildingId;
   state.player.x = transition.player.x;
@@ -569,6 +732,7 @@ function applyModeSwitch(transition, timestamp) {
   } else {
     setStatus('建物から屋外へ戻りました。');
   }
+  return true;
 }
 
 // Starts a fade-out/switch/fade-in transition to `mode` instead of
@@ -590,7 +754,11 @@ function beginModeTransition(transition, timestamp) {
   // (perpetually reset before elapsed reaches its own totalMs), which
   // means a perpetually stuck black fade overlay. See
   // test/town/transition-and-camera.test.mjs for a direct regression test.
-  if (state.pendingTransition) return;
+  if (state.pendingTransition) return false;
+  if (!transitionIsReleased(transition)) {
+    setStatus(unavailableInteriorNotice(transition?.buildingId));
+    return false;
+  }
   // The duration is resolved once, here, from whatever state.reduceMotion is
   // *right now* and stored on the transition itself (pending.totalMs) rather
   // than re-read from the live setting on every later frame -- so a
@@ -604,6 +772,7 @@ function beginModeTransition(transition, timestamp) {
   state.transitionUntil = timestamp + totalMs;
   state.pendingTransition = { transition, startedAt: timestamp, applied: false, totalMs };
   state.doorAuto = { latched: true, cooldownUntil: timestamp + DOOR_AUTO_COOLDOWN_MS };
+  return true;
 }
 
 // Drives a pending fade transition forward each frame: applies the actual
@@ -613,6 +782,14 @@ function beginModeTransition(transition, timestamp) {
 function updateModeTransition(timestamp) {
   const pending = state.pendingTransition;
   if (!pending) return;
+  if (!transitionIsReleased(pending.transition)) {
+    // A release can be withdrawn while an auto/manual transition is fading.
+    // Drop the pending interior rather than applying a stale route.
+    state.pendingTransition = null;
+    state.transitionUntil = timestamp;
+    setStatus(unavailableInteriorNotice(pending.transition?.buildingId));
+    return;
+  }
   const elapsed = timestamp - pending.startedAt;
   // Watchdog: force the transition closed if it could never resolve on its
   // own (see isTransitionExpired's own comment in world-runtime.mjs). This
@@ -625,8 +802,7 @@ function updateModeTransition(timestamp) {
   // including ones not yet imagined.
   const expired = isTransitionExpired(elapsed, pending.totalMs);
   if (!pending.applied && (elapsed >= pending.totalMs / 2 || expired)) {
-    applyModeSwitch(pending.transition, timestamp);
-    pending.applied = true;
+    pending.applied = applyModeSwitch(pending.transition, timestamp);
   }
   if (elapsed >= pending.totalMs || expired) {
     state.pendingTransition = null;
@@ -638,25 +814,28 @@ function currentFadeAlpha(timestamp) {
   return pending ? fadeOverlayAlpha(timestamp - pending.startedAt, pending.totalMs) : 0;
 }
 
-// Per-frame edge/latch/cooldown evaluation for the door the player is
-// currently able to walk through (enter-inn in the exterior, exit-inn in
-// the interior -- NPC talk and clue inspection deliberately stay manual
-// only). Skipped entirely while a transition is already in flight so the
-// fade-locked, nearby-less window mid-transition can never be misread as
-// "the player stepped outside the trigger" and clear the latch early.
+// Per-frame edge/latch/cooldown evaluation for the explicitly enabled door
+// interaction under the player. NPC talk and clue inspection deliberately
+// stay manual-only. Skipped entirely while a transition is already in flight
+// so the fade-locked, nearby-less window mid-transition can never be
+// misread as "the player stepped outside the trigger" and clear the latch
+// early.
 function updateAutoTransition(timestamp) {
   if (state.pendingTransition || dialogueOpen() || modalOpen()) return;
-  const autoId = state.mode === 'exterior'
-    ? 'enter-inn'
-    : state.buildingId === 'inn' ? 'exit-inn' : null;
-  if (!autoId) return;
-  const inside = state.nearby?.id === autoId;
+  // `enabled === true` is deliberate: unavailable building entries must not
+  // become passable merely because they have entrance geometry. This keeps
+  // city hall and residence blocked until their approved interiors exist.
+  const autoDoor = state.nearby?.enabled === true
+    && (state.nearby.kind === 'enter' || state.nearby.kind === 'exit')
+    ? state.nearby
+    : null;
+  const inside = Boolean(autoDoor);
   const result = evaluateDoorAutoTransition(state.doorAuto, inside, timestamp);
   state.doorAuto = { latched: result.latched, cooldownUntil: result.cooldownUntil };
-  if (!result.fire) return;
-  const transition = autoId === 'enter-inn'
-    ? enterBuilding('inn', state.player)
-    : exitBuilding('inn', state.player);
+  if (!result.fire || !autoDoor) return;
+  const transition = autoDoor.kind === 'enter'
+    ? enterBuilding(autoDoor.buildingId, state.player)
+    : exitBuilding(autoDoor.buildingId, state.player);
   if (transition) beginModeTransition(transition, timestamp);
 }
 
@@ -790,7 +969,7 @@ function registerBump(timestamp) {
   if (!state.lastBumpStatusAt || timestamp - state.lastBumpStatusAt >= 700) {
     state.lastBumpStatusAt = timestamp;
     const blockedNearby = currentInteraction();
-    setStatus(isClosedEntranceId(blockedNearby?.id)
+    setStatus(isClosedEntranceId(blockedNearby?.id) || blockedNearby?.kind === 'unavailable'
       ? `${blockedNearby.place}。${blockedNearby.label}`
       : 'ここは通れません。別の道を探してください。');
   }
@@ -914,12 +1093,18 @@ function resetCurrentSession() {
     setStatus('この検査結果の保存を消去できませんでした。ブラウザーの保存設定を確認してください。');
     return;
   }
-  const initial = createInitialFable5SessionState();
-  if (!initial.ok) {
+  // See freshRuntimeSession()'s own comment: this used to call
+  // createInitialFable5SessionState() directly and hand its nested envelope
+  // straight to applyRestoredSession(), which crashes on the very first
+  // read of session.audioPreferences.muted. Sharing the same helper
+  // restoreSessionProgress() uses is what actually fixes it -- there is now
+  // only one place that can flatten this shape, not two.
+  const initialRuntime = freshRuntimeSession();
+  if (!initialRuntime) {
     setStatus('新しい調査記録を作成できませんでした。');
     return;
   }
-  applyRestoredSession(initial.state);
+  applyRestoredSession(initialRuntime);
   state.progressLoadStatus = 'reset';
   closeModal();
   setStatus('このリポジトリと検査結果の保存を消去し、最初から開始しました。');
@@ -1050,11 +1235,12 @@ function drawWorld(timestamp) {
   context.fillRect(0, 0, width, height);
 
   state.camera = createCamera(width, height, state.cameraFocus, state.zoom);
-  const activeBuilding = state.mode === 'interior' ? getBuilding(state.buildingId) : null;
-  if (activeBuilding?.interiorEvidence === 'inferred') {
-    drawInferredInterior(activeBuilding, timestamp);
+  if (state.mode === 'interior' && !isCustomerReachableInterior(state.buildingId)) {
+    // This state is unreachable through every supported route. Render only a
+    // non-playable release notice if stale code ever attempts to force it;
+    // never revive the retired inferred-room fixture or any pending art.
+    drawUnavailableInteriorGate(state.buildingId);
     drawFadeOverlay(timestamp, width, height);
-    if (dialogueOpen()) drawDialogue();
     return;
   }
 
@@ -1067,24 +1253,6 @@ function drawWorld(timestamp) {
   } else if (state.buildingId === 'inn') {
     context.drawImage(state.assets.innCounterClean, 200, 255);
     drawLedgerCompletion(timestamp);
-    const celebrating = state.completionStartedAt > 0
-      && timestamp - state.completionStartedAt < 1_800;
-    const npcColumn = dialogueOpen()
-      ? [1, 2, 3, 2][Math.floor(timestamp / 180) % 4]
-      : celebrating
-        ? [1, 3, 2, 3, 1, 0][Math.floor((timestamp - state.completionStartedAt) / 120) % 6]
-        : state.nearby?.id === 'talk-innkeeper' ? 2 : 0;
-    context.drawImage(
-      state.assets.bartender,
-      npcColumn * 96,
-      0,
-      96,
-      64,
-      176,
-      260,
-      96,
-      64
-    );
   }
   const playerBehindStreetlamp = state.mode === 'exterior'
     && state.player.y < INN_CONTRACT.objects.routeStreetlampFoot.y;
@@ -1102,7 +1270,7 @@ function drawWorld(timestamp) {
     state.player
   );
   if (timestamp < state.bumpUntil) {
-    const progress = 1 - (state.bumpUntil - timestamp) / 300;
+    const progress = bumpGlowProgress(timestamp, state.bumpUntil);
     context.save();
     context.strokeStyle = `rgba(255, 217, 132, ${0.9 - progress * 0.7})`;
     context.lineWidth = 2;
@@ -1144,88 +1312,32 @@ function drawFadeOverlay(timestamp, width, height) {
   context.restore();
 }
 
-// City-hall and residence have deterministic navigation geometry, but no
-// approved interior artwork. Render an explicit operational diagram instead
-// of borrowing the inn, fabricating a background, or referencing a pending
-// generated asset. The player sprite remains their existing supplied asset;
-// the room itself is labelled as inferred at both canvas and DOM layers.
-function drawInferredInterior(building, timestamp) {
+// A final fail-closed renderer guard. This is not a room and intentionally
+// exposes neither movement, NPCs, nor provisional artwork. Normal play never
+// reaches it: restore and transition gates recover to the released exterior.
+function drawUnavailableInteriorGate(buildingId) {
   const { width, height } = state.viewport;
   context.save();
-  const gradient = context.createLinearGradient(0, 0, width, height);
-  gradient.addColorStop(0, '#131827');
-  gradient.addColorStop(1, '#080c13');
-  context.fillStyle = gradient;
+  context.fillStyle = '#080c13';
   context.fillRect(0, 0, width, height);
-  context.strokeStyle = 'rgba(255, 217, 132, 0.2)';
-  context.lineWidth = 1;
-  for (let x = 18; x < width; x += 24) {
-    context.beginPath();
-    context.moveTo(x, 0);
-    context.lineTo(x, height);
-    context.stroke();
-  }
-  for (let y = 18; y < height; y += 24) {
-    context.beginPath();
-    context.moveTo(0, y);
-    context.lineTo(width, y);
-    context.stroke();
-  }
   const panelWidth = Math.min(560, Math.max(260, width - 40));
   const panelX = Math.round((width - panelWidth) / 2);
-  const panelY = Math.max(92, Math.round(height * 0.2));
+  const panelY = Math.max(92, Math.round(height * 0.34));
   context.fillStyle = 'rgba(8, 12, 19, 0.88)';
-  context.fillRect(panelX, panelY, panelWidth, 138);
+  context.fillRect(panelX, panelY, panelWidth, 116);
   context.strokeStyle = '#e9c65f';
   context.lineWidth = 2;
-  context.strokeRect(panelX + 1, panelY + 1, panelWidth - 2, 136);
+  context.strokeRect(panelX + 1, panelY + 1, panelWidth - 2, 114);
   context.fillStyle = '#ffd984';
   context.textBaseline = 'top';
   context.font = '800 16px system-ui, sans-serif';
-  context.fillText('推定の操作領域 / INFERRED INTERIOR', panelX + 18, panelY + 18);
+  context.fillText('この室内は公開待ちです', panelX + 18, panelY + 18);
   context.fillStyle = '#f9f1d4';
-  context.font = '700 18px system-ui, sans-serif';
-  context.fillText(building.label, panelX + 18, panelY + 48);
+  context.font = '700 15px system-ui, sans-serif';
+  const lines = wrapCanvasText(context, unavailableInteriorNotice(buildingId), panelWidth - 36).slice(0, 3);
   context.fillStyle = '#b9c1d1';
   context.font = '600 14px system-ui, sans-serif';
-  const note = '背景・配置・人物の来歴は未承認です。これは移動と会話を検証する図式表示で、観測済み室内ではありません。';
-  wrapCanvasText(context, note, panelWidth - 36).slice(0, 3)
-    .forEach((line, index) => context.fillText(line, panelX + 18, panelY + 80 + index * 19));
-  const vertices = building.interior.walkPolygon;
-  const minX = Math.min(...vertices.map(([x]) => x));
-  const maxX = Math.max(...vertices.map(([x]) => x));
-  const minY = Math.min(...vertices.map(([, y]) => y));
-  const maxY = Math.max(...vertices.map(([, y]) => y));
-  const diagramX = panelX + 22;
-  const diagramY = panelY + 164;
-  const diagramWidth = panelWidth - 44;
-  const diagramHeight = Math.max(88, Math.min(150, height - diagramY - 30));
-  const mapPoint = (point) => ({
-    x: diagramX + ((point.x - minX) / Math.max(1, maxX - minX)) * diagramWidth,
-    y: diagramY + ((point.y - minY) / Math.max(1, maxY - minY)) * diagramHeight
-  });
-  context.beginPath();
-  vertices.forEach(([x, y], index) => {
-    const point = mapPoint({ x, y });
-    if (index === 0) context.moveTo(point.x, point.y);
-    else context.lineTo(point.x, point.y);
-  });
-  context.closePath();
-  context.fillStyle = 'rgba(116, 216, 208, 0.1)';
-  context.fill();
-  context.strokeStyle = 'rgba(116, 216, 208, 0.8)';
-  context.lineWidth = 2;
-  context.stroke();
-  context.fillStyle = '#b9eee9';
-  context.font = '700 12px system-ui, sans-serif';
-  context.fillText('推定移動領域（現在地は実際の当たり判定に連動）', diagramX, diagramY + diagramHeight + 8);
-  const mappedPlayer = mapPoint(state.player);
-  const player = {
-    ...state.player,
-    x: Math.round(mappedPlayer.x),
-    y: Math.round(mappedPlayer.y + 25)
-  };
-  drawCharacterFrame(context, state.assets.player, spriteFrame(state.player, timestamp), player);
+  lines.forEach((line, index) => context.fillText(line, panelX + 18, panelY + 50 + index * 19));
   context.restore();
 }
 
@@ -1351,22 +1463,41 @@ function sanitizeTimestamp(timestamp, fallback) {
   return Number.isFinite(timestamp) ? timestamp : fallback;
 }
 
+// This is the render loop's only supervisor: requestAnimationFrame never
+// retries or reschedules a callback that threw, so before this fix a single
+// uncaught exception anywhere in one frame's work (two confirmed real causes
+// already existed -- see sanitizeTimestamp's own comment above and
+// bumpGlowProgress's in world-runtime.mjs, both of which fed an
+// uncatchable canvas exception from here) silently and permanently stopped
+// the whole game with no on-screen signal at all: the last HUD text painted
+// stays put, looking alive, while the canvas never updates again. try/catch
+// cannot make an individual bad frame render correctly, but it can guarantee
+// this function always reaches its own trailing requestAnimationFrame(frame)
+// call -- in a finally block, so neither a caught nor an uncaught-by-design
+// path can skip it -- so the game recovers on the very next frame instead of
+// dying forever. The error is still surfaced to the console rather than
+// swallowed, so a regression here remains loudly debuggable.
 function frame(rawTimestamp) {
   if (!state.ready || state.stopped) return;
-  const timestamp = sanitizeTimestamp(rawTimestamp, state.lastTimestamp);
-  const deltaSeconds = state.lastTimestamp === 0
-    ? 0
-    : Math.min(0.05, Math.max(0, (timestamp - state.lastTimestamp) / 1000));
-  state.lastTimestamp = timestamp;
-  resizeCanvas();
-  updateMovement(deltaSeconds, timestamp);
-  updateNearby(timestamp);
-  updateModeTransition(timestamp);
-  updateAutoTransition(timestamp);
-  updateCamera(deltaSeconds);
-  if (state.progressDirty && timestamp - state.lastProgressSavedAt >= 750) saveProgress();
-  drawWorld(timestamp);
-  state.animationFrame = window.requestAnimationFrame(frame);
+  try {
+    const timestamp = sanitizeTimestamp(rawTimestamp, state.lastTimestamp);
+    const deltaSeconds = state.lastTimestamp === 0
+      ? 0
+      : Math.min(0.05, Math.max(0, (timestamp - state.lastTimestamp) / 1000));
+    state.lastTimestamp = timestamp;
+    resizeCanvas();
+    updateMovement(deltaSeconds, timestamp);
+    updateNearby(timestamp);
+    updateModeTransition(timestamp);
+    updateAutoTransition(timestamp);
+    updateCamera(deltaSeconds);
+    if (state.progressDirty && timestamp - state.lastProgressSaveAttemptAt >= 750) saveProgress();
+    drawWorld(timestamp);
+  } catch (error) {
+    console.error('fable5: frame() threw; recovering and continuing next frame', error);
+  } finally {
+    state.animationFrame = window.requestAnimationFrame(frame);
+  }
 }
 
 function normalizedKey(event) {
@@ -1484,7 +1615,18 @@ async function boot() {
     const progressNotice = state.progressLoadStatus === 'loaded'
       ? 'この検査結果に対応する前回の調査記録を復元しました。'
       : state.progressLoadStatus === 'missing'
-        ? '街を開始しました。宿屋で調査の問いを選んでください。'
+        // Never invite the player toward an interaction that cannot actually
+        // happen yet: while the inn has no approved NPC art, say so instead
+        // of "go talk to the innkeeper". This automatically reverts to the
+        // normal invitation the instant isCustomerReachableInterior('inn')
+        // is true, with no further code change.
+        ? isCustomerReachableInterior('inn')
+          ? '街を開始しました。宿屋へ入り、宿帳係に話しかけてください。'
+          : `街を開始しました。${unavailableInteriorReason('inn')}`
+        : state.progressLoadStatus === 'storage-unavailable'
+          ? '保存を利用できないため、新しい記録として開始しました。ブラウザーの保存設定を確認してください。'
+          : state.progressLoadStatus === 'release-blocked-interior'
+            ? state.releaseGateNotice
         : '保存済みの調査記録は検証できなかったため、新しい記録として開始します。';
     setStatus(progressNotice);
     state.animationFrame = window.requestAnimationFrame(frame);

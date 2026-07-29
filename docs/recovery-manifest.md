@@ -2,14 +2,21 @@
 
 更新日: 2026-07-19
 
+> **履歴文書:** これは2026-07-19の復旧判断を保存するためのmanifestであり、現行runtime
+> asset、Git状態、受入判定の台帳ではない。特に本書の「production asset 合格数0」や
+> `target-town.png` の直接runtime許容は当時の記録としてのみ読む。現行のwithdrawn
+> innkeeper binding、Prefab runtime方針、未充足事項は `docs/current-state.md` と
+> `docs/fable5-product-completion-roadmap.md` を正本とする。ここへの追記はテスト・browser・
+> server実行を意味しない。
+
 この文書は、現在の dirty worktree を維持したまま、最初の機能復旧で扱える範囲を固定する。`git reset`、一括 `restore`、フォルダ単位の復元、commit、push は対象外とする。
 
 ## 2026-07-19の優先訂正
 
 この文書の古い「22 source」分類は、ユーザー提供物とCodex生成物を混同していた。今後は `docs/user-provided-image-policy.md` と `art/contracts/user-provided-images.json` を優先する。
 
-- 直接提供の証拠がある21枚を `art/references/user-provided/` へ完全一致で保全した。canonical copyは未追跡なので、状態は「作業ツリー保全済み・版管理待ち」である。
-- 緑の `character_style_reference_sheet.png` がプレイヤーの正規原画である。
+- 直接提供の証拠がある22枚を `art/references/user-provided/` へ完全一致で保全した。canonical copyは未追跡なので、状態は「作業ツリー保全済み・版管理待ち」である。
+- 2026-07-22に直接提供された `character_style_authority_20260722_v1.png` が、現行プレイヤーの唯一の原画かつキャラクター画風authorityである。旧 `character_style_reference_sheet.png` は不変の履歴として保持するが、現行promotionには使わない。
 - 青い `character_visual_master.png` と `target-cutaway.png` はCodex生成物であり、ユーザー提供画像とは表示しない。
 - ユーザーの明示指示により、完成画像をruntime背景へ直接使える。背景の上に当たり判定、入口、扉、前景、室内、NPC、会話を実装する。
 - 下記の削除・復旧方針がこの訂正と矛盾する場合、この訂正を優先する。

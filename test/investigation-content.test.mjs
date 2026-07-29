@@ -43,42 +43,56 @@ const BETA = {
     fact('unverified', { path: 'lib/lonely.js', kind: 'module' }, 'unknown')
   ]
 };
+const GAMMA = {
+  repository: { name: 'gamma-town' },
+  facts: [
+    fact('unresolved', { from: 'app/launch.js', targetHint: 'app/missing.js', kind: 'import' }, 'observed'),
+    fact('test_association', { source: 'app/ledger.js', test: 'spec/ledger.spec.js', method: 'direct' }, 'inferred'),
+    fact('runtime_unknown', { from: 'app/remote.js', targetHint: 'payment gateway', kind: 'call' }, 'unknown')
+  ]
+};
 
-test('different repositories produce different investigation content', () => {
+test('three different repositories produce different investigation content', () => {
   const alpha = buildInvestigation(ALPHA);
   const beta = buildInvestigation(BETA);
+  const gamma = buildInvestigation(GAMMA);
 
-  assert.notEqual(alpha.repository, beta.repository);
+  assert.equal(new Set([alpha.repository, beta.repository, gamma.repository]).size, 3);
   for (const clue of CLUE_INTERACTIONS) {
-    assert.notEqual(
-      alpha.sites[clue.id].pages[0].body,
-      beta.sites[clue.id].pages[0].body,
-      `${clue.id} body should change between repositories`
-    );
+    const bodies = [alpha, beta, gamma].map((investigation) => investigation.sites[clue.id].pages[0].body);
+    assert.equal(new Set(bodies).size, 3, `${clue.id} body should change for every repository`);
   }
   // The request and the report both weave in the repository name, so they differ.
   assert.notDeepEqual(alpha.intro, beta.intro);
   assert.notDeepEqual(alpha.report, beta.report);
+  assert.notDeepEqual(alpha.intro, gamma.intro);
+  assert.notDeepEqual(alpha.report, gamma.report);
   assert.match(alpha.intro.at(-1).body, /alpha-town/);
   assert.match(beta.intro.at(-1).body, /beta-town/);
+  assert.match(gamma.intro.at(-1).body, /gamma-town/);
 
   // Repository-specific values actually reach the prose.
   assert.match(alpha.sites['clue-streetlamp'].pages[0].body, /src\/main\.js/);
   assert.match(alpha.sites['clue-well'].pages[0].body, /src\/cycle-a\.js/);
   assert.match(alpha.sites['clue-east-shop'].pages[0].body, /src\/well\.js/);
+  assert.match(gamma.sites['clue-streetlamp'].pages[0].body, /app\/missing\.js/);
+  assert.match(gamma.sites['clue-well'].pages[0].body, /spec\/ledger\.spec\.js/);
+  assert.match(gamma.sites['clue-east-shop'].pages[0].body, /app\/remote\.js/);
 });
 
 test('each site label matches the evidence class of the fact it uses', () => {
-  const investigation = buildInvestigation(ALPHA);
-  for (const site of Object.values(investigation.sites)) {
-    assert.equal(site.evidenceClass, SITE_CLASS[site.id]);
-    assert.equal(site.evidenceLabel, CLASS_LABEL[site.evidenceClass]);
-    assert.ok(site.fact, `${site.id} should have selected a fact`);
-    assert.ok(
-      factCarriesClass(site.fact, site.evidenceClass),
-      `${site.id} fact must actually carry ${site.evidenceClass} evidence`
-    );
-    assert.equal(site.pages[0].className, site.evidenceClass);
+  for (const payload of [ALPHA, BETA, GAMMA]) {
+    const investigation = buildInvestigation(payload);
+    for (const site of Object.values(investigation.sites)) {
+      assert.equal(site.evidenceClass, SITE_CLASS[site.id]);
+      assert.equal(site.evidenceLabel, CLASS_LABEL[site.evidenceClass]);
+      assert.ok(site.fact, `${site.id} should have selected a fact`);
+      assert.ok(
+        factCarriesClass(site.fact, site.evidenceClass),
+        `${site.id} fact must actually carry ${site.evidenceClass} evidence`
+      );
+      assert.equal(site.pages[0].className, site.evidenceClass);
+    }
   }
 });
 

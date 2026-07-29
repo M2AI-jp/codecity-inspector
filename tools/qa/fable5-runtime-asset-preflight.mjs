@@ -5,10 +5,14 @@ import { fileURLToPath } from 'node:url';
 
 import {
   FABLE5_APPROVED_RUNTIME_BINDINGS,
+  FABLE5_INNKEEPER_RUNTIME_GATE,
   FABLE5_LEGACY_RUNTIME_ASSET_BASELINE,
+  FABLE5_RETIRED_RUNTIME_BINDINGS,
   PRODUCTION_ASSETS
 } from '../../public/fable5-v2/runtime-asset-manifest.mjs';
+import { inspectFable5PrefabCharacterCandidate } from '../asset-forge/src/fable5-prefab-character-intake.mjs';
 import { verifyFable5RuntimeAssetLedger } from '../asset-forge/src/fable5-runtime-asset-ledger.mjs';
+import { assertExistingFileWithin } from '../asset-forge/src/paths.mjs';
 
 // This digest makes a legacy-baseline change an explicit review event. It is
 // not a claim that legacy assets have Forge approval; new/replaced Fable5
@@ -35,6 +39,59 @@ function asRuntimeUrl(publicPath) {
   return `/${publicPath.slice('public/'.length)}`;
 }
 
+async function readJsonWithin(root, relativePath, label) {
+  const sourcePath = await assertExistingFileWithin(root, relativePath);
+  try {
+    return JSON.parse(await readFile(sourcePath, 'utf8'));
+  } catch (error) {
+    throw new Error(`${label} is not valid JSON`, { cause: error });
+  }
+}
+
+function characterOutputContractPath(jobPackPath) {
+  if (typeof jobPackPath !== 'string'
+    || !/^generated\/jobs\/[a-z0-9_]+\/job-pack\.json$/.test(jobPackPath)) {
+    throw new Error('approved character job pack path is invalid');
+  }
+  return `${path.posix.dirname(jobPackPath)}/output-contract.json`;
+}
+
+async function validateApprovedCharacterMechanics(binding, entry, {
+  forgeRoot,
+  inspectCharacterCandidate
+}) {
+  if (entry.category !== 'character') return;
+  const artifactPath = await assertExistingFileWithin(forgeRoot, entry.artifact?.path);
+  const jobPackPath = entry.job?.path;
+  const expectedOutputContractPath = characterOutputContractPath(jobPackPath);
+  const jobPath = `${path.posix.dirname(jobPackPath)}/job.json`;
+  const [artifact, jobPack, job, outputContract] = await Promise.all([
+    readFile(artifactPath),
+    readJsonWithin(forgeRoot, jobPackPath, 'approved character job pack'),
+    readJsonWithin(forgeRoot, jobPath, 'approved character job'),
+    readJsonWithin(forgeRoot, expectedOutputContractPath, 'approved character output contract')
+  ]);
+  if (sha256(artifact) !== entry.artifact?.sha256) {
+    throw new Error('approved character artifact bytes no longer match the frozen ledger');
+  }
+  if (jobPack.assetId !== binding.assetId || jobPack.jobId !== entry.job?.jobId || jobPack.status !== 'job-pack') {
+    throw new Error('approved character job pack does not bind its frozen ledger entry');
+  }
+  if (jobPack.outputContractPath !== expectedOutputContractPath) {
+    throw new Error('approved character job pack does not name its sibling output contract');
+  }
+  if (job.id !== entry.job?.jobId || job.assetId !== binding.assetId || !sameJson(job.outputContract, outputContract)) {
+    throw new Error('approved character output contract does not match its frozen job record');
+  }
+  const inspection = await inspectCharacterCandidate(artifact, outputContract);
+  if (!inspection?.ok) {
+    const problems = Array.isArray(inspection?.problems) && inspection.problems.length > 0
+      ? `: ${inspection.problems.join('; ')}`
+      : '';
+    throw new Error(`Fable5 4x10 character mechanical intake did not pass${problems}`);
+  }
+}
+
 function safeBindingMap(bindings, errors) {
   const byKey = new Map();
   for (const binding of bindings) {
@@ -51,7 +108,66 @@ function safeBindingMap(bindings, errors) {
   return byKey;
 }
 
-async function validateApprovedBinding(binding, contract, { repoRoot, errors }) {
+function validateWithdrawnInnkeeperGate({
+  gate,
+  retiredBindings,
+  productionAssets,
+  bindingsByKey,
+  errors
+}) {
+  const key = 'bartender';
+  const authority = gate?.authority;
+  const authorityMatches = authority?.sourcePath === 'art/references/user-provided/character_style_authority_20260722_v1.png'
+    && authority?.sha256 === '446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932';
+  const common = gate?.format === 'fable5-innkeeper-runtime-gate-v1'
+    && gate.key === key
+    && authorityMatches
+    && typeof gate.availabilityReason === 'string'
+    && gate.availabilityReason.length > 0;
+  const blocked = common
+    && gate.state === 'blocked-pending-human-approved-replacement'
+    && gate.runtimeInstallAllowed === false
+    && gate.approval?.state === 'not-approved'
+    && gate.approval?.replacementAssetId === null;
+  const approved = common
+    && gate.state === 'available'
+    && gate.runtimeInstallAllowed === true
+    && gate.approval?.state === 'approved'
+    && typeof gate.approval?.replacementAssetId === 'string'
+    && gate.approval.replacementAssetId.length > 0;
+  if (!blocked && !approved) {
+    errors.push('innkeeper runtime gate must remain blocked until a replacement under the exact new style authority receives explicit human approval');
+  }
+
+  const retired = Array.isArray(retiredBindings)
+    ? retiredBindings.filter((binding) => binding?.key === key)
+    : [];
+  if (retired.length !== 1 || !retired[0]?.contract) {
+    errors.push('withdrawn innkeeper 4x10 binding must remain archived with its provenance');
+  }
+  if (blocked && bindingsByKey.has(key)) {
+    errors.push('withdrawn innkeeper 4x10 binding must not be an approved runtime binding');
+  }
+  if (blocked && Object.hasOwn(productionAssets ?? {}, key)) {
+    errors.push('withdrawn innkeeper runtime asset must not be present in production assets');
+  }
+  const retiredContract = retired[0]?.contract;
+  if (retiredContract && Object.values(productionAssets ?? {}).some((contract) => sameJson(contract, retiredContract))) {
+    errors.push('retired innkeeper 4x10 runtime bytes must not be present under another production asset key');
+  }
+  if (approved && bindingsByKey.get(key)?.assetId !== gate.approval.replacementAssetId) {
+    errors.push('approved innkeeper replacement must match the explicitly human-approved replacement assetId');
+  }
+  // A malformed gate cannot reopen the character; only the complete approved
+  // shape above is allowed to make the historical baseline key active again.
+  return approved ? new Set() : new Set([key]);
+}
+
+async function validateApprovedBinding(binding, contract, {
+  repoRoot,
+  errors,
+  inspectCharacterCandidate
+}) {
   if (typeof binding.assetId !== 'string' || !/^[a-z][a-z0-9_]*(?:\.[a-z0-9_]+)*$/.test(binding.assetId)) {
     errors.push(`approved runtime binding ${binding.key} has an invalid assetId`);
     return;
@@ -81,6 +197,14 @@ async function validateApprovedBinding(binding, contract, { repoRoot, errors }) 
     const expectedUrl = asRuntimeUrl(entry.runtime.path);
     if (contract.url !== expectedUrl || contract.sha256 !== entry.runtime.sha256) {
       errors.push(`approved runtime binding ${binding.key} does not match its ledger runtime bytes`);
+      return;
+    }
+    try {
+      // This is a fresh mechanical check of the ledger-bound approved bytes.
+      // It intentionally says nothing about visual or human approval.
+      await validateApprovedCharacterMechanics(binding, entry, { forgeRoot, inspectCharacterCandidate });
+    } catch (error) {
+      errors.push(`approved runtime binding ${binding.key} character mechanical recheck failed: ${error.message}`);
     }
   } catch (error) {
     errors.push(`approved runtime binding ${binding.key} ledger verification failed: ${error.message}`);
@@ -96,7 +220,10 @@ export async function verifyFable5RuntimeAssetPreflight({
   repoRoot,
   productionAssets = PRODUCTION_ASSETS,
   legacyBaseline = FABLE5_LEGACY_RUNTIME_ASSET_BASELINE,
-  approvedBindings = FABLE5_APPROVED_RUNTIME_BINDINGS
+  approvedBindings = FABLE5_APPROVED_RUNTIME_BINDINGS,
+  innkeeperRuntimeGate = FABLE5_INNKEEPER_RUNTIME_GATE,
+  retiredBindings = FABLE5_RETIRED_RUNTIME_BINDINGS,
+  inspectCharacterCandidate = inspectFable5PrefabCharacterCandidate
 } = {}) {
   const errors = [];
   if (!repoRoot || !path.isAbsolute(repoRoot)) errors.push('repoRoot must be an absolute path');
@@ -110,8 +237,16 @@ export async function verifyFable5RuntimeAssetPreflight({
   const bindingsByKey = safeBindingMap(approvedBindings, errors);
   const baselineKeys = new Set(Object.keys(legacyBaseline?.assets ?? {}));
   const productionKeys = new Set(Object.keys(productionAssets ?? {}));
+  const withdrawnKeys = validateWithdrawnInnkeeperGate({
+    gate: innkeeperRuntimeGate,
+    retiredBindings,
+    productionAssets,
+    bindingsByKey,
+    errors
+  });
 
   for (const [key, contract] of Object.entries(productionAssets ?? {})) {
+    if (withdrawnKeys.has(key)) continue;
     const baselineContract = legacyBaseline?.assets?.[key];
     const binding = bindingsByKey.get(key);
     if (baselineContract && !binding) {
@@ -126,13 +261,17 @@ export async function verifyFable5RuntimeAssetPreflight({
       errors.push(`approved runtime binding ${key} does not equal its declared runtime contract`);
       continue;
     }
-    if (repoRoot && path.isAbsolute(repoRoot)) await validateApprovedBinding(binding, contract, { repoRoot, errors });
+    if (repoRoot && path.isAbsolute(repoRoot)) {
+      await validateApprovedBinding(binding, contract, { repoRoot, errors, inspectCharacterCandidate });
+    }
   }
 
   for (const [key] of bindingsByKey) {
+    if (withdrawnKeys.has(key)) continue;
     if (!productionKeys.has(key)) errors.push(`approved runtime binding ${key} has no production runtime contract`);
   }
   for (const key of baselineKeys) {
+    if (withdrawnKeys.has(key)) continue;
     if (!productionKeys.has(key)) errors.push(`legacy runtime baseline asset ${key} disappeared from production assets`);
   }
 

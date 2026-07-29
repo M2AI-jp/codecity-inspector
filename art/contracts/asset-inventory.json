@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "auditedAt": "2026-07-19",
+  "auditedAt": "2026-07-22",
   "prePurge": {
     "rasterFiles": 435,
     "rasterBytes": 233482653,
@@ -55,7 +55,17 @@
       "width": 1536,
       "height": 1024,
       "authorityRef": { "ledgerSourceId": "user_character_style_reference", "fields": ["origin", "custody", "approval", "protection"] },
-      "role": "player-identity-and-character-style-master",
+      "role": "historical-user-provided-character-reference-not-current-authority",
+      "currentPromotion": "superseded-by-user_character_style_authority_20260722_v1",
+      "runtimeUse": { "directWholeImageRender": false, "fixedCropInput": false, "nineSliceInput": false, "generationReference": false, "fullSheetRender": false }
+    },
+    {
+      "file": "art/references/user-provided/character_style_authority_20260722_v1.png",
+      "sha256": "446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932",
+      "width": 1402,
+      "height": 1122,
+      "authorityRef": { "ledgerSourceId": "user_character_style_authority_20260722_v1", "fields": ["origin", "custody", "approval", "protection"] },
+      "role": "sole-current-player-identity-and-character-visual-style-authority",
       "runtimeUse": { "directWholeImageRender": false, "fixedCropInput": true, "nineSliceInput": false, "generationReference": true, "fullSheetRender": false }
     },
     {
@@ -74,9 +84,9 @@
   "userProvidedImages": {
     "policy": "docs/user-provided-image-policy.md",
     "ledger": "art/contracts/user-provided-images.json",
-    "canonicalExactFiles": 21,
+    "canonicalExactFiles": 22,
     "protectionState": "worktree-protected-pending-versioning",
-    "verifiedBytes": 62012192,
+    "verifiedBytes": 63979332,
     "verification": "node art/contracts/verify-user-provided-images.mjs"
   },
   "production": {

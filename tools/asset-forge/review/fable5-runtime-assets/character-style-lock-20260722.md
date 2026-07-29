@@ -1,36 +1,46 @@
 # Fable5 character style-lock review packet
 
-Status: **pending human decision**. This is a hard gate, not evidence of acceptance.
+Status: **pending-human-review**. The former innkeeper approval is historical and withdrawn after
+the user replaced the character style authority. The replacement player, innkeeper, town-clerk,
+and resident candidates are all review-only. This is a hard gate, not blanket evidence of
+acceptance.
 
-The user-provided rendering-language authority is
-`user_character_style_reference` in `art/contracts/user-provided-images.json`, binding SHA-256
-`ca802aa30c7699509ad00a4c3a01456b64740fe76f8bd40833e2c309998922f7`. A different character
+The sole current user-provided rendering-language authority is
+`user_character_style_authority_20260722_v1` in `art/contracts/user-provided-images.json`, binding
+SHA-256 `446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932`. A different NPC
 identity is allowed; a different drawing language is not.
 
 ## Candidate set to compare
 
-| Asset | Pending candidate | SHA-256 | Mechanical sheet intake |
+| Asset | Current artifact | SHA-256 | Decision |
 | --- | --- | --- | --- |
-| Player | `generated/characters/pending/fable5_char_player_d947cf60b90d892a6104.png` | `d947cf60b90d892a6104a58950bfc48d6d310dc9e17d2a22a2df89c1c31ef266` | passed before this packet |
-| Innkeeper | `generated/characters/pending/fable5_char_innkeeper_4ec9fe5a1e5ed1f8e8e1.png` | `4ec9fe5a1e5ed1f8e8e130a9ca6edd02ce132cb66fb1c7132c1a85fb3abf4753` | passed: 640×512, 4×10, transparent corners, all foot pivots, six distinct walk frames, east not mirrored |
+| Player | `review/fable5-runtime-assets/style-authority-20260722-v1/candidates/char_player-alpha.png` | `4a9acd472664dab515060a7fb8a988d70272cccd67b3e01c5d5503c4f9b37e5f` | deterministic derivative; pending human review and formal intake |
+| Innkeeper | `review/fable5-runtime-assets/style-authority-20260722-v1/candidates/char_innkeeper-alpha.png` | `ee3e5185925cdb283b4461a04c5752d961d9a4864900024a88225edd6c3bc14b` | replacement candidate; pending human review and formal intake |
+| Town clerk | `review/fable5-runtime-assets/style-authority-20260722-v1/candidates/char_town_clerk-alpha.png` | `86249a770b58118190449a711bba6cbca7750cd03fd09d26a992dc927dda409c` | replacement candidate; pending human review and formal intake |
+| Resident | `review/fable5-runtime-assets/style-authority-20260722-v1/candidates/char_resident-alpha.png` | `93d0f647ebe4ad949100474c1ba54a83852c68f35e6cc962f94bd61a28e328fb` | replacement candidate; pending human review and formal intake |
 
-The earlier innkeeper candidate remains a non-terminal pending artifact. It is not selected by
-either current inventory and must not be implicitly preferred or promoted.
+The old player / innkeeper / town-clerk / resident candidates are retained only as intake history.
+They are not current review items or runtime sources. In particular, the old innkeeper SHA
+`4ec9fe5a1e5ed1f8e8e130a9ca6edd02ce132cb66fb1c7132c1a85fb3abf4753` is withdrawn and must not
+be restored as a fallback.
 
-## Required paired review
+## Required review for the remaining character candidates
 
-View the reference, player, and innkeeper at integer / nearest-neighbour zoom (at least 400%).
-All items must receive an explicit **pass** from the project owner:
+View the reference and every replacement candidate at integer / nearest-neighbour zoom (at least
+400%). Each character must receive an explicit **pass** from the project owner before it may be
+promoted:
 
 - Pixel-cluster density and silhouette outline weight match the reference.
 - Head-to-body proportion, face construction, and limb thickness use the same visual grammar.
 - Palette compression and 2–3-step shading vocabulary match; no soft or painterly rendering.
-- Hair, apron, and held-prop details stay stable across all four directions and ten columns.
-- The two candidates read as one cast in the target-town lighting, without a “different artist”
-  impression.
+- Hair, costume, and held-prop details stay stable across all four directions and ten columns.
+- The player, town clerk, resident, and replacement innkeeper read as one cast in the target-town
+  lighting, without a “different artist” impression.
 
-If any item fails, reject that exact SHA-256 candidate and generate a replacement. Do not approve
-the character merely because its sheet and pivot checks pass.
+If a candidate fails, reject that exact SHA-256 candidate and generate a replacement. The two
+pre-intake candidates must first complete a formal Asset Forge job/intake and mechanical check;
+the review copy and its receipt do not claim that those steps have happened. Do not approve a
+character merely because its sheet and pivot checks pass.
 
 ## Binding rule
 

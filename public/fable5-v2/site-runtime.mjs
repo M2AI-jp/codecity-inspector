@@ -807,7 +807,17 @@ export async function loadProductionAssets({ timeoutMs = 15000 } = {}) {
     return [`${contract.id}: ${details.join(' / ')}`];
   });
   if (failures.length > 0) {
-    throw new AssetContractError('production画像アセットが揃っていないため、ゲームを開始できません。', failures);
+    const failedPrefabIds = settled.flatMap((result, index) => (
+      result.status === 'rejected' && index >= productionEntries.length && index < productionEntries.length + prefabEntries.length
+        ? [entries[index][1].id]
+        : []
+    ));
+    throw new AssetContractError(
+      failedPrefabIds.length > 0
+        ? `町を構成するprefabレイヤーが不完全なため、ゲームを開始できません。 (${failedPrefabIds.join(', ')})`
+        : 'production画像アセットが揃っていないため、ゲームを開始できません。',
+      failures
+    );
   }
   const productionAssets = Object.fromEntries(
     productionEntries.map(([key], index) => [key, settled[index].value])
@@ -829,6 +839,17 @@ export async function loadProductionAssets({ timeoutMs = 15000 } = {}) {
 // crop origins in one verified record prevents a hidden whole-scene fallback
 // or a scaled composite from creeping back into the runtime.
 export function drawWorldPrefabs(context, prefabImages) {
+  const missingPrefabIds = WORLD_PREFABS.flatMap(({ id }) => (
+    prefabImages && typeof prefabImages === 'object' && prefabImages[id]
+      ? []
+      : [id]
+  ));
+  if (missingPrefabIds.length > 0) {
+    throw new AssetContractError(
+      '町を構成するprefabレイヤーが不完全なため、代替の統合画像では描画しません。',
+      missingPrefabIds.map((id) => `missing decoded prefab image: ${id}`)
+    );
+  }
   for (const prefab of WORLD_PREFABS) {
     context.drawImage(prefabImages[prefab.id], prefab.x, prefab.y);
   }

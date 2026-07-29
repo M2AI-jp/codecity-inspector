@@ -2,7 +2,7 @@
 
 > **状態:** 実行計画。ここにある未完了チェックは、未実装または同一revisionの証拠が未取得であることを示す。未検証を不具合とは扱わない。
 >
-> **現行の技術ベースライン:** `c497498`（このロードマップの初版時点）。Prefabランタイム描画、町マスター画像のruntime非参照、Prefab再合成のピクセル差分0、348件のテスト成功までは観測済み。ただし、これらはプロダクト完成や公式スコアを意味しない。以後の実装・判定の正本は [受入スコープv1](qa/fable5-acceptance-scope-v1.md) と [実装順v1](qa/fable5-execution-order-v1.md) であり、captureごとに新しいHEADを記録する。
+> **歴史的技術ベースライン:** `c497498`（このロードマップの初版時点）。Prefabランタイム描画、町マスター画像のruntime非参照、Prefab再合成のピクセル差分0、348件のテスト成功は当時の記録として残る。現行worktreeでの再実行証跡ではないため、これらはプロダクト完成や公式スコアを意味しない。以後の実装・判定の正本は [受入スコープv1](qa/fable5-acceptance-scope-v1.md) と [実装順v1](qa/fable5-execution-order-v1.md) であり、captureごとに新しいHEADを記録する。
 
 ## 1. 最終的に顧客が得る体験
 
@@ -71,9 +71,12 @@
 
 ### P1 — 必要素材の棚卸しとasset-forgeの互換化を行う
 
-- [ ] 顧客導線に必要な素材を、既存の決定論的Prefab由来素材、修復・派生できる素材、新規生成が必要な素材に分ける。最低限、`char_player`、`char_innkeeper`、市庁舎室内kit、住宅室内kit、door/cutaway/UIの不足分を列挙する。
-- [ ] プレイヤーのart-directionを、却下済みのnavy coat/scarf/satchel identityから、ledgerの `user_character_style_reference` へ安全に移す。正確なパスとhashはledgerから解決し、tools/asset-forgeへ却下済み参照を再導入しない。
-- [ ] innkeeperの新しいart-directionとruntime bindingを作る。
+- [ ] 顧客導線に必要な素材を、既存の決定論的Prefab由来素材、修復・派生できる素材、新規生成が必要な素材に分ける。最低限、`char_player`、`char_innkeeper`、`char_town_clerk`、`char_resident`、市庁舎室内kit、住宅室内kit、door/cutaway/UIの不足分を列挙する。
+- [x] プレイヤーのart-directionを、却下済みのnavy coat/scarf/satchel identityおよび過去の
+  character候補から、ledgerの `user_character_style_authority_20260722_v1` へ安全に移した。
+  正確なpathとSHA-256はledgerから解決し、旧参照をtools/asset-forgeへ再導入しない。
+- [x] 旧innkeeper runtime bindingを画風authority差し替え後にwithdrawし、旧sheetをproduction
+  assetから除外した。置換candidateの人間承認前は宿屋routeもfail-closedとする。
 - [ ] asset-forgeのlegacy `24×40 / 4×3` とv2 `48×96` の前提を、Fable5の `640×512 / 4×10 / 64×128 / pivot(32,120)` 契約へ移行するか、draft contractを直接消費する安全なadapterを実装する。
 - [ ] `make-job` / `import` / `process` / `promote` / export のうち、今回のFable5契約に適用する経路を明示する。legacy 78件用の `promote-required` をこの2キャラクターの承認手段として誤用しない。
 - [ ] job-packが、正しいprompt、出自、reference hash、output contractだけを含み、候補画像を生成しないことを確認する。
@@ -89,10 +92,13 @@
 asset-forgeは画像生成器ではない。ここで初めて、**所有者が明示承認した**外部の人間監督付き生成セッションを使う。API keyや暗黙の有料fallbackは使わない。`codex-subscription` も設定・明示承認がない限り利用しない。
 
 - [ ] 各生成セッションについて、対象asset、provider/session、参照、費用・利用条件、承認者を記録し、所有者の実行承認を得る。
-- [ ] playerとinnkeeper、必要なら室内kit候補を外部生成する。候補はflat chroma-keyまたはalpha、ラベル・文字・透かしなしで受け取る。
+- [x] player、innkeeper、town clerk、residentの置換候補を、唯一の現行画風authorityに固定して
+  作成した。playerはユーザー原画から決定論的に派生し、NPCは同原画だけをstyle referenceにした。
+  すべてflat chroma-keyからalpha化し、review-only packetへ入れた。人間承認・formal intake・
+  runtime promotionはまだ行っていない。
 - [ ] 返却PNGをhash検証つきで `pending` にimportし、実際のtool/session/method/hash/dimensions/derivationをprovenanceへ記録する。生成物を `user-direct` と表記しない。
 - [ ] alpha・trim・grid抽出は非破壊のprocess経路で実施し、候補・比較画像・元bytesを保持する。
-- [ ] 人間レビューで、同一人物性（player）、画風整合（innkeeper）、40セル、idle/walk/interact、pivot、east非ミラー、透過、文字・watermark・halo・key残留、townの光と密度を確認する。
+- [ ] 人間レビューで、同一人物性（player）、画風整合（innkeeper / town clerk / resident）、40セル、idle/walk/interact、pivot、east非ミラー、透過、文字・watermark・halo・key残留、townの光と密度を確認する。
 - [ ] 不合格候補は理由を記録してquarantine/rejectし、承認素材や履歴を上書きしない。
 - [ ] 人間のみがinteractive promotionを実施し、承認後にexport dry-run、manifest/binding検証、必要な場合だけwrite exportを行う。
 
@@ -104,13 +110,17 @@ asset-forgeは画像生成器ではない。ここで初めて、**所有者が�
 **E2c — 人間視覚承認（PASS条件）**
 
 - [ ] native/contact sheet、pivot overlay、east-vs-west比較、runtime合成GIFまたは動画をレビューする。
-- [ ] playerは正しい緑基調の同一人物性を保ち、innkeeperは別人でも同じpixel density・頭身・輪郭・陰影言語を共有する。
+- [ ] playerは正しい緑基調の同一人物性を保ち、innkeeper・town clerk・residentは別人でも同じpixel density・頭身・輪郭・陰影言語を共有する。
 - [ ] 承認は人間レビューアの署名・note・hash確認を伴い、approved metadata/export manifestへ反映される。
 
 ### P3 — 承認済み素材をランタイムへ統合し、自然な人物操作を完成する
 
-- [ ] `PRODUCTION_ASSETS.player` とinnkeeperの旧シート形状前提を置き換え、承認済みexportだけを読み込む。未承認・旧・master画像へのfallbackを作らない。
-- [ ] playerとinnkeeperの4×10再生器を実装する。idle 2@4fps、walk 6@10fps、interact 2@6fps、south/west/east/northの行と64×128/pivotを固定する。
+> **観測済み（部分）:** 旧宿帳係4×10 sheetのapproved ledger/bindingは履歴として保持するが、
+> 新しい画風authorityに合わないためruntimeからwithdrawnした。新しい4候補はreview-onlyであり、
+> playerはまだlegacy sheet、室内kitは未承認のため、このフェーズ全体およびE3は未達である。
+
+- [ ] `PRODUCTION_ASSETS.player` と将来のinnkeeper / town-clerk / resident bindingの旧シート形状前提を置き換え、承認済みexportだけを読み込む。未承認・旧・master画像へのfallbackを作らない。
+- [ ] player、innkeeper、town clerk、residentの4×10再生器を実装する。idle 2@4fps、walk 6@10fps、interact 2@6fps、south/west/east/northの行と64×128/pivotを固定する。
 - [ ] player/NPCのdraw order、streetlamp、inn foreground、cutaway時の人物可読性を再検証する。
 - [ ] keyboard・クリック・タッチが同じ到達可能性を持ち、reduced motionでもゲーム状態が壊れないようにする。
 
@@ -191,7 +201,7 @@ asset-forgeは画像生成器ではない。ここで初めて、**所有者が�
 ## 4. いま何を開始でき、何を開始してはいけないか
 
 - [x] 開始できる: P0の正本・スコープ差分の洗い出し、P1のasset gap inventory、asset-forgeの64×128/4×10互換化、宿屋の実装設計、最終evidence harnessの設計。
-- [x] 開始できる: 現行Prefabランタイムの回帰テスト、同一revisionのbrowser smoke test、未承認素材を使わない既存導線の改善。
+- [x] 開始できる: 現行Prefabランタイムの回帰テスト設計、同一revisionのbrowser smoke test設計、未承認素材を使わない既存導線の改善。
 - [ ] まだ開始してはいけない: legacy asset-forge定義のままplayer jobを作ること。これは却下済みidentityと誤ったsprite gridを再導入する。
 - [ ] まだ開始してはいけない: human authorizationなしの外部画像生成、または候補をpending/provenanceなしでruntimeへ置くこと。
 - [ ] まだ開始してはいけない: P0の正本を決めずに、85点・Hard Gate全PASS・完成を宣言すること。
@@ -199,9 +209,14 @@ asset-forgeは画像生成器ではない。ここで初めて、**所有者が�
 ## 5. 現状との対応
 
 - [x] P7の一部: 48Prefabのoffline再構成は `1,573,312` pixel中差分0でPASS。これはSSIM閾値以上を強く支持するが、P0で正本を固定してから最終evidenceとして再取得する。
-- [x] P7の一部: runtimeはPrefabを描画し、町マスターを通信で読まないことを現行browser smoke testとcontract testで確認済み。
+- [x] P7の一部: runtimeはPrefabを描画し、町マスターをruntime asset contractへ置かない静的構成であることをcontract testで固定した。現行revisionのbrowser network確認は未取得である。
 - [x] P4の一部: 宿屋の入口・室内・NPC・退出、閉鎖入口の理由表示、reduced motion、touch targetには実装と静的回帰がある。
-- [ ] P2/P3: player/innkeeperと3室内kitは、hash・job receiptつきの機械検収済み`pending`候補まで到達し、commit-backed review evidenceにも保存した。ただし、人間の視覚承認（characterはstyle-lockを含む）・promotion・approved export・runtime移行は未着手であり、完成素材ではない。
+- [x] P2/P3の一部: 旧宿帳係候補 `4ec9…4753` のapproved ledger/bindingを履歴として保全しつつ、
+  新しい画風authorityへの差し替え後にwithdrawnした。旧pending copy・approval recordは履歴証跡であり、
+  現行runtimeや新候補の比較authorityには使わない。
+- [ ] P2/P3の残り: 新しいplayer / innkeeper / town clerk / residentはhash・変換receiptつきの
+  review-only候補である。formal Asset Forge intake、機械検収、所有者の視覚承認、approved export、
+  runtime移行のすべてが未了であり、完成素材ではない。3室内kitについても同じ承認経路が未完である。
 - [ ] P4/P5/P6: quest/persistence/audioの純粋実装と静的回帰はある。市庁舎・住宅は未承認内装を顧客導線へ漏らさないよう明示的に利用不可に戻しており、3建物の最終導線・browser証拠・完成条件は未達または未証明。
 
 ## 6. 運用ルール

@@ -7,38 +7,47 @@
 > `character.gatekeeper`, `character.dojo_inspector`, `character.mob.townsfolk_male/female`,
 > `character.dojo_student` do). This is new authoring, not a rewrite of an existing wrong entry.
 
-## Identity: a different person, sharing one rendering language
+## Sole style authority: a different person
 
-`docs/user-provided-image-policy.md` section 7: "NPCは別人にできますが、原画のpixel density、
-頭身、輪郭、陰影の言語を共有します" (an NPC may be a different person, but shares the reference
-art's pixel density, head-to-body proportions, outline weight, and shading language). So:
+The exact user-provided image
+`art/references/user-provided/character_style_authority_20260722_v1.png` (`sourceId`
+`user_character_style_authority_20260722_v1`, SHA-256
+`446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932`) is the innkeeper's **sole**
+character-style authority. Verify the same path and digest in
+`art/contracts/user-provided-images.json` before generation.
 
-- The innkeeper does **not** have to wear the player's green tunic or match hair color.
-- The innkeeper **must** match the player identity/character-style reference sheet under
-  `art/references/user-provided/` on: pixel density (same apparent resolution of detail, not
-  smoother or blockier), head-to-body ratio, silhouette weight/slimness, line/contour weight, and
-  the 2–3-step shading language described in `00_common_fable5_character_sheet_style.md`. (Ledger
-  `sourceId`: `user_character_style_reference` in `art/contracts/user-provided-images.json` — see
-  `character.player.prompt-draft.md`'s "Identity source" section for why this file's exact
-  basename/hash is deliberately not restated here.)
+- The innkeeper must be a distinct person from the player: invent a different face, hair, costume,
+  and role silhouette; do not copy player-specific visible traits.
+- Use the exact authority only for pixel density (same apparent resolution of detail, not smoother
+  or blockier), head-to-body ratio, silhouette weight/slimness, line/contour weight, and the
+  2–3-step shading language described in `00_common_fable5_character_sheet_style.md`. For what
+  those traits look like in the authority image concretely — chibi 2.5–3 head-height proportions,
+  minimal almond-shaped eyes, a continuous dark contour line, softly-antialiased 3-tone shading —
+  see the equivalent observed-description block in `character.player.prompt-draft.md`. Copy that
+  *grammar*, not the elderly gray-haired-and-bearded person it describes.
 - Suggested role signifiers (adjust freely, these are not locked): apron over practical tavern
   clothing, warm neutral palette that still reads correctly under the twilight ambient light of
   `target-town-user-direct-v1.png`, a towel/rag or tankard as an optional interact-row prop held
   in one consistent hand across all four directions.
 
-### Existing innkeeper images are not an identity source
+### A previous generation attempt against this exact authority already failed this specific rule
 
-`public/fable5-v2/assets/characters/innkeeper-4dir-v1.png` (256x512, idle-only, no walk cycle)
-and `innkeeper-talk-4frame-v2.png` (384x64, a separate small talk strip at a different frame
-height) are the currently-deployed innkeeper art. Neither has a `.lineage.json` and neither
-appears in `art/contracts/user-provided-images.json`'s source ledger — their origin is
-**unverified** by the current provenance system, unlike the player's fully-chained
-`player-green-8walk-v4.lineage.json`. Do not treat them as an approved identity to preserve
-pixel-for-pixel. They may be used only as loose, non-binding continuity reference (e.g., if the
-project owner likes the existing hair color or apron color) and must be named explicitly as such
-in any new candidate's provenance record — never as `user-provided` or `user source` per
-`docs/user-provided-image-policy.md` section 5 ("派生物を `user source`、`user original`、
-`user-provided` と表示しません").
+`tools/asset-forge/review/fable5-runtime-assets/style-authority-20260722-v1/candidates/char_innkeeper-alpha.png`
+(still `pending-human-review`, never approved — not a reference, cited only as a documented failure)
+is, by direct visual comparison, essentially the *same person* as the style-authority image: same
+gray hair, same gray beard, same face, same sage-green robe with gold trim over a cream under-layer.
+That is a style-authority *identity* clone, not a distinct innkeeper who merely shares its pixel
+density and shading language. Concretely avoid this by changing at minimum: hair colour and style,
+facial hair (or its absence), and the specific garment silhouette/colour — while keeping the same
+chibi proportions, contour weight, and shading-step count. A useful gut check before finalizing a
+candidate: if you covered the clothing and only compared the face/hair silhouette against the
+authority image, could you tell them apart? If not, it will fail review again for the same reason.
+
+### Historical candidates are prohibited
+
+Do not use any previous innkeeper, player, NPC, generated sheet, deployed asset, or candidate as
+a visual reference, comparison authority, derivation input, or runtime-promotion source. They are
+quarantined historical records only. The exact image above is the sole character-style authority.
 
 ## Sheet
 
@@ -59,10 +68,18 @@ stationary NPCs, and a future scene may want the innkeeper mobile.
 
 ## Negative constraints
 
-No player identity bleed (do not accidentally reuse the green tunic/hair described in the
-player prompt unless the project owner asks for a family/uniform resemblance). No modern
-clothing, no chibi/large-eye styling, no multiple characters in frame, no baked UI or text,
-no 3/4 angle standing in for a missing direction.
+No player identity bleed, modern clothing, oversized sparkly/glossy anime eyes beyond the
+authority's own minimal almond-shaped eye style (the required chibi 2.5–3 head-height proportions
+themselves are *not* a negative constraint — see "Sole style authority" above; do not undersize
+the head to avoid them), multiple characters in frame, baked UI/text, 3/4 angle standing in for a
+missing direction, or chroma-key residue. The final sheet must have true transparent surroundings,
+with no labels, rulers, borders, checkerboard, captions, or watermark.
+
+> Editorial note (2026-07-29): an earlier version of this list excluded "chibi/large-eye styling"
+> outright, which contradicted this same file's style-authority section — the current sole
+> authority image *is* chibi-proportioned with large heads. That was very likely a leftover from
+> an earlier, different style authority (before the 2026-07-22 authority swap recorded in
+> `docs/current-state.md`) and has been corrected above rather than silently carried forward.
 
 ## Route to a real candidate
 

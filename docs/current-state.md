@@ -1,35 +1,50 @@
 # 現状報告
 
-更新: 2026-07-19
+更新: 2026-07-22
+
+この文書は現行worktreeのコードと記録を区別して要約する。ここで `PASS`、完成、または
+実ブラウザでの動作を主張しない。今回の更新にはプロジェクトテストの再実行記録も
+ブラウザcaptureも含まれない。
 
 ## 観測済み
 
-- 直接提供の証拠がある21画像を `art/references/user-provided/` へ完全一致で保護し、ハッシュ・寸法検証に合格した。
-- 緑の `character_style_reference_sheet.png` がプレイヤーの正規原画。現在runtimeの青いplayer画像はCodex生成物に由来し、原画準拠として不合格。
-- 現在のn=1 runtimeは背景、4方向移動、宿屋入退室、cutaway、NPC会話を静的には実装済みだが、Leadのブラウザ操作は未実証。
-
-- 旧棚卸し: 435 PNG、233,482,653 bytes、音声0。
-- 完全重複: 78組、156 files。
-- 旧runtime、固定preview、固定backplate、互換78素材、旧Asset Forge、全派生・review画像を削除。
-- 旧 `/api/town/legacy` と旧 TownLayout generator を削除。
-- 旧時点では品質基準用の原版を3点だけ `art/references/` に隔離していたが、その分類は不十分だった。
-- production合格済みruntime assetは0。現在のruntime画像は候補であり、ブラウザQAと原画比較を通していない。
-- WorldPlan v2の静的解析・生成・validatorは残している。
-- デザイナーPR #2の7ファイルを取り込み済み。
+- ユーザーが 2026-07-22 に提供した `character_style_authority_20260722_v1.png`
+  （SHA-256 `446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932`）を、
+  現行のプレイヤー同一性と全キャラクターの唯一の画風authorityとして固定した。
+  旧参照と旧候補の原本は履歴として残すが、現行promotionには使わない。
+- 以前のinnkeeper 4×10 bindingは、画風authorityの差し替えによりwithdrawnである。
+  `runtime-asset-manifest.mjs` の `bartender` はproduction assetから外れ、承認済みの
+  置換素材と人間レビューがそろうまで宿屋もcustomer-facing routeとして閉鎖される。
+- 宿屋の入口・退出は、building runtime が返す `enabled === true` の `enter` / `exit`
+  interactionだけをauto transitionの候補にする。city hall と residence は現在
+  `blocked-pending-approved-interior` なので、入口geometryがあってもruntimeから入れない。
+- legacy player sheetは依然としてruntimeに残っており、approved Fable5 player exportへの
+  bindingは存在しない。
 
 ## 推定
 
-- WorldPlan v2のデータ層は再利用できる可能性が高い。
-- 現在の歩行・入退室・会話runtimeは再利用できる可能性が高く、player画像と出自契約を緑の原画へ差し替える必要がある。
-- ユーザー提供画像の保護領域とvalidatorにより、原本欠落・ハッシュ不一致を機械的に検出できる。
+- building contractのportal、nav、collision定義は、承認済み室内素材がそろった後の
+  runtime拡張の土台として再利用できる可能性がある。これは顧客導線や視覚品質の証明ではない。
 
-## 未確認
+## 未確認 (Unknown)
 
-- 新Vertical Sliceのマスターボード品質。
-- N1–N9を通る57 PNG。
-- 新runtimeでの4方向移動、3建物入退室、cutaway、会話、調査完走。
-- 1280×720 / 1920×1080のブラウザQA。
-- 所有者のプレイ承認。
+- 現行worktree/revisionでの実ブラウザsession、1280×720および1920×1080のcapture、
+  network/console/errorの記録。
+- 新しい4候補（player / innkeeper / town clerk / resident）の人間による横並び画風レビュー、
+  および承認後の4方向人物再生、interaction timing、door遷移、保存・復元、調査導線の
+  実ブラウザ挙動。
+- 所有者の実プレイ受入と、同一revisionに結び付いたHard Gate判定。
 
-したがって現在の正確な判定は「旧不合格版を撤去し、再構築の契約と棚を整えた段階」です。
-完成でも、プレイ可能版でもありません。
+## 未充足 (UNMET)
+
+- 新しい画風authorityからのplayer / innkeeper / town clerk / resident 4×10候補を、
+  人間レビュー、Asset Forge intake、approved export・provenance・frozen bindingへ進めること。
+  現時点で候補はruntime promotionを許可していない。
+- city hall と residence の承認済み室内kit、visible props、NPC、runtime binding、および
+  それらを使ったcustomer-facing portal。両建物の現在のavailability gateは意図的にUNMETを
+  表示する。
+- browser evidence packet、同一revisionでの両viewport golden route、独立QA、所有者承認。
+
+したがって、旧innkeeper bindingは履歴として観測できるが、現行runtimeには存在しない。
+人物の新規承認、市庁舎・住宅、browser evidenceはいずれも未充足または未確認である。
+完成・プレイ可能版・受入合格を主張できる状態ではない。

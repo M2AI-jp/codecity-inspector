@@ -28,6 +28,12 @@
  *     { schemaVersion: 1, kind: "fable5-hard-gate-verdicts",
  *       identitySha256, sessionId, gates: [{ id, state, reviewer, rationale,
  *       evidencePaths }] }
+ *   50-three-repository-comparison.json
+ *     { schemaVersion: 1, kind: "fable5-three-repository-comparison",
+ *       cases: [{ repository: { name }, worldPlan: { inspectionDigest,
+ *       buildingCount, districtCount, streetCount }, content:
+ *       { displayedFactIds }, factClassifications: { observed, inferred,
+ *       unknown } }] }
  *   92-owner-play-approval.md
  *     Identity-SHA-256: <identity file SHA-256>
  *     Session-ID: <identity sessionId>
@@ -44,6 +50,7 @@ import { pathToFileURL } from 'node:url';
 export const EVIDENCE_SCHEMA_VERSION = 1;
 export const IDENTITY_FILENAME = '00-revision-identity.json';
 export const EVIDENCE_INDEX_FILENAME = '02-evidence-index.json';
+export const THREE_REPOSITORY_FILENAME = '50-three-repository-comparison.json';
 export const HARD_GATE_FILENAME = '91-hard-gate-verdicts.json';
 export const OWNER_APPROVAL_FILENAME = '92-owner-play-approval.md';
 
@@ -72,7 +79,7 @@ export const REQUIRED_ARTIFACT_FILENAMES = Object.freeze([
   '47-collision-nav-overlay.png',
   '48-dialogue-slice-and-stress.json',
   '49-resize-reload-reset-failure-log.json',
-  '50-three-repository-comparison.json',
+  THREE_REPOSITORY_FILENAME,
   '90-rubric-scorecard.json',
   HARD_GATE_FILENAME,
   OWNER_APPROVAL_FILENAME
@@ -87,6 +94,9 @@ export const HARD_GATE_IDS = Object.freeze(
 );
 
 export const DECLARED_VERDICT_STATES = Object.freeze(['PASS', 'FAIL', 'UNKNOWN', 'UNMET']);
+
+const FACT_EVIDENCE_CLASSES = Object.freeze(['observed', 'inferred', 'unknown']);
+const COMPARISON_WORLD_PLAN_FIELDS = Object.freeze(['buildingCount', 'districtCount', 'streetCount']);
 
 const SHA256_HEX = /^[a-f0-9]{64}$/;
 const GIT_HEAD = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
@@ -107,6 +117,10 @@ function isNonEmptyString(value) {
 
 function isTimestamp(value) {
   return typeof value === 'string' && UTC_ISO_TIMESTAMP.test(value) && Number.isFinite(Date.parse(value));
+}
+
+function isNonNegativeSafeInteger(value) {
+  return Number.isSafeInteger(value) && value >= 0;
 }
 
 function addError(errors, code, message, filename = undefined) {
@@ -295,6 +309,122 @@ function validateHardGates(gatesDocument, identityDigest, identity, errors) {
   return declaredStates;
 }
 
+// This validates only a compact declaration from captured /api/town outputs.
+// It does not fetch a repository, run a browser, or promote the declaration to
+// a live-runtime or acceptance verdict.
+function validateThreeRepositoryComparison(document, errors) {
+  if (!validateSchema(document, 'fable5-three-repository-comparison', THREE_REPOSITORY_FILENAME, errors)) return;
+  if (!Array.isArray(document.cases) || document.cases.length < 3) {
+    addError(errors, 'THREE_REPOSITORY_CASES_REQUIRED', 'Three-repository comparison needs at least three cases.', THREE_REPOSITORY_FILENAME);
+    return;
+  }
+
+  const repositories = new Set();
+  const inspectionDigests = new Set();
+  const worldPlans = [];
+  const contents = [];
+  const classifications = [];
+
+  for (const [index, comparisonCase] of document.cases.entries()) {
+    if (!isObject(comparisonCase)) {
+      addError(errors, 'THREE_REPOSITORY_CASE_INVALID', `Comparison case ${index + 1} must be an object.`, THREE_REPOSITORY_FILENAME);
+      continue;
+    }
+
+    const repositoryName = comparisonCase.repository?.name;
+    if (!isNonEmptyString(repositoryName)) {
+      addError(errors, 'THREE_REPOSITORY_IDENTITY_REQUIRED', `Comparison case ${index + 1} needs repository.name from the /api/town payload.`, THREE_REPOSITORY_FILENAME);
+    } else if (repositories.has(repositoryName)) {
+      addError(errors, 'THREE_REPOSITORY_IDENTITY_DUPLICATE', `Repository identity ${repositoryName} appears more than once.`, THREE_REPOSITORY_FILENAME);
+    } else {
+      repositories.add(repositoryName);
+    }
+
+    const worldPlan = comparisonCase.worldPlan;
+    let worldPlanIsValid = isObject(worldPlan);
+    if (!worldPlanIsValid) {
+      addError(errors, 'THREE_REPOSITORY_WORLD_PLAN_REQUIRED', `Comparison case ${index + 1} needs a WorldPlan summary.`, THREE_REPOSITORY_FILENAME);
+    } else {
+      if (!SHA256_HEX.test(worldPlan.inspectionDigest ?? '')) {
+        addError(errors, 'THREE_REPOSITORY_DIGEST_INVALID', `Comparison case ${index + 1} needs a lowercase WorldPlan inspectionDigest.`, THREE_REPOSITORY_FILENAME);
+        worldPlanIsValid = false;
+      } else if (inspectionDigests.has(worldPlan.inspectionDigest)) {
+        addError(errors, 'THREE_REPOSITORY_DIGEST_DUPLICATE', `WorldPlan inspectionDigest ${worldPlan.inspectionDigest} appears more than once.`, THREE_REPOSITORY_FILENAME);
+        worldPlanIsValid = false;
+      } else {
+        inspectionDigests.add(worldPlan.inspectionDigest);
+      }
+      for (const field of COMPARISON_WORLD_PLAN_FIELDS) {
+        if (!isNonNegativeSafeInteger(worldPlan[field])) {
+          addError(errors, 'THREE_REPOSITORY_WORLD_PLAN_INVALID', `Comparison case ${index + 1} needs a non-negative integer WorldPlan ${field}.`, THREE_REPOSITORY_FILENAME);
+          worldPlanIsValid = false;
+        }
+      }
+      if (worldPlanIsValid) worldPlans.push(COMPARISON_WORLD_PLAN_FIELDS.map((field) => worldPlan[field]));
+    }
+
+    const displayedFactIds = comparisonCase.content?.displayedFactIds;
+    let contentIsValid = Array.isArray(displayedFactIds) && displayedFactIds.length > 0;
+    if (!contentIsValid) {
+      addError(errors, 'THREE_REPOSITORY_CONTENT_REQUIRED', `Comparison case ${index + 1} needs one or more displayed fact IDs.`, THREE_REPOSITORY_FILENAME);
+    } else if (displayedFactIds.some((id) => !isNonEmptyString(id)) || new Set(displayedFactIds).size !== displayedFactIds.length) {
+      addError(errors, 'THREE_REPOSITORY_CONTENT_INVALID', `Comparison case ${index + 1} displayed fact IDs must be non-empty and unique.`, THREE_REPOSITORY_FILENAME);
+      contentIsValid = false;
+    }
+    if (contentIsValid) contents.push([...displayedFactIds].sort().join('\u0000'));
+
+    const factClassifications = comparisonCase.factClassifications;
+    let classificationsAreValid = isObject(factClassifications);
+    const classifiedFactIds = new Set();
+    if (!classificationsAreValid) {
+      addError(errors, 'THREE_REPOSITORY_FACT_CLASSIFICATIONS_REQUIRED', `Comparison case ${index + 1} needs observed, inferred, and unknown fact classifications.`, THREE_REPOSITORY_FILENAME);
+    } else {
+      for (const evidenceClass of FACT_EVIDENCE_CLASSES) {
+        const ids = factClassifications[evidenceClass];
+        if (!Array.isArray(ids) || ids.length === 0) {
+          addError(errors, 'THREE_REPOSITORY_FACT_CLASSIFICATION_REQUIRED', `Comparison case ${index + 1} needs one or more ${evidenceClass} fact IDs.`, THREE_REPOSITORY_FILENAME);
+          classificationsAreValid = false;
+          continue;
+        }
+        if (ids.some((id) => !isNonEmptyString(id)) || new Set(ids).size !== ids.length || ids.some((id) => classifiedFactIds.has(id))) {
+          addError(errors, 'THREE_REPOSITORY_FACT_CLASSIFICATION_INVALID', `Comparison case ${index + 1} ${evidenceClass} fact IDs must be non-empty and classified exactly once.`, THREE_REPOSITORY_FILENAME);
+          classificationsAreValid = false;
+          continue;
+        }
+        for (const id of ids) classifiedFactIds.add(id);
+      }
+    }
+    if (classificationsAreValid && contentIsValid) {
+      const contentIds = new Set(displayedFactIds);
+      if (classifiedFactIds.size !== contentIds.size || [...classifiedFactIds].some((id) => !contentIds.has(id))) {
+        addError(errors, 'THREE_REPOSITORY_CLASSIFICATION_CONTENT_MISMATCH', `Comparison case ${index + 1} must classify every displayed fact exactly once.`, THREE_REPOSITORY_FILENAME);
+        classificationsAreValid = false;
+      }
+    }
+    if (classificationsAreValid) {
+      classifications.push(FACT_EVIDENCE_CLASSES.map((evidenceClass) => (
+        [...factClassifications[evidenceClass]].sort().join('\u0000')
+      )).join('\u0001'));
+    }
+  }
+
+  if (worldPlans.length === document.cases.length) {
+    const uniquePlans = new Set(worldPlans.map((summary) => summary.join('\u0000')));
+    const everyWorldPlanMeasureVaries = COMPARISON_WORLD_PLAN_FIELDS.every((_, fieldIndex) => (
+      new Set(worldPlans.map((summary) => summary[fieldIndex])).size > 1
+    ));
+    if (uniquePlans.size !== worldPlans.length || !everyWorldPlanMeasureVaries) {
+      addError(errors, 'THREE_REPOSITORY_WORLD_PLAN_NOT_DIFFERENT', 'Comparison cases must show differing building, district, and street WorldPlan summaries.', THREE_REPOSITORY_FILENAME);
+    }
+  }
+  if (contents.length === document.cases.length && new Set(contents).size !== contents.length) {
+    addError(errors, 'THREE_REPOSITORY_CONTENT_NOT_DIFFERENT', 'Comparison cases must show different displayed repository facts.', THREE_REPOSITORY_FILENAME);
+  }
+  if (classifications.length === document.cases.length && new Set(classifications).size !== classifications.length) {
+    addError(errors, 'THREE_REPOSITORY_FACT_CLASSIFICATIONS_NOT_DIFFERENT', 'Comparison cases must classify different displayed facts across observed, inferred, and unknown.', THREE_REPOSITORY_FILENAME);
+  }
+}
+
 function parseApprovalHeaders(record, errors) {
   if (!record) return new Map();
   const headers = new Map();
@@ -396,6 +526,9 @@ export async function validateFable5AcceptanceEvidence(evidenceDirectory) {
 
   const index = parseJson(records.get(EVIDENCE_INDEX_FILENAME), errors);
   validateEvidenceIndex(index, records, identityDigest, identity, errors);
+
+  const threeRepositoryComparison = parseJson(records.get(THREE_REPOSITORY_FILENAME), errors);
+  validateThreeRepositoryComparison(threeRepositoryComparison, errors);
 
   const gates = parseJson(records.get(HARD_GATE_FILENAME), errors);
   const declaredStates = validateHardGates(gates, identityDigest, identity, errors);

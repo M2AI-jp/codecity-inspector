@@ -15,6 +15,7 @@ installs an asset into runtime.
 
 For every `character` asset, a terminal decision must additionally include the approval scope
 `character-style-lock`. The ledger rejects an otherwise valid runtime approval without it. That
-scope means the reviewer completed the paired, nearest-neighbour comparison described in
-[`character-style-lock-20260722.md`](character-style-lock-20260722.md); mechanical sheet checks
-alone never establish drawing-style continuity.
+scope means the project owner completed the nearest-neighbour comparison described in
+[`character-style-lock-20260722.md`](character-style-lock-20260722.md) against the authoritative
+rendering language and relevant approved cast; mechanical sheet checks alone never establish
+drawing-style continuity.

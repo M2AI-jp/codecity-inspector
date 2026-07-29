@@ -12,6 +12,15 @@ export const FABLE5_PREFAB_CHARACTER_JOB_VERSION = 'fable5-prefab-character-job-
 
 const LEDGER_PATH = 'art/contracts/user-provided-images.json';
 const COMMON_PROMPT_PATH = 'prompts/fable5-prefab/00_common_fable5_character_sheet_style.md';
+const CHARACTER_STYLE_AUTHORITY = Object.freeze({
+  sourceId: 'user_character_style_authority_20260722_v1',
+  canonicalPath: 'art/references/user-provided/character_style_authority_20260722_v1.png',
+  sha256: '446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932'
+});
+const ACCEPTED_DRAFT_STATUSES = Object.freeze([
+  'draft-pending-generation',
+  'draft-pending-review'
+]);
 
 // This command deliberately has its own, narrow asset vocabulary.  It must
 // never resolve the historical `character.*` catalogs: those definitions use
@@ -20,12 +29,22 @@ const DRAFTS = Object.freeze({
   char_player: Object.freeze({
     contractPath: 'contracts/fable5-prefab/character.player.contract-draft.json',
     promptPath: 'prompts/fable5-prefab/character.player.prompt-draft.md',
-    identityRole: 'player-identity'
+    identityRole: 'player-direct-derivation-from-sole-character-style-authority'
   }),
   char_innkeeper: Object.freeze({
     contractPath: 'contracts/fable5-prefab/character.innkeeper.contract-draft.json',
     promptPath: 'prompts/fable5-prefab/character.innkeeper.prompt-draft.md',
-    identityRole: 'shared-character-rendering-language'
+    identityRole: 'sole-character-style-authority-distinct-npc'
+  }),
+  char_town_clerk: Object.freeze({
+    contractPath: 'contracts/fable5-prefab/character.town-clerk.contract-draft.json',
+    promptPath: 'prompts/fable5-prefab/character.town-clerk.prompt-draft.md',
+    identityRole: 'sole-character-style-authority-distinct-npc'
+  }),
+  char_resident: Object.freeze({
+    contractPath: 'contracts/fable5-prefab/character.resident.contract-draft.json',
+    promptPath: 'prompts/fable5-prefab/character.resident.prompt-draft.md',
+    identityRole: 'sole-character-style-authority-distinct-npc'
   })
 });
 
@@ -55,7 +74,7 @@ function sameJson(left, right) {
 function draftFor(assetId) {
   const draft = DRAFTS[assetId];
   if (!draft) {
-    throw new Error('Fable5 prefab character jobs accept only char_player or char_innkeeper');
+    throw new Error('Fable5 prefab character jobs accept only char_player, char_innkeeper, char_town_clerk, or char_resident');
   }
   return draft;
 }
@@ -89,7 +108,9 @@ export function fable5CharacterContractProblems(contract, assetId) {
   const expectedFile = `character/${assetId}.png`;
   const problems = [];
   if (!contract || typeof contract !== 'object' || Array.isArray(contract)) return ['contract must be an object'];
-  if (contract.status !== 'draft-pending-generation') problems.push('contract must remain draft-pending-generation');
+  if (!ACCEPTED_DRAFT_STATUSES.includes(contract.status)) {
+    problems.push(`contract must remain one of: ${ACCEPTED_DRAFT_STATUSES.join(', ')}`);
+  }
   if (contract.assetId !== assetId) problems.push(`contract assetId must be ${assetId}`);
   if (contract.category !== 'character') problems.push('contract category must be character');
   if (!sameJson(contract.png, { file: expectedFile, w: REQUIRED_SHEET.width, h: REQUIRED_SHEET.height })) {
@@ -115,6 +136,16 @@ export function fable5CharacterContractProblems(contract, assetId) {
     }
   }
   if (!sameJson(contract.allowedZoom, [1, 2, 3])) problems.push('allowedZoom must be [1,2,3]');
+  const authority = assetId === 'char_player'
+    ? contract.draftMeta?.identitySource
+    : contract.draftMeta?.characterStyleAuthority;
+  if (!sameJson({
+    sourceId: authority?.sourceId,
+    canonicalPath: authority?.canonicalPath,
+    sha256: authority?.sha256
+  }, CHARACTER_STYLE_AUTHORITY)) {
+    problems.push('character draft must use the exact sole character-style authority');
+  }
   return problems;
 }
 
@@ -141,7 +172,7 @@ function hasGenerationReferenceApproval(source) {
     && source?.runtimeUse?.generationReference === true;
 }
 
-async function verifiedLedgerReference(projectRoot, sourceId, role) {
+async function verifiedLedgerReference(projectRoot, sourceId, role, expected = undefined) {
   const ledgerPath = await assertExistingFileWithin(projectRoot, LEDGER_PATH);
   let ledger;
   try {
@@ -151,6 +182,9 @@ async function verifiedLedgerReference(projectRoot, sourceId, role) {
   }
   const source = ledger?.sources?.find((candidate) => candidate?.sourceId === sourceId);
   if (!source) throw new Error(`Required user-provided reference is absent from the ledger: ${sourceId}`);
+  if (expected && (source.canonicalPath !== expected.canonicalPath || source.sha256 !== expected.sha256)) {
+    throw new Error(`Reference ledger record does not match the locked character-style authority: ${sourceId}`);
+  }
   if (!hasGenerationReferenceApproval(source)) {
     throw new Error(`Reference is not approved for generation use: ${sourceId}`);
   }
@@ -210,11 +244,13 @@ function importGuide(assetId) {
     '',
     `This pack commissions a pending ${assetId} candidate; it contains no generated pixels.`,
     '',
-    '1. A human resolves the two source IDs in `references.json` through the canonical project ledger.',
+    '1. A human resolves the two source IDs in `references.json` through the canonical project ledger. The character-style authority is the exact locked source committed by this pack; do not substitute an older candidate or reference.',
     '2. A human authorizes and runs an external, supervised generation session using `prompt.md` and `output-contract.json`.',
     '3. Keep every returned byte outside the runtime and in pending/quarantine until a Fable5-specific intake and human review have completed.',
     '',
     'Do not use the legacy `make-job`, `make-job-v2`, `import`, or `import-v2` commands for this candidate. Their historical character definitions have a different sheet contract; the historical player definition also carries a rejected identity. This pre-generation pack intentionally has no automatic import or promotion command.',
+    '',
+    'Historical character candidates, including earlier approved or pending sheets, are prohibited as visual references and cannot be reused as a runtime-promotion source.',
     '',
     'No API key, paid API fallback, automated approval, or runtime wiring is authorized by this pack.'
   ].join('\n').concat('\n');
@@ -230,7 +266,12 @@ export async function buildFable5PrefabCharacterJob({ assetId }, {
   const [commonPrompt, characterPrompt, identityReference, townReference] = await Promise.all([
     readPrompt(canonicalForgeRoot, COMMON_PROMPT_PATH),
     readPrompt(canonicalForgeRoot, draft.promptPath),
-    verifiedLedgerReference(canonicalProjectRoot, 'user_character_style_reference', draft.identityRole),
+    verifiedLedgerReference(
+      canonicalProjectRoot,
+      CHARACTER_STYLE_AUTHORITY.sourceId,
+      draft.identityRole,
+      CHARACTER_STYLE_AUTHORITY
+    ),
     verifiedLedgerReference(canonicalProjectRoot, 'user_target_town_current', 'town-lighting-and-shading')
   ]);
   const outputContract = outputContractFor(contract);
@@ -267,6 +308,8 @@ export async function buildFable5PrefabCharacterJob({ assetId }, {
       usesLegacyCharacterDefinitions: false,
       usesLegacyCharacterPrompts: false,
       usesRejectedPlayerIdentity: false,
+      usesHistoricalCharacterCandidates: false,
+      historicalCharacterRuntimePromotion: false,
       automaticImport: false,
       automaticApproval: false,
       apiKeyRequired: false,

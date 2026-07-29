@@ -1,5 +1,5 @@
 {
-  "$comment": "DRAFT — not generated, not approved, not wired into any runtime path. Target shape follows Fable5PrefabSpec.md section 7. No sample entry for an innkeeper exists in tools/asset-forge/contracts/asset-contract.sample.json, so png/pivot/sheet fields below are newly authored to match that sample's char_player entry field-for-field (same canvas, same footPivot, same 4x10 grid) rather than copied from an existing example. draftMeta is not part of the Fable5PrefabSpec section 7 field set; strip it before promotion.",
+  "$comment": "DRAFT GENERATION CONTRACT — this is a new-generation input, not a runtime authorization. It follows Fable5PrefabSpec.md section 7 and retains the required 640x512, 4x10, 64x128-frame, footPivot(32,120) shape. draftMeta is not part of the Fable5PrefabSpec section 7 field set; strip it before promotion.",
   "status": "draft-pending-generation",
   "assetId": "char_innkeeper",
   "category": "character",
@@ -26,33 +26,16 @@
   "allowedZoom": [1, 2, 3],
   "districts": ["old_town"],
   "draftMeta": {
-    "purpose": "Re-production per product-owner decision, same initiative as character.player. Unlike the player, this is new authoring: no character.innkeeper entry exists yet in data/v2/art-direction/characters.json (only player/town_clerk/gatekeeper/dojo_inspector/mob.townsfolk_male/mob.townsfolk_female/dojo_student do).",
-    "identityRule": "Different person from the player is allowed. Must share the player identity source's pixel density, head-to-body proportions, outline weight, and shading language (docs/user-provided-image-policy.md section 7: 'NPCは別人にできますが、原画のpixel density、頭身、輪郭、陰影の言語を共有します').",
-    "identityLanguageSource": {
-      "directory": "art/references/user-provided/",
-      "resolveExactPathAndHashFrom": "art/contracts/user-provided-images.json → sources[] where sourceId equals ledgerSourceId below",
-      "whyNotInlinedHere": "tools/asset-forge/test/reference-integrity.test.mjs (RETIRED_CHARACTER_REFERENCE) asserts this specific reference's exact basename and SHA-256 must not appear anywhere inside tools/asset-forge — this draft respects that boundary instead of working around it. See character.player.contract-draft.json's identitySource for the same note.",
-      "dimensions": { "width": 1536, "height": 1024 },
+    "purpose": "New-generation Fable5 innkeeper contract. This NPC is a distinct person, while its sole character-style authority is the exact user-provided reference below.",
+    "identityRule": "The innkeeper must remain a distinct individual from the player. Use the sole authority for pixel density, head-to-body proportions, outline weight, contour language, and shading language; do not copy the player's visible identity, costume, face, hair, or other person-specific traits.",
+    "characterStyleAuthority": {
+      "sourceId": "user_character_style_authority_20260722_v1",
+      "canonicalPath": "art/references/user-provided/character_style_authority_20260722_v1.png",
+      "sha256": "446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932",
       "custody": "user-direct",
-      "ledgerSourceId": "user_character_style_reference",
-      "role": "shared rendering-language authority (proportions/density/shading), not a costume/hair-color source for this NPC"
+      "role": "sole style authority for this distinct NPC"
     },
-    "existingDeployedArt": {
-      "note": "Currently deployed, but unverified origin and explicitly not to be treated as an identity source to preserve byte-for-byte. No .lineage.json exists for either file and neither appears in art/contracts/user-provided-images.json.",
-      "files": [
-        {
-          "path": "public/fable5-v2/assets/characters/innkeeper-4dir-v1.png",
-          "dimensions": { "width": 256, "height": 512 },
-          "gap": "idle-only, 4 directions x 1 frame each; no walk cycle; does not match the 640x512/4x10 target grid"
-        },
-        {
-          "path": "public/fable5-v2/assets/characters/innkeeper-talk-4frame-v2.png",
-          "dimensions": { "width": 384, "height": 64 },
-          "gap": "separate small strip at a different frame height (64px tall vs the 128px-tall target frame); not part of a unified sheet"
-        }
-      ],
-      "permittedUse": "loose continuity reference only (e.g. hair/apron color), if the project owner wants visual continuity with the currently-deployed look; must be recorded as such and never labeled user-provided per docs/user-provided-image-policy.md section 5"
-    },
+    "historicalCandidatePolicy": "All earlier character candidates, generated sheets, and deployed character art are prohibited as visual references, derivation inputs, comparison authorities, or runtime-promotion sources. They may remain quarantined as historical records only.",
     "backgroundShadingReference": {
       "path": "public/fable5-v2/assets/world/target-town-user-direct-v1.png",
       "canonicalPath": "art/references/user-provided/target-town.png",
@@ -75,14 +58,11 @@
     ],
     "provenanceTemplate": "tools/asset-forge/review/provenance/character.innkeeper.candidate-provenance-draft.json",
     "generationRoute": [
-      "author a new character.innkeeper entry in data/v2/art-direction/characters.json (or an equivalent v1 data/asset-definitions/characters.json entry) using this contract + the prompt drafts — currently missing entirely from v2",
-      "make-job / make-job-v2 (job-pack, no image produced)",
-      "external human-supervised generation session — outside this tool",
-      "import / import-v2 (hash-verified pending candidate)",
-      "process (alpha/trim as needed)",
-      "interactive promote (human-only)",
-      "export (dry-run by default; --write only after the v2 manifest is complete)"
+      "make-fable5-character-job --asset char_innkeeper (portable job-pack only; no image produced)",
+      "external human-supervised generation from the exact sole style authority",
+      "Fable5-specific pending intake and mechanical validation",
+      "human-only review and a separate approval decision before any runtime installation"
     ],
-    "notGeneratedReason": "Task scope for this pass excludes real image generation (API cost and out-of-band approval); this file only prepares the contract/prompt pair so generation can start without re-deriving identity/background facts."
+    "lifecycleNote": "No historical innkeeper candidate may be promoted or used for runtime. Runtime permission can arise only from a future new candidate that completes the separate human review and ledger route."
   }
 }

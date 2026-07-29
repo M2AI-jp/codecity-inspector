@@ -52,35 +52,36 @@ test('every promised exterior entry and return point stays on the measured exter
   }
 });
 
-test('entry is conservative, finite-only, and keeps unapproved interiors unavailable', () => {
+// REPLACES a withdrawn test that special-cased the inn as always enterable
+// behind a "provisional-art fallback" (isBuildingRuntimeAvailable('inn')
+// asserted true while city-hall/residence asserted false). The product
+// owner ruled that fallback -- reopening the inn on a withdrawn character
+// sheet labelled "provisional" -- a disguised-as-shipped misrepresentation
+// and required it withdrawn entirely, with no replacement loophole of any
+// kind. The inn's own character art is exactly as unapproved as city-hall's
+// clerk and residence's occupant, so all three buildings must now assert
+// identically unavailable. This is a replacement of the prior coverage for
+// the inn's availability, not a deletion of it.
+test('entry is conservative, finite-only, and keeps every building unavailable until its interior is approved', () => {
   for (const building of listBuildings()) {
     const point = building.exterior.entrance.approachPoint;
-    assert.equal(canEnter(building.id, point), building.id === 'inn', `${building.id} entry point`);
-    assert.equal(isBuildingRuntimeAvailable(building.id), building.id === 'inn', `${building.id} runtime availability`);
+    assert.equal(isBuildingRuntimeAvailable(building.id), false, `${building.id} runtime availability`);
+    assert.equal(canEnter(building.id, point), false, `${building.id} entry point`);
     assert.equal(canEnter(building.id, { x: Number.NaN, y: point.y }), false);
     assert.equal(canEnter(building.id, { x: point.x, y: Infinity }), false);
   }
+  assert.equal(canEnter('inn', { x: 212, y: 460 }), false, 'do not make the inn frontage broadly enterable');
   assert.equal(canEnter('city-hall', { x: 640, y: 320 }), false, 'do not make the civic facade broadly enterable');
   assert.equal(canEnter('residence', { x: 997, y: 350 }), false, 'do not make the house facade broadly enterable');
   assert.equal(canEnter('unknown', { x: 640, y: 296 }), false);
 });
 
-test('only an approved building produces a customer-facing interior transition', () => {
-  for (const building of listBuildings().filter(({ id }) => id === 'inn')) {
-    const exteriorPosition = { ...building.exterior.entrance.approachPoint };
-    const transition = enter(building.id, exteriorPosition);
-    assert.ok(transition, building.id);
-    assert.deepEqual(transition, {
-      mode: FABLE5_BUILDING_MODE.INTERIOR,
-      buildingId: building.id,
-      player: building.interior.entryFoot,
-      cameraFocus: building.interior.cameraFocus
-    });
-    assert.ok(Object.isFrozen(transition));
-    assert.ok(Object.isFrozen(transition.player));
-    assert.deepEqual(exteriorPosition, building.exterior.entrance.approachPoint);
-  }
-  for (const building of listBuildings().filter(({ id }) => id !== 'inn')) {
+// REPLACES 'only an approved building produces a customer-facing interior
+// transition' (a test that asserted the inn alone could transition while it
+// carried the withdrawn fallback). No building has an approved interior
+// today, so none may transition.
+test('no building produces a customer-facing interior transition while its interior remains unapproved', () => {
+  for (const building of listBuildings()) {
     assert.equal(enter(building.id, building.exterior.entrance.approachPoint), null, `${building.id} remains unavailable`);
   }
   assert.equal(enter('unknown', { x: 0, y: 0 }), null);
@@ -113,6 +114,16 @@ test('interior collision and exit reject unknown buildings, non-finite positions
   assert.equal(exit('residence', { x: 997, y: 246 }), null);
 });
 
+// getQuestAffordance() is a pure function of quest state only. It has never
+// independently re-checked the containing building's runtimeAvailability --
+// city-hall's own affordance below has always worked this way, even before
+// the inn's withdrawal. canEnter()/enter() are the boundary that actually
+// keeps the player's mode/buildingId from ever reaching an unapproved
+// building's interior in the first place (app.js's own
+// enforceInteriorReleaseGate is a second, independent net on top of that),
+// so a raw affordance query being "available" here never by itself lets a
+// real player reach dialogue, quest-start, or a report. This test is
+// unchanged by the inn's withdrawal.
 test('quest affordances are validated against the real quest state and gate town-hall reporting', () => {
   const fresh = createInvestigationState();
   assert.deepEqual(getQuestAffordance('inn', fresh), {
@@ -129,14 +140,54 @@ test('quest affordances are validated against the real quest state and gate town
   assert.equal(getQuestAffordance('unknown', fresh), null);
 });
 
-test('getInteraction exposes entry, truthful quest state, ambient residence action, and exit without mutation', () => {
+// REPLACES 'the innkeeper accepts the report as a provisional fallback while
+// city-hall remains unapproved' (a test that asserted a
+// 'report-to-innkeeper-fallback' action became available once the
+// investigation was complete, and that talking to the innkeeper with that
+// quest state produced an enabled interaction). The product owner ruled
+// that fallback a disguised substitute for the still-unbuilt city-hall
+// report flow and required it withdrawn entirely -- see
+// innQuestAffordance()'s own comment in building-runtime.mjs. This is a
+// replacement of the prior fallback coverage with a regression guard against
+// its return, not a deletion of coverage: a completed investigation must
+// keep naming city hall as the only reporting route, with no NPC standing
+// in for it.
+test('a completed investigation has no substitute reporting route while city-hall is unapproved', () => {
+  assert.equal(isBuildingRuntimeAvailable('city-hall'), false, 'fixture assumption: city-hall has no approved interior yet');
+  const affordance = getQuestAffordance('inn', reportableState());
+  assert.deepEqual(affordance, {
+    id: 'report-ready', action: null, available: false, label: '市庁舎へ報告できる'
+  });
+  assert.notEqual(affordance.id, 'report-to-innkeeper-fallback');
+  assert.notEqual(affordance.action, 'report-to-innkeeper-fallback');
+  assert.equal(affordance.available, false, 'no NPC may accept the report on city-hall\'s behalf');
+});
+
+// REPLACES 'getInteraction exposes entry, truthful quest state, ambient
+// residence action, and exit without mutation' (a test that asserted the
+// inn's exterior produced an enabled 'enter-inn' interaction while
+// city-hall/residence produced 'unavailable-*'). The inn's exterior now
+// produces the identical honest 'unavailable' shape as city-hall and
+// residence; this is a replacement of that assertion, not a deletion. The
+// raw interior-branch assertions below are otherwise unchanged: they were
+// never gated on building availability for any of the three buildings (see
+// getInteraction()'s own comment in building-runtime.mjs for why that is
+// still safe -- canEnter()/enter() are the real boundary, and this branch is
+// unreachable for a blocked building through actual gameplay).
+test('getInteraction reports every exterior as honestly unavailable, and truthful interior state, without mutation', () => {
   const fresh = createInvestigationState();
   const freshSnapshot = JSON.parse(JSON.stringify(fresh));
   const inn = getBuilding('inn');
-  const exterior = getInteraction({ mode: 'exterior', position: inn.exterior.entrance.approachPoint });
-  assert.deepEqual(exterior, {
-    id: 'enter-inn', kind: 'enter', label: 'そのまま進むと入れます', place: '古町の宿屋',
-    buildingId: 'inn', distance: 0, enabled: true, quest: null
+  const innExterior = getInteraction({ mode: 'exterior', position: inn.exterior.entrance.approachPoint });
+  assert.deepEqual(innExterior, {
+    id: 'unavailable-inn',
+    kind: 'unavailable',
+    label: inn.runtimeAvailability.reason,
+    place: inn.label,
+    buildingId: 'inn',
+    distance: 0,
+    enabled: false,
+    quest: null
   });
 
   const cityHallExterior = getInteraction({

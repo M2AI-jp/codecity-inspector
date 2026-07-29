@@ -1,6 +1,12 @@
 // Tiny, optional Web Audio feedback for the Fable5 scene. This module never
 // creates or resumes an AudioContext until unlock() is called from a trusted
 // user gesture by the host app.
+//
+// Persistence is intentionally opt-in. The shipped game keeps mute/volume in
+// the repository+inspection-digest scoped Fable5 session envelope, rather
+// than letting this low-level feedback helper write an unscoped browser-wide
+// preference. A different host may still inject an explicit storage boundary
+// when that is genuinely its product contract.
 
 export const AUDIO_PREFERENCE_STORAGE_KEY = 'codecity:fable5:audio-v1';
 
@@ -34,14 +40,6 @@ export function normalizeAudioPreferences(value) {
 function defaultAudioContext() {
   try {
     return globalThis.AudioContext ?? globalThis.webkitAudioContext ?? null;
-  } catch {
-    return null;
-  }
-}
-
-function defaultStorage() {
-  try {
-    return globalThis.localStorage ?? null;
   } catch {
     return null;
   }
@@ -135,7 +133,7 @@ function contextIsRunning(context) {
  */
 export function createAudioFeedback({
   AudioContext = defaultAudioContext(),
-  storage = defaultStorage(),
+  storage = null,
   storageKey = AUDIO_PREFERENCE_STORAGE_KEY
 } = {}) {
   const key = typeof storageKey === 'string' && storageKey.length > 0

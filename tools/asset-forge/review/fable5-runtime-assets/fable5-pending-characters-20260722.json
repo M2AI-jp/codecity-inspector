@@ -1,5 +1,12 @@
 {
   "format": "fable5-runtime-asset-inventory-v1",
+  "status": "historical-superseded",
+  "purpose": "Historical, audit-only inventory of superseded candidate evidence. It preserves the recorded candidate paths and receipts, but it is not a current pending-review queue and cannot authorize promotion or runtime installation.",
+  "supersededBy": {
+    "sourceId": "user_character_style_authority_20260722_v1",
+    "sha256": "446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932",
+    "reviewPacketPath": "review/fable5-runtime-assets/style-authority-20260722-v1/index.json"
+  },
   "assets": [
     {
       "assetId": "char_player",
@@ -13,13 +20,24 @@
       "runtimePath": null
     },
     {
-      "assetId": "char_innkeeper",
+      "assetId": "char_resident",
       "category": "character",
       "state": "pending-inspection",
-      "artifactPath": "generated/characters/pending/fable5_char_innkeeper_4ec9fe5a1e5ed1f8e8e1.png",
-      "metadataPath": "generated/characters/pending/fable5_char_innkeeper_4ec9fe5a1e5ed1f8e8e1.json",
-      "contractPath": "contracts/fable5-prefab/character.innkeeper.contract-draft.json",
-      "jobPackPath": "generated/jobs/fable5_prefab_char_innkeeper_3c03c1ac9644bdad8d32/job-pack.json",
+      "artifactPath": "review/fable5-runtime-assets/pending-evidence/20260722/fable5_char_resident_06f3331c7beaddeb7d43.png",
+      "metadataPath": "review/fable5-runtime-assets/pending-evidence/20260722/fable5_char_resident_06f3331c7beaddeb7d43.json",
+      "contractPath": "contracts/fable5-prefab/character.resident.contract-draft.json",
+      "jobPackPath": null,
+      "approvalRecordPath": null,
+      "runtimePath": null
+    },
+    {
+      "assetId": "char_town_clerk",
+      "category": "character",
+      "state": "pending-inspection",
+      "artifactPath": "review/fable5-runtime-assets/pending-evidence/20260722/fable5_char_town_clerk_773ba726697e445cb648.png",
+      "metadataPath": "review/fable5-runtime-assets/pending-evidence/20260722/fable5_char_town_clerk_773ba726697e445cb648.json",
+      "contractPath": "contracts/fable5-prefab/character.town-clerk.contract-draft.json",
+      "jobPackPath": null,
       "approvalRecordPath": null,
       "runtimePath": null
     }

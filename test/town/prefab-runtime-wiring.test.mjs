@@ -62,4 +62,5 @@ test('the app loads and draws the prefab collection instead of a worldMaster ima
   assert.doesNotMatch(appSource, /state\.assets\.worldMaster/);
   assert.match(siteRuntimeSource, /const prefabEntries = WORLD_PREFABS\.map/);
   assert.match(siteRuntimeSource, /return Object\.freeze\(\{ \.\.\.productionAssets, worldPrefabs \}\)/);
+  assert.doesNotMatch(siteRuntimeSource, /worldMaster/);
 });

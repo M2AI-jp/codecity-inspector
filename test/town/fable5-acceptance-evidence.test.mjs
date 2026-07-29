@@ -12,6 +12,7 @@ import {
   INDEXED_ARTIFACT_FILENAMES,
   OWNER_APPROVAL_FILENAME,
   REQUIRED_ARTIFACT_FILENAMES,
+  THREE_REPOSITORY_FILENAME,
   main,
   validateFable5AcceptanceEvidence
 } from '../../tools/qa/fable5-acceptance-evidence.mjs';
@@ -24,7 +25,70 @@ function digest(value) {
   return createHash('sha256').update(value).digest('hex');
 }
 
+function threeRepositoryComparison() {
+  return {
+    schemaVersion: 1,
+    kind: 'fable5-three-repository-comparison',
+    cases: [
+      {
+        repository: { name: 'alpha-town' },
+        worldPlan: {
+          inspectionDigest: 'a'.repeat(64),
+          buildingCount: 8,
+          districtCount: 3,
+          streetCount: 5
+        },
+        content: {
+          displayedFactIds: ['entrypoint.alpha', 'cycle.alpha', 'unverified.alpha']
+        },
+        factClassifications: {
+          observed: ['entrypoint.alpha'],
+          inferred: ['cycle.alpha'],
+          unknown: ['unverified.alpha']
+        }
+      },
+      {
+        repository: { name: 'beta-town' },
+        worldPlan: {
+          inspectionDigest: 'b'.repeat(64),
+          buildingCount: 13,
+          districtCount: 5,
+          streetCount: 8
+        },
+        content: {
+          displayedFactIds: ['entrypoint.beta', 'test-association.beta', 'runtime-unknown.beta']
+        },
+        factClassifications: {
+          observed: ['entrypoint.beta'],
+          inferred: ['test-association.beta'],
+          unknown: ['runtime-unknown.beta']
+        }
+      },
+      {
+        repository: { name: 'gamma-town' },
+        worldPlan: {
+          inspectionDigest: 'c'.repeat(64),
+          buildingCount: 21,
+          districtCount: 7,
+          streetCount: 11
+        },
+        content: {
+          displayedFactIds: ['unresolved.gamma', 'unreached.gamma', 'truncation.gamma']
+        },
+        factClassifications: {
+          observed: ['unresolved.gamma'],
+          inferred: ['unreached.gamma'],
+          unknown: ['truncation.gamma']
+        }
+      }
+    ]
+  };
+}
+
 function artifactBytes(filename) {
+  if (filename === THREE_REPOSITORY_FILENAME) {
+    return Buffer.from(`${JSON.stringify(threeRepositoryComparison(), null, 2)}\n`);
+  }
   if (filename.endsWith('.json')) return Buffer.from(JSON.stringify({ artifact: filename, captured: true }, null, 2));
   return Buffer.from(`captured evidence: ${filename}\n`);
 }
@@ -35,6 +99,16 @@ async function readJson(root, filename) {
 
 async function writeJson(root, filename, value) {
   await writeFile(path.join(root, filename), `${JSON.stringify(value, null, 2)}\n`);
+}
+
+async function reindexArtifact(root, filename) {
+  const index = await readJson(root, EVIDENCE_INDEX_FILENAME);
+  const artifact = index.artifacts.find((entry) => entry.path === filename);
+  assert.ok(artifact, `${filename} should have an evidence-index entry`);
+  const bytes = await readFile(path.join(root, filename));
+  artifact.sha256 = digest(bytes);
+  artifact.bytes = bytes.length;
+  await writeJson(root, EVIDENCE_INDEX_FILENAME, index);
 }
 
 async function createPacket(t, { gateStates = null } = {}) {
@@ -155,6 +229,76 @@ test('re-hashes raw bytes and rejects artifact tampering even when the filename 
   const report = await validateFable5AcceptanceEvidence(root);
   assert.equal(report.valid, false);
   assert.ok(errorCodes(report).includes('INDEX_ARTIFACT_HASH_MISMATCH'));
+});
+
+test('requires at least three repository comparison cases', async (t) => {
+  const { root } = await createPacket(t);
+  const comparison = await readJson(root, THREE_REPOSITORY_FILENAME);
+  comparison.cases = comparison.cases.slice(0, 2);
+  await writeJson(root, THREE_REPOSITORY_FILENAME, comparison);
+  await reindexArtifact(root, THREE_REPOSITORY_FILENAME);
+
+  const report = await validateFable5AcceptanceEvidence(root);
+  assert.equal(report.valid, false);
+  assert.ok(errorCodes(report).includes('THREE_REPOSITORY_CASES_REQUIRED'));
+});
+
+test('requires every three-repository comparison case to use a unique repository identity', async (t) => {
+  const { root } = await createPacket(t);
+  const comparison = await readJson(root, THREE_REPOSITORY_FILENAME);
+  comparison.cases[1].repository.name = comparison.cases[0].repository.name;
+  await writeJson(root, THREE_REPOSITORY_FILENAME, comparison);
+  await reindexArtifact(root, THREE_REPOSITORY_FILENAME);
+
+  const report = await validateFable5AcceptanceEvidence(root);
+  assert.equal(report.valid, false);
+  assert.ok(errorCodes(report).includes('THREE_REPOSITORY_IDENTITY_DUPLICATE'));
+});
+
+test('requires every three-repository comparison case to use a unique WorldPlan inspection digest', async (t) => {
+  const { root } = await createPacket(t);
+  const comparison = await readJson(root, THREE_REPOSITORY_FILENAME);
+  comparison.cases[1].worldPlan.inspectionDigest = comparison.cases[0].worldPlan.inspectionDigest;
+  await writeJson(root, THREE_REPOSITORY_FILENAME, comparison);
+  await reindexArtifact(root, THREE_REPOSITORY_FILENAME);
+
+  const report = await validateFable5AcceptanceEvidence(root);
+  assert.equal(report.valid, false);
+  assert.ok(errorCodes(report).includes('THREE_REPOSITORY_DIGEST_DUPLICATE'));
+});
+
+test('requires observed, inferred, and unknown classifications for every compared repository', async (t) => {
+  const { root } = await createPacket(t);
+  const comparison = await readJson(root, THREE_REPOSITORY_FILENAME);
+  delete comparison.cases[2].factClassifications.unknown;
+  await writeJson(root, THREE_REPOSITORY_FILENAME, comparison);
+  await reindexArtifact(root, THREE_REPOSITORY_FILENAME);
+
+  const report = await validateFable5AcceptanceEvidence(root);
+  assert.equal(report.valid, false);
+  assert.ok(errorCodes(report).includes('THREE_REPOSITORY_FACT_CLASSIFICATION_REQUIRED'));
+});
+
+test('requires different WorldPlan summaries, displayed content, and fact classifications across all compared repositories', async (t) => {
+  const { root } = await createPacket(t);
+  const comparison = await readJson(root, THREE_REPOSITORY_FILENAME);
+  for (const comparisonCase of comparison.cases.slice(1)) {
+    comparisonCase.worldPlan.buildingCount = comparison.cases[0].worldPlan.buildingCount;
+    comparisonCase.worldPlan.districtCount = comparison.cases[0].worldPlan.districtCount;
+    comparisonCase.worldPlan.streetCount = comparison.cases[0].worldPlan.streetCount;
+    comparisonCase.content.displayedFactIds = [...comparison.cases[0].content.displayedFactIds];
+    comparisonCase.factClassifications = structuredClone(comparison.cases[0].factClassifications);
+  }
+  await writeJson(root, THREE_REPOSITORY_FILENAME, comparison);
+  await reindexArtifact(root, THREE_REPOSITORY_FILENAME);
+
+  const report = await validateFable5AcceptanceEvidence(root);
+  assert.equal(report.valid, false);
+  for (const code of [
+    'THREE_REPOSITORY_WORLD_PLAN_NOT_DIFFERENT',
+    'THREE_REPOSITORY_CONTENT_NOT_DIFFERENT',
+    'THREE_REPOSITORY_FACT_CLASSIFICATIONS_NOT_DIFFERENT'
+  ]) assert.ok(errorCodes(report).includes(code), code);
 });
 
 test('requires every unique HG-01 through HG-10 record to carry an explicit allowed state and evidence link', async (t) => {

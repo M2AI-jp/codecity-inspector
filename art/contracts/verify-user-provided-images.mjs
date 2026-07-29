@@ -7,6 +7,7 @@ import process from 'node:process';
 const repositoryRoot = path.resolve(import.meta.dirname, '../..');
 const ledgerPath = path.join(repositoryRoot, 'art/contracts/user-provided-images.json');
 const registryPath = path.join(repositoryRoot, 'art/contracts/source-registry.json');
+const inventoryPath = path.join(repositoryRoot, 'art/contracts/asset-inventory.json');
 const productionManifestPath = path.join(repositoryRoot, 'art/production/vertical-slice/manifest.json');
 const expectedTown = {
   sourceId: 'src_quality_town_current',
@@ -17,7 +18,14 @@ const expectedTown = {
   dimensions: { width: 1586, height: 992 },
   method: 'direct-whole-image-native',
 };
-const expectedCharacterSha256 = '910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b';
+const expectedCharacter = {
+  sourceId: 'src_character_inspector',
+  ledgerSourceId: 'user_character_style_authority_20260722_v1',
+  path: 'art/references/user-provided/character_style_authority_20260722_v1.png',
+  sha256: '446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932',
+  dimensions: { width: 1402, height: 1122 },
+};
+const supersededCharacterSourceId = 'user_character_style_reference';
 const generatedHashes = new Set([
   '78436f089e03ae6fb15605ccaeae12513cd9393dd0e3355d4ef6df04bfb430ea',
   'e88b18da60d9c314ecc83c30573d6423129525fb684ce57496c240c1dbf19535',
@@ -102,6 +110,18 @@ function assertScopedApproval(approval, label) {
   if (!Array.isArray(approval.scope)) fail(`${label}: approval.scope must be an array`);
 }
 
+function approvalDecisions(approval) {
+  return approval?.decisions ?? [approval];
+}
+
+function hasUserApprovedDecision(approval) {
+  return approvalDecisions(approval).some((decision) => decision?.status === 'approved' && decision.approvedBy === 'user' && decision.decisionRef);
+}
+
+function hasDecision(approval, predicate) {
+  return approvalDecisions(approval).some(predicate);
+}
+
 function allObjects(value, visit) {
   if (!value || typeof value !== 'object') return;
   visit(value);
@@ -109,13 +129,15 @@ function allObjects(value, visit) {
 }
 
 async function main() {
-  const [ledger, registry, productionManifest] = await Promise.all([
+  const [ledger, registry, inventory, productionManifest] = await Promise.all([
     readFile(ledgerPath, 'utf8').then(JSON.parse),
     readFile(registryPath, 'utf8').then(JSON.parse),
+    readFile(inventoryPath, 'utf8').then(JSON.parse),
     readFile(productionManifestPath, 'utf8').then(JSON.parse),
   ]);
   if (ledger.schemaVersion !== 2) fail('user image ledger schemaVersion must be 2');
   if (registry.schemaVersion !== 3) fail('source registry schemaVersion must be 3');
+  if (inventory.schemaVersion !== 1) fail('asset inventory schemaVersion must be 1');
   if (!Array.isArray(ledger.sources) || ledger.sources.length === 0) fail('ledger.sources must not be empty');
   assertSafeRelativePath(ledger.canonicalRoot, 'ledger.canonicalRoot');
   const canonicalRealRoot = await realpath(path.resolve(repositoryRoot, ledger.canonicalRoot));
@@ -135,7 +157,7 @@ async function main() {
     if (source.custody?.kind !== 'user-direct') fail(`${source.sourceId}: direct ledger custody must be user-direct`);
     if (!allowedOriginKinds.has(source.origin?.kind)) fail(`${source.sourceId}: unsupported origin kind ${source.origin?.kind}`);
     assertScopedApproval(source.approval, `${source.sourceId}.approval`);
-    if (source.approval.status !== 'approved' || source.approval.approvedBy !== 'user' || !source.approval.decisionRef) fail(`${source.sourceId}: user-direct source requires scoped user approval evidence`);
+    if (!hasUserApprovedDecision(source.approval)) fail(`${source.sourceId}: user-direct source requires scoped user approval evidence`);
     if (source.protection?.state !== 'worktree-protected-pending-versioning' || source.protection.canonicalCopyTracked !== false) fail(`${source.sourceId}: current protection state must truthfully remain pending versioning`);
     assertRuntimeUse(source.runtimeUse, source.sourceId);
     for (const evidenceRef of source.custody.evidenceRefs ?? []) if (!evidenceIds.has(evidenceRef)) fail(`${source.sourceId}: unknown evidenceRef ${evidenceRef}`);
@@ -143,6 +165,18 @@ async function main() {
     const verified = await verifiedFile(source.canonicalPath, source.sha256, source.dimensions, canonicalRealRoot);
     if (source.activeAlias) await verifiedFile(source.activeAlias, source.sha256, source.dimensions);
     results.push({ sourceId: source.sourceId, canonicalPath: source.canonicalPath, ...verified });
+  }
+
+  const inventoryCharacter = (inventory.canonicalReferences ?? []).find((record) => record.file === expectedCharacter.path);
+  if (!inventoryCharacter || inventoryCharacter.sha256 !== expectedCharacter.sha256 || inventoryCharacter.width !== expectedCharacter.dimensions.width || inventoryCharacter.height !== expectedCharacter.dimensions.height || inventoryCharacter.authorityRef?.ledgerSourceId !== expectedCharacter.ledgerSourceId || inventoryCharacter.role !== 'sole-current-player-identity-and-character-visual-style-authority') {
+    fail('asset inventory must identify the new user sheet as the sole current character authority');
+  }
+  const inventoryHistoricalCharacter = (inventory.canonicalReferences ?? []).find((record) => record.authorityRef?.ledgerSourceId === supersededCharacterSourceId);
+  if (!inventoryHistoricalCharacter || inventoryHistoricalCharacter.currentPromotion !== `superseded-by-${expectedCharacter.ledgerSourceId}` || Object.values(inventoryHistoricalCharacter.runtimeUse ?? {}).some(Boolean)) {
+    fail('asset inventory must retain the previous character reference as non-runtime historical evidence');
+  }
+  if (inventory.userProvidedImages?.canonicalExactFiles !== ledger.sources.length || inventory.userProvidedImages?.verifiedBytes !== results.reduce((sum, item) => sum + item.bytes, 0)) {
+    fail('asset inventory user-provided image counts or bytes do not match the protected ledger');
   }
 
   if (!Array.isArray(ledger.tombstones) || !ledger.tombstones.some((item) => item.sourceId === 'user_target_town_previous_missing' && item.protection?.state === 'missing-unconfirmed')) {
@@ -187,8 +221,30 @@ async function main() {
     if (generatedHashes.has(source.sha256) && source.custody?.ledgerSourceId) fail(`${source.sourceId}: generated hash was laundered through user-direct ledger authority`);
   }
 
-  const character = (registry.sources ?? []).find((source) => source.sourceId === 'src_character_inspector');
-  if (!character || character.sha256 !== expectedCharacterSha256 || character.custody?.ledgerSourceId !== 'user_character_style_reference') fail('active character authority must be the protected green user source');
+  const character = (registry.sources ?? []).find((source) => source.sourceId === expectedCharacter.sourceId);
+  if (!character || character.path !== expectedCharacter.path || character.sha256 !== expectedCharacter.sha256 || !sameDimensions(character.dimensions, expectedCharacter.dimensions) || character.custody?.ledgerSourceId !== expectedCharacter.ledgerSourceId || character.role !== 'sole-current-user-direct-player-identity-and-character-visual-style-authority') {
+    fail('active character authority must be the current protected user sheet');
+  }
+  const currentCharacterLedger = ledgerById.get(expectedCharacter.ledgerSourceId);
+  if (!currentCharacterLedger || currentCharacterLedger.role !== 'current-player-identity-and-character-visual-style-authority' || !hasDecision(currentCharacterLedger.approval, (decision) => decision?.status === 'approved' && decision.approvedBy === 'user' && decision.decisionRef === 'current_character_style_authority_direction_20260722' && decision.scope?.includes('player-identity') && decision.scope?.includes('character-visual-style-authority'))) {
+    fail('current character ledger source lacks the required sole-authority approval');
+  }
+  const historicalCharacter = ledgerById.get(supersededCharacterSourceId);
+  if (!historicalCharacter || historicalCharacter.role !== 'historical-user-provided-character-reference-not-current-authority' || Object.values(historicalCharacter.runtimeUse ?? {}).some(Boolean) || !hasDecision(historicalCharacter.approval, (decision) => decision?.status === 'superseded' && decision.supersededBy === expectedCharacter.ledgerSourceId && decision.scope?.includes('player-identity') && decision.scope?.includes('character-style') && decision.scope?.includes('current-character-visual-style-authority'))) {
+    fail('previous user character reference must remain immutable historical evidence and be superseded only for current promotion');
+  }
+  const rejectedBlueCharacter = nonUserById.get('codex_blue_character_visual_master');
+  if (!rejectedBlueCharacter || !hasDecision(rejectedBlueCharacter.approval, (decision) => decision?.status === 'rejected' && decision.supersededBy === expectedCharacter.ledgerSourceId && decision.scope?.includes('current-player-identity') && decision.scope?.includes('current-character-visual-style-authority'))) {
+    fail('previous generated character candidate must remain rejected for current promotion');
+  }
+  const characterAuthority = registry.authority?.currentCharacterAuthority;
+  if (!characterAuthority || characterAuthority.sourceId !== expectedCharacter.sourceId || characterAuthority.ledgerSourceId !== expectedCharacter.ledgerSourceId || characterAuthority.path !== expectedCharacter.path || characterAuthority.sha256 !== expectedCharacter.sha256 || !sameDimensions(characterAuthority.dimensions, expectedCharacter.dimensions)) {
+    fail('registry currentCharacterAuthority must be scoped to the current user sheet');
+  }
+  const characterPriority = registry.authority?.characterIdentityPriority;
+  if (!Array.isArray(characterPriority) || characterPriority[0] !== expectedCharacter.sourceId || characterPriority[1] !== expectedCharacter.ledgerSourceId || characterPriority.includes(supersededCharacterSourceId)) {
+    fail('registry character priority must not promote the superseded character reference');
+  }
   const town = (registry.sources ?? []).find((source) => source.sourceId === expectedTown.sourceId);
   if (!town || town.path !== expectedTown.path || town.sha256 !== expectedTown.sha256 || !sameDimensions(town.dimensions, expectedTown.dimensions) || !town.runtimeUse.directWholeImageRender) fail('active town authority must be the exact user-provided image');
   for (const source of registry.sources ?? []) if (source.sourceId !== expectedTown.sourceId && source.runtimeUse.directWholeImageRender) fail(`${source.sourceId}: whole-image background approval is limited to target-town`);
@@ -207,7 +263,7 @@ async function main() {
 
   const requireRuntime = process.argv.includes('--require-runtime');
   const implementationGates = {
-    greenPlayerDerivative: 'pending-runtime-asset-and-lineage-verification',
+    currentCharacterDerivative: 'pending-runtime-asset-and-lineage-verification',
     targetTownGeometry: runtimeBackground.geometryStatus,
   };
   if (requireRuntime && Object.values(implementationGates).some((value) => String(value).startsWith('pending') || String(value).includes('required'))) fail('runtime implementation gates are not yet complete');

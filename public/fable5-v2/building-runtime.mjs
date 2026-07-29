@@ -5,6 +5,11 @@ import {
   pointInPolygon
 } from './world-runtime.mjs';
 import { serializeInvestigationState } from './quest-runtime.mjs';
+import {
+  FABLE5_APPROVED_RUNTIME_BINDINGS,
+  FABLE5_INNKEEPER_RUNTIME_GATE,
+  PRODUCTION_ASSETS
+} from './runtime-asset-manifest.mjs';
 
 // Building navigation is intentionally a small, data-only boundary between
 // the town scene and the UI.  app.js owns rendering and transition animation;
@@ -43,12 +48,65 @@ function freezeBuilding(building) {
   return Object.freeze(building);
 }
 
+// Every building's runtimeAvailability is a live check against the same
+// FABLE5_APPROVED_RUNTIME_BINDINGS ledger, keyed by whichever asset(s) its
+// customer-facing interior needs -- so it is a real "not yet approved" state
+// that a future human approval can flip, not a hardcoded closure no approval
+// could ever open. This is deliberately the *only* mechanism any building
+// uses to gate its interior: there must be no per-building carve-out that
+// lets one building's room stay reachable while its own required asset is
+// unapproved (see the 2026-07-29 product-owner correction recorded in
+// docs/current-state.md -- a prior revision briefly gave the inn exactly
+// such a carve-out, reopening it behind a "provisional" legacy-art fallback
+// while its real approval was still unmet, which the product owner ruled a
+// disguised-as-shipped misrepresentation and required withdrawn). Today,
+// with FABLE5_APPROVED_RUNTIME_BINDINGS empty, all three buildings evaluate
+// to the same blocked state.
+function buildingInteriorIsApproved(requiredAssetKeys) {
+  return requiredAssetKeys.length > 0 && requiredAssetKeys.every((key) => (
+    Object.hasOwn(PRODUCTION_ASSETS, key)
+    && FABLE5_APPROVED_RUNTIME_BINDINGS.some((binding) => binding.key === key)
+  ));
+}
+
+function pendingInteriorAvailability(requiredAssetKeys, reason) {
+  return Object.freeze(
+    buildingInteriorIsApproved(requiredAssetKeys)
+      ? { state: 'available', reason: null }
+      : { state: 'blocked-pending-approved-interior', reason }
+  );
+}
+
+// Provisional key names for the not-yet-started interior kit + NPC each
+// building needs. None of these keys exists anywhere in PRODUCTION_ASSETS or
+// FABLE5_APPROVED_RUNTIME_BINDINGS today, so buildingInteriorIsApproved()
+// above is unmet for all three and this is inert until asset work begins; it
+// exists so that work has an actual switch to flip instead of needing a
+// second code change here just to stop hardcoding closed. The inn reuses
+// FABLE5_INNKEEPER_RUNTIME_GATE.key rather than inventing a second name for
+// the same withdrawn/pending 'bartender' asset runtime-asset-manifest.mjs
+// already tracks.
+const INNKEEPER_REQUIRED_ASSET_KEYS = Object.freeze([FABLE5_INNKEEPER_RUNTIME_GATE.key]);
+const CITY_HALL_REQUIRED_ASSET_KEYS = Object.freeze(['townClerk']);
+const RESIDENCE_REQUIRED_ASSET_KEYS = Object.freeze(['resident']);
+
 const INN_BUILDING = freezeBuilding({
   id: 'inn',
   label: '古町の宿屋',
   exteriorEvidence: 'observed',
   interiorEvidence: 'observed',
-  runtimeAvailability: Object.freeze({ state: 'available', reason: null }),
+  // Blocked exactly like city-hall/residence below: the innkeeper's former
+  // style authority was withdrawn (FABLE5_INNKEEPER_RUNTIME_GATE in
+  // runtime-asset-manifest.mjs) and no replacement has been human-approved,
+  // so this building has no more claim to being open than either of them.
+  // interiorEvidence stays 'observed' -- the room's geometry/camera framing
+  // really is measured, unlike city-hall/residence's inferred layouts -- but
+  // that is a statement about the walk polygon, not a license to seat an
+  // unapproved character in it.
+  runtimeAvailability: pendingInteriorAvailability(
+    INNKEEPER_REQUIRED_ASSET_KEYS,
+    FABLE5_INNKEEPER_RUNTIME_GATE.availabilityReason
+  ),
   exterior: Object.freeze({
     // Retain the live inn trigger byte-for-byte as a rectangle so existing
     // approach/auto-transition behavior remains compatible.
@@ -83,10 +141,10 @@ const CITY_HALL_BUILDING = freezeBuilding({
   label: '古町の市庁舎',
   exteriorEvidence: 'observed',
   interiorEvidence: 'inferred',
-  runtimeAvailability: Object.freeze({
-    state: 'blocked-pending-approved-interior',
-    reason: '内装・小物・記録係の承認済み素材を準備中です'
-  }),
+  runtimeAvailability: pendingInteriorAvailability(
+    CITY_HALL_REQUIRED_ASSET_KEYS,
+    '内装・小物・記録係の承認済み素材を準備中です'
+  ),
   exterior: Object.freeze({
     entrance: Object.freeze({
       shape: 'circle',
@@ -124,10 +182,10 @@ const RESIDENCE_BUILDING = freezeBuilding({
   label: '古町の住宅',
   exteriorEvidence: 'observed',
   interiorEvidence: 'inferred',
-  runtimeAvailability: Object.freeze({
-    state: 'blocked-pending-approved-interior',
-    reason: '内装・小物・住人の承認済み素材を準備中です'
-  }),
+  runtimeAvailability: pendingInteriorAvailability(
+    RESIDENCE_REQUIRED_ASSET_KEYS,
+    '内装・小物・住人の承認済み素材を準備中です'
+  ),
   exterior: Object.freeze({
     entrance: Object.freeze({
       shape: 'circle',
@@ -307,6 +365,16 @@ export function getInteraction({ mode, buildingId = null, position, questState }
   // Interaction anchors may sit at the visual edge of a room (notably the
   // already-shipped inn exit), while collision remains enforced by movement.
   // Do not silently break those anchors by demanding a full footprint here.
+  //
+  // No building-specific availability re-check is done in this branch, for
+  // any building: canEnter()/enter() are the actual boundary that keeps a
+  // player's mode/buildingId from ever reaching an unapproved building's
+  // interior in the first place, and app.js's own enforceInteriorReleaseGate
+  // is a second, independent net on top of that for the one real caller
+  // (currentInteraction()). A per-building carve-out here once let the inn
+  // silently outrun that shared protection instead of relying on it -- see
+  // this module's own top-of-file comment on buildingInteriorIsApproved()
+  // for why that shape must never come back for any building.
   if (!building) return null;
   const interaction = building.interior.interaction;
   if (distanceBetween(position, interaction.point) <= interaction.radius) {
@@ -348,9 +416,16 @@ function innQuestAffordance(phase) {
     id: 'investigation-in-progress', action: null, available: false,
     label: '町で手掛かりを集める'
   });
+  // The report is filed at city hall once its own approved interior/clerk
+  // asset exists; it is never handed to any substitute NPC in the meantime.
+  // A prior revision briefly let the innkeeper accept the report on city
+  // hall's behalf here while city-hall's own approval was unmet, calling it
+  // a "provisional fallback" -- the product owner ruled that a disguised
+  // substitute for a still-unbuilt experience and required it withdrawn.
+  // available stays false until isBuildingRuntimeAvailable('city-hall')
+  // itself flips true; no other branch may report the case as actionable.
   if (phase === 'reportable') return freezeQuest({
-    id: 'report-ready', action: null, available: false,
-    label: '市庁舎へ報告できる'
+    id: 'report-ready', action: null, available: false, label: '市庁舎へ報告できる'
   });
   return freezeQuest({
     id: 'case-completed', action: null, available: false,

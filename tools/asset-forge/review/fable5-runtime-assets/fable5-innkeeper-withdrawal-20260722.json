@@ -1,0 +1,32 @@
+{
+  "format": "fable5-runtime-asset-withdrawal-v1",
+  "assetId": "char_innkeeper",
+  "withdrawnAt": "2026-07-22",
+  "state": "withdrawn-after-style-authority-replacement",
+  "historicalBinding": {
+    "runtimeKey": "bartender",
+    "artifactPath": "generated/characters/approved/fable5_char_innkeeper_4ec9fe5a1e5ed1f8e8e1.png",
+    "artifactSha256": "4ec9fe5a1e5ed1f8e8e130a9ca6edd02ce132cb66fb1c7132c1a85fb3abf4753",
+    "frozenLedgerPath": "generated/fable5-runtime-ledgers/ca4cd4e4139d0b70cb9945d7b95572123e6507fceca7cf3086297ce5bb812f9c.json",
+    "frozenLedgerSha256": "ca4cd4e4139d0b70cb9945d7b95572123e6507fceca7cf3086297ce5bb812f9c",
+    "approvalRecordPath": "review/provenance/character.innkeeper.approved-20260722.json",
+    "note": "These historical files remain byte-identical evidence for their original frozen ledger and are not edited by this withdrawal record."
+  },
+  "replacementAuthority": {
+    "sourceId": "user_character_style_authority_20260722_v1",
+    "path": "art/references/user-provided/character_style_authority_20260722_v1.png",
+    "sha256": "446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932"
+  },
+  "runtime": {
+    "allowed": false,
+    "productionAssetKeyRemoved": true,
+    "fallbackAllowed": false
+  },
+  "replacementRequirement": {
+    "humanVisualApproval": true,
+    "formalAssetForgeIntake": true,
+    "newFrozenLedger": true,
+    "exactAuthorityRequired": true
+  },
+  "decisionRef": "current_character_style_authority_direction_20260722"
+}

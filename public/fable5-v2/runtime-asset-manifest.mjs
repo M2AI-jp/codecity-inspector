@@ -92,13 +92,84 @@ export const FABLE5_LEGACY_RUNTIME_ASSET_BASELINE = Object.freeze({
   })
 });
 
-// Empty by design until a project owner has approved a Forge candidate. Every
-// future binding must name the frozen ledger and exact approved assetId; the
-// preflight rejects any production asset that is neither below nor in the
-// immutable legacy baseline above.
+// The project owner replaced the innkeeper's style authority.  This gate is
+// deliberately separate from the historical bytes below: a mechanically
+// valid frozen ledger never authorizes a character after its visual authority
+// has been withdrawn.  A replacement must explicitly name this exact source,
+// receive a new human approval, and be added as a new frozen-ledger binding.
+// Until then the renderer must have no `bartender` production contract to
+// fetch, decode, or draw.
+export const FABLE5_INNKEEPER_RUNTIME_GATE = Object.freeze({
+  format: 'fable5-innkeeper-runtime-gate-v1',
+  key: 'bartender',
+  state: 'blocked-pending-human-approved-replacement',
+  runtimeInstallAllowed: false,
+  authority: Object.freeze({
+    sourcePath: 'art/references/user-provided/character_style_authority_20260722_v1.png',
+    sha256: '446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932'
+  }),
+  approval: Object.freeze({
+    state: 'not-approved',
+    replacementAssetId: null
+  }),
+  availabilityReason: '宿帳係の新しい作画基準に合う承認済み素材を準備中です'
+});
+
+// Retain the withdrawn 4×10 binding and its frozen-ledger provenance for
+// audit/history only.  It is intentionally not an approved runtime binding
+// and must never be copied back into PRODUCTION_ASSETS as a fallback.
+export const FABLE5_RETIRED_RUNTIME_BINDINGS = Object.freeze([
+  Object.freeze({
+    key: 'bartender',
+    assetId: 'char_innkeeper',
+    ledgerPath: 'tools/asset-forge/generated/fable5-runtime-ledgers/ca4cd4e4139d0b70cb9945d7b95572123e6507fceca7cf3086297ce5bb812f9c.json',
+    ledgerSha256: 'ca4cd4e4139d0b70cb9945d7b95572123e6507fceca7cf3086297ce5bb812f9c',
+    contract: asset({
+      id: 'char_innkeeper-4ec9fe5a1e5ed1f8e8e1',
+      url: '/fable5-v2/assets/characters/innkeeper-fable5-4x10-v1.png',
+      width: 640,
+      height: 512,
+      bytes: 176262,
+      sha256: '4ec9fe5a1e5ed1f8e8e130a9ca6edd02ce132cb66fb1c7132c1a85fb3abf4753',
+      role: 'retired Fable5 innkeeper 4×10 sheet retained only as historical provenance'
+    }),
+    retirement: Object.freeze({
+      state: 'withdrawn-after-style-authority-replacement',
+      replacementAuthority: FABLE5_INNKEEPER_RUNTIME_GATE.authority
+    })
+  })
+]);
+
+// Empty by design.  Installing any replacement is a deliberate human action
+// after the gate above moves to an approved replacement state; it cannot be
+// inferred from historical provenance or a mechanically valid artifact.
 export const FABLE5_APPROVED_RUNTIME_BINDINGS = Object.freeze([]);
 
+const WITHDRAWN_RUNTIME_ASSET_KEYS = Object.freeze([
+  FABLE5_INNKEEPER_RUNTIME_GATE.key
+]);
+
 export const PRODUCTION_ASSETS = Object.freeze({
-  ...FABLE5_LEGACY_RUNTIME_ASSET_BASELINE.assets,
+  ...Object.fromEntries(
+    Object.entries(FABLE5_LEGACY_RUNTIME_ASSET_BASELINE.assets)
+      .filter(([key]) => !WITHDRAWN_RUNTIME_ASSET_KEYS.includes(key))
+  ),
   ...Object.fromEntries(FABLE5_APPROVED_RUNTIME_BINDINGS.map(({ key, contract }) => [key, asset(contract)]))
 });
+
+// No "provisional" fallback exists for the withdrawn innkeeper key, on
+// purpose. An earlier version of this module briefly reintroduced the
+// withdrawn legacy bust (innkeeper-talk-4frame-v2.png) through a second,
+// separately-tracked `state.assets.innkeeperBust` channel that bypassed
+// PRODUCTION_ASSETS -- technically satisfying
+// tools/qa/fable5-runtime-asset-preflight.mjs's "no 'bartender' key in
+// PRODUCTION_ASSETS" rule while still drawing the withdrawn art as a live,
+// speaking NPC and labelling it "暫定素材" (provisional material). The
+// product owner ruled that a disguised-as-shipped misrepresentation
+// regardless of the honest-sounding label, and required that no similar
+// substitute ever be built again. There is now exactly one gate
+// (FABLE5_INNKEEPER_RUNTIME_GATE, consumed the same way city-hall/residence
+// consume their own asset-approval gates) and it has exactly one effect:
+// the inn stays unavailable, the same as city-hall and residence, until a
+// human approves a real replacement and it is added to
+// FABLE5_APPROVED_RUNTIME_BINDINGS above.

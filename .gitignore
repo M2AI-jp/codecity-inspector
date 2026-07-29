@@ -13,6 +13,13 @@ tools/asset-forge/data/local/
 tools/asset-forge/data/manifests/generations.local.json
 tools/asset-forge/asset-forge.local.json
 tools/asset-forge/generated/jobs/
+# The approved innkeeper ledger and character recheck need the complete,
+# non-secret job pack (job, output contract, prompt, references, and guide) in
+# a clean checkout; all other generated jobs remain local state.
+!tools/asset-forge/generated/jobs/
+tools/asset-forge/generated/jobs/*
+!tools/asset-forge/generated/jobs/fable5_prefab_char_innkeeper_3c03c1ac9644bdad8d32/
+!tools/asset-forge/generated/jobs/fable5_prefab_char_innkeeper_3c03c1ac9644bdad8d32/**
 tools/asset-forge/generated/*/pending/
 tools/asset-forge/generated/*/rejected/
 tools/asset-forge/processed/

@@ -14,6 +14,9 @@ import {
 import { main } from '../src/cli.mjs';
 
 const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
+const CHARACTER_STYLE_REFERENCE_SOURCE_ID = 'user_character_style_authority_20260722_v1';
+const CHARACTER_STYLE_REFERENCE_PATH = 'art/references/user-provided/character_style_authority_20260722_v1.png';
+const CHARACTER_STYLE_REFERENCE_SHA256 = '446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932';
 
 async function forgeFixture(t) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'forge-fable5-character-job-'));
@@ -32,17 +35,35 @@ async function userLedger() {
 }
 
 test('Fable5 draft job preflight uses only the 640x512 contracts and ledger-bound references', async () => {
-  for (const [assetId, expectedRole] of [
-    ['char_player', 'player-identity'],
-    ['char_innkeeper', 'shared-character-rendering-language']
+  for (const [assetId, expected] of [
+    ['char_player', {
+      contractPath: 'contracts/fable5-prefab/character.player.contract-draft.json',
+      promptPath: 'prompts/fable5-prefab/character.player.prompt-draft.md',
+      identityRole: 'player-direct-derivation-from-sole-character-style-authority'
+    }],
+    ['char_innkeeper', {
+      contractPath: 'contracts/fable5-prefab/character.innkeeper.contract-draft.json',
+      promptPath: 'prompts/fable5-prefab/character.innkeeper.prompt-draft.md',
+      identityRole: 'sole-character-style-authority-distinct-npc'
+    }],
+    ['char_town_clerk', {
+      contractPath: 'contracts/fable5-prefab/character.town-clerk.contract-draft.json',
+      promptPath: 'prompts/fable5-prefab/character.town-clerk.prompt-draft.md',
+      identityRole: 'sole-character-style-authority-distinct-npc'
+    }],
+    ['char_resident', {
+      contractPath: 'contracts/fable5-prefab/character.resident.contract-draft.json',
+      promptPath: 'prompts/fable5-prefab/character.resident.prompt-draft.md',
+      identityRole: 'sole-character-style-authority-distinct-npc'
+    }]
   ]) {
     const plan = await buildFable5PrefabCharacterJob({ assetId }, { projectRoot: REPO_ROOT });
     assert.equal(plan.status, 'dry-run');
     assert.equal(plan.job.assetId, assetId);
-    assert.equal(plan.job.contractPath.startsWith('contracts/fable5-prefab/'), true);
+    assert.equal(plan.job.contractPath, expected.contractPath);
     assert.deepEqual(plan.job.promptPaths, [
       'prompts/fable5-prefab/00_common_fable5_character_sheet_style.md',
-      `prompts/fable5-prefab/character.${assetId.slice('char_'.length)}.prompt-draft.md`
+      expected.promptPath
     ]);
     assert.deepEqual(plan.job.outputContract, {
       kind: 'spritesheet',
@@ -62,10 +83,10 @@ test('Fable5 draft job preflight uses only the 640x512 contracts and ledger-boun
       }
     });
     assert.deepEqual(plan.pack.referenceIds, [
-      'user_character_style_reference',
+      CHARACTER_STYLE_REFERENCE_SOURCE_ID,
       'user_target_town_current'
     ]);
-    assert.equal(plan.job.references[0].role, expectedRole);
+    assert.equal(plan.job.references[0].role, expected.identityRole);
     assert.equal(plan.job.references.every((reference) => reference.verifiedAtAssembly), true);
     assert.equal(plan.job.references.every((reference) => reference.copiedIntoForge === false), true);
     assert.equal(plan.job.references.every((reference) => Object.hasOwn(reference, 'sourceSha256') === false), true);
@@ -73,6 +94,8 @@ test('Fable5 draft job preflight uses only the 640x512 contracts and ledger-boun
       usesLegacyCharacterDefinitions: false,
       usesLegacyCharacterPrompts: false,
       usesRejectedPlayerIdentity: false,
+      usesHistoricalCharacterCandidates: false,
+      historicalCharacterRuntimePromotion: false,
       automaticImport: false,
       automaticApproval: false,
       apiKeyRequired: false,
@@ -82,7 +105,7 @@ test('Fable5 draft job preflight uses only the 640x512 contracts and ledger-boun
   }
 });
 
-test('Fable5 contract validator rejects legacy-sized character grid values', async () => {
+test('Fable5 contract validator rejects legacy-sized grids and non-authoritative character sources', async () => {
   const original = JSON.parse(await readFile(
     path.join(FORGE_ROOT, 'contracts', 'fable5-prefab', 'character.player.contract-draft.json'),
     'utf8'
@@ -91,8 +114,11 @@ test('Fable5 contract validator rejects legacy-sized character grid values', asy
   wrongGrid.sheet.frameW = 48;
   const wrongPivot = structuredClone(original);
   wrongPivot.pivot.y = 96;
+  const wrongAuthority = structuredClone(original);
+  wrongAuthority.draftMeta.identitySource.sourceId = 'unlocked-character-source';
   assert.match(fable5CharacterContractProblems(wrongGrid, 'char_player').join('\n'), /4x10 grid of 64x128/);
   assert.match(fable5CharacterContractProblems(wrongPivot, 'char_player').join('\n'), /pivot must be \(32,120\)/);
+  assert.match(fable5CharacterContractProblems(wrongAuthority, 'char_player').join('\n'), /exact sole character-style authority/);
 });
 
 test('dry-run has no output, while a Fable5 job pack stores commitments rather than source copies', async (t) => {
@@ -121,7 +147,9 @@ test('dry-run has no output, while a Fable5 job pack stores commitments rather t
   ]);
   const referencesText = await readFile(written.output.references, 'utf8');
   const ledger = await userLedger();
-  const playerReference = ledger.sources.find((source) => source.sourceId === 'user_character_style_reference');
+  const playerReference = ledger.sources.find((source) => source.sourceId === CHARACTER_STYLE_REFERENCE_SOURCE_ID);
+  assert.equal(playerReference.canonicalPath, CHARACTER_STYLE_REFERENCE_PATH);
+  assert.equal(playerReference.sha256, CHARACTER_STYLE_REFERENCE_SHA256);
   assert.equal(referencesText.includes(playerReference.sha256), false);
   assert.match(await readFile(written.output.importGuide, 'utf8'), /Do not use the legacy/);
   assert.match(await readFile(written.output.prompt, 'utf8'), /Explicitly excluded:/);
@@ -130,12 +158,16 @@ test('dry-run has no output, while a Fable5 job pack stores commitments rather t
 test('CLI exposes the separate Fable5 preflight route and rejects legacy asset IDs on it', async () => {
   const help = await main(['help']);
   assert.ok(help.commands.includes(
-    'make-fable5-character-job --asset <char_player|char_innkeeper> [--dry-run]'
+    'make-fable5-character-job --asset <char_player|char_innkeeper|char_town_clerk|char_resident> [--dry-run]'
   ));
-  const dryRun = await main(['make-fable5-character-job', '--asset', 'char_innkeeper', '--dry-run']);
-  assert.equal(dryRun.status, 'dry-run');
-  await assert.rejects(
-    () => main(['make-fable5-character-job', '--asset', 'character.player', '--dry-run']),
-    /accept only char_player or char_innkeeper/
-  );
+  for (const assetId of ['char_innkeeper', 'char_town_clerk', 'char_resident']) {
+    const dryRun = await main(['make-fable5-character-job', '--asset', assetId, '--dry-run']);
+    assert.equal(dryRun.status, 'dry-run');
+  }
+  for (const assetId of ['character.player', 'char_gatekeeper']) {
+    await assert.rejects(
+      () => main(['make-fable5-character-job', '--asset', assetId, '--dry-run']),
+      /accept only char_player, char_innkeeper, char_town_clerk, or char_resident/
+    );
+  }
 });

@@ -1,7 +1,12 @@
 {
   "format": "fable5-pending-runtime-evidence-v1",
-  "status": "pending-human-review",
-  "purpose": "Commit-backed review evidence for locally imported pending candidates. These copies preserve exact candidate bytes and their job-pack receipts without changing the Asset Forge rule that generated/pending paths are local working state and never runtime assets.",
+  "status": "historical-superseded",
+  "purpose": "Historical, audit-only evidence for superseded locally imported candidates. These copies preserve exact candidate bytes, metadata, provenance receipts, and job-pack receipts, but are not a current pending-review queue and cannot authorize promotion or runtime installation.",
+  "supersededBy": {
+    "sourceId": "user_character_style_authority_20260722_v1",
+    "sha256": "446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932",
+    "reviewPacketPath": "review/fable5-runtime-assets/style-authority-20260722-v1/index.json"
+  },
   "approval": {
     "humanDecision": null,
     "runtimeInstallAllowed": false,
@@ -20,15 +25,32 @@
       "contractPath": "contracts/fable5-prefab/character.player.contract-draft.json"
     },
     {
-      "assetId": "char_innkeeper",
+      "assetId": "char_resident",
       "category": "character",
-      "artifactPath": "review/fable5-runtime-assets/pending-evidence/20260722/fable5_char_innkeeper_4ec9fe5a1e5ed1f8e8e1.png",
-      "artifactSha256": "4ec9fe5a1e5ed1f8e8e130a9ca6edd02ce132cb66fb1c7132c1a85fb3abf4753",
-      "metadataPath": "review/fable5-runtime-assets/pending-evidence/20260722/fable5_char_innkeeper_4ec9fe5a1e5ed1f8e8e1.json",
-      "metadataSha256": "ea70d410881d51ec4a8eaa1c38af9d6a553021c4cb9f1a8c7cd9c04f47d5557e",
-      "jobPackPath": "review/fable5-runtime-assets/pending-evidence/20260722/jobs/fable5_prefab_char_innkeeper_3c03c1ac9644bdad8d32/job-pack.json",
-      "jobPackSha256": "4dfd67c08cd97a61d97a9060f572607e0b373dd97fdbc3e2a908b76464af0eac",
-      "contractPath": "contracts/fable5-prefab/character.innkeeper.contract-draft.json"
+      "artifactPath": "review/fable5-runtime-assets/pending-evidence/20260722/fable5_char_resident_06f3331c7beaddeb7d43.png",
+      "artifactSha256": "06f3331c7beaddeb7d43ed09125de131fb8cb14f0764c4f28c09d57566a64d4d",
+      "metadataPath": "review/fable5-runtime-assets/pending-evidence/20260722/fable5_char_resident_06f3331c7beaddeb7d43.json",
+      "metadataSha256": "2b5998f732378ce29192ad441b67ba804bcbd4139e9fac4e6267dbee5f9d169c",
+      "provenanceReceiptPath": "review/fable5-runtime-assets/pending-evidence/20260722/fable5_char_resident_06f3331c7beaddeb7d43.receipt.json",
+      "provenanceReceiptSha256": "d50bb4a3813d7036710949b051b878c78d80ebebd0221fa6ed3cae45076cb152",
+      "jobPackPath": null,
+      "jobPackSha256": null,
+      "contractPath": "contracts/fable5-prefab/character.resident.contract-draft.json",
+      "formalIntake": "unresolved-awaiting-formal-intake"
+    },
+    {
+      "assetId": "char_town_clerk",
+      "category": "character",
+      "artifactPath": "review/fable5-runtime-assets/pending-evidence/20260722/fable5_char_town_clerk_773ba726697e445cb648.png",
+      "artifactSha256": "773ba726697e445cb648e1558d7225e11a520d51ca705c68a28361e642bbe5ce",
+      "metadataPath": "review/fable5-runtime-assets/pending-evidence/20260722/fable5_char_town_clerk_773ba726697e445cb648.json",
+      "metadataSha256": "f9c6327ae383fcef274a8184b5958143cb7743d1775ed75d50e3432e2eedd5b7",
+      "provenanceReceiptPath": "review/fable5-runtime-assets/pending-evidence/20260722/fable5_char_town_clerk_773ba726697e445cb648.receipt.json",
+      "provenanceReceiptSha256": "0b5a206fc004ce4d7080a5c6efa5538cc048700e65ba04c7e3c163bd2a3ce32a",
+      "jobPackPath": null,
+      "jobPackSha256": null,
+      "contractPath": "contracts/fable5-prefab/character.town-clerk.contract-draft.json",
+      "formalIntake": "unresolved-awaiting-formal-intake"
     },
     {
       "assetId": "bld_m_inn.interior",

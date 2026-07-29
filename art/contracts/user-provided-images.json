@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "updatedAt": "2026-07-19",
+  "updatedAt": "2026-07-22",
   "policy": "docs/user-provided-image-policy.md",
   "canonicalRoot": "art/references/user-provided",
   "definitions": {
@@ -44,6 +44,20 @@
       "observedSha256": "910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b",
       "observedAt": "2026-07-19"
     },
+    "current_character_style_authority_attachment_20260722": {
+      "kind": "current-conversation-attachment",
+      "fileName": "codex-clipboard-2019d989-24e1-4fbf-9cb0-03167c687a47.png",
+      "observedPath": "/var/folders/86/xb8typls3sncx8y3_dps4n000000gq/T/codex-clipboard-2019d989-24e1-4fbf-9cb0-03167c687a47.png",
+      "observedSha256": "446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932",
+      "observedDimensions": { "width": 1402, "height": 1122 },
+      "observedAt": "2026-07-22"
+    },
+    "current_character_style_authority_direction_20260722": {
+      "kind": "current-user-instruction",
+      "decisionRef": "conversation-2026-07-22:character-reference-style-authority-migration",
+      "observedAt": "2026-07-22",
+      "scope": "This newly supplied character sheet is the sole current player-identity and character visual-style authority; earlier candidate directions drifted and are not promoted for current use."
+    },
     "target_town_current_attachment": {
       "kind": "current-conversation-attachment",
       "fileName": "codex-clipboard-0bda39d7-b020-4f58-9257-861c814b675b.png",
@@ -81,12 +95,29 @@
       "originalPath": "tools/asset-forge/references/pending/character_style_reference_sheet.png",
       "sha256": "910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b",
       "dimensions": { "width": 1536, "height": 1024 },
-      "role": "player-identity-and-character-style-master",
-      "priority": 1000,
+      "role": "historical-user-provided-character-reference-not-current-authority",
+      "priority": 0,
       "origin": { "kind": "unknown", "notInferredFromCustody": true },
       "custody": { "kind": "user-direct", "evidenceRefs": ["green_character_manifest", "green_character_current_attachment"], "intakeManifestId": "intake_20260712_character_style_sheet", "intakeCommit": "047ef91ee4c16322820b9d6876c7f83e31bbc991", "gitBlob": "edbce2a97ce1f5f2ad5fbd97f77c2290522fb127" },
-      "approval": { "status": "approved", "scope": ["player-identity", "character-style", "frame-extraction", "missing-frame-generation-reference"], "approvedBy": "user", "decisionRef": "current_user_asset_direction" },
+      "approval": { "decisions": [
+        { "status": "approved", "scope": ["player-identity", "character-style", "frame-extraction", "missing-frame-generation-reference"], "approvedBy": "user", "decisionRef": "current_user_asset_direction" },
+        { "status": "superseded", "scope": ["player-identity", "character-style", "frame-extraction", "missing-frame-generation-reference", "current-player-identity", "current-character-style-authority", "current-character-visual-style-authority"], "supersededBy": "user_character_style_authority_20260722_v1", "decisionRef": "current_character_style_authority_direction_20260722", "reason": "Retained as immutable historical user-provided bytes; not promoted for the current character direction." }
+      ] },
       "protection": { "state": "worktree-protected-pending-versioning", "canonicalCopyTracked": false, "historicalSourceGitBlob": "edbce2a97ce1f5f2ad5fbd97f77c2290522fb127" },
+      "runtimeUse": { "directWholeImageRender": false, "fixedCropInput": false, "nineSliceInput": false, "generationReference": false, "fullSheetRender": false }
+    },
+    {
+      "sourceId": "user_character_style_authority_20260722_v1",
+      "canonicalPath": "art/references/user-provided/character_style_authority_20260722_v1.png",
+      "originalPath": "/var/folders/86/xb8typls3sncx8y3_dps4n000000gq/T/codex-clipboard-2019d989-24e1-4fbf-9cb0-03167c687a47.png",
+      "sha256": "446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932",
+      "dimensions": { "width": 1402, "height": 1122 },
+      "role": "current-player-identity-and-character-visual-style-authority",
+      "priority": 1100,
+      "origin": { "kind": "unknown", "notInferredFromCustody": true },
+      "custody": { "kind": "user-direct", "evidenceRefs": ["current_character_style_authority_attachment_20260722"] },
+      "approval": { "status": "approved", "scope": ["player-identity", "character-visual-style-authority", "frame-extraction", "missing-frame-generation-reference"], "approvedBy": "user", "decisionRef": "current_character_style_authority_direction_20260722" },
+      "protection": { "state": "worktree-protected-pending-versioning", "canonicalCopyTracked": false, "historicalSourceGitBlob": null },
       "runtimeUse": { "directWholeImageRender": false, "fixedCropInput": true, "nineSliceInput": false, "generationReference": true, "fullSheetRender": false }
     },
     {
@@ -212,7 +243,7 @@
       "custody": { "kind": "agent-generated-not-user-direct", "gitCommit": "b13d5fd63e70ab98c31c99c8c2b042d980c73932", "gitBlob": "c3908c8115543f832e90780aed1b88901f3502dd" },
       "approval": { "decisions": [
         { "status": "approved", "scope": ["historical-character-production-reference-only"], "decisionRef": "generated_reference_manifest" },
-        { "status": "rejected", "scope": ["current-player-identity", "current-player-runtime"], "supersededBy": "user_character_style_reference", "decisionRef": "current_user_asset_direction" }
+        { "status": "rejected", "scope": ["current-player-identity", "current-player-runtime", "current-character-visual-style-authority"], "supersededBy": "user_character_style_authority_20260722_v1", "decisionRef": "current_character_style_authority_direction_20260722" }
       ] },
       "protection": { "state": "historical-git-record", "runtimeDisposition": "quarantine" }
     },

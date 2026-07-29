@@ -1,6 +1,6 @@
 {
   "schemaVersion": 3,
-  "updatedAt": "2026-07-19",
+  "updatedAt": "2026-07-22",
   "authority": {
     "userProvidedImagePolicy": "docs/user-provided-image-policy.md",
     "userProvidedImageLedger": "art/contracts/user-provided-images.json",
@@ -23,9 +23,17 @@
     ],
     "characterIdentityPriority": [
       "src_character_inspector",
-      "user_character_style_reference",
-      "codex-generated-character-candidates-are-non-authoritative"
-    ]
+      "user_character_style_authority_20260722_v1",
+      "all-prior-character-candidates-are-historical-or-rejected-for-current-promotion"
+    ],
+    "currentCharacterAuthority": {
+      "sourceId": "src_character_inspector",
+      "ledgerSourceId": "user_character_style_authority_20260722_v1",
+      "path": "art/references/user-provided/character_style_authority_20260722_v1.png",
+      "sha256": "446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932",
+      "dimensions": { "width": 1402, "height": 1122 },
+      "scope": "Sole current player-identity and character visual-style authority; prior directions remain only as historical or rejected evidence."
+    }
   },
   "sources": [
     {
@@ -211,16 +219,16 @@
     },
     {
       "sourceId": "src_character_inspector",
-      "path": "art/references/user-provided/character_style_reference_sheet.png",
-      "sha256": "910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b",
-      "dimensions": { "width": 1536, "height": 1024 },
-      "role": "user-direct-player-identity-and-character-style-master",
-      "priority": 1000,
-      "identityInvariants": ["same mature face", "same gray-to-lavender swept hair", "same beard and moustache", "same compact head-to-body proportions", "same deep-green torso garment", "same ochre-gold edging and belt accents", "same cream sleeves", "same pale gray-white lower garment", "same dark footwear", "same pixel density", "same silhouette", "no blue cap", "no long blue coat", "no inspector satchel or notebook redesign"],
+      "path": "art/references/user-provided/character_style_authority_20260722_v1.png",
+      "sha256": "446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932",
+      "dimensions": { "width": 1402, "height": 1122 },
+      "role": "sole-current-user-direct-player-identity-and-character-visual-style-authority",
+      "priority": 1100,
+      "identityInvariants": ["same mature bearded face from the supplied sheet", "same gray-to-lavender swept hair", "same beard and moustache", "same compact head-to-body proportions", "same deep-green torso garment", "same ochre-gold edging and belt accents", "same cream sleeves", "same pale gray-white lower garment", "same dark footwear", "same pixel density and black outline language", "same silhouette in front, side, back, walk, and gesture views", "no blue cap", "no long blue coat", "no inspector satchel or notebook redesign"],
       "runtimeUse": { "directWholeImageRender": false, "fixedCropInput": true, "nineSliceInput": false, "generationReference": true, "fullSheetRender": false },
-      "derivativeRules": ["add only missing directions, in-between walk frames, idle frames, and interaction frames", "do not redesign the person", "east and west must be separately drawn", "all frames use 64x128 canvas and pivot 32,120"],
-      "origin": { "ledgerSourceId": "user_character_style_reference", "field": "origin" }, "custody": { "ledgerSourceId": "user_character_style_reference", "field": "custody" }, "approval": { "ledgerSourceId": "user_character_style_reference", "field": "approval" }, "protection": { "ledgerSourceId": "user_character_style_reference", "field": "protection" },
-      "inspectionStatus": { "metadata": "observed-and-hash-verified", "visual": "lead-inspected", "availability": "worktree-canonical-plus-historical-git-blob" }
+      "derivativeRules": ["treat every supplied direction, walk pose, and gesture as the current visual authority", "add only frames or states absent from this sheet", "do not redesign the person or blend in prior candidate directions", "east and west must be separately drawn when a missing frame requires either direction"],
+      "origin": { "ledgerSourceId": "user_character_style_authority_20260722_v1", "field": "origin" }, "custody": { "ledgerSourceId": "user_character_style_authority_20260722_v1", "field": "custody" }, "approval": { "ledgerSourceId": "user_character_style_authority_20260722_v1", "field": "approval" }, "protection": { "ledgerSourceId": "user_character_style_authority_20260722_v1", "field": "protection" },
+      "inspectionStatus": { "metadata": "observed-and-hash-verified", "visual": "observed-from-current-user-attachment", "availability": "worktree-canonical-pending-versioning" }
     },
     {
       "sourceId": "src_field_cobblestone_roads",
@@ -353,7 +361,7 @@
       "runtimeUse": { "directWholeImageRender": false, "fixedCropInput": false, "nineSliceInput": false, "generationReference": false, "fullSheetRender": false },
       "origin": { "kind": "codex-imagegen", "provider": "codex-imagegen-built-in" },
       "custody": { "kind": "agent-generated-not-user-direct" },
-      "approval": { "status": "rejected", "scope": ["current-player-identity", "current-player-runtime"], "ledgerRecordId": "codex_blue_character_visual_master" },
+      "approval": { "status": "rejected", "scope": ["current-player-identity", "current-player-runtime", "current-character-visual-style-authority"], "ledgerRecordId": "codex_blue_character_visual_master", "supersededBy": "user_character_style_authority_20260722_v1", "decisionRef": "current_character_style_authority_direction_20260722" },
       "protection": { "state": "historical-git-record", "runtimeDisposition": "quarantine" },
       "normalizedOutputSha256": "78436f089e03ae6fb15605ccaeae12513cd9393dd0e3355d4ef6df04bfb430ea",
       "inspectionStatus": { "metadata": "observed", "visual": "lead-inspected", "availability": "git-head-only" }

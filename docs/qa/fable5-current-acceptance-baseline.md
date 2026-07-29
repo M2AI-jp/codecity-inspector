@@ -1,6 +1,33 @@
-# Fable5 現行revision受入ベースライン
+# Fable5 受入ベースライン（履歴）
 
-**用途:** これは最終プロダクト完成と中間ビジュアル目標の双方に使う、P0の
+> **状態:** 2026-07-22 に作成した履歴上の受入ベースラインである。これは現行revisionの
+> 受入証拠でも、現行状態の正本でもない。以下の各節にある「現行」「開始時Current」「未決定」
+> 「検出できなかった」は、すべてこのベースラインを作成した時点の記録として読む。歴史上の
+> 事実は保持するが、現在の判定にそのまま流用してはならない。
+>
+> **現行差分（2026-07-22、文書記録に基づく。テスト再実行・ブラウザ再検証はしていない）:**
+> この差分は、以下の履歴記述と矛盾する現在状態を置き換える。受入範囲のDEC-01–04は、
+> `docs/fable5-product-completion-roadmap.md` のP0記録で決定済みである。同ロードマップは
+> `user_target_town_current` を可視正本、runtime asset ledgerを素材受入基準とし、音声と
+> 3建物・3調査方式・保存/復元・3リポジトリ比較を完成スコープに残すと記録する。これは
+> scopeの決定であり、受入PASSや現行browser証拠を意味しない。
+>
+> - **Observed:** 以前のinnkeeper (`bartender`) 640×512 / 4×10 runtime bindingは、frozen ledger
+>   とともに履歴として残る。ただし2026-07-22の新しいcharacter visual-style authorityにより
+>   withdrawnされ、現行runtimeはそのsheetを読まない。置換は人間承認待ちである。
+> - **UNMET:** playerはlegacy sheetのままで、approved Fable5 export / provenance / frozen bindingへ
+>   の昇格が未了である。city hall と residence はapproved interior kit、visible props、NPC、
+>   runtime binding、およびcustomer-facing portalが未了であり、現在は
+>   `blocked-pending-approved-interior` として利用不可である。
+> - **Unknown:** 現行worktree/revisionの実ブラウザsession、1280×720・1920×1080のcapture、
+>   network / console / error記録、および同一revisionに結び付くHard Gate判定と所有者の
+>   実プレイ受入。したがって、過去のbrowser smokeや静的テストの記録をこの受入のbrowser
+>   evidence packetとして扱わない。
+>
+> この差分の作成自体は、コード、テスト、server、package managerを実行していない。現在状態は
+> `docs/current-state.md`、実行順とscope決定は`docs/fable5-product-completion-roadmap.md`を参照する。
+
+**作成時の用途:** これは最終プロダクト完成と中間ビジュアル目標の双方に使う、P0の
 意思決定・証拠パケット雛形である。結果報告でも、既存の古いQAを遡及的に合格へ
 書き換えるものでもない。記録がない行は `UNKNOWN`、必要な成果物自体がない行は
 `UNMET` とする。`UNKNOWN` は故障の主張ではないが、受入には使えない。
@@ -128,10 +155,15 @@ node tools/qa/capture-fable5-acceptance.mjs \
   --url http://127.0.0.1:4173/fable5-v2/ \
   --out art/production/vertical-slice/qa/acceptance/<REV>
 
-# REQUIRED BEFORE HG-04 — currently UNMET: per-asset N1–N9 gate implementation
-node tools/asset-forge/normalize-check.mjs \
-  --asset-set art/production/vertical-slice/qa/acceptance/<REV>/10-approved-runtime-asset-set.json \
-  --out art/production/vertical-slice/qa/acceptance/<REV>/11-asset-contract-n1-n9-report.json
+# Implemented static subset — approved frozen ledgers only. This deliberately
+# reports `fullN1N9Status: INCOMPLETE`; it is not an HG-04 PASS or a substitute
+# for human visual review, browser evidence, or the remaining N-gate analyzers.
+node tools/qa/fable5-asset-n1-n9-preflight.mjs \
+  --ledger tools/asset-forge/generated/fable5-runtime-ledgers/<LEDGER_SHA256>.json
+
+# REQUIRED BEFORE HG-04 — still UNMET: full per-asset N1–N9 analyzer and
+# acceptance-packet writer (the old normalize-check command is a historical
+# planned name, not an executable command in this revision).
 
 # REQUIRED BEFORE AC-1/D2 — currently UNMET: deterministic PNG render-hash harness
 node tools/qa/render-fable5-hash.mjs \
@@ -172,7 +204,7 @@ renderer-owned effectのうち新規画像が必要な範囲も、DEC-02で凍�
 | HG-01 | `00-revision-identity.json`: full HEAD、worktree、canonical source/asset hashes、URL、viewport、DPR、browser version、capture開始/終了時刻 | §4 identity commands + browser harnessのmetadata | UNMET |
 | HG-02 | `30-browser-session.json`と`02-evidence-index.json`が40–49、31–33を単一session IDへ結ぶ | browser harnessが生成。手動なら開始から終了まで連続録画・署名済みsession log | UNMET |
 | HG-03 | 10、20–23、31、32。全runtime画像がapproved asset setにあり、master/target/legacy/CSS world art/missing concealmentを使わない | `npm run check`、prefab reconstruction command、HARのURL allowlist/denylist検査 | UNKNOWN |
-| HG-04 | 10–12。各visible assetのmanifest source/crop/pivot/layer/hash、承認、N1–N9結果、支援assetの根拠 | Asset Forge validate/check + **required** normalize command + human review | UNMET |
+| HG-04 | 10–12。各visible assetのmanifest source/crop/pivot/layer/hash、承認、N1–N9結果、支援assetの根拠 | Asset Forge validate/check + static N1–N9 preflight（現状は一部のみ）+ full analyzer + human review | UNMET |
 | HG-05 | 45、46、40–42。4方向のidle2/walk6/interact2、east非mirror、10fps、facing≤1frame、pivot drift≤2pxを表示 | 60fps browser captureとframe overlay。静的sheet検査だけでは不可 | UNKNOWN |
 | HG-06 | 45、47。市庁舎・宿屋・M住宅のdoor→interior→exit、cutaway、collision/nav、10 corner approachesが中断なし | Golden-route replay。閉鎖表示は未実装扉の正直なUX証拠であって、このgateの代替ではない | UNMET |
 | HG-07 | 44、48、45。保持したdialogue sourceの正規crop/9-slice、読みやすい意味ある会話、選択肢・長文stress | source-to-runtime comparison + quest capture | UNKNOWN |
@@ -227,8 +259,10 @@ visual≥48/55、gameplay≥22/27、UI/dialogue≥8/10、experience/robustness�
   visual quality、顧客操作の代替ではない。
 - **Unknown:** 現行acceptance revisionでのbrowser session、全assetのN1–N9、自然歩行、3建物、
   全quest、保存復元、audio scope、両viewport、3-repo差分、owner approval。
-- **UNMET:** `capture-fable5-acceptance.mjs`、per-asset N1–N9実行器、deterministic render-hash
-  harnessは、少なくともこのbaseline作成時には検出できなかった。最終受入の前に同等の実装と結果が必要である。
+- **UNMET:** `capture-fable5-acceptance.mjs`、全N1–N9を満たすper-asset analyzer／acceptance-packet writer、
+  deterministic render-hash harnessは、最終受入の前に同等の実装と結果が必要である。approved ledgerに対する
+  `fable5-asset-n1-n9-preflight.mjs` は実装済みだが、N1/N6/N7などの静的部分だけを再検査し、
+  `fullN1N9Status: INCOMPLETE` を返すため、このUNMETを解消しない。
 
 関連する正本／歴史資料: `docs/game-completion-definition.md`,
 `docs/qa/evidence-matrix.md`, `Fable5ArtContract.md`, `Fable5PrefabSpec.md`,

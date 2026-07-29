@@ -26,22 +26,16 @@
   "allowedZoom": [1, 2, 3],
   "districts": ["old_town", "port", "snow", "forest"],
   "draftMeta": {
-    "purpose": "Re-production per product-owner decision: restore tools/asset-forge, retarget character.player at the current Fable5PrefabSpec section 6/7 contract with the correct (green) identity.",
-    "supersedesRejectedIdentity": {
-      "rejectedReferenceId": "character_visual_master",
-      "rejectedReferenceSha256": "78436f089e03ae6fb15605ccaeae12513cd9393dd0e3355d4ef6df04bfb430ea",
-      "rejectionAuthority": "docs/user-provided-image-policy.md section 7 (2026-07-19): 'Codex生成物...現在のプレイヤー同一性とruntime用途では不採用'",
-      "note": "This tool's own data/v2/art-direction/characters.json character.player entry and data/asset-definitions/characters.json character.player entry still describe this rejected navy-coat/satchel/badge identity and still point at this reference. Do not regenerate from those definitions as-is; they need the same rewrite this draft performs before any job-pack is cut against them."
-    },
+    "purpose": "New-generation Fable5 player contract. It is a draft only and is not an approval, promotion, export, or runtime authorization.",
     "identitySource": {
-      "directory": "art/references/user-provided/",
-      "resolveExactPathAndHashFrom": "art/contracts/user-provided-images.json → sources[] where sourceId equals ledgerSourceId below",
-      "whyNotInlinedHere": "tools/asset-forge/test/reference-integrity.test.mjs (RETIRED_CHARACTER_REFERENCE) asserts this specific reference's exact basename and SHA-256 must not appear anywhere inside tools/asset-forge — the corrective work that produced docs/user-provided-image-policy.md deliberately kept this image's provenance authority outside this tool. This draft respects that boundary instead of working around it.",
-      "dimensions": { "width": 1536, "height": 1024 },
+      "sourceId": "user_character_style_authority_20260722_v1",
+      "canonicalPath": "art/references/user-provided/character_style_authority_20260722_v1.png",
+      "sha256": "446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932",
       "custody": "user-direct",
-      "ledgerSourceId": "user_character_style_reference",
-      "verifiedIndependently": "path and sha256 recomputed 2026-07-21 directly from the working-tree file at the ledger's canonicalPath; matched art/contracts/user-provided-images.json and docs/user-provided-image-policy.md section 7 exactly"
+      "role": "sole player identity and character-style authority",
+      "derivationRule": "char_player must be a direct visual derivation of this exact source: preserve the same individual, visible identity, proportions, silhouette, pixel density, contour language, and shading language. Only the required four camera directions and idle/walk/interact phases may be invented."
     },
+    "historicalCandidatePolicy": "All earlier character candidates, generated sheets, and deployed character art are prohibited as visual references, derivation inputs, comparison authorities, or runtime-promotion sources. They may remain quarantined as historical records only.",
     "backgroundShadingReference": {
       "path": "public/fable5-v2/assets/world/target-town-user-direct-v1.png",
       "canonicalPath": "art/references/user-provided/target-town.png",
@@ -59,13 +53,11 @@
     ],
     "provenanceTemplate": "tools/asset-forge/review/provenance/character.player.candidate-provenance-draft.json",
     "generationRoute": [
-      "make-job / make-job-v2 (job-pack, no image produced) — requires rewriting the character.player v2 art-direction entry to this identity/contract first; the current entry still encodes the rejected navy-coat identity and a different (48x96, idle2+walk4+talk2+work2) frame grid",
-      "external human-supervised generation session (Codex built-in image_gen or a signed-in ChatGPT session) — outside this tool, no API key held or used by asset-forge itself",
-      "import / import-v2 (hash-verified pending candidate)",
-      "process (alpha/trim as needed)",
-      "interactive promote (human-only, requires TTY + --reviewer human + --write + note)",
-      "export (dry-run by default; --write only after the v2 manifest is complete)"
+      "make-fable5-character-job --asset char_player (portable job-pack only; no image produced)",
+      "external human-supervised generation from the exact sole identity/style authority",
+      "Fable5-specific pending intake and mechanical validation",
+      "human-only review and a separate approval decision before any runtime installation"
     ],
-    "notGeneratedReason": "Task scope for this pass excludes real image generation (API cost and out-of-band approval); this file only prepares the contract/prompt pair so generation can start without re-deriving identity/background facts."
+    "notGeneratedReason": "Task scope excludes real image generation and approval; this contract only commits the source authority and fixed sheet requirements for a future supervised session."
   }
 }

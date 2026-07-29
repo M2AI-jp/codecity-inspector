@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import {
   AUDIO_CUES,
@@ -185,6 +186,18 @@ test('normalization rejects malformed stored values without turning audio prefer
   assert.deepEqual(normalizeAudioPreferences({ muted: 'true', volume: '0.25' }), { muted: false, volume: 0.25 });
   assert.deepEqual(normalizeAudioPreferences({ muted: true, volume: -2 }), { muted: true, volume: 0 });
   assert.deepEqual(normalizeAudioPreferences({ muted: false, volume: Infinity }), DEFAULT_AUDIO_PREFERENCES);
+});
+
+test('does not read or write a browser-wide audio preference unless a host explicitly injects storage', async () => {
+  const source = await readFile(new URL('../../public/fable5-v2/audio-feedback.mjs', import.meta.url), 'utf8');
+  assert.doesNotMatch(source, /\blocalStorage\b/);
+
+  const fake = makeAudioContext();
+  const audio = createAudioFeedback({ AudioContext: factoryFor(fake).AudioContext });
+  assert.deepEqual(audio.getPreferences(), DEFAULT_AUDIO_PREFERENCES);
+  assert.equal(audio.setMuted(true), true);
+  assert.equal(audio.setVolume(0.3), 0.3);
+  assert.deepEqual(audio.getPreferences(), { muted: true, volume: 0.3 });
 });
 
 test('unavailable, blocked, malformed, and throwing browser APIs fail closed without surfacing an exception', async () => {

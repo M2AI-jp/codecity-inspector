@@ -374,7 +374,19 @@ export function moveActor(position, input, deltaSeconds, mode = 'exterior') {
     x,
     y,
     moved: Math.abs(x - position.x) > 0.01 || Math.abs(y - position.y) > 0.01,
-    blocked: vector.x !== 0 || vector.y !== 0 ? x === position.x && y === position.y : false,
+    // A dt<=0 frame (e.g. two requestAnimationFrame callbacks that land on
+    // the exact same timestamp, or a hidden/backgrounded tab's clock
+    // stuttering) sets distance=0 above, so nextX/nextY always equal the
+    // current position regardless of whether anything actually stands in
+    // the way -- the position genuinely never moves because no travel was
+    // ever attempted, not because it was blocked. Requiring distance > 0
+    // keeps `blocked` meaning only "a real, nonzero-distance move attempt
+    // was rejected by collision", so a held key can no longer make app.js's
+    // registerBump() fire on open ground every time a zero-elapsed frame
+    // slips through -- see the bump-glow regression coverage in
+    // test/town/bump-freeze-regression.test.mjs for the crash this
+    // previously fed downstream.
+    blocked: distance > 0 && (vector.x !== 0 || vector.y !== 0) && x === position.x && y === position.y,
     facing: facingForVector(vector, position.facing)
   });
 }
@@ -627,6 +639,32 @@ export function spriteFrame(actor, timestamp) {
 // source.
 export function ledgerCompletionPulse(timestamp) {
   return Number.isFinite(timestamp) ? 0.86 + Math.sin(timestamp / 260) * 0.08 : 0.86;
+}
+
+// --- bump glow ---------------------------------------------------------
+//
+// drawWorld() briefly rings the player with a fading arc whenever
+// registerBump() fires (see app.js). The ring's radius is `8 + progress * 7`
+// fed straight into CanvasRenderingContext2D.arc(), whose radius argument
+// throws an uncaught IndexSizeError for any negative value (confirmed
+// against a real browser) -- an exception with no surrounding try/catch
+// anywhere in the render loop, which used to kill
+// requestAnimationFrame(frame)'s trailing call forever, the same class of
+// permanent-freeze failure documented for addColorStop() in
+// ledgerCompletionPulse's own comment above. `progress` is meant to stay in
+// [0,1] for a bump's whole 300ms life (0 = just registered, 1 = about to
+// expire), but the naive `1 - (bumpUntil - timestamp) / durationMs` has no
+// guard against `bumpUntil` and `timestamp` disagreeing about "now" by more
+// than durationMs -- most notably a `timestamp` more than ~643ms behind the
+// frame that set `bumpUntil` (e.g. a non-monotonic timestamp source), which
+// pushes progress below -8/7 and the radius below zero. bumpGlowProgress()
+// is the single choke point that clamps the result to [0,1] (and returns 0
+// for any non-finite input), so the radius fed to arc() can never go
+// negative no matter what timestamp/bumpUntil pair reaches it.
+export function bumpGlowProgress(timestamp, bumpUntil, durationMs = 300) {
+  if (!Number.isFinite(timestamp) || !Number.isFinite(bumpUntil) || !(durationMs > 0)) return 0;
+  const progress = 1 - (bumpUntil - timestamp) / durationMs;
+  return Math.max(0, Math.min(1, progress));
 }
 
 // --- prefers-reduced-motion ------------------------------------------------
