@@ -25,6 +25,8 @@
     "ship/50-art/index.mjs",
     "ship/50-art/manifest.json",
     "ship/50-art/scene-bindings.json",
+    "ship/50-art/license.json",
+    "ship/50-art/provenance.json",
     "ship/50-art/assets/",
     "ship/60-scene-compiler/index.mjs",
     "ship/70-game-runtime/app.mjs",

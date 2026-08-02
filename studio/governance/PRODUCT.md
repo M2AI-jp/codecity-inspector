@@ -474,7 +474,7 @@ reviewable visual coverage without their repository being written, executed,
 or uploaded. Candidate hashes and gate reports prove custody and measured
 properties only; they do not prove human approval, shipping, or playability.
 
-### [ ] H1 — Human owner promotes the complete v1 visual vocabulary
+### [x] H1 — Human owner promotes the complete v1 visual vocabulary
 
 **Subject/action/object:** The human owner accepts or rejects each exact
 candidate byte sequence needed by the bounded v1 selector vocabulary.
@@ -487,6 +487,16 @@ Asset promotion is the only required human art-production action. The Lead
 batches the complete bounded review set to minimize owner attention. Rejected
 required selectors return to P1; only accepted selectors proceed to P2.
 
+H1 evidence is `studio/art-department/v1/approvals/h1-v1.json`: the human owner
+authorized the exact `d75b6d9` batch for the functional v1 path while explicitly
+deferring aesthetic quality. Its 60 unique accepted records bind the candidate
+batch SHA, candidate and source hashes, owner role, decision, and UTC time; the
+document SHA is `472ae2533b2e5e16632f083a45e34476ee689fa8d2fb1ef5d8a4bbd0ac473401`.
+`promote-v1.mjs --check` resolves all 60 immutable approved masters and rejects
+an absent, altered, differently scoped, or non-human approval. This authorizes
+these bytes for functional v1 composition only; it does not assert aesthetic
+quality or prove P2-P6, browser playability, or the product KGI.
+
 **Three-view value:** the owner controls the exact bytes representing the
 product; the Lead cannot counterfeit that authority; the customer is protected
 from unapproved or silently changed visuals. Approval proves byte authorization
@@ -495,7 +505,7 @@ only, not readability, navigation, browser behavior, or the KGI.
 **Stop condition:** wait for the human decision; never infer acceptance. A
 rejection reopens only its selector work order.
 
-### [ ] P2 — Art publisher completes the shipping catalog module
+### [x] P2 — Art publisher completes the shipping catalog module
 
 **Subject/action/object:** The art publisher consumes only approved masters and
 generates `ship/50-art/manifest.json`, `scene-bindings.json`, approved PNGs,
@@ -508,6 +518,25 @@ the v1 WorldPlan grammar can emit.
 dimensions, pivots, usage records, and selector mappings validate; changing or
 removing one byte fails; no human hand-edits JSON; no candidate, original,
 fixture, wildcard, fallback, or unapproved byte enters `ship/`.
+
+P2 evidence is the approved-only publisher
+`studio/art-department/v1/publisher/publish-v1.mjs` and the generated
+`ship/50-art/` catalog. The publisher has no candidate, original, fixture, or
+selector-demand read path; it requires the pinned H1 approval and approved
+master manifest, then emits 60 exact PNGs, 60 explicit bindings, license, and
+provenance with fallback policy `none`. Its manifest SHA is
+`c59710dbf9970fded8f39fc731d122ef609fd265f69506bab4b0feec7a72dfb7`.
+Repeated generation leaves the approved and shipping output-set hash unchanged;
+the focused asset-contract checks reject altered PNG bytes, missing approval,
+source/hash/path mismatches, symlinks, traversal, fallback, invalid usage, and
+malformed PNG data. Functional representative resolution covers character
+`player:default`, building `building:town_hall`, map `terrain:meadow`,
+`road:main`, and `water:default`, and objects `prop:lamp`, `light:lit`, and
+`quest:inspect`. Independent distribution review confirmed CLI-root alignment,
+package inclusion of license/provenance, 60/60 exact identities, and no shipping
+symlinks or unapproved bytes. This proves catalog integrity and representative
+runtime metadata only, not aesthetics, SceneBundle reachability, browser play,
+or the product KGI.
 
 **Three-view value:** the owner's approved visual investment becomes a bounded
 shipping input; the Lead receives a deterministic integration boundary; the

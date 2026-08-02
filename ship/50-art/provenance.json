@@ -1,0 +1,548 @@
+{
+  "format": "codecity.asset-provenance",
+  "schemaVersion": 1,
+  "candidateBatchSha256": "5d07182d274f9b6542c22255ad00676abe7dad423c306287b5db76b6ab2632ec",
+  "approvalRecordSha256": "472ae2533b2e5e16632f083a45e34476ee689fa8d2fb1ef5d8a4bbd0ac473401",
+  "assets": [
+    {
+      "id": "building--dock-v1",
+      "assetSha256": "83821786b2d6146a5a75e11d11636015f6c9cd98a085df9dcbc162751019e2f0",
+      "source": "generated:codex-subscription-image-generation",
+      "sourceSha256": "3b7f62b5577e1ab63a4698ebc5164a5d4a3dc5df6767f49aa4d67048b933476e",
+      "kind": "generated",
+      "custody": "owner-authorized-codex-subscription",
+      "evidence": "observed"
+    },
+    {
+      "id": "building--dojo-v1",
+      "assetSha256": "b16b98afb6eb6671d396865929769730b10a1b34a252173aef9c5f8493d14921",
+      "source": "art/references/user-provided/world_visual_master.png",
+      "sourceSha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "building--gate-v1",
+      "assetSha256": "476883224c8e12fc57a99cce7aa9a4f68787db1bd514a49330dd25a3ffd511bd",
+      "source": "art/references/user-provided/field_stairs_bridges_cliffs_sheet.png",
+      "sourceSha256": "24e899bfb25552aa96e453a74e574337fc65481791fa572accdd8758615387bd",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "building--guild-v1",
+      "assetSha256": "8b803a3da57b06b8cc8251e7b8deeaf575e3b778c7de0305e5084a00331ddf44",
+      "source": "art/references/user-provided/building_guild_variant_01_sheet.png",
+      "sourceSha256": "e6d0904d6b2ac1af8ebf8d01df1662ccab49489ead967e0e244f4db6135701c9",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "building--house-v1",
+      "assetSha256": "ff918f1ad85ca1539ec880813817a9d2aeb6059b215b9f862b4546959930073e",
+      "source": "art/references/user-provided/building_houses_shops_ruins_sheet.png",
+      "sourceSha256": "ec8afeadfe709cc6ae489d3e895a2a290eff79cb598db8c1925f548fd9e14225",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "building--inn-v1",
+      "assetSha256": "168b4e301a044f02296b0f8f6dff4fc6af7f76053f16a6e102c625a7113cc895",
+      "source": "art/references/user-provided/building_inn_sheet.png",
+      "sourceSha256": "78b18d8ee84c8bd57444babe6923cdb3b16fcfcf592ebbf3411df74bd16c069a",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "building--pub-v1",
+      "assetSha256": "168b4e301a044f02296b0f8f6dff4fc6af7f76053f16a6e102c625a7113cc895",
+      "source": "art/references/user-provided/building_inn_sheet.png",
+      "sourceSha256": "78b18d8ee84c8bd57444babe6923cdb3b16fcfcf592ebbf3411df74bd16c069a",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "building--ruin-v1",
+      "assetSha256": "a04fea72a8ce4f923f287fd2c5940d3f589d267869b73e711b2120ab3251309a",
+      "source": "art/references/user-provided/building_houses_shops_ruins_sheet.png",
+      "sourceSha256": "ec8afeadfe709cc6ae489d3e895a2a290eff79cb598db8c1925f548fd9e14225",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "building--shop-v1",
+      "assetSha256": "34ae4fce73b91fb14648980de8da5f04b90a544ae0c6765bf26fb27e3adcad27",
+      "source": "art/references/user-provided/building_houses_shops_ruins_sheet.png",
+      "sourceSha256": "ec8afeadfe709cc6ae489d3e895a2a290eff79cb598db8c1925f548fd9e14225",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "building--town_hall-v1",
+      "assetSha256": "4a2d47c12bb8f035ed4c3c83c9f1296fe48945ea5e111310c76d736de5770808",
+      "source": "art/references/user-provided/building_town_hall_sheet.png",
+      "sourceSha256": "af560250efd3d45fb00c7ba4a486e6245db5318c564bc72a8a11ba84bbbfb1c9",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "building--warehouse-v1",
+      "assetSha256": "f5bdbf4a4043645776bfeff71ec14596a4126d3198453ca5cdd3b94d7edf4806",
+      "source": "art/references/user-provided/building_warehouse_sheet.png",
+      "sourceSha256": "36b9a4f7dc5c9d7693fd1346a559735a36062aadeac8483beb2992e0ca3be4bc",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "building--watchtower-v1",
+      "assetSha256": "4a396a12ef2d95f7ce033fabc7e3865a9d0723da2aac1f52a10c0eb311407269",
+      "source": "art/references/user-provided/building_watchtower_sheet.png",
+      "sourceSha256": "414a38a8621c25a0b812426abbc40b46a97444923148b967be8493bc4e2a277a",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "building--well-v1",
+      "assetSha256": "c0489c62c36c3383a17f2a8b7bcb56972f978dbdc77b8a673c72e9b9209bc148",
+      "source": "art/references/user-provided/field_stairs_bridges_cliffs_sheet.png",
+      "sourceSha256": "24e899bfb25552aa96e453a74e574337fc65481791fa572accdd8758615387bd",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "building--workshop-v1",
+      "assetSha256": "36847ad53b8a19afb4762fede0435a5386250d4ac8a95f8a30d7280ea9824d56",
+      "source": "art/references/user-provided/building_workshop_sheet.png",
+      "sourceSha256": "a28070edeec7d93df772ffe856bcaa49a11ba8ec55e60ddd5af15eab56f23ac7",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "effect--town_hall_lantern_lit-v1",
+      "assetSha256": "8fc4cddf7ec81f6b849bc8469b906aec314c8a753f64933d858f2f2dc2202115",
+      "source": "art/references/user-provided/object_street_props_sheet.png",
+      "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "kind": "reused-derivative",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "light--lit-v1",
+      "assetSha256": "8fc4cddf7ec81f6b849bc8469b906aec314c8a753f64933d858f2f2dc2202115",
+      "source": "art/references/user-provided/object_street_props_sheet.png",
+      "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "light--unknown-v1",
+      "assetSha256": "068d6a13943d06dffb87a8a5d991aeb33a457c2d3f222aa8558f89b4e615da1f",
+      "source": "art/references/user-provided/object_status_markers_sheet.png",
+      "sourceSha256": "e3d2f177bf10bc07d1362251d8aa80d490fc6f58999d24b06a66c34a177e1d1b",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "light--unlit-v1",
+      "assetSha256": "3253600a175b474fd1687d7e29e929e16b55df7a5fc67e0d884a0f7896f4e42d",
+      "source": "art/references/user-provided/object_street_props_sheet.png",
+      "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "npc--external-api-v1",
+      "assetSha256": "62f3251e9464bdcbf9791c72034577093637988a96ee35f56323b98b12418011",
+      "source": "art/references/user-provided/character_style_reference_sheet.png",
+      "sourceSha256": "910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b",
+      "kind": "reused-derivative",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "npc--http-v1",
+      "assetSha256": "62f3251e9464bdcbf9791c72034577093637988a96ee35f56323b98b12418011",
+      "source": "art/references/user-provided/character_style_reference_sheet.png",
+      "sourceSha256": "910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b",
+      "kind": "reused-derivative",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "npc--llm-v1",
+      "assetSha256": "62f3251e9464bdcbf9791c72034577093637988a96ee35f56323b98b12418011",
+      "source": "art/references/user-provided/character_style_reference_sheet.png",
+      "sourceSha256": "910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b",
+      "kind": "reused-derivative",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "npc--storage-v1",
+      "assetSha256": "62f3251e9464bdcbf9791c72034577093637988a96ee35f56323b98b12418011",
+      "source": "art/references/user-provided/character_style_reference_sheet.png",
+      "sourceSha256": "910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b",
+      "kind": "reused-derivative",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "npc--townsperson-v1",
+      "assetSha256": "62f3251e9464bdcbf9791c72034577093637988a96ee35f56323b98b12418011",
+      "source": "art/references/user-provided/character_style_reference_sheet.png",
+      "sourceSha256": "910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "npc--unknown-v1",
+      "assetSha256": "62f3251e9464bdcbf9791c72034577093637988a96ee35f56323b98b12418011",
+      "source": "art/references/user-provided/character_style_reference_sheet.png",
+      "sourceSha256": "910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b",
+      "kind": "reused-derivative",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "npc--webhook-v1",
+      "assetSha256": "62f3251e9464bdcbf9791c72034577093637988a96ee35f56323b98b12418011",
+      "source": "art/references/user-provided/character_style_reference_sheet.png",
+      "sourceSha256": "910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b",
+      "kind": "reused-derivative",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "player--default-v1",
+      "assetSha256": "d5fbb67c6d26e107b0cec6e78f09715e95be54cf4201de44025ca00477dd658f",
+      "source": "art/references/user-provided/character_style_authority_20260722_v1.png",
+      "sourceSha256": "446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "plot--occupied-v1",
+      "assetSha256": "50482bab7968467b13ae06929b8879bfaeda11c20c39730f1cebb572c7b672e8",
+      "source": "art/references/user-provided/world_visual_master.png",
+      "sourceSha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "plot--vacant-v1",
+      "assetSha256": "8b05f74796c82668b1d73d12e789b4f368a607bfb83b00c40ddc9a249a3395ac",
+      "source": "art/references/user-provided/world_visual_master.png",
+      "sourceSha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "prop--lamp-v1",
+      "assetSha256": "e4aca9db5101bd5327d4bc9fddb5a2d009757850a0ce7d48ea5b8d854c6cc9e5",
+      "source": "art/references/user-provided/object_street_props_sheet.png",
+      "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "prop--sign-v1",
+      "assetSha256": "74919eb419d7283cbdbc10d684a4402a61bde8f9b655567b56f0277123996420",
+      "source": "art/references/user-provided/object_street_props_sheet.png",
+      "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "prop--tree-v1",
+      "assetSha256": "8ce50e8fc64b1f75baf72ba50bc0c9b97e3c191196e55fba187f9a0733588e1d",
+      "source": "art/references/user-provided/object_street_props_sheet.png",
+      "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "prop--well-v1",
+      "assetSha256": "5ad74a7c97879505abc5365ef33dcad45ceb7c80533168c591aa3204d9f38057",
+      "source": "art/references/user-provided/object_street_props_sheet.png",
+      "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "quest--inspect-v1",
+      "assetSha256": "d08cc4bdbc12dc5ea83b592e70d790e0b7579e4a983b348738102c15e3dd6d40",
+      "source": "art/references/user-provided/object_status_markers_sheet.png",
+      "sourceSha256": "e3d2f177bf10bc07d1362251d8aa80d490fc6f58999d24b06a66c34a177e1d1b",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "road--branch-v1",
+      "assetSha256": "f5de4571f46e25ca9f4b0ae5adc8ada7c66c78faf10a4b54e77eb41dd69693f5",
+      "source": "art/references/user-provided/field_cobblestone_roads_sheet.png",
+      "sourceSha256": "f732a849dd88138e3acccc24970bef9e923302fec1aa01ffac195b8195cfff3d",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "road--dead-end-v1",
+      "assetSha256": "f5de4571f46e25ca9f4b0ae5adc8ada7c66c78faf10a4b54e77eb41dd69693f5",
+      "source": "art/references/user-provided/field_cobblestone_roads_sheet.png",
+      "sourceSha256": "f732a849dd88138e3acccc24970bef9e923302fec1aa01ffac195b8195cfff3d",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "road--main-v1",
+      "assetSha256": "f5de4571f46e25ca9f4b0ae5adc8ada7c66c78faf10a4b54e77eb41dd69693f5",
+      "source": "art/references/user-provided/field_cobblestone_roads_sheet.png",
+      "sourceSha256": "f732a849dd88138e3acccc24970bef9e923302fec1aa01ffac195b8195cfff3d",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "room--dock-v1",
+      "assetSha256": "b9ffc8402b74cfb7d18eef573e86232123e18d4f993e6efca2e2a8838cf7e75c",
+      "source": "art/references/user-provided/target-town.png",
+      "sourceSha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "room--dojo-v1",
+      "assetSha256": "b9ffc8402b74cfb7d18eef573e86232123e18d4f993e6efca2e2a8838cf7e75c",
+      "source": "art/references/user-provided/target-town.png",
+      "sourceSha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "room--gate-v1",
+      "assetSha256": "b9ffc8402b74cfb7d18eef573e86232123e18d4f993e6efca2e2a8838cf7e75c",
+      "source": "art/references/user-provided/target-town.png",
+      "sourceSha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "room--guild-v1",
+      "assetSha256": "b9ffc8402b74cfb7d18eef573e86232123e18d4f993e6efca2e2a8838cf7e75c",
+      "source": "art/references/user-provided/target-town.png",
+      "sourceSha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "room--house-v1",
+      "assetSha256": "b9ffc8402b74cfb7d18eef573e86232123e18d4f993e6efca2e2a8838cf7e75c",
+      "source": "art/references/user-provided/target-town.png",
+      "sourceSha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "room--inn-v1",
+      "assetSha256": "b9ffc8402b74cfb7d18eef573e86232123e18d4f993e6efca2e2a8838cf7e75c",
+      "source": "art/references/user-provided/target-town.png",
+      "sourceSha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "room--pub-v1",
+      "assetSha256": "b9ffc8402b74cfb7d18eef573e86232123e18d4f993e6efca2e2a8838cf7e75c",
+      "source": "art/references/user-provided/target-town.png",
+      "sourceSha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "room--ruin-v1",
+      "assetSha256": "b9ffc8402b74cfb7d18eef573e86232123e18d4f993e6efca2e2a8838cf7e75c",
+      "source": "art/references/user-provided/target-town.png",
+      "sourceSha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "room--shop-v1",
+      "assetSha256": "b9ffc8402b74cfb7d18eef573e86232123e18d4f993e6efca2e2a8838cf7e75c",
+      "source": "art/references/user-provided/target-town.png",
+      "sourceSha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "room--town_hall-v1",
+      "assetSha256": "b9ffc8402b74cfb7d18eef573e86232123e18d4f993e6efca2e2a8838cf7e75c",
+      "source": "art/references/user-provided/target-town.png",
+      "sourceSha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "room--warehouse-v1",
+      "assetSha256": "b9ffc8402b74cfb7d18eef573e86232123e18d4f993e6efca2e2a8838cf7e75c",
+      "source": "art/references/user-provided/target-town.png",
+      "sourceSha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "room--watchtower-v1",
+      "assetSha256": "b9ffc8402b74cfb7d18eef573e86232123e18d4f993e6efca2e2a8838cf7e75c",
+      "source": "art/references/user-provided/target-town.png",
+      "sourceSha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "room--well-v1",
+      "assetSha256": "b9ffc8402b74cfb7d18eef573e86232123e18d4f993e6efca2e2a8838cf7e75c",
+      "source": "art/references/user-provided/target-town.png",
+      "sourceSha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "room--workshop-v1",
+      "assetSha256": "b9ffc8402b74cfb7d18eef573e86232123e18d4f993e6efca2e2a8838cf7e75c",
+      "source": "art/references/user-provided/target-town.png",
+      "sourceSha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "terrain--basin-v1",
+      "assetSha256": "4099d7127a00328ed69f783f71eb18658e6d4cd66bc7cda15638be2a6266ef43",
+      "source": "art/references/user-provided/world_visual_master.png",
+      "sourceSha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "terrain--coast-v1",
+      "assetSha256": "221d0b06e621f3b65a1355a5e7fc7840ec3d857de6c78c5352fbcd3d093d82f0",
+      "source": "art/references/user-provided/field_harbor_docks_tiles_sheet.png",
+      "sourceSha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "terrain--meadow-v1",
+      "assetSha256": "c599763f8577563797f598f82610350fcb5049badfff5ebf22d68065d3c6a4b6",
+      "source": "art/references/user-provided/target-town.png",
+      "sourceSha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "terrain--plain-v1",
+      "assetSha256": "b25e8058593ff97eb5b9ce233daa15e83a543cfee10340b1925e768d8876392f",
+      "source": "art/references/user-provided/field_cobblestone_roads_sheet.png",
+      "sourceSha256": "f732a849dd88138e3acccc24970bef9e923302fec1aa01ffac195b8195cfff3d",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "terrain--terrace-v1",
+      "assetSha256": "101bd6995e6347c41f24582821e61fcd9d59ff73c8da570bb06c0a8469f52f84",
+      "source": "art/references/user-provided/field_stairs_bridges_cliffs_sheet.png",
+      "sourceSha256": "24e899bfb25552aa96e453a74e574337fc65481791fa572accdd8758615387bd",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "ui--choice-v1",
+      "assetSha256": "0c573020a30dc3adf5f4bdccdeb387daa20ed51bb3bf493720caa64dbc2cb00a",
+      "source": "art/references/user-provided/ui_dialogue_frames_sheet.png",
+      "sourceSha256": "60a2255fe72e2e96c91f00caa93fa7f4906f57fc1f8f0332bdbe91648b9ba29d",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "ui--dialogue-v1",
+      "assetSha256": "5a4d3e86817d971a7f3413d26e1c8c85eecc7792459a916585a25432ac9177d2",
+      "source": "art/references/user-provided/ui_dialogue_frames_sheet.png",
+      "sourceSha256": "60a2255fe72e2e96c91f00caa93fa7f4906f57fc1f8f0332bdbe91648b9ba29d",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "ui--guild-roster-v1",
+      "assetSha256": "09d034684e5170e12fa0fa27dad592ed67cdd2b2482042a04ef9549fc301ebce",
+      "source": "art/references/user-provided/ui_inspection_report_sheet.png",
+      "sourceSha256": "c4c14e83e5f4e5fec8f7eaea537e6befa5f2762aaed11d07a5a86c05b6294892",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "ui--inspection-report-v1",
+      "assetSha256": "5d191399c5afd59b6a41781e7df637bf9ea2596fb80dc7d06340d5aca01523ca",
+      "source": "art/references/user-provided/ui_inspection_report_sheet.png",
+      "sourceSha256": "c4c14e83e5f4e5fec8f7eaea537e6befa5f2762aaed11d07a5a86c05b6294892",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    },
+    {
+      "id": "water--default-v1",
+      "assetSha256": "2b960207c8f16679370edcc961f1932f205d6019451e83ecfbb62f99d3163813",
+      "source": "art/references/user-provided/field_harbor_docks_tiles_sheet.png",
+      "sourceSha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580",
+      "kind": "derived",
+      "custody": "owner-supplied-original",
+      "evidence": "observed"
+    }
+  ]
+}
