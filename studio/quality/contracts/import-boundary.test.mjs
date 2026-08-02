@@ -16,6 +16,10 @@ test('allows declared public dependency', () => {
     boundaryProblems('ship/40-worldgen/generate.mjs', "import { build } from '../30-town-domain/index.mjs';"),
     []
   );
+  assert.deepEqual(
+    boundaryProblems('ship/60-scene-compiler/index.mjs', "import { NPC_ROLE_VOCABULARY } from '../30-town-domain/index.mjs';"),
+    []
+  );
 });
 
 test('rejects reverse and deep imports', () => {

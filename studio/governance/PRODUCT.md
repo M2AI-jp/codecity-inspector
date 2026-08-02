@@ -514,6 +514,13 @@ browser experience, safety, packaging, and all functional acceptance. H2 may
 remain pending while Codex completes the functional KGI, but the Lead reports
 `functional KGI met; visual release gate pending`, never `release-ready`.
 
+The owner started the Claude H2 cycle on 2026-08-03, but the local Claude Code
+worker returned its weekly-limit error before analysis or any file write. No
+rubric, composition audit, correction candidate, or owner-review batch was
+produced. H2 therefore remains not covered and must resume with Claude when
+that capability is available; Codex does not substitute mechanical gates or
+its own aesthetic judgment for the assigned Claude and human decisions.
+
 **Stop condition:** wait until the owner explicitly starts the Claude art
 cycle; then stop when the bounded selector set passes the rubric and owner
 review. Do not reopen functional scope or build an art-production platform.
@@ -696,7 +703,7 @@ independent review, or final KGI return.
 envelope pass; do not expand into frozen audio, localization, settings, gamepad,
 or cosmetic work.
 
-### [ ] P6 — Delivery and independent QA prove the product KGI
+### [x] P6 — Delivery and independent QA prove the product KGI
 
 **Subject/action/object:** `90-cli` and `80-local-server` package and serve the
 approved product, then an independent read-only reviewer repeats the whole
@@ -714,34 +721,56 @@ package contains only intended `ship/` bytes; first interaction is available
 within 3 seconds on the acceptance machine. Only after this evidence may the
 Lead declare CodeCity v1 complete.
 
-The current P6 candidate evidence is the packed-artifact orchestrator in
-`studio/quality/e2e/90-packed-kgi.mjs` and its independently reviewed external
-evidence record. The 1,039,513-byte tarball has SHA-256
-`95c9825ec0580d68a1b6b13d1d16c6940b2fbb62b0859d3e9a825b243fb81bc6` and 91
-entries limited to `package.json`, `README.md`, and `ship/**`; all 60 packed PNG
-hashes match the accepted manifest and the license/provenance records cover all
-60. An actual offline local-tar `npx` run produced held-arrow movement in
-2,255.92ms, completed the three distinct answers, report, lantern change,
-resident room/dialogue, explicit exit, process restart, and restored revisit.
-The browser drew approved character, building, map, and object assets. CDP
-recorded 45 then 46 requests, all to `127.0.0.1:4273`; both server listeners
-were loopback-only, finite network samples found no npm-parent socket, and both
-processes stopped by SIGINT. Before and after snapshots contained the same
-4,895 entries with exact file hashes and file/symlink mtimes and no changed
-entry. Directory mtimes are deliberately excluded because read-only Git status
-polling changes `.git` directory mtime while leaving its contents exact. The
-independent distribution/security reviewer marked P6 met. This proves this
-tarball, repository, and macOS/Node/Chrome acceptance run only; it does not
-prove every repository, device, or registry path, nor judge asset aesthetics.
+The packed-artifact orchestrator in `studio/quality/e2e/90-packed-kgi.mjs`
+enforces the exact `package.json.files` inventory, all 60 approved PNG hashes,
+exact manifest/license/provenance custody, and fail-closed loopback-only
+network samples. Its first-movement probe attaches the existing page opened by
+the CLI without prelaunching Chrome or navigating a replacement target. It
+sends exactly one CDP-dispatched raw ArrowDown keydown followed by its ordinary
+keyup through the real browser input path, with no preconditioning or redraw-
+probe input. The later
+journey and revisit stages use separate page targets in that same CLI-opened
+Chrome process, as recorded in the evidence limitation. The latest repair only
+stops the server network capture before SIGINT so normal shutdown is not
+misclassified as a missing sample.
 
-P6 is reopened because the orchestrator's top-level `ok` does not fail when
-process network capture is blocked or contains a non-loopback row, and its tar
-inventory is recorded without exact allowlist enforcement. The under-three-
-second probe also uses a prelaunched Chrome process with CLI browser opening
-disabled, so it proves packed server-to-existing-browser readiness rather than
-the literal customer's command-to-interaction interval. Until those three
-claims are directly enforced or truthfully narrowed, this run is useful
-candidate evidence but cannot prove P6 or the product KGI.
+The accepted fresh local-tar run is
+`/var/folders/86/xb8typls3sncx8y3_dps4n000000gq/T/codecity-packed-kgi-f4gp8h/evidence.json`.
+Its 1,039,917-byte tarball has SHA-256
+`837fe39aad46ecf8bc3212748081cbfa88fc6e4fc4cebf9bff1875471b3d6dde`.
+The existing CLI-opened target was found at 2,345.64ms, became ready with its
+first normal player draw at 2,418.73ms, received one raw ArrowDown keydown at
+2,418.74ms, and showed real movement at 2,435.74ms; the measured command-to-
+interaction interval was 2,438.68ms. There was no prelaunched browser,
+replacement first target, navigation, probe input, fixture change, or threshold
+change. The verifier now polls the actual movement immediately instead of
+adding a fixed 180ms before its first observation. Network observation retains
+the same process-family cadence and fail-closed rules while running `nettop` at
+lower scheduler priority so the observer does not compete with the measured
+customer startup.
+
+The exact 91-entry inventory matched all trusted workspace bytes; all 60
+approved-master hashes, H1 owner records, and manifest/license/provenance
+cross-records passed. The request, three distinct investigations with
+`observed`, `inferred`, and `unknown` answers, distinct report route, visible
+lantern change, resident room/dialogue, exit, process restart, and restored
+revisit all passed. First-process npx/server captures were 58/58 and 56/56;
+restart captures were 19/19 and 3/3, all observed and loopback-only with no
+violations. The two repository entries retained exact type, mode, size, file
+hash, and mtime; the root directory mtime also happened to remain identical.
+
+This P6 run proves acquisition, packaging, browser delivery, the complete
+journey, persistence, and the observed privacy boundary for this two-entry
+small fixture on the acceptance machine. It does not claim that one fixture
+represents every repository. Repository-input generality is instead covered by
+P3's empty/small/representative inert cohort, then by P4's real-catalog
+composition and P5's real-browser journey. Browser request evidence covers the
+instrumented page targets and does not observe every Chrome background-process
+socket; the browser receives only the bounded SceneBundle and same-origin
+approved assets, extensions/sync are disabled, CSP restricts page connections
+to self, and the inspected repository is available only to the separately
+captured CLI process family. H2 remains the separate pending visual-quality
+gate and is not implied by this functional acceptance.
 
 **Three-view value:** the owner receives the promised requirement coverage from
 the authorized subscription investment; the Lead's declaration is independently

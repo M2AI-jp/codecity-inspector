@@ -24,6 +24,12 @@ const REWARD_CHANGES = Object.freeze({
   [RUNTIME_REPOSITORY_INSPECTION_BINDING.event]: RUNTIME_REPOSITORY_INSPECTION_BINDING,
 });
 const REWARD_EFFECTS = new Set(Object.values(REWARD_CHANGES).map(({ effect }) => effect));
+const UI_ASSET_SELECTORS = Object.freeze({
+  dialogue: 'ui:dialogue',
+  choice: 'ui:choice',
+  guild: 'ui:guild-roster',
+  report: 'ui:inspection-report',
+});
 const REQUIRED_GAME_KEYS = Object.freeze([
   'logicalSize', 'worldSize', 'spawn', 'player', 'collisions', 'entrances', 'rooms',
   'npcs', 'quests', 'request', 'report', 'guild', 'renderables',
@@ -331,9 +337,12 @@ function assertAssetLoader(assetLoader) { if (typeof assetLoader !== 'function')
 
 async function loadAssets(bundle, assetLoader) {
   const loaded = new Map();
-  for (const asset of bundle.assets) {
-    let image;
-    try { image = await assetLoader(Object.freeze({ ...asset })); } catch (error) { throw new GameRuntimeError('ASSET_LOAD_FAILED', `approved asset ${asset.selector} could not be loaded`, [{ path: asset.selector, code: 'ASSET_LOAD_FAILED', message: String(error?.message ?? error) }]); }
+  const results = await Promise.all(bundle.assets.map(async (asset) => {
+    try { return { asset, image: await assetLoader(Object.freeze({ ...asset })), error: null }; }
+    catch (error) { return { asset, image: null, error }; }
+  }));
+  for (const { asset, image, error } of results) {
+    if (error) throw new GameRuntimeError('ASSET_LOAD_FAILED', `approved asset ${asset.selector} could not be loaded`, [{ path: asset.selector, code: 'ASSET_LOAD_FAILED', message: String(error?.message ?? error) }]);
     if (!image || (typeof image !== 'object' && typeof image !== 'function')) throw new GameRuntimeError('ASSET_LOAD_FAILED', `approved asset ${asset.selector} did not produce an image`);
     loaded.set(asset.selector, image);
   }
@@ -420,6 +429,33 @@ function drawFrame(context, canvas, bundle, state, images) {
       Math.round(entry.position.y - camera.y),
       selected.frame.width,
       selected.frame.height,
+    );
+  }
+  const uiSelectors = state.guild.open
+    ? [UI_ASSET_SELECTORS.guild]
+    : state.dialogue?.kind === 'quest'
+      ? [UI_ASSET_SELECTORS.dialogue, UI_ASSET_SELECTORS.choice]
+      : state.dialogue?.kind === 'report' || (state.dialogue?.kind === 'feedback' && state.report.completed)
+        ? [UI_ASSET_SELECTORS.report]
+        : state.dialogue
+          ? [UI_ASSET_SELECTORS.dialogue]
+          : [];
+  for (const selector of uiSelectors) {
+    const asset = assets.get(selector);
+    const image = images.get(selector);
+    if (!asset) throw new GameRuntimeError('ASSET_NOT_DECLARED', `asset ${selector} was not declared`);
+    if (!image) throw new GameRuntimeError('ASSET_NOT_LOADED', `asset ${selector} was not loaded`);
+    const frame = asset.usage.frame;
+    if (typeof context.drawImage === 'function') context.drawImage(
+      image,
+      0,
+      0,
+      frame.width,
+      frame.height,
+      0,
+      0,
+      frame.width,
+      frame.height,
     );
   }
 }

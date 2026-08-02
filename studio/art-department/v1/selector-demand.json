@@ -33,7 +33,7 @@
       "function": "requiredSelectorsForPlan",
       "literal": "selectors.add('water:default')",
       "literalDigest": "6b3161caed8dc21f0077c54849181d77261addf931b2aff742afb523661996f1",
-      "fileSha256": "c70c70457f496c91902ef63b0ccc939aa92ea0c1a2b9439f230a797115319633",
+      "fileSha256": "1e56c7b0b052440db6db3b317ecab0f39cadaf6d6bd5580f01e0f59eaa2c2cdd",
       "matchCount": 1,
       "policy": "exact-single-literal; wildcard/fallback/unknown rejected"
     },
@@ -1504,7 +1504,7 @@
       "values": [
         "water:default"
       ],
-      "fileSha256": "c70c70457f496c91902ef63b0ccc939aa92ea0c1a2b9439f230a797115319633",
+      "fileSha256": "1e56c7b0b052440db6db3b317ecab0f39cadaf6d6bd5580f01e0f59eaa2c2cdd",
       "matchedLiteral": "selectors.add('water:default')",
       "matchedLiteralDigest": "6b3161caed8dc21f0077c54849181d77261addf931b2aff742afb523661996f1",
       "matchCount": 1

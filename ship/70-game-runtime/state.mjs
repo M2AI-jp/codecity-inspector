@@ -443,7 +443,13 @@ function report(state, game) {
 }
 
 function back(state, game) {
-  if (state.dialogue) return { ...state, dialogue: null };
+  if (state.dialogue) {
+    // The report prompt temporarily uses its own phase so the report frame
+    // can render. Cancelling that prompt must restore free exploration;
+    // otherwise movement and every outdoor interaction remain disabled.
+    if (state.dialogue.kind === 'report' && state.phase === 'report') return { ...state, phase: 'explore', dialogue: null };
+    return { ...state, dialogue: null };
+  }
   if (state.guild.open) return { ...state, guild: { open: false, tabIndex: 0 } };
   if (state.phase === 'room') {
     const entrance = game.entrances.find((entry) => entry.roomId === state.roomId);

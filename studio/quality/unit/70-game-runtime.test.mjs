@@ -256,7 +256,7 @@ test('seamless entry hides the exterior cutaway and reveals only the matching ro
 
 test('NPC visibility and interaction are scoped to outdoors or their active room', async () => {
   const scene = bundle({ questCount: 0 });
-  scene.assets.push(asset('npc-outdoor'), asset('npc-indoor'));
+  scene.assets.push(asset('npc-outdoor'), asset('npc-indoor'), asset('ui:dialogue'));
   scene.game.npcs = [
     { id: 'npc-outdoor', kind: 'resident', position: { x: 4, y: 4 }, assetSelector: 'npc-outdoor', footPivot: { x: 0, y: 0 }, interactionRect: { x: 4, y: 4, width: 8, height: 8 }, prompt: '外', dialogue: ['外です。'] },
     { id: 'npc-indoor', kind: 'resident', position: { x: 100, y: 100 }, assetSelector: 'npc-indoor', footPivot: { x: 0, y: 0 }, interactionRect: { x: 96, y: 96, width: 16, height: 16 }, prompt: '中', dialogue: ['中です。'], cutawayId: 'room-1' },
@@ -288,6 +288,73 @@ test('NPC visibility and interaction are scoped to outdoors or their active room
   runtime.dispatch({ type: 'INTERACT' });
   assert.equal(runtime.state.dialogue?.npcId, 'npc-indoor');
   runtime.stop();
+});
+
+test('approved UI frames are drawn for dialogue, choices, reports, and the guild', async () => {
+  const uiSelectors = ['ui:dialogue', 'ui:choice', 'ui:guild-roster', 'ui:inspection-report'];
+  const scene = bundle({ questCount: 1 });
+  scene.assets.push(...uiSelectors.map(asset));
+  const context = {
+    drawn: [],
+    drawImage(image) { this.drawn.push(image.selector); },
+    clearRect() { this.drawn = []; },
+    setTransform() {},
+    imageSmoothingEnabled: true,
+  };
+  const runtime = createGameRuntime({
+    bundle: scene,
+    canvas: { width: 0, height: 0, getContext: () => context },
+    uiRoot: { textContent: '' }, storage: storage(),
+    assetLoader: async (entry) => ({ selector: entry.selector }),
+    inputTarget: fakeTarget(), clock: fakeClock(),
+  });
+  await runtime.start();
+  runtime.dispatch({ type: 'INTERACT' });
+  assert.ok(context.drawn.includes('ui:dialogue'));
+  runtime.dispatch({ type: 'INTERACT' });
+  runtime.dispatch({ type: 'INTERACT' });
+  runtime.dispatch({ type: 'INTERACT' });
+  assert.ok(context.drawn.includes('ui:dialogue'));
+  assert.ok(context.drawn.includes('ui:choice'));
+  runtime.dispatch({ type: 'CHOOSE', choice: '見た' });
+  runtime.dispatch({ type: 'INTERACT' });
+  runtime.dispatch({ type: 'INTERACT' });
+  assert.ok(context.drawn.includes('ui:inspection-report'));
+  runtime.stop();
+
+  const missingUiRuntime = createGameRuntime({
+    bundle: bundle({ questCount: 1 }), canvas: fakeCanvas(), uiRoot: { textContent: '' }, storage: storage(),
+    assetLoader: async (entry) => ({ selector: entry.selector }), inputTarget: fakeTarget(), clock: fakeClock(),
+  });
+  await missingUiRuntime.start();
+  assert.throws(
+    () => missingUiRuntime.dispatch({ type: 'INTERACT' }),
+    (error) => error instanceof GameRuntimeError && error.code === 'ASSET_NOT_DECLARED',
+  );
+  missingUiRuntime.stop();
+
+  const guildScene = bundle({ questCount: 0 });
+  guildScene.assets.push(...uiSelectors.map(asset));
+  guildScene.game.npcs[0].position = { x: 4, y: 4 };
+  guildScene.game.npcs[0].interactionRect = { x: 4, y: 4, width: 8, height: 8 };
+  const guildContext = {
+    drawn: [],
+    drawImage(image) { this.drawn.push(image.selector); },
+    clearRect() { this.drawn = []; },
+    setTransform() {},
+    imageSmoothingEnabled: true,
+  };
+  const guildRuntime = createGameRuntime({
+    bundle: guildScene,
+    canvas: { width: 0, height: 0, getContext: () => guildContext },
+    uiRoot: { textContent: '' }, storage: storage(),
+    assetLoader: async (entry) => ({ selector: entry.selector }),
+    inputTarget: fakeTarget(), clock: fakeClock(),
+  });
+  await guildRuntime.start();
+  guildRuntime.dispatch({ type: 'INTERACT' });
+  assert.ok(guildContext.drawn.includes('ui:guild-roster'));
+  guildRuntime.stop();
 });
 
 test('a resident with no repository-derived copy still has readable neutral dialogue', () => {
@@ -364,7 +431,7 @@ test('an approved reward effect becomes visibly renderable only after its observ
     evidence: { observed: ['inspection.test-result'], inferred: [], unknown: [] },
   };
   const scene = bundle({ questCount: 1, reportChange });
-  scene.assets.push(asset('effect'));
+  scene.assets.push(asset('effect'), asset('ui:dialogue'), asset('ui:choice'), asset('ui:inspection-report'));
   scene.game.renderables.push({
     id: 'effect:town-hall-lantern', assetSelector: 'effect',
     position: { x: 4, y: 4 }, footPivot: { x: 0, y: 0 }, z: 90,
@@ -373,9 +440,9 @@ test('an approved reward effect becomes visibly renderable only after its observ
   assert.equal(validateSceneBundle(scene).ok, true);
 
   const context = {
-    frameDraws: 0,
-    drawImage() { this.frameDraws += 1; },
-    clearRect() { this.frameDraws = 0; },
+    drawn: [],
+    drawImage(image) { this.drawn.push(image.selector); },
+    clearRect() { this.drawn = []; },
     setTransform() {},
     imageSmoothingEnabled: true,
   };
@@ -383,11 +450,11 @@ test('an approved reward effect becomes visibly renderable only after its observ
     bundle: scene,
     canvas: { width: 0, height: 0, getContext: () => context },
     uiRoot: { textContent: '' }, storage: storage(),
-    assetLoader: async () => ({ width: 16, height: 16 }),
+    assetLoader: async (entry) => ({ selector: entry.selector }),
     inputTarget: fakeTarget(), clock: fakeClock(),
   });
   await runtime.start();
-  const before = context.frameDraws;
+  assert.equal(context.drawn.includes('effect'), false);
   runtime.dispatch({ type: 'INTERACT' });
   runtime.dispatch({ type: 'INTERACT' });
   runtime.dispatch({ type: 'INTERACT' });
@@ -397,7 +464,8 @@ test('an approved reward effect becomes visibly renderable only after its observ
   runtime.dispatch({ type: 'INTERACT' });
   runtime.dispatch({ type: 'INTERACT' });
   assert.equal(runtime.state.townChange.effect, 'town_hall_lantern_lit');
-  assert.equal(context.frameDraws, before + 1);
+  assert.ok(context.drawn.includes('effect'));
+  assert.ok(context.drawn.includes('ui:inspection-report'));
   runtime.stop();
 });
 
@@ -414,6 +482,44 @@ test('dialogue controls select choices and interaction confirms the report', () 
   assert.equal(state.dialogue.kind, 'report');
   state = reduceGameState(state, { type: 'INTERACT' }, scene); // confirm report
   assert.equal(state.quest.reported, true);
+});
+
+test('cancelling the report prompt returns to explore for movement and reinteraction', () => {
+  const scene = bundle({ questCount: 1, reportChange: null });
+  let state = createInitialState(scene);
+  state = {
+    ...state,
+    quest: {
+      ...state.quest,
+      accepted: true,
+      answers: [{ choice: '見た', sentence: '証拠です。' }],
+      answered: 1,
+      activeIndex: 1,
+      status: 'ready_report',
+    },
+    report: { available: true, completed: false },
+  };
+  state = reduceGameState(state, { type: 'INTERACT' }, scene);
+  assert.equal(state.phase, 'report');
+  assert.equal(state.dialogue?.kind, 'report');
+
+  state = reduceGameState(state, { type: 'BACK' }, scene);
+  assert.equal(state.phase, 'explore');
+  assert.equal(state.dialogue, null);
+
+  const spawnX = state.player.x;
+  state = reduceGameState(state, { type: 'KEY_DOWN', key: 'ArrowRight' }, scene);
+  state = reduceGameState(state, { type: 'TICK', dtMs: 100 }, scene);
+  state = reduceGameState(state, { type: 'KEY_UP', key: 'ArrowRight' }, scene);
+  assert.ok(state.player.x > spawnX, 'cancelled report must not block outdoor movement');
+  state = reduceGameState(state, { type: 'KEY_DOWN', key: 'ArrowLeft' }, scene);
+  state = reduceGameState(state, { type: 'TICK', dtMs: 100 }, scene);
+  state = reduceGameState(state, { type: 'KEY_UP', key: 'ArrowLeft' }, scene);
+  assert.equal(state.player.x, spawnX);
+
+  state = reduceGameState(state, { type: 'INTERACT' }, scene);
+  assert.equal(state.phase, 'report');
+  assert.equal(state.dialogue?.kind, 'report');
 });
 
 test('persistence is identity-and-content scoped and quest-id-only; exit and revisit survive', async () => {

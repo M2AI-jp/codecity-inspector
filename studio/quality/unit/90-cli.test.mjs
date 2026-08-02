@@ -92,7 +92,7 @@ function usageForSelector(selector) {
     terrain: ['terrain', 'ground'], water: ['water', 'ground'], road: ['road', 'ground'],
     plot: ['terrain', 'ground'], building: ['building', 'object'], room: ['room', 'object'],
     prop: ['prop', 'object'], light: ['light', 'foreground'], quest: ['quest', 'foreground'],
-    ui: ['ui', 'ui'],
+    effect: ['effect', 'effect'], ui: ['ui', 'ui'],
   }[prefix];
   const usage = {
     kind: compatibility[0], layer: compatibility[1],
@@ -104,8 +104,9 @@ function usageForSelector(selector) {
 }
 
 async function fixtureRepository() {
-  const root = await fsp.mkdtemp(path.join(os.tmpdir(), 'codecity-cli-repository-'));
-  await fsp.mkdir(path.join(root, 'src'));
+  const workspace = await fsp.mkdtemp(path.join(os.tmpdir(), 'codecity-cli-repository-'));
+  const root = path.join(workspace, 'repository');
+  await fsp.mkdir(path.join(root, 'src'), { recursive: true });
   // The CLI must inspect these files without running them. If a package
   // manager or source evaluator is accidentally invoked, these throw.
   await fsp.writeFile(path.join(root, 'package.json'), JSON.stringify({
@@ -132,7 +133,11 @@ async function validInputs(worldPlan) {
     url: 'sheet.png',
     sha256,
     dimensions: { width: 192, height: 256 },
-    pivot: { x: 0, y: 0 },
+    pivot: selector === 'player:default' || selector.startsWith('npc:')
+      ? { x: 16, y: 31 }
+      : selector.startsWith('building:') || selector.startsWith('room:')
+        ? { x: 96, y: 255 }
+        : { x: 0, y: 0 },
     usage: usageForSelector(selector),
     license: { spdx: 'CC0-1.0', holder: 'CodeCity test owner' },
     provenance: {
@@ -175,7 +180,11 @@ async function validInputs(worldPlan) {
 
 async function removeTemporary(...roots) {
   for (const root of roots) {
-    if (root) await fsp.rm(root, { recursive: true, force: true });
+    if (root) {
+      const parent = path.dirname(root);
+      const cleanupRoot = path.basename(root) === 'repository' && path.basename(parent).startsWith('codecity-cli-repository-') ? parent : root;
+      await fsp.rm(cleanupRoot, { recursive: true, force: true });
+    }
   }
 }
 
@@ -297,7 +306,7 @@ test('missing approved manifest fails closed and never creates a distribution', 
   const output = [];
   try {
     await assert.rejects(
-      () => runCodeCity({ repositoryPath: repositoryRoot, noOpen: true, write: (line) => output.push(line) }),
+      () => runCodeCity({ repositoryPath: repositoryRoot, assetManifestPath: path.join(repositoryRoot, 'missing-manifest.json'), noOpen: true, write: (line) => output.push(line) }),
       (error) => error?.code === 'ASSET_MANIFEST_REQUIRED'
     );
     assert.deepEqual(await fsp.readdir(repositoryRoot), ['package.json', 'src']);

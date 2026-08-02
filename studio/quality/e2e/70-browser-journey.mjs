@@ -22,20 +22,25 @@ const KEY = Object.freeze({
 const sleep = (milliseconds) => new Promise((resolvePromise) => setTimeout(resolvePromise, milliseconds));
 
 function parseArgs(argv) {
-  const result = { stage: 'all', viewport: 'narrow', url: DEFAULT_URL, profile: null, performanceMs: 60_000 };
+  const result = { stage: 'all', viewport: 'narrow', url: DEFAULT_URL, profile: null, cdpUrl: null, performanceMs: 60_000 };
   for (let index = 0; index < argv.length; index += 1) {
     const value = argv[index];
     if (value === '--stage') result.stage = argv[++index];
     else if (value === '--viewport') result.viewport = argv[++index];
     else if (value === '--url') result.url = argv[++index];
     else if (value === '--profile') result.profile = resolve(argv[++index]);
+    else if (value === '--cdp-url') result.cdpUrl = argv[++index];
     else if (value === '--performance-ms') result.performanceMs = Number(argv[++index]);
     else throw new Error(`unknown argument: ${value}`);
   }
   if (!['all', 'journey', 'revisit'].includes(result.stage)) throw new Error('--stage must be all, journey, or revisit');
   if (!['narrow', 'default'].includes(result.viewport)) throw new Error('--viewport must be narrow or default');
   if (!Number.isFinite(result.performanceMs) || result.performanceMs < 1_000) throw new Error('--performance-ms must be at least 1000');
-  if (result.stage !== 'all' && !result.profile) throw new Error('--profile is required for externally staged journey or revisit runs');
+  if (result.cdpUrl !== null) {
+    const cdpUrl = new URL(result.cdpUrl);
+    if (cdpUrl.protocol !== 'http:' || cdpUrl.hostname !== '127.0.0.1') throw new Error('--cdp-url must be a loopback HTTP endpoint');
+  }
+  if (result.stage !== 'all' && !result.profile && !result.cdpUrl) throw new Error('--profile or --cdp-url is required for externally staged journey or revisit runs');
   return result;
 }
 
@@ -123,6 +128,14 @@ async function launchChrome(profile) {
   return { child, cdp, product: version.Browser };
 }
 
+async function connectChrome(cdpUrl) {
+  const response = await fetch(new URL('/json/version', cdpUrl));
+  if (!response.ok) throw new Error(`Chrome DevTools endpoint returned ${response.status}`);
+  const version = await response.json();
+  if (!version?.webSocketDebuggerUrl) throw new Error('Chrome DevTools endpoint did not provide a browser socket');
+  return { child: null, cdp: await new Cdp(version.webSocketDebuggerUrl).open(), product: version.Browser };
+}
+
 async function stopChrome(browser) {
   await Promise.race([
     browser.cdp.call('Browser.close').catch(() => {}),
@@ -133,6 +146,11 @@ async function stopChrome(browser) {
     new Promise((resolvePromise) => browser.child.once('exit', resolvePromise)),
     sleep(3_000).then(() => browser.child.kill('SIGTERM')),
   ]);
+  browser.cdp.close();
+}
+
+
+function disconnectChrome(browser) {
   browser.cdp.close();
 }
 
@@ -434,13 +452,11 @@ async function observeResidentDialogue(page, scene, current) {
   const entrance = scene.game.entrances.find((entry) => entry.roomId === resident?.cutawayId);
   const interior = scene.nav.routes?.interiors?.find((route) => route.roomId === resident?.cutawayId);
   if (!resident || !entrance || !interior) throw new Error('resident interior route is missing');
-  const approach = [
-    current,
-    { x: 288, y: 448 }, { x: 288, y: 496 }, { x: entrance.rect.x + 2, y: 496 },
-  ];
-  let point = current;
-  for (const target of approach.slice(1)) point = await moveToPoint(page, scene, target, scene.game.player.speeds.run);
-  await moveAxis(page, 'ArrowUp', 31, scene.game.player.speeds.run);
+  let point = await moveToPoint(page, scene, {
+    x: entrance.rect.x + 2,
+    y: entrance.rect.y + entrance.rect.height + 1,
+  }, scene.game.player.speeds.run);
+  await moveAxis(page, 'ArrowUp', scene.game.player.footbox.height + entrance.rect.height + 4, scene.game.player.speeds.run);
   const entered = await visualPlayerFoot(page, scene);
   const room = scene.game.rooms.find((entry) => entry.id === entrance.roomId);
   const roomRenderable = scene.game.renderables.find((entry) => entry.roomId === entrance.roomId);
@@ -482,19 +498,19 @@ async function main() {
   const scene = await response.json();
   const evidence = { ok: true, stage: options.stage, profile, url: options.url, viewport: options.viewport, chrome: null, journey: null, revisit: null };
   if (options.stage === 'all' || options.stage === 'journey') {
-    const browser = await launchChrome(profile);
+    const browser = options.cdpUrl ? await connectChrome(options.cdpUrl) : await launchChrome(profile);
     evidence.chrome = browser.product;
     try {
       if (options.viewport === 'narrow') evidence.defaultViewport = await runDefaultViewportProbe(browser, options.url, scene);
       evidence.journey = await runJourney(browser, options.url, scene, options.performanceMs, options.viewport);
     }
-    finally { await stopChrome(browser); }
+    finally { if (options.cdpUrl) disconnectChrome(browser); else await stopChrome(browser); }
   }
   if (options.stage === 'all' || options.stage === 'revisit') {
-    const browser = await launchChrome(profile);
+    const browser = options.cdpUrl ? await connectChrome(options.cdpUrl) : await launchChrome(profile);
     evidence.chrome = browser.product;
     try { evidence.revisit = await runRevisit(browser, options.url, scene, options.viewport); }
-    finally { await stopChrome(browser); }
+    finally { if (options.cdpUrl) disconnectChrome(browser); else await stopChrome(browser); }
   }
   process.stdout.write(`${JSON.stringify(evidence, null, 2)}\n`);
 }
