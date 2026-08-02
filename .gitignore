@@ -1,26 +1,12 @@
-.agent-harness/
-.DS_Store
 node_modules/
+.DS_Store
+*.log
 coverage/
-tmp/
+dist/
+studio/art-factory/candidates/**
+!studio/art-factory/candidates/README.md
+studio/art-factory/reports/**
+!studio/art-factory/reports/README.md
+studio/quality/evidence/**
+!studio/quality/evidence/README.md
 
-# Asset Forge local state and unapproved artifacts
-tools/asset-forge/.env
-tools/asset-forge/.env.*
-tools/asset-forge/tmp/
-tools/asset-forge/.cache/
-tools/asset-forge/data/local/
-tools/asset-forge/data/manifests/generations.local.json
-tools/asset-forge/asset-forge.local.json
-tools/asset-forge/generated/jobs/
-# The approved innkeeper ledger and character recheck need the complete,
-# non-secret job pack (job, output contract, prompt, references, and guide) in
-# a clean checkout; all other generated jobs remain local state.
-!tools/asset-forge/generated/jobs/
-tools/asset-forge/generated/jobs/*
-!tools/asset-forge/generated/jobs/fable5_prefab_char_innkeeper_3c03c1ac9644bdad8d32/
-!tools/asset-forge/generated/jobs/fable5_prefab_char_innkeeper_3c03c1ac9644bdad8d32/**
-tools/asset-forge/generated/*/pending/
-tools/asset-forge/generated/*/rejected/
-tools/asset-forge/processed/
-tools/asset-forge/review/import-requests/

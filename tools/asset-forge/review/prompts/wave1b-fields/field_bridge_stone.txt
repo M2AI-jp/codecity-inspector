@@ -1,8 +1,0 @@
-Use case: stylized-concept
-Asset type: production 64x64 directional terrain master source for CodeCity Inspector
-Input images: Image 1 is the global world style, palette, camera, and pixel-density reference; Image 2 is the direct approved stone stairs, bridges, cliffs, masonry, and vegetation reference.
-Primary request: create one stone bridge tile whose WALKABLE BRIDGE runs LEFT TO RIGHT while a narrow WATER CHANNEL runs TOP TO BOTTOM beneath it.
-Subject: compact mossy gray stone arch bridge with a clearly readable deck, low parapets, both bridgeheads reaching the left and right edges at a consistent road width; deep blue water visibly enters at the top edge and exits at the bottom edge.
-Style/medium: dense crisp late-medieval fantasy top-down three-quarter pixel art matching CodeCity's masonry, water, moss, palette, and upper-left lighting.
-Composition/framing: exactly one square terrain tile, full bleed, one bridge only; bridge travel direction and water-crossing relationship unmistakable at 64x64 after nearest-neighbor downsampling.
-Constraints: no land blocking the water channel, no diagonal bridge, no people, carts, lamps, buildings, labels, arrows, text, frame, margin, tile sheet, multiple variants, watermark, blur, or enlarged old pixels.

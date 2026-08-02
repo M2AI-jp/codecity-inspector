@@ -1,8 +1,0 @@
-Use case: stylized-concept
-Asset type: production 64x64 directional obstacle terrain master source for CodeCity Inspector
-Input images: Image 1 is the global world style, palette, camera, and pixel-density reference; Image 2 is the direct approved stone walls, retaining masonry, cliffs, and vegetation reference.
-Primary request: create one impassable stone wall tile with the WALL running continuously LEFT TO RIGHT.
-Subject: sturdy waist-high gray block wall with a readable top cap and front face, restrained moss in joints, both ends meeting the left and right edges at exactly the same height and thickness; continuous muted grass terrain above and below.
-Style/medium: dense crisp late-medieval fantasy top-down three-quarter pixel art matching CodeCity's masonry scale, moss, palette, and upper-left lighting.
-Composition/framing: exactly one full-bleed square terrain tile; wall continuity and blocking meaning remain obvious at 64x64 after nearest-neighbor downsampling.
-Constraints: no gate, opening, stairs, cliff, building, person, prop, labels, arrows, text, border, margin, sprite sheet, variants, watermark, blur, or enlarged old pixels.

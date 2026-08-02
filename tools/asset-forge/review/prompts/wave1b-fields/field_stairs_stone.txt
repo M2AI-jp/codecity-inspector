@@ -1,8 +1,0 @@
-Use case: stylized-concept
-Asset type: production 64x64 directional terrain master source for CodeCity Inspector
-Input images: Image 1 is the global world style, palette, camera, and pixel-density reference; Image 2 is the direct approved stone stair, bridge, cliff, wall, and vegetation reference.
-Primary request: create one stone stair tile connecting a LOWER LEVEL at the BOTTOM edge to an UPPER LEVEL at the TOP edge.
-Subject: broad central mossy stone steps running vertically from bottom to top, clearly visible risers, matching stone retaining cheeks, upper landing at the top edge and lower landing at the bottom edge; both endpoints use the same centered path width.
-Style/medium: dense crisp late-medieval fantasy top-down three-quarter pixel art matching CodeCity's masonry scale, moss, palette, depth cues, and upper-left lighting.
-Composition/framing: exactly one full-bleed square terrain tile; the high-to-low connection must be immediately readable at 64x64 after nearest-neighbor downsampling.
-Constraints: no bridge, water, building, people, props, diagonal stairs, labels, arrows, text, border, margin, sprite sheet, multiple variants, watermark, blur, or enlarged old pixels.

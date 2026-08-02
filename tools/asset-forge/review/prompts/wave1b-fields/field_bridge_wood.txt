@@ -1,8 +1,0 @@
-Use case: stylized-concept
-Asset type: production 64x64 directional terrain master source for CodeCity Inspector
-Input images: Image 1 is the global world style, palette, camera, and pixel-density reference; Image 2 is the direct approved harbor, wooden docks, bridge decking, pilings, and water reference.
-Primary request: create one wooden bridge tile whose WALKABLE PLANK BRIDGE runs LEFT TO RIGHT while a narrow WATER CHANNEL runs TOP TO BOTTOM beneath it.
-Subject: weathered warm-brown timber planks, sturdy bridgeheads meeting the left and right edges at the same road width, small side rails and visible support posts; deep blue harbor water clearly enters top and exits bottom.
-Style/medium: dense crisp late-medieval fantasy top-down three-quarter pixel art matching CodeCity's wood grain, water highlights, palette, and upper-left lighting.
-Composition/framing: exactly one full-bleed square terrain tile, one bridge only; walk direction, bridgeheads, and the water crossed beneath remain unmistakable at 64x64 after nearest-neighbor downsampling.
-Constraints: no dock maze, boat, cargo, person, building, diagonal bridge, text, arrows, labels, border, margin, sprite sheet, variants, watermark, blur, or enlarged old pixels.

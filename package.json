@@ -1,44 +1,11 @@
 {
-  "name": "codecity-inspector",
-  "version": "0.1.0-alpha.1",
-  "private": false,
-  "description": "Turn a local JavaScript or TypeScript repository into an inspectable 2D pixel-art city.",
+  "name": "codecity",
+  "version": "0.0.0-rebuild",
+  "private": true,
   "type": "module",
-  "bin": {
-    "codecity": "src/server.mjs"
-  },
-  "files": [
-    "art/contracts/",
-    "CodeCity.command",
-    "Fable5ArtContract.md",
-    "Fable5PlacementGuide.md",
-    "Fable5PlacementMatrix.md",
-    "Fable5PrefabSpec.md",
-    "Fable5SceneBlueprints.md",
-    "Fable5VerticalSlice.md",
-    "public/",
-    "sample/",
-    "src/",
-    "tools/asset-forge/contracts/",
-    "SECURITY.md",
-    "THIRD_PARTY_NOTICES.md"
-  ],
-  "scripts": {
-    "start": "node src/server.mjs",
-    "demo": "node src/server.mjs --repo ./sample/tiny-town --open",
-    "test": "node --test test/*.test.mjs test/town/*.test.mjs",
-    "check:launcher": "zsh -n CodeCity.command",
-    "check:fable5-asset-n1-n9": "node tools/qa/fable5-asset-n1-n9-preflight.mjs",
-    "check:fable5-runtime-assets": "node tools/qa/fable5-runtime-asset-preflight.mjs",
-    "check:fable5-visible-runtime-assets": "node tools/qa/fable5-visible-runtime-asset-set.mjs",
-    "check:fable5-pending-evidence": "node tools/qa/fable5-pending-runtime-evidence.mjs",
-    "check": "npm run check:launcher && npm run check:fable5-runtime-assets && npm run check:fable5-visible-runtime-assets && npm run check:fable5-asset-n1-n9 && npm run check:fable5-pending-evidence && node --check src/scanner.mjs && node --check src/inspector.mjs && node --check src/server.mjs && node --check public/fable5-v2/app.js && npm test"
-  },
+  "description": "A repository becomes a playable pixel-art RPG town.",
   "engines": {
-    "node": ">=20"
-  },
-  "license": "MIT",
-  "dependencies": {
-    "@babel/parser": "7.29.7"
+    "node": ">=22"
   }
 }
+
