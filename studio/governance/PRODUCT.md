@@ -47,9 +47,11 @@ default implementation worker. The Lead owns requirement selection, scope,
 priority, capital allocation, decomposition, assignment, integration,
 acceptance, owner communication, commits, publication, and every completion
 claim. The Lead must use PM agents for decomposition, dependencies, risk, and
-acceptance design, and use workers for bounded implementation. The Lead may
-inspect and integrate directly, but must not absorb parallelizable production
-work or allow agents to self-assign scope.
+acceptance design when work is multi-step, parallel, or materially risky, and
+uses workers for genuinely independent bounded implementation. A small
+integration fix or evidence correction stays with the Lead when delegation
+would cost more than the work. The Lead must not absorb useful parallel
+production work or allow agents to self-assign scope.
 
 ### Investment supplied by the owner
 
@@ -69,6 +71,14 @@ or metered external dependency without a separate explicit owner decision that
 states the requirement served, why subscription resources cannot serve it, and
 the stop condition. Local packaging metadata is not authorization to publish
 to a network registry.
+
+The one capability exception is visual art direction and aesthetic quality.
+The owner may assign definition of the visual quality bar, art production, and
+aesthetic correction to Claude when that capability is available. This does
+not transfer product management, functional implementation, repository
+inspection, scene composition, runtime behavior, packaging, security, browser
+QA, or KGI acceptance away from Codex. Codex must complete those non-aesthetic
+obligations without making Claude a dependency.
 
 Subscription capacity has an opportunity cost even when no marginal API bill
 is visible. Repeated audits, duplicated tests, speculative abstractions,
@@ -99,13 +109,12 @@ complete until all nine requirements succeed together in the P6 run.
 | Worker agent | One bounded implementation output inside explicit owned paths, with evidence and stop condition | Self-assignment, neighboring-path edits, commits, pushes, publication, approval, roadmap changes |
 | Independent reviewer | Read-only P6 journey, package, privacy, distribution and security evidence | Implementing or repairing the work being reviewed |
 
-Every worker assignment states: the KGI requirement advanced, owned paths,
-forbidden paths, bounded output, acceptance evidence, dependencies, and stop
-condition. A worker stops rather than improvises when it needs owner approval,
-external spend, a frozen feature, an undefined selector, a scope change, or a
-write outside its owned paths.
+Every worker assignment states the customer/KGI effect, owned paths, observable
+acceptance, and stop condition. Add forbidden paths or dependencies only when
+they matter. A worker stops rather than improvises when it needs owner approval,
+external spend, a scope change, or a write outside its owned paths.
 
-### G0 — Binding three-view pre-start declaration
+### G0 — Minimal binding pre-start declaration
 
 Execution defaults to `STOP` for every fresh Lead. Before `GO`, the Lead and
 read-only PM agents may inspect the repository, identify dependencies, estimate
@@ -113,82 +122,43 @@ subscription resource use, and draft the declaration below. They may not mutate
 the workspace or external state, start implementation workers, generate
 candidate assets, commit, push, publish, approve, or promote anything.
 
-The Lead issues one user-visible declaration in this exact form:
+The Lead issues one concise user-visible declaration for one coherent work
+package:
 
 ```text
 G0 EXECUTION DECLARATION
 Status: GO | STOP
 
-IDENTITIES
-Investor / owner:
-Accountable executive / Lead:
-Codex / I:
-End customer:
-
-INVESTOR / OWNER
 Return promised:
-Owner requirements covered by this execution:
-Authorized subscription investment:
-Owner attention or asset decisions required:
-Excluded spend and authority:
-
-ACCOUNTABLE EXECUTIVE / LEAD
-Why this allocation is the smallest viable path to customer value:
-Critical-path allocation and order:
-PM and worker assignments:
-Independent work allowed in parallel:
-Resource envelope before the next checkpoint:
-Dependencies and unresolved decisions:
-Scope explicitly frozen:
-
-END CUSTOMER AND THEIR REPOSITORY
-Supported repository class:
-Acceptance repositories or selection rule:
-Literal acquisition and launch command:
-Browser environment and supported viewports:
 Customer behavior changed by this execution:
 Repository harm or failure prevented:
-
-EVIDENCE VALUE
-Observed evidence required:
-What that evidence proves for the owner:
-What that evidence proves for the customer:
-What it explicitly does not prove:
-Inferred assumptions:
-Unknowns that remain visible:
-Independent reviewer:
-
-TEST OBLIGATIONS
-For each planned test or test group:
-- concrete customer failure prevented:
-- owner requirement evidenced:
-- repository harm prevented:
-- observable pass/fail result:
-- what passing does not prove:
-
-STOP CONDITIONS
-Conditions that immediately return execution to STOP:
-Next Lead/owner checkpoint:
+Smallest implementation and assignments:
+Resource/time envelope:
+Observed acceptance and its limit:
+Stop or owner-decision condition:
 ```
 
-`GO` is valid only when all identities and all three viewpoints are concrete,
-every unresolved owner choice that could change the next allocation is resolved,
-the subscription resource envelope is finite, and every planned test names a
-concrete customer failure plus the owner requirement it evidences. A module
-name, implementation detail, coverage percentage, test count, or “more safety”
-without a named harm is not a valid investment reason.
+`GO` is valid only when owner return, customer experience, repository safety,
+the smallest implementation, a finite resource envelope, and observable
+acceptance are concrete. Tests serving the same customer journey are declared
+as one group; repeating their boilerplate per test is forbidden. A module name,
+implementation detail, coverage percentage, test count, or “more safety”
+without a named customer effect is not a valid investment reason.
 
-The Lead's declaration is binding. A changed customer, repository class,
-selector vocabulary, customer journey, safety assumption, resource envelope,
-owner dependency, test purpose, or critical path invalidates `GO`. The Lead
-returns to `STOP`, performs only read-only replanning, and issues a replacement
-declaration before work resumes.
+The declaration is invalidated only by a changed customer, product scope,
+customer journey, safety boundary, external spend, or unresolved owner choice.
+An ordinary defect, failed acceptance run, harness correction, implementation
+detail, elapsed-time estimate, or rerun of the same acceptance does not require
+a new G0 declaration. The Lead reports a short delta and continues or stops.
+Governance text, repeated audits, and new test infrastructure must be removed
+or narrowed when they consume more time than the customer-facing defect they
+are intended to retire.
 
-At handoff, the Lead reproduces the governing declaration and marks every
-promised line `met`, `not met`, or `blocked`, with observed evidence and actual
-resource use. An undeclared deviation is an executive failure, not implicit
-approval. No completion claim is permitted unless P6 independently verifies
-the customer obligations under the same declaration.
+At handoff, the Lead gives one compact `met / not met / blocked` reconciliation
+against the declaration, with observed evidence, important deviations, and
+actual resource use. Reproducing the declaration or a chronological work diary
+is forbidden. No completion claim is permitted unless P6 independently
+verifies the customer obligations under the same declaration.
 
 ## 1. Product KGI
 
@@ -210,6 +180,24 @@ packed npm artifact in a real browser:
 Nothing else is the product KGI. A folder, document, contract, passing test,
 backend, generated candidate, approval, manifest, SceneBundle, server, first
 browser frame, screenshot, or partial demo is enabling work only.
+
+### Dual-track game implementation rule
+
+CodeCity is both a program and a game. Every functional work package moves two
+tracks together:
+
+1. **Processing truth:** repository-derived data, state transitions,
+   persistence, security boundaries, and failure behavior are correct.
+2. **Player experience:** a person in a real browser can understand the goal,
+   act through ordinary controls, perceive the result, recover or exit, and
+   return without hidden operator knowledge.
+
+Neither track is a proxy for the other. Unit or contract tests do not complete
+work whose value is player-visible. Screenshots, movement, or a successful
+scripted path do not complete work whose underlying evidence or safety state is
+wrong. The smallest acceptance loop pairs one processing assertion with its
+corresponding player-observable consequence. LLM PMs, workers, reviewers, and
+the Lead consider both while implementing, not as a late QA handoff.
 
 ### Customer value delivered by the KGI
 
@@ -373,12 +361,11 @@ declaration. Read-only Lead/PM planning before `GO` does not change item status
 and is not reported as return.
 
 Each item is an investment allocation, not a milestone claim. Before assigning
-work from an item, the Lead creates a bounded assignment that names the KGI
-requirement covered, owned and forbidden paths, output, acceptance evidence,
-dependencies, owner dependency, and stop condition. The Lead records coverage
-only as `covered`, `not covered`, or `blocked`; effort spent and artifacts
-produced are not return. Only `P6` verifies the accumulated return through the
-product KGI.
+work, the Lead states the customer/KGI effect, owned paths, observable
+acceptance, and stop condition; other fields are added only when material. The
+Lead records coverage only as `covered`, `not covered`, or `blocked`; effort
+spent and artifacts produced are not return. Only `P6` verifies the accumulated
+functional return through the product KGI.
 
 ### [x] P0 — Lead fixes authority and organizational boundaries
 
@@ -504,6 +491,32 @@ only, not readability, navigation, browser behavior, or the KGI.
 
 **Stop condition:** wait for the human decision; never infer acceptance. A
 rejection reopens only its selector work order.
+
+### [ ] H2 — Claude-assisted visual quality definition and production
+
+**Subject/action/object:** when the owner makes Claude available, Claude defines
+the bounded v1 aesthetic bar from the immutable originals and produces or
+corrects only the assets that fail it; the human owner promotes exact bytes.
+
+**Output:** a concise visual-quality rubric and an owner-approved v1 asset set
+whose character, buildings, map, and objects read as one intentional pixel-art
+game. This does not authorize more asset categories, variants, systems, or
+quantity targets.
+
+**Acceptance evidence:** the rubric is applied to in-game compositions at the
+supported viewports, failures are selector-specific, and the owner accepts the
+final exact bytes. Mechanical hashes, manifests, and pixel gates support
+custody but cannot substitute for aesthetic judgment.
+
+**Capability boundary:** Claude owns only visual-quality definition and art
+production or correction for H2. Codex owns integration, contracts, runtime,
+browser experience, safety, packaging, and all functional acceptance. H2 may
+remain pending while Codex completes the functional KGI, but the Lead reports
+`functional KGI met; visual release gate pending`, never `release-ready`.
+
+**Stop condition:** wait until the owner explicitly starts the Claude art
+cycle; then stop when the bounded selector set passes the rubric and owner
+review. Do not reopen functional scope or build an art-production platform.
 
 ### [x] P2 — Art publisher completes the shipping catalog module
 
@@ -683,7 +696,7 @@ independent review, or final KGI return.
 envelope pass; do not expand into frozen audio, localization, settings, gamepad,
 or cosmetic work.
 
-### [x] P6 — Delivery and independent QA prove the product KGI
+### [ ] P6 — Delivery and independent QA prove the product KGI
 
 **Subject/action/object:** `90-cli` and `80-local-server` package and serve the
 approved product, then an independent read-only reviewer repeats the whole
@@ -701,7 +714,7 @@ package contains only intended `ship/` bytes; first interaction is available
 within 3 seconds on the acceptance machine. Only after this evidence may the
 Lead declare CodeCity v1 complete.
 
-P6 evidence is the packed-artifact orchestrator in
+The current P6 candidate evidence is the packed-artifact orchestrator in
 `studio/quality/e2e/90-packed-kgi.mjs` and its independently reviewed external
 evidence record. The 1,039,513-byte tarball has SHA-256
 `95c9825ec0580d68a1b6b13d1d16c6940b2fbb62b0859d3e9a825b243fb81bc6` and 91
@@ -720,6 +733,15 @@ polling changes `.git` directory mtime while leaving its contents exact. The
 independent distribution/security reviewer marked P6 met. This proves this
 tarball, repository, and macOS/Node/Chrome acceptance run only; it does not
 prove every repository, device, or registry path, nor judge asset aesthetics.
+
+P6 is reopened because the orchestrator's top-level `ok` does not fail when
+process network capture is blocked or contains a non-loopback row, and its tar
+inventory is recorded without exact allowlist enforcement. The under-three-
+second probe also uses a prelaunched Chrome process with CLI browser opening
+disabled, so it proves packed server-to-existing-browser readiness rather than
+the literal customer's command-to-interaction interval. Until those three
+claims are directly enforced or truthfully narrowed, this run is useful
+candidate evidence but cannot prove P6 or the product KGI.
 
 **Three-view value:** the owner receives the promised requirement coverage from
 the authorized subscription investment; the Lead's declaration is independently
@@ -754,6 +776,10 @@ rejection reopens only its bounded selector work order. `P4` starts only after
 P2 and P3 are covered. The Lead stops or reallocates any work on frozen scope,
 duplicate evidence, or intermediate polish while a critical KGI dependency
 remains uncovered.
+
+H2 is the only Claude-dependent work. It may run after the functional path and
+must not block Codex from completing P2-P6. Functional KGI status and visual
+release status are reported separately until both are met.
 
 ## 9. Forbidden completion language
 
