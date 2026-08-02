@@ -257,6 +257,10 @@ export function validateSceneBundle(bundle) {
   for (const key of REQUIRED_SCENE_KEYS) if (!own(bundle, key)) issues.push(issue(`$.${key}`, 'SCENE_FIELD_REQUIRED', 'SceneBundle v1 field is required'));
   if (bundle.bindingsVersion !== 1) issues.push(issue('$.bindingsVersion', 'BINDINGS_UNSUPPORTED', 'bindingsVersion must be exactly 1'));
   if (!isRecord(bundle.world) || !isRecord(bundle.world.identity) || !nonEmpty(bundle.world.identity.key)) issues.push(issue('$.world.identity', 'IDENTITY_REQUIRED', 'world identity.key is required'));
+  else {
+    rejectUnknownKeys(bundle.world, ['identity', 'contentDigest', 'seed', 'townType', 'climate', 'terrain', 'grid'], '$.world', issues);
+    if (!HASH_RE.test(bundle.world.contentDigest ?? '')) issues.push(issue('$.world.contentDigest', 'CONTENT_DIGEST_INVALID', 'world contentDigest must be a SHA-256 digest'));
+  }
   if (!array(bundle.assets) || bundle.assets.length === 0) issues.push(issue('$.assets', 'ASSETS_REQUIRED', 'at least one approved asset binding is required'));
   const selectors = new Map();
   if (array(bundle.assets)) bundle.assets.forEach((asset, index) => validateAsset(asset, `$.assets[${index}]`, selectors, issues));
@@ -270,7 +274,7 @@ function assertValid(bundle) {
   if (!result.ok) throw new GameRuntimeError('SCENE_BUNDLE_INVALID', 'SceneBundle failed the runtime contract', result.issues);
 }
 
-function storageKey(identity) { return `codecity.game.v1.${encodeURIComponent(identity)}`; }
+function storageKey(identity, contentDigest) { return `codecity.game.v1.${encodeURIComponent(identity)}.${contentDigest}`; }
 function assertStorage(storage) { if (!storage || typeof storage.getItem !== 'function' || typeof storage.setItem !== 'function') throw new GameRuntimeError('STORAGE_REQUIRED', 'an injected storage adapter is required'); }
 function utf8Bytes(value) { if (typeof TextEncoder === 'function') return new TextEncoder().encode(value).byteLength; return unescape(encodeURIComponent(value)).length; }
 
@@ -442,7 +446,7 @@ export function createGameRuntime({ bundle, canvas, uiRoot, storage, assetLoader
   assertStorage(storage);
   assertAssetLoader(assetLoader);
   const identity = bundle.world.identity.key;
-  const key = storageKey(identity);
+  const key = storageKey(identity, bundle.world.contentDigest);
   let state = createInitialState(bundle, readSaved(storage, key, identity));
   let images = new Map();
   let frame = null;

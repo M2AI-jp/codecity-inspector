@@ -114,7 +114,8 @@ human owner may create the acceptance record.
 ```text
 SceneBundle = {
   format: "codecity.scene-bundle", schemaVersion: 1, bindingsVersion: 1,
-  world, assets, layers, collisions, nav, rooms, actors, interactions,
+  world: { identity, contentDigest, seed, townType, climate, terrain, grid },
+  assets, layers, collisions, nav, rooms, actors, interactions,
   questSites, evidence,
   game: {
     logicalSize: { width: 384, height: 216 }, worldSize, spawn,

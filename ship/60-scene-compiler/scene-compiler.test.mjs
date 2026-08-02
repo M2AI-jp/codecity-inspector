@@ -251,9 +251,11 @@ test('bundle validation catches schema and binding tampering', () => {
   const bundle = compileScene({ worldPlan: plan, assetManifest: manifest(root, selectors), assetRoot: root, bindings: bindingsFor(selectors) });
   const broken = structuredClone(bundle);
   broken.schemaVersion = 2;
+  delete broken.world.contentDigest;
   broken.layers.terrain.asset.assetId = 'not-canonical';
   const result = validateSceneBundle(broken);
   assert.equal(result.ok, false);
   assert.ok(result.issues.some(({ code }) => code === 'UNSUPPORTED_SCHEMA'));
+  assert.ok(result.issues.some(({ code }) => code === 'CONTENT_DIGEST_INVALID'));
   assert.ok(result.issues.some(({ code }) => code === 'ASSET_REFERENCE_MISMATCH'));
 });

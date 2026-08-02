@@ -803,6 +803,7 @@ export function compileScene({ worldPlan, assetManifest, assetRoot, bindings } =
     bindingsVersion: SCENE_BINDINGS_SCHEMA_VERSION,
     world: {
       identity: clone(plan.identity),
+      contentDigest: plan.contentSeed,
       seed: plan.seed,
       townType: plan.townType,
       climate: plan.climate,
@@ -919,6 +920,10 @@ export function validateSceneBundle(bundle) {
   for (const key of ['bindingsVersion', 'world', 'assets', 'layers', 'collisions', 'nav', 'rooms', 'actors', 'interactions', 'questSites', 'evidence', 'game']) if (!Object.prototype.hasOwnProperty.call(bundle, key)) issues.push(issue(`$.${key}`, 'SCENE_FIELD_REQUIRED', 'SceneBundle v1 field is required'));
   if (bundle.bindingsVersion !== SCENE_BINDINGS_SCHEMA_VERSION) issues.push(issue('$.bindingsVersion', 'BINDINGS_UNSUPPORTED', 'bindingsVersion must be exactly 1'));
   if (!isRecord(bundle.world) || !isRecord(bundle.world.identity) || !nonEmpty(bundle.world.identity.key)) issues.push(issue('$.world.identity', 'IDENTITY_REQUIRED', 'world identity.key is required'));
+  else {
+    rejectUnknownKeys(bundle.world, ['identity', 'contentDigest', 'seed', 'townType', 'climate', 'terrain', 'grid'], '$.world', issues);
+    if (!HASH_RE.test(bundle.world.contentDigest ?? '')) issues.push(issue('$.world.contentDigest', 'CONTENT_DIGEST_INVALID', 'world contentDigest must be the exact WorldPlan content seed'));
+  }
   if (!Array.isArray(bundle.assets) || bundle.assets.length === 0) issues.push(issue('$.assets', 'ASSETS_REQUIRED', 'at least one approved asset binding is required'));
   const assets = new Map();
   if (Array.isArray(bundle.assets)) bundle.assets.forEach((asset, index) => {

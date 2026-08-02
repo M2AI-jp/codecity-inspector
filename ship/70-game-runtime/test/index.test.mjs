@@ -62,7 +62,7 @@ function bundle({ questCount = 3, reportChange = null } = {}) {
     format: 'codecity.scene-bundle',
     schemaVersion: 1,
     bindingsVersion: 1,
-    world: { identity: { key: 'repo-test', name: 'Test Repo' }, seed: 1, townType: 'town', climate: 'clear', terrain: 'grass', grid: { width: 32, height: 23 } },
+    world: { identity: { key: 'repo-test', name: 'Test Repo' }, contentDigest: 'b'.repeat(64), seed: 1, townType: 'town', climate: 'clear', terrain: 'grass', grid: { width: 32, height: 23 } },
     assets,
     layers: { terrain: {}, water: {}, roads: [], plots: [], buildings: [], props: [], lights: [] },
     collisions: { blockedPlotIds: [], blockedCells: [], waterCells: [], vacantPlotIds: [] },
@@ -317,7 +317,7 @@ test('dialogue controls select choices and interaction confirms the report', () 
   assert.equal(state.quest.reported, true);
 });
 
-test('persistence is identity-scoped and quest-id-only; exit and revisit survive', async () => {
+test('persistence is identity-and-content scoped and quest-id-only; exit and revisit survive', async () => {
   const scene = bundle({ questCount: 3 });
   const store = storage();
   const clock = fakeClock();
@@ -340,6 +340,13 @@ test('persistence is identity-scoped and quest-id-only; exit and revisit survive
   third.dispatch({ type: 'INTERACT' });
   assert.equal(third.state.phase, 'explore');
   assert.equal(third.state.exit.revisitCount, 1);
+
+  const changedContent = structuredClone(scene);
+  changedContent.world.contentDigest = 'c'.repeat(64);
+  const changedRuntime = createGameRuntime({ ...options, bundle: changedContent });
+  assert.notEqual(changedRuntime.storageKey, third.storageKey);
+  assert.equal(changedRuntime.state.phase, 'explore');
+  assert.equal(changedRuntime.state.quest.reported, false);
 
   const legacy = { version: 1, identity: 'repo-test', answers: { '0': { choice: '見た', sentence: 'xです。' } } };
   assert.equal(createInitialState(scene, legacy).quest.answered, 0);

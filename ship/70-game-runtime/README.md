@@ -44,6 +44,8 @@ A decides, B backs out, and Start overlooks. Missing, disconnected, or
 throwing Gamepad APIs are treated as no input. A connection notice is shown
 for 3.2 seconds without creating a settings screen.
 
-Persistence is local and identity-scoped (`codecity.game.v1.<repository-key>`)
-with a strict 64 KiB serialized bound. Saved answers are keyed only by quest
-ID, so reordering compiler sites cannot transfer an answer to another site.
+Persistence is local and identity-plus-content-digest scoped
+(`codecity.game.v1.<repository-key>.<content-digest>`) with a strict 64 KiB
+serialized bound. Saved answers are keyed only by quest ID, so reordering
+compiler sites cannot transfer an answer to another site and changed repository
+content cannot inherit a stale report or town effect.

@@ -84,7 +84,7 @@ flowchart TB
 
   subgraph COMPILE["One authorized join point"]
     I60["ship/60-scene-compiler<br/>WorldPlan + exact approved asset bindings → SceneBundle"]
-    SB["SceneBundle v1<br/>logical cells + render layers + collisions + interactions<br/>rooms + NPCs + quest sites + UI bindings + evidence addresses"]
+    SB["SceneBundle v1<br/>repository identity + content digest<br/>logical cells + render layers + collisions + interactions<br/>rooms + NPCs + quest sites + UI bindings + evidence addresses"]
 
     WP --> I60
     I50 --> I60
