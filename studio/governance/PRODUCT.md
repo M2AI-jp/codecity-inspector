@@ -8,11 +8,75 @@ files and their tests define versioned interfaces. No README, test result,
 diagram, issue, chat log, Git history, or generated report may add product
 scope or override this file.
 
-Workers must read this file before editing. Workers execute only an unchecked
-action assigned by the Lead. If code and this file disagree, the worker stops
-and reports the exact disagreement; the Lead either fixes the code or changes
-this file explicitly. Workers do not create another roadmap, SSOT, design
-projection, backlog, or historical summary.
+Every agent must read this file before acting. If code and this file disagree,
+the agent stops and reports the exact disagreement; only the Lead decides
+whether to fix the code or change this file. No agent creates another roadmap,
+SSOT, design projection, backlog, or historical summary.
+
+## 0. Executive mandate and investment contract
+
+The human owner has appointed the Lead as the accountable executive, not the
+default implementation worker. The Lead owns requirement selection, scope,
+priority, capital allocation, decomposition, assignment, integration,
+acceptance, owner communication, commits, publication, and every completion
+claim. The Lead must use PM agents for decomposition, dependencies, risk, and
+acceptance design, and use workers for bounded implementation. The Lead may
+inspect and integrate directly, but must not absorb parallelizable production
+work or allow agents to self-assign scope.
+
+### Investment supplied by the owner
+
+For this project, investment means finite resources entrusted to the Lead:
+
+- execution capacity already included in the owner's Codex subscription;
+- PM and worker agent slots, turns, elapsed time, and attention;
+- asset-generation capability available inside that subscription;
+- the owner's 22 immutable originals and product decisions;
+- the owner's limited attention for batched exact-byte art review cycles.
+
+The plan does **not** assume metered API calls, an API key, a paid external
+generator, a SaaS subscription, outsourced production, or any additional
+monetary spend. Codex-subscription asset generation and local deterministic
+tools are the default production resources. The Lead may not introduce a paid
+or metered external dependency without a separate explicit owner decision that
+states the requirement served, why subscription resources cannot serve it, and
+the stop condition. Local packaging metadata is not authorization to publish
+to a network registry.
+
+Subscription capacity has an opportunity cost even when no marginal API bill
+is visible. Repeated audits, duplicated tests, speculative abstractions,
+unbounded variants, unused assets, parallel workers without independent owned
+outputs, and documents that do not remove a KGI blocker are waste. The Lead
+must cancel, narrow, or reallocate them.
+
+### Return promised to the owner
+
+Return means verified coverage of the owner's requirements in this file. It
+does not mean monetary profit, revenue, or a commercial forecast. Reports state
+each KGI requirement as `covered`, `not covered`, or `blocked` and link the
+acceptance evidence. Time spent, tokens consumed, agents launched, files,
+tests, candidates, approvals, and modules are investment or production
+evidence; none is return by itself.
+
+The realized return is a 9-of-9 KGI journey from one freshly packed artifact.
+Partial requirement coverage may guide capital allocation, but CodeCity is not
+complete until all nine requirements succeed together in the P6 run.
+
+### Operating roles
+
+| Role | Accountable output | Forbidden authority |
+|---|---|---|
+| Human owner | Product decisions and batched promotion decisions over exact candidate bytes | Manual production, metadata authoring, routine QA, project management |
+| Lead / executive | Scope, investment allocation, assignments, integration, acceptance and truthful reporting | Inventing owner intent, hiding cost, treating activity as return |
+| PM agent | Read-only decomposition, dependency graph, risk/acceptance audit and worker coordination advice | Product scope changes, implementation unless separately assigned as a worker, acceptance or completion claims |
+| Worker agent | One bounded implementation output inside explicit owned paths, with evidence and stop condition | Self-assignment, neighboring-path edits, commits, pushes, publication, approval, roadmap changes |
+| Independent reviewer | Read-only P6 journey, package, privacy, distribution and security evidence | Implementing or repairing the work being reviewed |
+
+Every worker assignment states: the KGI requirement advanced, owned paths,
+forbidden paths, bounded output, acceptance evidence, dependencies, and stop
+condition. A worker stops rather than improvises when it needs owner approval,
+external spend, a frozen feature, an undefined selector, a scope change, or a
+write outside its owned paths.
 
 ## 1. Product KGI
 
@@ -34,6 +98,16 @@ packed npm artifact in a real browser:
 Nothing else is the product KGI. A folder, document, contract, passing test,
 backend, generated candidate, approval, manifest, SceneBundle, server, first
 browser frame, screenshot, or partial demo is enabling work only.
+
+### Customer value delivered by the KGI
+
+The end customer turns a local repository into a private, persistent town with
+one command. They walk through three repository-derived questions instead of
+reading a technical audit, can distinguish what CodeCity observed from what it
+inferred or could not know, see their completed report change the town, and can
+return to the same place later. CodeCity offers comprehension, truthful
+uncertainty, and ownership without uploading or executing the customer's code;
+it does not pretend to certify that the repository builds or works.
 
 ## 2. Non-negotiable truth and safety
 
@@ -181,9 +255,13 @@ do not append a diary.
 
 ## 7. Remaining action items
 
-Each item completes an executable module or the product. Each sentence names
-the subject, verb, object, output, and acceptance evidence. Completing an item
-does not permit a product-complete claim before `P6`.
+Each item is an investment allocation, not a milestone claim. Before assigning
+work from an item, the Lead creates a bounded assignment that names the KGI
+requirement covered, owned and forbidden paths, output, acceptance evidence,
+dependencies, owner dependency, and stop condition. The Lead records coverage
+only as `covered`, `not covered`, or `blocked`; effort spent and artifacts
+produced are not return. Only `P6` verifies the accumulated return through the
+product KGI.
 
 ### [x] P0 — Lead fixes authority and organizational boundaries
 
@@ -196,25 +274,43 @@ code under `ship/`; pre-ship work under `studio/`; no active historical
 transcripts, quantity backlog, duplicate product diagram, or empty legacy
 division.
 
-**Acceptance evidence:** `rg` finds no active reference to the deleted product
-documents or 4,654-item target; `npm run check` passes; `npm pack --dry-run`
-contains no tests, studio files, originals, candidates, or diagnostic art.
+**Acceptance evidence:** outside this SSOT's explicit frozen-scope warning,
+`rg` finds no active reference to the deleted product documents or former
+4,654-item target; `npm run check` passes; `npm pack --dry-run` contains no
+tests, studio files, originals, candidates, or diagnostic art. P0 remains
+closed unless an actual organizational regression is observed.
 
-### [ ] P1 — Art department completes a demand-driven production module
+### [ ] P1 — Lead obtains the minimum reviewable v1 art candidates
 
-**Subject/action/object:** `studio/art-department` consumes the 22 originals
-and the finite v1 selector vocabulary, computes approved coverage, and creates
-one explicit work order for each uncovered selector.
+**KGI coverage:** approved art for every selector reachable in the bounded v1
+journey.
 
-**Output:** a versioned style authority and palette derived from originals;
-machine-readable work orders; deterministic candidate producers; per-candidate
-sidecars, lineage, hashes, and quantitative reports; a review queue containing
-only submitted candidates.
+**Subject/action/object:** The Lead first assigns a PM to derive the finite
+reachable selector gap and freezes that list. The Lead then assigns independent
+candidate work orders to Codex workers. Workers may extract or transform the
+immutable originals or generate candidate art using capabilities included with
+the Codex subscription. They do not promote assets or write into `ship/`.
 
-**Acceptance evidence:** a clean checkout can run one documented command to
-reproduce the coverage report and review queue without editing originals or
-writing into `ship/`; an empty queue reports `idle`; every submitted candidate
-passes or reports exact failed/unknown checks; no API can promote a candidate.
+**Output:** a style authority and palette derived from the originals; one exact
+reviewable candidate, sidecar, provenance record, hash, and gate report for
+every uncovered required selector. Candidate bytes need not be reproducible;
+their review identity is their exact hash. The approval-to-package publisher,
+not image generation, must be deterministic.
+
+**Acceptance evidence:** the Lead-approved finite selector list is present and
+every item has an exact submitted candidate; each candidate has visible review
+material and reports every mechanical check as passed, failed, or unknown;
+originals are unchanged; no machine promotion command, paid API, external
+service, API key, or separately built image-generation platform is required.
+
+**Owner dependency:** the Lead batches the complete exact candidate set for H1
+and minimizes review cycles. A rejection reopens only that selector's work
+order; it never creates pressure to accept deficient bytes or reopen the full
+inventory.
+
+**Stop condition:** stop candidate production when the frozen selector gap is
+empty. Do not create variants, inventory, production frameworks, or assets for
+frozen scope.
 
 ### [ ] H1 — Human owner promotes the complete v1 visual vocabulary
 
@@ -225,7 +321,9 @@ candidate byte sequence needed by the bounded v1 selector vocabulary.
 
 **Acceptance evidence:** every approval binds owner identity, candidate hash,
 source hash, decision, and time; rejected or changed bytes cannot be published.
-This is the only required human production action.
+Asset promotion is the only required human art-production action. The Lead
+batches the complete bounded review set to minimize owner attention. Rejected
+required selectors return to P1; only accepted selectors proceed to P2.
 
 ### [ ] P2 — Art publisher completes the shipping catalog module
 
@@ -309,14 +407,23 @@ Lead declare CodeCity v1 complete.
 ## 8. Execution order and parallelism
 
 ```text
-P1 -> H1 -> P2 --+
-                  +-> P4 -> P5 -> P6
-P3 ---------------+
+P1 -> H1 accepted -> P2 --+
+ ^      |                  +-> P4 -> P5 -> P6
+ +------+ rejected         |
+P3 ------------------------+
 ```
 
-The Lead may run `P1` and `P3` in parallel. `H1` starts only after P1 produces
-reviewable exact bytes. `P4` starts only after P2 and P3 pass. No worker starts
-frozen work while a critical-path item remains.
+The Lead allocates `P1` and `P3` in parallel only while their worker assignments
+are independent and bounded. PM agents own decomposition, dependency tracking,
+acceptance criteria, and read-only risk review; workers own only assigned paths
+and outputs. The Lead retains scope, integration, owner communication, and
+acceptance decisions.
+
+`H1` starts only when P1 has batched the complete exact-byte review set. A
+rejection reopens only its bounded selector work order. `P4` starts only after
+P2 and P3 are covered. The Lead stops or reallocates any work on frozen scope,
+duplicate evidence, or intermediate polish while a critical KGI dependency
+remains uncovered.
 
 ## 9. Forbidden completion language
 
