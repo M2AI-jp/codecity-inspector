@@ -3,10 +3,9 @@ node_modules/
 *.log
 coverage/
 dist/
-studio/art-factory/candidates/**
-!studio/art-factory/candidates/README.md
-studio/art-factory/reports/**
-!studio/art-factory/reports/README.md
+studio/art-department/candidates/**
+!studio/art-department/candidates/README.md
+studio/art-department/reports/**
+!studio/art-department/reports/README.md
 studio/quality/evidence/**
 !studio/quality/evidence/README.md
-

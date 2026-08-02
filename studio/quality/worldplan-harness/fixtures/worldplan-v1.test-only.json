@@ -1,0 +1,95 @@
+{
+  "format": "codecity.world-plan",
+  "schemaVersion": 1,
+  "identity": { "key": "fixture:test-only:worldplan-v1", "name": "test-only tiny town" },
+  "seed": "0000000000000000000000000000000000000000000000000000000000000001",
+  "contentSeed": "0000000000000000000000000000000000000000000000000000000000000002",
+  "townType": "plain",
+  "climate": "spring",
+  "terrain": "plain",
+  "grid": { "columns": 12, "rows": 8 },
+  "elevation": { "levels": 2, "bands": ["low", "high"] },
+  "water": {
+    "crossesMap": true,
+    "path": [{ "x": 0, "y": 0 }, { "x": 3, "y": 1 }, { "x": 6, "y": 2 }, { "x": 9, "y": 3 }, { "x": 11, "y": 4 }]
+  },
+  "roads": [
+    { "id": "road-main", "kind": "main", "fromPlotId": "plot-01", "toPlotId": "plot-12", "path": [{ "x": 1, "y": 1 }, { "x": 5, "y": 3 }, { "x": 10, "y": 6 }] },
+    { "id": "road-branch-a", "kind": "branch", "fromPlotId": "plot-01", "toPlotId": "plot-04", "path": [{ "x": 1, "y": 1 }, { "x": 3, "y": 1 }] },
+    { "id": "road-branch-b", "kind": "branch", "fromPlotId": "plot-04", "toPlotId": "plot-08", "path": [{ "x": 3, "y": 1 }, { "x": 5, "y": 5 }] },
+    { "id": "road-branch-c", "kind": "branch", "fromPlotId": "plot-08", "toPlotId": "plot-12", "path": [{ "x": 5, "y": 5 }, { "x": 10, "y": 6 }] },
+    { "id": "road-dead-end", "kind": "dead-end", "fromPlotId": "plot-04", "toPlotId": "plot-05", "path": [{ "x": 3, "y": 1 }, { "x": 3, "y": 3 }] }
+  ],
+  "topology": {
+    "entryRegion": "entrance",
+    "regionOrder": ["entrance", "life", "work", "edge", "past"],
+    "edges": [
+      { "from": "entrance", "to": "life" },
+      { "from": "life", "to": "work" },
+      { "from": "life", "to": "edge" },
+      { "from": "life", "to": "past" }
+    ]
+  },
+  "regions": [
+    { "id": "entrance", "plotIds": ["plot-01", "plot-02"], "anchorPlotId": "plot-01" },
+    { "id": "life", "plotIds": ["plot-03", "plot-04", "plot-05"], "anchorPlotId": "plot-03" },
+    { "id": "work", "plotIds": ["plot-06", "plot-07"], "anchorPlotId": "plot-06" },
+    { "id": "edge", "plotIds": ["plot-08", "plot-09"], "anchorPlotId": "plot-08" },
+    { "id": "past", "plotIds": ["plot-10", "plot-11", "plot-12"], "anchorPlotId": "plot-10" }
+  ],
+  "plotIds": ["plot-01", "plot-02", "plot-03", "plot-04", "plot-05", "plot-06", "plot-07", "plot-08", "plot-09", "plot-10", "plot-11", "plot-12"],
+  "plots": [
+    { "id": "plot-01", "region": "entrance", "cell": { "x": 0, "y": 0, "width": 1, "height": 1 }, "elevation": 0, "terrain": "plain" },
+    { "id": "plot-02", "region": "entrance", "cell": { "x": 1, "y": 0, "width": 1, "height": 1 }, "elevation": 0, "terrain": "plain" },
+    { "id": "plot-03", "region": "life", "cell": { "x": 2, "y": 0, "width": 1, "height": 1 }, "elevation": 0, "terrain": "plain" },
+    { "id": "plot-04", "region": "life", "cell": { "x": 3, "y": 2, "width": 1, "height": 1 }, "elevation": 0, "terrain": "plain" },
+    { "id": "plot-05", "region": "life", "cell": { "x": 4, "y": 2, "width": 1, "height": 1 }, "elevation": 0, "terrain": "plain" },
+    { "id": "plot-06", "region": "work", "cell": { "x": 5, "y": 3, "width": 1, "height": 1 }, "elevation": 1, "terrain": "plain" },
+    { "id": "plot-07", "region": "work", "cell": { "x": 6, "y": 3, "width": 1, "height": 1 }, "elevation": 1, "terrain": "plain" },
+    { "id": "plot-08", "region": "edge", "cell": { "x": 7, "y": 4, "width": 1, "height": 1 }, "elevation": 0, "terrain": "plain" },
+    { "id": "plot-09", "region": "edge", "cell": { "x": 8, "y": 4, "width": 1, "height": 1 }, "elevation": 0, "terrain": "plain" },
+    { "id": "plot-10", "region": "past", "cell": { "x": 9, "y": 5, "width": 1, "height": 1 }, "elevation": 0, "terrain": "plain" },
+    { "id": "plot-11", "region": "past", "cell": { "x": 10, "y": 5, "width": 1, "height": 1 }, "elevation": 0, "terrain": "plain" },
+    { "id": "plot-12", "region": "past", "cell": { "x": 11, "y": 6, "width": 1, "height": 1 }, "elevation": 0, "terrain": "plain" }
+  ],
+  "sightlines": [{ "fromPlotId": "plot-01", "toPlotId": "plot-06" }],
+  "nav": {
+    "startPlotId": "plot-01",
+    "edges": [
+      { "from": "plot-01", "to": "plot-02" }, { "from": "plot-02", "to": "plot-03" }, { "from": "plot-03", "to": "plot-04" }, { "from": "plot-04", "to": "plot-05" }, { "from": "plot-05", "to": "plot-06" }, { "from": "plot-06", "to": "plot-07" }, { "from": "plot-07", "to": "plot-08" }, { "from": "plot-08", "to": "plot-09" }, { "from": "plot-09", "to": "plot-10" }, { "from": "plot-10", "to": "plot-11" }, { "from": "plot-11", "to": "plot-12" }
+    ],
+    "reachablePlotIds": ["plot-01", "plot-02", "plot-03", "plot-04", "plot-05", "plot-06", "plot-07", "plot-08", "plot-09", "plot-10", "plot-11", "plot-12"],
+    "regionByPlot": { "plot-01": "entrance", "plot-02": "entrance", "plot-03": "life", "plot-04": "life", "plot-05": "life", "plot-06": "work", "plot-07": "work", "plot-08": "edge", "plot-09": "edge", "plot-10": "past", "plot-11": "past", "plot-12": "past" }
+  },
+  "occupancy": [
+    { "plotId": "plot-01", "state": "occupied", "occupants": [{ "facilityId": "facility-hall", "plotId": "plot-01", "kind": "civic", "name": "Town hall", "state": "observed" }] },
+    { "plotId": "plot-02", "state": "vacant", "occupants": [] }, { "plotId": "plot-03", "state": "vacant", "occupants": [] }, { "plotId": "plot-04", "state": "vacant", "occupants": [] }, { "plotId": "plot-05", "state": "vacant", "occupants": [] }, { "plotId": "plot-06", "state": "vacant", "occupants": [] }, { "plotId": "plot-07", "state": "vacant", "occupants": [] }, { "plotId": "plot-08", "state": "vacant", "occupants": [] }, { "plotId": "plot-09", "state": "vacant", "occupants": [] }, { "plotId": "plot-10", "state": "vacant", "occupants": [] }, { "plotId": "plot-11", "state": "vacant", "occupants": [] }, { "plotId": "plot-12", "state": "vacant", "occupants": [] }
+  ],
+  "facilityAssignments": [{ "facilityId": "facility-hall", "plotId": "plot-01" }],
+  "rooms": [{ "id": "room-hall", "plotId": "plot-01", "facilityId": "facility-hall", "kind": "civic", "state": "observed" }],
+  "npcs": [{ "id": "npc-clerk", "plotId": "plot-01", "memberId": "member-clerk", "role": "clerk", "name": "Mina", "movement": "idle" }],
+  "props": [{ "id": "prop-road-main-1", "kind": "sign", "cell": { "x": 5, "y": 3 }, "roadId": "road-main" }],
+  "lights": [{ "id": "light-gate", "plotId": "plot-01", "state": "lit" }],
+  "questSites": [{ "id": "quest-site-check", "candidateId": "candidate-check", "plotId": "plot-01", "action": "inspect", "evidence": { "state": "unknown" } }],
+  "townState": {
+    "habitability": { "level": 1, "label": "明かりがひとつ、つきました。" },
+    "guild": {
+      "tabs": [
+        { "id": "members", "label": "なかま", "entries": [] },
+        { "id": "reception", "label": "うけつけ", "entries": [] },
+        { "id": "requests", "label": "いらい", "entries": [] },
+        { "id": "inventory", "label": "もちもの", "entries": [] },
+        { "id": "status", "label": "じょうたい", "entries": [] }
+      ],
+      "representativeConnections": [],
+      "connections": []
+    },
+    "investigations": { "priority": ["entrypoint", "persistence", "configuration", "test", "observability", "recovery"], "candidates": [] },
+    "rewards": { "bindings": [], "transitions": [] }
+  },
+  "evidence": {
+    "observed": ["This JSON is a hand-authored harness fixture, not product data."],
+    "inferred": ["Plot order and route are deterministic for this fixture identity."],
+    "unknown": ["No approved art or runtime scene is represented here."]
+  }
+}

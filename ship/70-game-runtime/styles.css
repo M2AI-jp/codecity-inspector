@@ -1,0 +1,141 @@
+:root {
+  color-scheme: dark;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  background: #111820;
+  color: #f8f3dc;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  min-width: 280px;
+  background: #111820;
+}
+
+.game-app {
+  display: grid;
+  gap: 1rem;
+  width: min(100% - 2rem, 62rem);
+  margin: 0 auto;
+  padding: clamp(1rem, 4vw, 2.5rem) 0;
+}
+
+.game-header {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.eyebrow,
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+.eyebrow {
+  color: #f0b35a;
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+}
+
+h1 {
+  font-size: clamp(1.4rem, 4vw, 2rem);
+  line-height: 1.1;
+}
+
+.game-status {
+  min-height: 1.5rem;
+  color: #b7c7c9;
+  font-size: 0.875rem;
+}
+
+.game-shell {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.canvas-frame {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  overflow: hidden;
+  border: 2px solid #42606a;
+  border-radius: 0.5rem;
+  background: #0a0e12;
+  box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 30%);
+}
+
+#game-canvas {
+  display: block;
+  /* The CSS bitmap size follows the integer-sized backing canvas exactly.
+     A narrow frame crops the world at its edge; it never fractionally scales
+     or blurs the pixel grid. */
+  width: auto;
+  max-width: none;
+  height: auto;
+  aspect-ratio: 384 / 216;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  outline: none;
+}
+
+#game-canvas:focus-visible {
+  box-shadow: 0 0 0 3px #f0b35a;
+}
+
+.game-ui {
+  min-height: 3.5rem;
+  padding: 0.75rem;
+  white-space: pre-wrap;
+  border: 1px solid #42606a;
+  border-radius: 0.35rem;
+  background: #1a2630;
+  color: #f8f3dc;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.game-error {
+  padding: 0.75rem;
+  border: 1px solid #e77d64;
+  border-radius: 0.35rem;
+  background: #3a1d24;
+  color: #ffd9ca;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.game-help {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.9rem;
+  border-left: 3px solid #f0b35a;
+  background: #18232b;
+  color: #d6e0d7;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+.game-help h2 {
+  color: #f0b35a;
+  font-size: 0.875rem;
+}
+
+@media (max-width: 32rem) {
+  .game-app {
+    width: min(100% - 1rem, 62rem);
+    padding-top: 1rem;
+  }
+
+  .game-help {
+    font-size: 0.75rem;
+  }
+}
