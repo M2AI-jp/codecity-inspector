@@ -1,0 +1,78 @@
+{
+  "format": "codecity.v1-candidate-provenance",
+  "schemaVersion": 1,
+  "selector": "room:gate",
+  "candidatePath": "room-gate/room-gate.png",
+  "candidateSha256": "b9ffc8402b74cfb7d18eef573e86232123e18d4f993e6efca2e2a8838cf7e75c",
+  "candidateByteLength": 17973,
+  "source": {
+    "sourceOriginal": "target-town.png",
+    "sourceRect": [
+      0,
+      115,
+      410,
+      470
+    ],
+    "method": "extract-crop-transform",
+    "description": "cutaway tavern interior crop",
+    "kind": "room",
+    "dimensions": [
+      192,
+      192
+    ],
+    "sourceSha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607"
+  },
+  "reuse": {
+    "selector": "room:inn",
+    "reason": "intentional exact-byte reuse of the canonical target-town cutaway interior across the room family; semantic room role remains unknown until owner review"
+  },
+  "transform": {
+    "kind": "deterministic-local",
+    "steps": [
+      "extract target-town.png cutaway interior rectangle [0,115,410,470]",
+      "nearest-neighbor resize to 192x192",
+      "opaque RGBA normalization",
+      "palette mapping to palette-v2",
+      "2x block reduction for pixel coherence"
+    ]
+  },
+  "dimensions": {
+    "width": 192,
+    "height": 192,
+    "opaquePixels": 36864,
+    "transparentPixels": 0,
+    "semiTransparentPixels": 0,
+    "colors": 24
+  },
+  "alpha": {
+    "state": "observed",
+    "mode": "binary",
+    "transparentPixels": 0
+  },
+  "pivot": {
+    "state": "inferred",
+    "x": 96,
+    "y": 191
+  },
+  "frame": {
+    "state": "inferred",
+    "width": 192,
+    "height": 192,
+    "columns": 1,
+    "rows": 1
+  },
+  "mechanical": {
+    "state": "passed",
+    "palette": "passed: palette-v2 (24 colors)",
+    "dimensions": "passed: 192x192",
+    "alpha": "passed: binary RGBA",
+    "seams": "not_applicable",
+    "humanApproval": "unknown",
+    "visualRoleDifferentiation": "unknown"
+  },
+  "review": {
+    "entryPath": "room-gate/review.json",
+    "contactSheetPath": "review/contact-sheet.webp",
+    "ownerDecision": "unknown"
+  }
+}

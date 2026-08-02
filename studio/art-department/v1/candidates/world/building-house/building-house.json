@@ -1,0 +1,11 @@
+{
+  "id": "building-house-v1",
+  "kind": "building",
+  "dimensions": {
+    "width": 192,
+    "height": 192
+  },
+  "paletteId": "palette-v2",
+  "asset": "building-house/building-house.png",
+  "selector": "building:house"
+}

@@ -1,0 +1,16 @@
+{
+  "format": "codecity.v1-candidate-review",
+  "schemaVersion": 1,
+  "selector": "building:town_hall",
+  "candidatePath": "building-town-hall/building-town-hall.png",
+  "candidateSha256": "4a2d47c12bb8f035ed4c3c83c9f1296fe48945ea5e111310c76d736de5770808",
+  "contactSheetPath": "review/contact-sheet.webp",
+  "visualState": "reviewable extracted/generated candidate; no human approval claimed",
+  "mechanicalState": "failed",
+  "ownerDecision": "unknown",
+  "mechanicalFailures": [
+    "G6_LIGHT_DIRECTION",
+    "G8_ISOLATED_PIXELS"
+  ],
+  "mechanicalUnknowns": []
+}

@@ -1,0 +1,79 @@
+{
+  "format": "codecity.v1-candidate-provenance",
+  "schemaVersion": 1,
+  "selector": "building:town_hall",
+  "candidatePath": "building-town-hall/building-town-hall.png",
+  "candidateSha256": "4a2d47c12bb8f035ed4c3c83c9f1296fe48945ea5e111310c76d736de5770808",
+  "candidateByteLength": 34035,
+  "source": {
+    "sourceOriginal": "building_town_hall_sheet.png",
+    "sourceRect": [
+      0,
+      0,
+      520,
+      430
+    ],
+    "method": "extract-crop-transform",
+    "description": "town-hall facade crop",
+    "kind": "building",
+    "dimensions": [
+      192,
+      192
+    ],
+    "sourceSha256": "af560250efd3d45fb00c7ba4a486e6245db5318c564bc72a8a11ba84bbbfb1c9"
+  },
+  "reuse": null,
+  "transform": {
+    "kind": "deterministic-local",
+    "steps": [
+      "crop or source selection",
+      "binary-alpha normalization",
+      "nearest-neighbor resize",
+      "palette mapping to palette-v2",
+      "center/pivot normalization"
+    ]
+  },
+  "dimensions": {
+    "width": 192,
+    "height": 192,
+    "opaquePixels": 19954,
+    "transparentPixels": 16910,
+    "semiTransparentPixels": 0,
+    "colors": 24
+  },
+  "alpha": {
+    "state": "observed",
+    "mode": "binary",
+    "transparentPixels": 16910
+  },
+  "pivot": {
+    "state": "inferred",
+    "x": 96,
+    "y": 191
+  },
+  "frame": {
+    "state": "inferred",
+    "width": 192,
+    "height": 192,
+    "columns": 1,
+    "rows": 1
+  },
+  "mechanical": {
+    "state": "failed",
+    "palette": "observed palette-v2",
+    "dimensions": "observed",
+    "alpha": "observed-binary",
+    "seams": "not_applicable",
+    "humanApproval": "unknown",
+    "failureCodes": [
+      "G6_LIGHT_DIRECTION",
+      "G8_ISOLATED_PIXELS"
+    ],
+    "unknownCodes": []
+  },
+  "review": {
+    "entryPath": "building-town-hall/review.json",
+    "contactSheetPath": "review/contact-sheet.webp",
+    "ownerDecision": "unknown"
+  }
+}

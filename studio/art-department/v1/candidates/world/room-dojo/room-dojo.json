@@ -1,0 +1,11 @@
+{
+  "id": "room-dojo-v1",
+  "kind": "room",
+  "dimensions": {
+    "width": 192,
+    "height": 192
+  },
+  "paletteId": "palette-v2",
+  "asset": "room-dojo/room-dojo.png",
+  "selector": "room:dojo"
+}

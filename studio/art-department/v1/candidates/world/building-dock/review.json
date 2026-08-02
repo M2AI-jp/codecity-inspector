@@ -1,0 +1,15 @@
+{
+  "format": "codecity.v1-candidate-review",
+  "schemaVersion": 1,
+  "selector": "building:dock",
+  "candidatePath": "building-dock/building-dock.png",
+  "candidateSha256": "83821786b2d6146a5a75e11d11636015f6c9cd98a085df9dcbc162751019e2f0",
+  "contactSheetPath": "review/contact-sheet.webp",
+  "visualState": "reviewable extracted/generated candidate; no human approval claimed",
+  "mechanicalState": "failed",
+  "ownerDecision": "unknown",
+  "mechanicalFailures": [
+    "G8_ISOLATED_PIXELS"
+  ],
+  "mechanicalUnknowns": []
+}

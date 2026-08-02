@@ -1,0 +1,15 @@
+{
+  "format": "codecity.v1-candidate-review",
+  "schemaVersion": 1,
+  "selector": "building:guild",
+  "candidatePath": "building-guild/building-guild.png",
+  "candidateSha256": "8b803a3da57b06b8cc8251e7b8deeaf575e3b778c7de0305e5084a00331ddf44",
+  "contactSheetPath": "review/contact-sheet.webp",
+  "visualState": "reviewable extracted/generated candidate; no human approval claimed",
+  "mechanicalState": "failed",
+  "ownerDecision": "unknown",
+  "mechanicalFailures": [
+    "G8_ISOLATED_PIXELS"
+  ],
+  "mechanicalUnknowns": []
+}

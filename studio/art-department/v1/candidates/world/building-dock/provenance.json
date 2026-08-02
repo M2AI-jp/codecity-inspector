@@ -1,0 +1,71 @@
+{
+  "format": "codecity.v1-candidate-provenance",
+  "schemaVersion": 1,
+  "selector": "building:dock",
+  "candidatePath": "building-dock/building-dock.png",
+  "candidateSha256": "83821786b2d6146a5a75e11d11636015f6c9cd98a085df9dcbc162751019e2f0",
+  "candidateByteLength": 21760,
+  "source": {
+    "sourceGeneratedSha256": "3b7f62b5577e1ab63a4698ebc5164a5d4a3dc5df6767f49aa4d67048b933476e",
+    "generationMethod": "built-in image_gen + local chroma-key removal",
+    "prompt": "Use case: stylized-concept; isolated compact timber-and-stone harbor dock warehouse with short pier, mooring posts, rope coils, warm lantern and water-edge foundation; dense hand-crafted isometric pixel art matching CodeCity originals; dark stepped outlines, slate roof, mossy stone, weathered timber, restrained amber; centered with padding; flat #00ff00 chroma-key background only, no shadows/gradients/reflections/floor/characters/text/logos/UI; no #00ff00 in subject.",
+    "kind": "building",
+    "dimensions": [
+      192,
+      192
+    ]
+  },
+  "reuse": null,
+  "transform": {
+    "kind": "deterministic-local",
+    "steps": [
+      "crop or source selection",
+      "binary-alpha normalization",
+      "nearest-neighbor resize",
+      "palette mapping to palette-v2",
+      "center/pivot normalization"
+    ]
+  },
+  "dimensions": {
+    "width": 192,
+    "height": 192,
+    "opaquePixels": 16521,
+    "transparentPixels": 20343,
+    "semiTransparentPixels": 0,
+    "colors": 24
+  },
+  "alpha": {
+    "state": "observed",
+    "mode": "binary",
+    "transparentPixels": 20343
+  },
+  "pivot": {
+    "state": "inferred",
+    "x": 96,
+    "y": 191
+  },
+  "frame": {
+    "state": "inferred",
+    "width": 192,
+    "height": 192,
+    "columns": 1,
+    "rows": 1
+  },
+  "mechanical": {
+    "state": "failed",
+    "palette": "observed palette-v2",
+    "dimensions": "observed",
+    "alpha": "observed-binary",
+    "seams": "not_applicable",
+    "humanApproval": "unknown",
+    "failureCodes": [
+      "G8_ISOLATED_PIXELS"
+    ],
+    "unknownCodes": []
+  },
+  "review": {
+    "entryPath": "building-dock/review.json",
+    "contactSheetPath": "review/contact-sheet.webp",
+    "ownerDecision": "unknown"
+  }
+}

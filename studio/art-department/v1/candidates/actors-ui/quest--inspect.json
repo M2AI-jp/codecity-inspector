@@ -1,0 +1,73 @@
+{
+  "format": "codecity.v1-candidate-sidecar",
+  "schemaVersion": 1,
+  "selector": "quest:inspect",
+  "candidate": {
+    "path": "studio/art-department/v1/candidates/actors-ui/quest-inspect.png",
+    "sha256": "000aa366cf3f53297bb1e25e4288cd5308ca9029a727a71a160386c81ee8fcdc",
+    "dimensions": {
+      "width": 190,
+      "height": 195
+    },
+    "pngMode": "RGBA",
+    "frameCount": 1
+  },
+  "sourceOriginals": [
+    {
+      "path": "art/references/user-provided/object_status_markers_sheet.png",
+      "sha256": "e3d2f177bf10bc07d1362251d8aa80d490fc6f58999d24b06a66c34a177e1d1b",
+      "immutable": true
+    }
+  ],
+  "method": {
+    "kind": "mechanical-extraction",
+    "operations": [
+      "crop-opaque-textured-floor"
+    ],
+    "sourceCropPx": [
+      0,
+      135,
+      190,
+      330
+    ]
+  },
+  "transform": {
+    "resample": "none",
+    "colorSpace": "preserved",
+    "backgroundKey": "near-black/white border where stated; no generated pixels"
+  },
+  "alpha": {
+    "mode": "RGBA",
+    "hasTransparency": false,
+    "mechanical": "passed"
+  },
+  "pivot": {
+    "status": "unknown",
+    "reason": "runtime sprite pivot contract is not exported in P1"
+  },
+  "frameMetadata": {
+    "status": "unknown",
+    "reason": "runtime frame-grid contract is not exported in P1",
+    "declaredFrameCount": 1
+  },
+  "mechanicalChecks": {
+    "pngReadable": "passed",
+    "dimensions": "passed",
+    "candidateHash": "passed",
+    "sourceCustody": "passed",
+    "alpha": "passed",
+    "pivot": "unknown",
+    "frameGrid": "unknown",
+    "visualFit": "unknown",
+    "ownerApproval": "unknown"
+  },
+  "review": {
+    "state": "reviewable",
+    "path": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
+    "approvalState": "pending-human-owner",
+    "humanDecision": "unknown"
+  },
+  "notes": [
+    "Standing inspection-board marker is the supplied visual cue for the inspect quest action; no gameplay completion is inferred."
+  ]
+}

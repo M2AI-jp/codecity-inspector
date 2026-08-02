@@ -1,0 +1,11 @@
+{
+  "id": "building-pub-v1",
+  "kind": "building",
+  "dimensions": {
+    "width": 192,
+    "height": 192
+  },
+  "paletteId": "palette-v2",
+  "asset": "building-pub/building-pub.png",
+  "selector": "building:pub"
+}

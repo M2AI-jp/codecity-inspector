@@ -1,0 +1,78 @@
+{
+  "format": "codecity.v1-candidate-sidecar",
+  "schemaVersion": 1,
+  "selector": "light:unlit",
+  "candidate": {
+    "path": "studio/art-department/v1/candidates/actors-ui/light-unlit.png",
+    "sha256": "e4aca9db5101bd5327d4bc9fddb5a2d009757850a0ce7d48ea5b8d854c6cc9e5",
+    "dimensions": {
+      "width": 38,
+      "height": 145
+    },
+    "pngMode": "RGBA",
+    "frameCount": 1
+  },
+  "sourceOriginals": [
+    {
+      "path": "art/references/user-provided/object_street_props_sheet.png",
+      "sha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "immutable": true
+    }
+  ],
+  "method": {
+    "kind": "exact-byte-reuse",
+    "operations": [
+      "exact-byte-reuse-of-prop-lamp",
+      "crop",
+      "white-border-key-to-alpha",
+      "largest-connected-component"
+    ],
+    "sourceCropPx": [
+      900,
+      0,
+      1000,
+      210
+    ]
+  },
+  "transform": {
+    "resample": "none",
+    "colorSpace": "preserved",
+    "backgroundKey": "near-black/white border where stated; no generated pixels"
+  },
+  "alpha": {
+    "mode": "RGBA",
+    "hasTransparency": true,
+    "mechanical": "passed"
+  },
+  "pivot": {
+    "status": "unknown",
+    "reason": "runtime sprite pivot contract is not exported in P1"
+  },
+  "frameMetadata": {
+    "status": "unknown",
+    "reason": "runtime frame-grid contract is not exported in P1",
+    "declaredFrameCount": 1
+  },
+  "mechanicalChecks": {
+    "pngReadable": "passed",
+    "dimensions": "passed",
+    "candidateHash": "passed",
+    "sourceCustody": "passed",
+    "alpha": "passed",
+    "pivot": "unknown",
+    "frameGrid": "unknown",
+    "visualFit": "unknown",
+    "ownerApproval": "unknown"
+  },
+  "review": {
+    "state": "reviewable",
+    "path": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
+    "approvalState": "pending-human-owner",
+    "humanDecision": "unknown"
+  },
+  "reuse": {
+    "ofSelector": "prop:lamp",
+    "exactByteMatch": true,
+    "explicitReason": "No distinct unlit frame is present in the supplied sheets; exact neutral lamp bytes are intentionally reused, with state-specific semantics left for H1 review."
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "format": "codecity.v1-candidate-sidecar",
+  "schemaVersion": 1,
+  "selector": "ui:dialogue",
+  "candidate": {
+    "path": "studio/art-department/v1/candidates/actors-ui/ui-dialogue.png",
+    "sha256": "739f250bb9380c436e12a9e412314478416d8fdbdb1d1a1b7e1f2b10069ca630",
+    "dimensions": {
+      "width": 470,
+      "height": 225
+    },
+    "pngMode": "RGBA",
+    "frameCount": 1
+  },
+  "sourceOriginals": [
+    {
+      "path": "art/references/user-provided/ui_dialogue_frames_sheet.png",
+      "sha256": "60a2255fe72e2e96c91f00caa93fa7f4906f57fc1f8f0332bdbe91648b9ba29d",
+      "immutable": true
+    }
+  ],
+  "method": {
+    "kind": "mechanical-extraction",
+    "operations": [
+      "crop",
+      "key-near-black-to-alpha"
+    ],
+    "sourceCropPx": [
+      0,
+      20,
+      470,
+      245
+    ]
+  },
+  "transform": {
+    "resample": "none",
+    "colorSpace": "preserved",
+    "backgroundKey": "near-black/white border where stated; no generated pixels"
+  },
+  "alpha": {
+    "mode": "RGBA",
+    "hasTransparency": true,
+    "mechanical": "passed"
+  },
+  "pivot": {
+    "status": "unknown",
+    "reason": "runtime sprite pivot contract is not exported in P1"
+  },
+  "frameMetadata": {
+    "status": "unknown",
+    "reason": "runtime frame-grid contract is not exported in P1",
+    "declaredFrameCount": 1
+  },
+  "mechanicalChecks": {
+    "pngReadable": "passed",
+    "dimensions": "passed",
+    "candidateHash": "passed",
+    "sourceCustody": "passed",
+    "alpha": "passed",
+    "pivot": "unknown",
+    "frameGrid": "unknown",
+    "visualFit": "unknown",
+    "ownerApproval": "unknown"
+  },
+  "review": {
+    "state": "reviewable",
+    "path": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
+    "approvalState": "pending-human-owner",
+    "humanDecision": "unknown"
+  }
+}

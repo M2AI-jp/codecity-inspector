@@ -405,7 +405,7 @@ organization and package exclusion only; they do not prove a playable town.
 **Stop condition:** keep P0 closed unless an observed organizational regression
 reintroduces conflicting authority or non-product bytes into the package.
 
-### [ ] P1 — Lead obtains the minimum reviewable v1 art candidates
+### [x] P1 — Lead obtains the minimum reviewable v1 art candidates
 
 **KGI coverage:** approved art for every selector reachable in the bounded v1
 journey.
@@ -427,15 +427,25 @@ every item has an exact submitted candidate; each candidate has visible review
 material and reports every mechanical check as passed, failed, or unknown;
 originals are unchanged; no machine promotion command, paid API, external
 service, API key, or separately built image-generation platform is required.
-Current checkpoint evidence does not cover P1: the deterministic demand artifact
-records 60 sorted, unique, source-traced selectors, 22/22 immutable-original
-custody, and zero candidate PNGs; a fresh derivation equals the checked-in
-artifact. Five building selectors have filename-level reference gaps, every
-candidate state is `none`, and no sidecar, provenance record, review set, or H1
-approval exists. `water:default` is bound by one exact hash-traced public-index
-literal; that bounded read does not prove general scene composition. The
+P1 evidence is `studio/art-department/v1/candidates/index.json`, independently
+audited against `studio/quality/gates/v1-candidate-batch.mjs`: the submitted set
+equals the 60 sorted, unique frozen selectors; every candidate, sidecar or
+provenance record, review record, source trace, exact hash, byte length, and
+dimension resolves; both hash-bound contact sheets and ordered review manifests
+exist; and all 22 immutable originals retain their frozen hashes. Exact-byte
+reuse is explicit and hash-equal with one canonical selector per byte group. All
+14 `room:*` selectors use one source-traced cutaway interior candidate that is
+byte-distinct from every exterior; facility-specific visual differentiation is
+`unknown` for H1 rather than inferred. The full world pixel gate truthfully
+reports 14 candidate passes and 25 candidate failures, with G2, G6, and G8
+failures preserved per selector; every check is recorded as passed, failed, or
+unknown, and no pending state remains. One Codex-included generation call was
+used for `building:dock`; no paid API, external service, API key, machine
+promotion, original mutation, or `ship/` write was used. This closes candidate
+production only: owner approval remains unknown, and the evidence does not prove
+H1, P2-P6, scene composition, browser playability, or the product KGI. The
 unchanged scene compiler still rejects the new reward transition with
-`REWARD_TRANSITION_INVALID`, which is recorded as a P4 blocker.
+`REWARD_TRANSITION_INVALID`, which remains a P4 blocker.
 
 **Owner dependency:** the Lead batches the complete exact candidate set for H1
 and minimizes review cycles. A rejection reopens only that selector's work

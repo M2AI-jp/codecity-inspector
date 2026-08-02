@@ -1,0 +1,16 @@
+{
+  "format": "codecity.v1-candidate-review",
+  "schemaVersion": 1,
+  "selector": "building:dojo",
+  "candidatePath": "building-dojo/building-dojo.png",
+  "candidateSha256": "b16b98afb6eb6671d396865929769730b10a1b34a252173aef9c5f8493d14921",
+  "contactSheetPath": "review/contact-sheet.webp",
+  "visualState": "reviewable extracted/generated candidate; no human approval claimed",
+  "mechanicalState": "failed",
+  "ownerDecision": "unknown",
+  "mechanicalFailures": [
+    "G6_LIGHT_DIRECTION",
+    "G8_ISOLATED_PIXELS"
+  ],
+  "mechanicalUnknowns": []
+}

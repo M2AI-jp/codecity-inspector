@@ -1,0 +1,439 @@
+{
+  "format": "codecity.v1-candidate-subset-index",
+  "schemaVersion": 1,
+  "status": "ready-for-H1-review",
+  "scope": "actors-ui",
+  "selectorCount": 21,
+  "selectors": [
+    {
+      "selector": "effect:town_hall_lantern_lit",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/effect-town_hall_lantern_lit.png",
+      "candidateSha256": "cc4b135b1694973ef5ca55dcc963fe07200128c46c13b598ae2ba82da6c79a4a",
+      "dimensions": {
+        "width": 180,
+        "height": 220
+      },
+      "sourceOriginals": [
+        {
+          "path": "art/references/user-provided/object_status_markers_sheet.png",
+          "sha256": "e3d2f177bf10bc07d1362251d8aa80d490fc6f58999d24b06a66c34a177e1d1b",
+          "immutable": true
+        }
+      ],
+      "sidecarPath": "studio/art-department/v1/candidates/actors-ui/effect--town_hall_lantern_lit.json",
+      "reviewPath": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
+      "approvalState": "pending-human-owner",
+      "reuseOf": "light:lit"
+    },
+    {
+      "selector": "light:lit",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/light-lit.png",
+      "candidateSha256": "cc4b135b1694973ef5ca55dcc963fe07200128c46c13b598ae2ba82da6c79a4a",
+      "dimensions": {
+        "width": 180,
+        "height": 220
+      },
+      "sourceOriginals": [
+        {
+          "path": "art/references/user-provided/object_status_markers_sheet.png",
+          "sha256": "e3d2f177bf10bc07d1362251d8aa80d490fc6f58999d24b06a66c34a177e1d1b",
+          "immutable": true
+        }
+      ],
+      "sidecarPath": "studio/art-department/v1/candidates/actors-ui/light--lit.json",
+      "reviewPath": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
+      "approvalState": "pending-human-owner",
+      "reuseOf": null
+    },
+    {
+      "selector": "light:unknown",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/light-unknown.png",
+      "candidateSha256": "8e47144a3eaa9e06043a40854e7fd19e93f424a9c0ebec97d253143a881c7e73",
+      "dimensions": {
+        "width": 125,
+        "height": 170
+      },
+      "sourceOriginals": [
+        {
+          "path": "art/references/user-provided/object_status_markers_sheet.png",
+          "sha256": "e3d2f177bf10bc07d1362251d8aa80d490fc6f58999d24b06a66c34a177e1d1b",
+          "immutable": true
+        }
+      ],
+      "sidecarPath": "studio/art-department/v1/candidates/actors-ui/light--unknown.json",
+      "reviewPath": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
+      "approvalState": "pending-human-owner",
+      "reuseOf": null
+    },
+    {
+      "selector": "light:unlit",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/light-unlit.png",
+      "candidateSha256": "e4aca9db5101bd5327d4bc9fddb5a2d009757850a0ce7d48ea5b8d854c6cc9e5",
+      "dimensions": {
+        "width": 38,
+        "height": 145
+      },
+      "sourceOriginals": [
+        {
+          "path": "art/references/user-provided/object_street_props_sheet.png",
+          "sha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+          "immutable": true
+        }
+      ],
+      "sidecarPath": "studio/art-department/v1/candidates/actors-ui/light--unlit.json",
+      "reviewPath": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
+      "approvalState": "pending-human-owner",
+      "reuseOf": "prop:lamp"
+    },
+    {
+      "selector": "npc:external-api",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/npc-external-api.png",
+      "candidateSha256": "62f3251e9464bdcbf9791c72034577093637988a96ee35f56323b98b12418011",
+      "dimensions": {
+        "width": 133,
+        "height": 249
+      },
+      "sourceOriginals": [
+        {
+          "path": "art/references/user-provided/character_style_reference_sheet.png",
+          "sha256": "910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b",
+          "immutable": true
+        }
+      ],
+      "sidecarPath": "studio/art-department/v1/candidates/actors-ui/npc--external-api.json",
+      "reviewPath": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
+      "approvalState": "pending-human-owner",
+      "reuseOf": "player:default"
+    },
+    {
+      "selector": "npc:http",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/npc-http.png",
+      "candidateSha256": "62f3251e9464bdcbf9791c72034577093637988a96ee35f56323b98b12418011",
+      "dimensions": {
+        "width": 133,
+        "height": 249
+      },
+      "sourceOriginals": [
+        {
+          "path": "art/references/user-provided/character_style_reference_sheet.png",
+          "sha256": "910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b",
+          "immutable": true
+        }
+      ],
+      "sidecarPath": "studio/art-department/v1/candidates/actors-ui/npc--http.json",
+      "reviewPath": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
+      "approvalState": "pending-human-owner",
+      "reuseOf": "player:default"
+    },
+    {
+      "selector": "npc:llm",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/npc-llm.png",
+      "candidateSha256": "62f3251e9464bdcbf9791c72034577093637988a96ee35f56323b98b12418011",
+      "dimensions": {
+        "width": 133,
+        "height": 249
+      },
+      "sourceOriginals": [
+        {
+          "path": "art/references/user-provided/character_style_reference_sheet.png",
+          "sha256": "910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b",
+          "immutable": true
+        }
+      ],
+      "sidecarPath": "studio/art-department/v1/candidates/actors-ui/npc--llm.json",
+      "reviewPath": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
+      "approvalState": "pending-human-owner",
+      "reuseOf": "player:default"
+    },
+    {
+      "selector": "npc:storage",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/npc-storage.png",
+      "candidateSha256": "62f3251e9464bdcbf9791c72034577093637988a96ee35f56323b98b12418011",
+      "dimensions": {
+        "width": 133,
+        "height": 249
+      },
+      "sourceOriginals": [
+        {
+          "path": "art/references/user-provided/character_style_reference_sheet.png",
+          "sha256": "910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b",
+          "immutable": true
+        }
+      ],
+      "sidecarPath": "studio/art-department/v1/candidates/actors-ui/npc--storage.json",
+      "reviewPath": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
+      "approvalState": "pending-human-owner",
+      "reuseOf": "player:default"
+    },
+    {
+      "selector": "npc:townsperson",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/npc-townsperson.png",
+      "candidateSha256": "62f3251e9464bdcbf9791c72034577093637988a96ee35f56323b98b12418011",
+      "dimensions": {
+        "width": 133,
+        "height": 249
+      },
+      "sourceOriginals": [
+        {
+          "path": "art/references/user-provided/character_style_reference_sheet.png",
+          "sha256": "910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b",
+          "immutable": true
+        }
+      ],
+      "sidecarPath": "studio/art-department/v1/candidates/actors-ui/npc--townsperson.json",
+      "reviewPath": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
+      "approvalState": "pending-human-owner",
+      "reuseOf": "player:default"
+    },
+    {
+      "selector": "npc:unknown",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/npc-unknown.png",
+      "candidateSha256": "62f3251e9464bdcbf9791c72034577093637988a96ee35f56323b98b12418011",
+      "dimensions": {
+        "width": 133,
+        "height": 249
+      },
+      "sourceOriginals": [
+        {
+          "path": "art/references/user-provided/character_style_reference_sheet.png",
+          "sha256": "910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b",
+          "immutable": true
+        }
+      ],
+      "sidecarPath": "studio/art-department/v1/candidates/actors-ui/npc--unknown.json",
+      "reviewPath": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
+      "approvalState": "pending-human-owner",
+      "reuseOf": "player:default"
+    },
+    {
+      "selector": "npc:webhook",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/npc-webhook.png",
+      "candidateSha256": "62f3251e9464bdcbf9791c72034577093637988a96ee35f56323b98b12418011",
+      "dimensions": {
+        "width": 133,
+        "height": 249
+      },
+      "sourceOriginals": [
+        {
+          "path": "art/references/user-provided/character_style_reference_sheet.png",
+          "sha256": "910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b",
+          "immutable": true
+        }
+      ],
+      "sidecarPath": "studio/art-department/v1/candidates/actors-ui/npc--webhook.json",
+      "reviewPath": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
+      "approvalState": "pending-human-owner",
+      "reuseOf": "player:default"
+    },
+    {
+      "selector": "player:default",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/player-default.png",
+      "candidateSha256": "62f3251e9464bdcbf9791c72034577093637988a96ee35f56323b98b12418011",
+      "dimensions": {
+        "width": 133,
+        "height": 249
+      },
+      "sourceOriginals": [
+        {
+          "path": "art/references/user-provided/character_style_reference_sheet.png",
+          "sha256": "910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b",
+          "immutable": true
+        }
+      ],
+      "sidecarPath": "studio/art-department/v1/candidates/actors-ui/player--default.json",
+      "reviewPath": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
+      "approvalState": "pending-human-owner",
+      "reuseOf": null
+    },
+    {
+      "selector": "prop:lamp",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/prop-lamp.png",
+      "candidateSha256": "e4aca9db5101bd5327d4bc9fddb5a2d009757850a0ce7d48ea5b8d854c6cc9e5",
+      "dimensions": {
+        "width": 38,
+        "height": 145
+      },
+      "sourceOriginals": [
+        {
+          "path": "art/references/user-provided/object_street_props_sheet.png",
+          "sha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+          "immutable": true
+        }
+      ],
+      "sidecarPath": "studio/art-department/v1/candidates/actors-ui/prop--lamp.json",
+      "reviewPath": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
+      "approvalState": "pending-human-owner",
+      "reuseOf": null
+    },
+    {
+      "selector": "prop:sign",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/prop-sign.png",
+      "candidateSha256": "74919eb419d7283cbdbc10d684a4402a61bde8f9b655567b56f0277123996420",
+      "dimensions": {
+        "width": 71,
+        "height": 102
+      },
+      "sourceOriginals": [
+        {
+          "path": "art/references/user-provided/object_street_props_sheet.png",
+          "sha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+          "immutable": true
+        }
+      ],
+      "sidecarPath": "studio/art-department/v1/candidates/actors-ui/prop--sign.json",
+      "reviewPath": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
+      "approvalState": "pending-human-owner",
+      "reuseOf": null
+    },
+    {
+      "selector": "prop:tree",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/prop-tree.png",
+      "candidateSha256": "8ce50e8fc64b1f75baf72ba50bc0c9b97e3c191196e55fba187f9a0733588e1d",
+      "dimensions": {
+        "width": 96,
+        "height": 130
+      },
+      "sourceOriginals": [
+        {
+          "path": "art/references/user-provided/object_street_props_sheet.png",
+          "sha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+          "immutable": true
+        }
+      ],
+      "sidecarPath": "studio/art-department/v1/candidates/actors-ui/prop--tree.json",
+      "reviewPath": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
+      "approvalState": "pending-human-owner",
+      "reuseOf": null
+    },
+    {
+      "selector": "prop:well",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/prop-well.png",
+      "candidateSha256": "5ad74a7c97879505abc5365ef33dcad45ceb7c80533168c591aa3204d9f38057",
+      "dimensions": {
+        "width": 76,
+        "height": 68
+      },
+      "sourceOriginals": [
+        {
+          "path": "art/references/user-provided/object_street_props_sheet.png",
+          "sha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+          "immutable": true
+        }
+      ],
+      "sidecarPath": "studio/art-department/v1/candidates/actors-ui/prop--well.json",
+      "reviewPath": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
+      "approvalState": "pending-human-owner",
+      "reuseOf": null
+    },
+    {
+      "selector": "quest:inspect",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/quest-inspect.png",
+      "candidateSha256": "000aa366cf3f53297bb1e25e4288cd5308ca9029a727a71a160386c81ee8fcdc",
+      "dimensions": {
+        "width": 190,
+        "height": 195
+      },
+      "sourceOriginals": [
+        {
+          "path": "art/references/user-provided/object_status_markers_sheet.png",
+          "sha256": "e3d2f177bf10bc07d1362251d8aa80d490fc6f58999d24b06a66c34a177e1d1b",
+          "immutable": true
+        }
+      ],
+      "sidecarPath": "studio/art-department/v1/candidates/actors-ui/quest--inspect.json",
+      "reviewPath": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
+      "approvalState": "pending-human-owner",
+      "reuseOf": null
+    },
+    {
+      "selector": "ui:choice",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/ui-choice.png",
+      "candidateSha256": "29d06f9ff3e3c6e8753148a9fdb35533c6d4d0903deb6a63777e15cefae8ef9b",
+      "dimensions": {
+        "width": 215,
+        "height": 230
+      },
+      "sourceOriginals": [
+        {
+          "path": "art/references/user-provided/ui_dialogue_frames_sheet.png",
+          "sha256": "60a2255fe72e2e96c91f00caa93fa7f4906f57fc1f8f0332bdbe91648b9ba29d",
+          "immutable": true
+        }
+      ],
+      "sidecarPath": "studio/art-department/v1/candidates/actors-ui/ui--choice.json",
+      "reviewPath": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
+      "approvalState": "pending-human-owner",
+      "reuseOf": null
+    },
+    {
+      "selector": "ui:dialogue",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/ui-dialogue.png",
+      "candidateSha256": "739f250bb9380c436e12a9e412314478416d8fdbdb1d1a1b7e1f2b10069ca630",
+      "dimensions": {
+        "width": 470,
+        "height": 225
+      },
+      "sourceOriginals": [
+        {
+          "path": "art/references/user-provided/ui_dialogue_frames_sheet.png",
+          "sha256": "60a2255fe72e2e96c91f00caa93fa7f4906f57fc1f8f0332bdbe91648b9ba29d",
+          "immutable": true
+        }
+      ],
+      "sidecarPath": "studio/art-department/v1/candidates/actors-ui/ui--dialogue.json",
+      "reviewPath": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
+      "approvalState": "pending-human-owner",
+      "reuseOf": null
+    },
+    {
+      "selector": "ui:guild-roster",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/ui-guild-roster.png",
+      "candidateSha256": "357c9ae914f67fb409ea3713bb8b034fa6dc62b584fccb317f42050eb17ff381",
+      "dimensions": {
+        "width": 510,
+        "height": 365
+      },
+      "sourceOriginals": [
+        {
+          "path": "art/references/user-provided/ui_guild_roster_sheet.png",
+          "sha256": "5104c1dc835712a3d3bd6c50dc89b19f4a9489e27c655f15dd63f3ffdbe9bc99",
+          "immutable": true
+        }
+      ],
+      "sidecarPath": "studio/art-department/v1/candidates/actors-ui/ui--guild-roster.json",
+      "reviewPath": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
+      "approvalState": "pending-human-owner",
+      "reuseOf": null
+    },
+    {
+      "selector": "ui:inspection-report",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/ui-inspection-report.png",
+      "candidateSha256": "a37a6c02246408b374bf806eea00fc20646a39bcb97942c5eb9c18705abcf093",
+      "dimensions": {
+        "width": 520,
+        "height": 345
+      },
+      "sourceOriginals": [
+        {
+          "path": "art/references/user-provided/ui_inspection_report_sheet.png",
+          "sha256": "c4c14e83e5f4e5fec8f7eaea537e6befa5f2762aaed11d07a5a86c05b6294892",
+          "immutable": true
+        }
+      ],
+      "sidecarPath": "studio/art-department/v1/candidates/actors-ui/ui--inspection-report.json",
+      "reviewPath": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
+      "approvalState": "pending-human-owner",
+      "reuseOf": null
+    }
+  ],
+  "review": {
+    "contactSheet": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
+    "candidatePngCount": 21,
+    "ownerApproval": "pending-human-owner"
+  },
+  "limits": [
+    "Candidates are extracted/reused review bytes only; no owner approval or shipping catalog claim.",
+    "Pivot/frame-grid contracts remain unknown until P2/P4.",
+    "Exact-byte reuse is explicit per sidecar and is not a wildcard or nearest-match fallback."
+  ]
+}

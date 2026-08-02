@@ -1,0 +1,79 @@
+{
+  "format": "codecity.v1-candidate-provenance",
+  "schemaVersion": 1,
+  "selector": "building:dojo",
+  "candidatePath": "building-dojo/building-dojo.png",
+  "candidateSha256": "b16b98afb6eb6671d396865929769730b10a1b34a252173aef9c5f8493d14921",
+  "candidateByteLength": 31489,
+  "source": {
+    "sourceOriginal": "world_visual_master.png",
+    "sourceRect": [
+      500,
+      730,
+      730,
+      1055
+    ],
+    "method": "extract-crop-transform",
+    "description": "training-yard / dojo visual crop",
+    "kind": "building",
+    "dimensions": [
+      192,
+      192
+    ],
+    "sourceSha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+  },
+  "reuse": null,
+  "transform": {
+    "kind": "deterministic-local",
+    "steps": [
+      "crop or source selection",
+      "binary-alpha normalization",
+      "nearest-neighbor resize",
+      "palette mapping to palette-v2",
+      "center/pivot normalization"
+    ]
+  },
+  "dimensions": {
+    "width": 192,
+    "height": 192,
+    "opaquePixels": 20913,
+    "transparentPixels": 15951,
+    "semiTransparentPixels": 0,
+    "colors": 24
+  },
+  "alpha": {
+    "state": "observed",
+    "mode": "binary",
+    "transparentPixels": 15951
+  },
+  "pivot": {
+    "state": "inferred",
+    "x": 96,
+    "y": 191
+  },
+  "frame": {
+    "state": "inferred",
+    "width": 192,
+    "height": 192,
+    "columns": 1,
+    "rows": 1
+  },
+  "mechanical": {
+    "state": "failed",
+    "palette": "observed palette-v2",
+    "dimensions": "observed",
+    "alpha": "observed-binary",
+    "seams": "not_applicable",
+    "humanApproval": "unknown",
+    "failureCodes": [
+      "G6_LIGHT_DIRECTION",
+      "G8_ISOLATED_PIXELS"
+    ],
+    "unknownCodes": []
+  },
+  "review": {
+    "entryPath": "building-dojo/review.json",
+    "contactSheetPath": "review/contact-sheet.webp",
+    "ownerDecision": "unknown"
+  }
+}

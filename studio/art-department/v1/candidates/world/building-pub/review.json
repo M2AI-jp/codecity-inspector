@@ -1,0 +1,20 @@
+{
+  "format": "codecity.v1-candidate-review",
+  "schemaVersion": 1,
+  "selector": "building:pub",
+  "candidatePath": "building-pub/building-pub.png",
+  "candidateSha256": "168b4e301a044f02296b0f8f6dff4fc6af7f76053f16a6e102c625a7113cc895",
+  "contactSheetPath": "review/contact-sheet.webp",
+  "visualState": "reviewable extracted/generated candidate; no human approval claimed",
+  "mechanicalState": "failed",
+  "ownerDecision": "unknown",
+  "reuse": {
+    "selector": "building:inn",
+    "reason": "intentional exact-byte reuse of building:inn; candidate SHA-256 matches"
+  },
+  "mechanicalFailures": [
+    "G6_LIGHT_DIRECTION",
+    "G8_ISOLATED_PIXELS"
+  ],
+  "mechanicalUnknowns": []
+}

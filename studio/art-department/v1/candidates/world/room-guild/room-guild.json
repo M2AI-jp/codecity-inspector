@@ -1,0 +1,11 @@
+{
+  "id": "room-guild-v1",
+  "kind": "room",
+  "dimensions": {
+    "width": 192,
+    "height": 192
+  },
+  "paletteId": "palette-v2",
+  "asset": "room-guild/room-guild.png",
+  "selector": "room:guild"
+}

@@ -1,0 +1,179 @@
+{
+  "format": "codecity.v1-candidate-review-report",
+  "schemaVersion": 1,
+  "scope": "actors-ui",
+  "status": "reviewable",
+  "candidateCount": 21,
+  "contactSheet": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
+  "selectors": [
+    "effect:town_hall_lantern_lit",
+    "light:lit",
+    "light:unknown",
+    "light:unlit",
+    "npc:external-api",
+    "npc:http",
+    "npc:llm",
+    "npc:storage",
+    "npc:townsperson",
+    "npc:unknown",
+    "npc:webhook",
+    "player:default",
+    "prop:lamp",
+    "prop:sign",
+    "prop:tree",
+    "prop:well",
+    "quest:inspect",
+    "ui:choice",
+    "ui:dialogue",
+    "ui:guild-roster",
+    "ui:inspection-report"
+  ],
+  "mechanicalSummary": {
+    "pngReadable": "passed",
+    "sourceCustody": "passed",
+    "uniqueSelectorMappings": "passed",
+    "selectorCount": "passed",
+    "alpha": "passed for RGBA crops; opaque textured-floor crops explicitly recorded",
+    "pivot": "unknown",
+    "frameGrid": "unknown",
+    "visualFit": "unknown",
+    "ownerApproval": "unknown"
+  },
+  "notProven": [
+    "human approval",
+    "shipping manifest/catalog inclusion",
+    "scene compiler composition",
+    "browser playability",
+    "KGI journey"
+  ],
+  "reusePolicy": "Each exact-byte reuse has its own selector sidecar and explicit rationale; no wildcard, nearest-match, or silent fallback is used.",
+  "contactSheetSha256": "3b3a697a040aa53e637c1a8dc317320380f49210e8df9f235c44f7dd6b4a1945",
+  "entries": [
+    {
+      "selector": "effect:town_hall_lantern_lit",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/effect-town_hall_lantern_lit.png",
+      "sha256": "cc4b135b1694973ef5ca55dcc963fe07200128c46c13b598ae2ba82da6c79a4a",
+      "gridIndex": 0
+    },
+    {
+      "selector": "light:lit",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/light-lit.png",
+      "sha256": "cc4b135b1694973ef5ca55dcc963fe07200128c46c13b598ae2ba82da6c79a4a",
+      "gridIndex": 1
+    },
+    {
+      "selector": "light:unknown",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/light-unknown.png",
+      "sha256": "8e47144a3eaa9e06043a40854e7fd19e93f424a9c0ebec97d253143a881c7e73",
+      "gridIndex": 2
+    },
+    {
+      "selector": "light:unlit",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/light-unlit.png",
+      "sha256": "e4aca9db5101bd5327d4bc9fddb5a2d009757850a0ce7d48ea5b8d854c6cc9e5",
+      "gridIndex": 3
+    },
+    {
+      "selector": "npc:external-api",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/npc-external-api.png",
+      "sha256": "62f3251e9464bdcbf9791c72034577093637988a96ee35f56323b98b12418011",
+      "gridIndex": 4
+    },
+    {
+      "selector": "npc:http",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/npc-http.png",
+      "sha256": "62f3251e9464bdcbf9791c72034577093637988a96ee35f56323b98b12418011",
+      "gridIndex": 5
+    },
+    {
+      "selector": "npc:llm",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/npc-llm.png",
+      "sha256": "62f3251e9464bdcbf9791c72034577093637988a96ee35f56323b98b12418011",
+      "gridIndex": 6
+    },
+    {
+      "selector": "npc:storage",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/npc-storage.png",
+      "sha256": "62f3251e9464bdcbf9791c72034577093637988a96ee35f56323b98b12418011",
+      "gridIndex": 7
+    },
+    {
+      "selector": "npc:townsperson",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/npc-townsperson.png",
+      "sha256": "62f3251e9464bdcbf9791c72034577093637988a96ee35f56323b98b12418011",
+      "gridIndex": 8
+    },
+    {
+      "selector": "npc:unknown",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/npc-unknown.png",
+      "sha256": "62f3251e9464bdcbf9791c72034577093637988a96ee35f56323b98b12418011",
+      "gridIndex": 9
+    },
+    {
+      "selector": "npc:webhook",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/npc-webhook.png",
+      "sha256": "62f3251e9464bdcbf9791c72034577093637988a96ee35f56323b98b12418011",
+      "gridIndex": 10
+    },
+    {
+      "selector": "player:default",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/player-default.png",
+      "sha256": "62f3251e9464bdcbf9791c72034577093637988a96ee35f56323b98b12418011",
+      "gridIndex": 11
+    },
+    {
+      "selector": "prop:lamp",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/prop-lamp.png",
+      "sha256": "e4aca9db5101bd5327d4bc9fddb5a2d009757850a0ce7d48ea5b8d854c6cc9e5",
+      "gridIndex": 12
+    },
+    {
+      "selector": "prop:sign",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/prop-sign.png",
+      "sha256": "74919eb419d7283cbdbc10d684a4402a61bde8f9b655567b56f0277123996420",
+      "gridIndex": 13
+    },
+    {
+      "selector": "prop:tree",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/prop-tree.png",
+      "sha256": "8ce50e8fc64b1f75baf72ba50bc0c9b97e3c191196e55fba187f9a0733588e1d",
+      "gridIndex": 14
+    },
+    {
+      "selector": "prop:well",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/prop-well.png",
+      "sha256": "5ad74a7c97879505abc5365ef33dcad45ceb7c80533168c591aa3204d9f38057",
+      "gridIndex": 15
+    },
+    {
+      "selector": "quest:inspect",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/quest-inspect.png",
+      "sha256": "000aa366cf3f53297bb1e25e4288cd5308ca9029a727a71a160386c81ee8fcdc",
+      "gridIndex": 16
+    },
+    {
+      "selector": "ui:choice",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/ui-choice.png",
+      "sha256": "29d06f9ff3e3c6e8753148a9fdb35533c6d4d0903deb6a63777e15cefae8ef9b",
+      "gridIndex": 17
+    },
+    {
+      "selector": "ui:dialogue",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/ui-dialogue.png",
+      "sha256": "739f250bb9380c436e12a9e412314478416d8fdbdb1d1a1b7e1f2b10069ca630",
+      "gridIndex": 18
+    },
+    {
+      "selector": "ui:guild-roster",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/ui-guild-roster.png",
+      "sha256": "357c9ae914f67fb409ea3713bb8b034fa6dc62b584fccb317f42050eb17ff381",
+      "gridIndex": 19
+    },
+    {
+      "selector": "ui:inspection-report",
+      "candidatePath": "studio/art-department/v1/candidates/actors-ui/ui-inspection-report.png",
+      "sha256": "a37a6c02246408b374bf806eea00fc20646a39bcb97942c5eb9c18705abcf093",
+      "gridIndex": 20
+    }
+  ]
+}

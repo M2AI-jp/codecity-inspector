@@ -1,0 +1,17 @@
+{
+  "format": "codecity.v1-candidate-review",
+  "schemaVersion": 1,
+  "selector": "terrain:terrace",
+  "candidatePath": "terrain-terrace/terrain-terrace.png",
+  "candidateSha256": "101bd6995e6347c41f24582821e61fcd9d59ff73c8da570bb06c0a8469f52f84",
+  "contactSheetPath": "review/contact-sheet.webp",
+  "visualState": "reviewable extracted/generated candidate; no human approval claimed",
+  "mechanicalState": "failed",
+  "ownerDecision": "unknown",
+  "mechanicalFailures": [
+    "G2_COLOR_COUNT",
+    "G6_LIGHT_DIRECTION",
+    "G8_ISOLATED_PIXELS"
+  ],
+  "mechanicalUnknowns": []
+}

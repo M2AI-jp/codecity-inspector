@@ -1,0 +1,243 @@
+{
+  "format": "codecity.v1-candidate-review-sheet",
+  "schemaVersion": 1,
+  "contactSheetPath": "review/contact-sheet.webp",
+  "entries": [
+    {
+      "selector": "building:dock",
+      "candidatePath": "building-dock/building-dock.png",
+      "sha256": "83821786b2d6146a5a75e11d11636015f6c9cd98a085df9dcbc162751019e2f0",
+      "gridIndex": 0
+    },
+    {
+      "selector": "building:dojo",
+      "candidatePath": "building-dojo/building-dojo.png",
+      "sha256": "b16b98afb6eb6671d396865929769730b10a1b34a252173aef9c5f8493d14921",
+      "gridIndex": 1
+    },
+    {
+      "selector": "building:gate",
+      "candidatePath": "building-gate/building-gate.png",
+      "sha256": "bf7f90138fdaeb8cc90079cc07e60c9419b520bfd32823e3c4e8a5a886662bb2",
+      "gridIndex": 2
+    },
+    {
+      "selector": "building:guild",
+      "candidatePath": "building-guild/building-guild.png",
+      "sha256": "8b803a3da57b06b8cc8251e7b8deeaf575e3b778c7de0305e5084a00331ddf44",
+      "gridIndex": 3
+    },
+    {
+      "selector": "building:house",
+      "candidatePath": "building-house/building-house.png",
+      "sha256": "ff918f1ad85ca1539ec880813817a9d2aeb6059b215b9f862b4546959930073e",
+      "gridIndex": 4
+    },
+    {
+      "selector": "building:inn",
+      "candidatePath": "building-inn/building-inn.png",
+      "sha256": "168b4e301a044f02296b0f8f6dff4fc6af7f76053f16a6e102c625a7113cc895",
+      "gridIndex": 5
+    },
+    {
+      "selector": "building:pub",
+      "candidatePath": "building-pub/building-pub.png",
+      "sha256": "168b4e301a044f02296b0f8f6dff4fc6af7f76053f16a6e102c625a7113cc895",
+      "gridIndex": 6
+    },
+    {
+      "selector": "building:ruin",
+      "candidatePath": "building-ruin/building-ruin.png",
+      "sha256": "a04fea72a8ce4f923f287fd2c5940d3f589d267869b73e711b2120ab3251309a",
+      "gridIndex": 7
+    },
+    {
+      "selector": "building:shop",
+      "candidatePath": "building-shop/building-shop.png",
+      "sha256": "34ae4fce73b91fb14648980de8da5f04b90a544ae0c6765bf26fb27e3adcad27",
+      "gridIndex": 8
+    },
+    {
+      "selector": "building:town_hall",
+      "candidatePath": "building-town-hall/building-town-hall.png",
+      "sha256": "4a2d47c12bb8f035ed4c3c83c9f1296fe48945ea5e111310c76d736de5770808",
+      "gridIndex": 9
+    },
+    {
+      "selector": "building:warehouse",
+      "candidatePath": "building-warehouse/building-warehouse.png",
+      "sha256": "f5bdbf4a4043645776bfeff71ec14596a4126d3198453ca5cdd3b94d7edf4806",
+      "gridIndex": 10
+    },
+    {
+      "selector": "building:watchtower",
+      "candidatePath": "building-watchtower/building-watchtower.png",
+      "sha256": "4a396a12ef2d95f7ce033fabc7e3865a9d0723da2aac1f52a10c0eb311407269",
+      "gridIndex": 11
+    },
+    {
+      "selector": "building:well",
+      "candidatePath": "building-well/building-well.png",
+      "sha256": "c0489c62c36c3383a17f2a8b7bcb56972f978dbdc77b8a673c72e9b9209bc148",
+      "gridIndex": 12
+    },
+    {
+      "selector": "building:workshop",
+      "candidatePath": "building-workshop/building-workshop.png",
+      "sha256": "36847ad53b8a19afb4762fede0435a5386250d4ac8a95f8a30d7280ea9824d56",
+      "gridIndex": 13
+    },
+    {
+      "selector": "plot:occupied",
+      "candidatePath": "plot-occupied/plot-occupied.png",
+      "sha256": "50482bab7968467b13ae06929b8879bfaeda11c20c39730f1cebb572c7b672e8",
+      "gridIndex": 14
+    },
+    {
+      "selector": "plot:vacant",
+      "candidatePath": "plot-vacant/plot-vacant.png",
+      "sha256": "8b05f74796c82668b1d73d12e789b4f368a607bfb83b00c40ddc9a249a3395ac",
+      "gridIndex": 15
+    },
+    {
+      "selector": "road:branch",
+      "candidatePath": "road-branch/road-branch.png",
+      "sha256": "f5de4571f46e25ca9f4b0ae5adc8ada7c66c78faf10a4b54e77eb41dd69693f5",
+      "gridIndex": 16
+    },
+    {
+      "selector": "road:dead-end",
+      "candidatePath": "road-dead-end/road-dead-end.png",
+      "sha256": "f5de4571f46e25ca9f4b0ae5adc8ada7c66c78faf10a4b54e77eb41dd69693f5",
+      "gridIndex": 17
+    },
+    {
+      "selector": "road:main",
+      "candidatePath": "road-main/road-main.png",
+      "sha256": "f5de4571f46e25ca9f4b0ae5adc8ada7c66c78faf10a4b54e77eb41dd69693f5",
+      "gridIndex": 18
+    },
+    {
+      "selector": "room:dock",
+      "candidatePath": "room-dock/room-dock.png",
+      "sha256": "b9ffc8402b74cfb7d18eef573e86232123e18d4f993e6efca2e2a8838cf7e75c",
+      "gridIndex": 19
+    },
+    {
+      "selector": "room:dojo",
+      "candidatePath": "room-dojo/room-dojo.png",
+      "sha256": "b9ffc8402b74cfb7d18eef573e86232123e18d4f993e6efca2e2a8838cf7e75c",
+      "gridIndex": 20
+    },
+    {
+      "selector": "room:gate",
+      "candidatePath": "room-gate/room-gate.png",
+      "sha256": "b9ffc8402b74cfb7d18eef573e86232123e18d4f993e6efca2e2a8838cf7e75c",
+      "gridIndex": 21
+    },
+    {
+      "selector": "room:guild",
+      "candidatePath": "room-guild/room-guild.png",
+      "sha256": "b9ffc8402b74cfb7d18eef573e86232123e18d4f993e6efca2e2a8838cf7e75c",
+      "gridIndex": 22
+    },
+    {
+      "selector": "room:house",
+      "candidatePath": "room-house/room-house.png",
+      "sha256": "b9ffc8402b74cfb7d18eef573e86232123e18d4f993e6efca2e2a8838cf7e75c",
+      "gridIndex": 23
+    },
+    {
+      "selector": "room:inn",
+      "candidatePath": "room-inn/room-inn.png",
+      "sha256": "b9ffc8402b74cfb7d18eef573e86232123e18d4f993e6efca2e2a8838cf7e75c",
+      "gridIndex": 24
+    },
+    {
+      "selector": "room:pub",
+      "candidatePath": "room-pub/room-pub.png",
+      "sha256": "b9ffc8402b74cfb7d18eef573e86232123e18d4f993e6efca2e2a8838cf7e75c",
+      "gridIndex": 25
+    },
+    {
+      "selector": "room:ruin",
+      "candidatePath": "room-ruin/room-ruin.png",
+      "sha256": "b9ffc8402b74cfb7d18eef573e86232123e18d4f993e6efca2e2a8838cf7e75c",
+      "gridIndex": 26
+    },
+    {
+      "selector": "room:shop",
+      "candidatePath": "room-shop/room-shop.png",
+      "sha256": "b9ffc8402b74cfb7d18eef573e86232123e18d4f993e6efca2e2a8838cf7e75c",
+      "gridIndex": 27
+    },
+    {
+      "selector": "room:town_hall",
+      "candidatePath": "room-town-hall/room-town-hall.png",
+      "sha256": "b9ffc8402b74cfb7d18eef573e86232123e18d4f993e6efca2e2a8838cf7e75c",
+      "gridIndex": 28
+    },
+    {
+      "selector": "room:warehouse",
+      "candidatePath": "room-warehouse/room-warehouse.png",
+      "sha256": "b9ffc8402b74cfb7d18eef573e86232123e18d4f993e6efca2e2a8838cf7e75c",
+      "gridIndex": 29
+    },
+    {
+      "selector": "room:watchtower",
+      "candidatePath": "room-watchtower/room-watchtower.png",
+      "sha256": "b9ffc8402b74cfb7d18eef573e86232123e18d4f993e6efca2e2a8838cf7e75c",
+      "gridIndex": 30
+    },
+    {
+      "selector": "room:well",
+      "candidatePath": "room-well/room-well.png",
+      "sha256": "b9ffc8402b74cfb7d18eef573e86232123e18d4f993e6efca2e2a8838cf7e75c",
+      "gridIndex": 31
+    },
+    {
+      "selector": "room:workshop",
+      "candidatePath": "room-workshop/room-workshop.png",
+      "sha256": "b9ffc8402b74cfb7d18eef573e86232123e18d4f993e6efca2e2a8838cf7e75c",
+      "gridIndex": 32
+    },
+    {
+      "selector": "terrain:basin",
+      "candidatePath": "terrain-basin/terrain-basin.png",
+      "sha256": "4099d7127a00328ed69f783f71eb18658e6d4cd66bc7cda15638be2a6266ef43",
+      "gridIndex": 33
+    },
+    {
+      "selector": "terrain:coast",
+      "candidatePath": "terrain-coast/terrain-coast.png",
+      "sha256": "221d0b06e621f3b65a1355a5e7fc7840ec3d857de6c78c5352fbcd3d093d82f0",
+      "gridIndex": 34
+    },
+    {
+      "selector": "terrain:meadow",
+      "candidatePath": "terrain-meadow/terrain-meadow.png",
+      "sha256": "6148b4da54e8b08dfacc3d6d9f1b2691b8b08182561c082205740eee37c2ed92",
+      "gridIndex": 35
+    },
+    {
+      "selector": "terrain:plain",
+      "candidatePath": "terrain-plain/terrain-plain.png",
+      "sha256": "b25e8058593ff97eb5b9ce233daa15e83a543cfee10340b1925e768d8876392f",
+      "gridIndex": 36
+    },
+    {
+      "selector": "terrain:terrace",
+      "candidatePath": "terrain-terrace/terrain-terrace.png",
+      "sha256": "101bd6995e6347c41f24582821e61fcd9d59ff73c8da570bb06c0a8469f52f84",
+      "gridIndex": 37
+    },
+    {
+      "selector": "water:default",
+      "candidatePath": "water-default/water-default.png",
+      "sha256": "221d0b06e621f3b65a1355a5e7fc7840ec3d857de6c78c5352fbcd3d093d82f0",
+      "gridIndex": 38
+    }
+  ],
+  "ownerDecision": "unknown",
+  "contactSheetSha256": "b007ab40177ff3b378f9f18ff5975e8f017c3a367895a338761a8b78a68b8dce"
+}

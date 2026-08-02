@@ -1,0 +1,11 @@
+{
+  "id": "building-workshop-v1",
+  "kind": "building",
+  "dimensions": {
+    "width": 192,
+    "height": 192
+  },
+  "paletteId": "palette-v2",
+  "asset": "building-workshop/building-workshop.png",
+  "selector": "building:workshop"
+}

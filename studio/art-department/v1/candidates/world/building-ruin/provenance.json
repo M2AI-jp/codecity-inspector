@@ -1,0 +1,78 @@
+{
+  "format": "codecity.v1-candidate-provenance",
+  "schemaVersion": 1,
+  "selector": "building:ruin",
+  "candidatePath": "building-ruin/building-ruin.png",
+  "candidateSha256": "a04fea72a8ce4f923f287fd2c5940d3f589d267869b73e711b2120ab3251309a",
+  "candidateByteLength": 30306,
+  "source": {
+    "sourceOriginal": "building_houses_shops_ruins_sheet.png",
+    "sourceRect": [
+      0,
+      350,
+      175,
+      540
+    ],
+    "method": "extract-crop-transform",
+    "description": "ruin facade crop",
+    "kind": "building",
+    "dimensions": [
+      192,
+      192
+    ],
+    "sourceSha256": "ec8afeadfe709cc6ae489d3e895a2a290eff79cb598db8c1925f548fd9e14225"
+  },
+  "reuse": null,
+  "transform": {
+    "kind": "deterministic-local",
+    "steps": [
+      "crop or source selection",
+      "binary-alpha normalization",
+      "nearest-neighbor resize",
+      "palette mapping to palette-v2",
+      "center/pivot normalization"
+    ]
+  },
+  "dimensions": {
+    "width": 192,
+    "height": 192,
+    "opaquePixels": 19060,
+    "transparentPixels": 17804,
+    "semiTransparentPixels": 0,
+    "colors": 24
+  },
+  "alpha": {
+    "state": "observed",
+    "mode": "binary",
+    "transparentPixels": 17804
+  },
+  "pivot": {
+    "state": "inferred",
+    "x": 96,
+    "y": 191
+  },
+  "frame": {
+    "state": "inferred",
+    "width": 192,
+    "height": 192,
+    "columns": 1,
+    "rows": 1
+  },
+  "mechanical": {
+    "state": "failed",
+    "palette": "observed palette-v2",
+    "dimensions": "observed",
+    "alpha": "observed-binary",
+    "seams": "not_applicable",
+    "humanApproval": "unknown",
+    "failureCodes": [
+      "G8_ISOLATED_PIXELS"
+    ],
+    "unknownCodes": []
+  },
+  "review": {
+    "entryPath": "building-ruin/review.json",
+    "contactSheetPath": "review/contact-sheet.webp",
+    "ownerDecision": "unknown"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "format": "codecity.v1-candidate-review",
+  "schemaVersion": 1,
+  "selector": "road:dead-end",
+  "candidatePath": "road-dead-end/road-dead-end.png",
+  "candidateSha256": "f5de4571f46e25ca9f4b0ae5adc8ada7c66c78faf10a4b54e77eb41dd69693f5",
+  "contactSheetPath": "review/contact-sheet.webp",
+  "visualState": "reviewable extracted/generated candidate; no human approval claimed",
+  "mechanicalState": "failed",
+  "ownerDecision": "unknown",
+  "reuse": {
+    "selector": "road:main",
+    "reason": "intentional exact-byte reuse of road:main; candidate SHA-256 matches"
+  },
+  "mechanicalFailures": [
+    "G2_COLOR_COUNT",
+    "G6_LIGHT_DIRECTION",
+    "G8_ISOLATED_PIXELS"
+  ],
+  "mechanicalUnknowns": []
+}

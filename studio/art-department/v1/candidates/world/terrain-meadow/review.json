@@ -1,0 +1,17 @@
+{
+  "format": "codecity.v1-candidate-review",
+  "schemaVersion": 1,
+  "selector": "terrain:meadow",
+  "candidatePath": "terrain-meadow/terrain-meadow.png",
+  "candidateSha256": "6148b4da54e8b08dfacc3d6d9f1b2691b8b08182561c082205740eee37c2ed92",
+  "contactSheetPath": "review/contact-sheet.webp",
+  "visualState": "reviewable extracted/generated candidate; no human approval claimed",
+  "mechanicalState": "failed",
+  "ownerDecision": "unknown",
+  "mechanicalFailures": [
+    "G2_COLOR_COUNT",
+    "G6_LIGHT_DIRECTION",
+    "G8_ISOLATED_PIXELS"
+  ],
+  "mechanicalUnknowns": []
+}

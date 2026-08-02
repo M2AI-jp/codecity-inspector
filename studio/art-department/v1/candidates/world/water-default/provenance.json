@@ -1,0 +1,83 @@
+{
+  "format": "codecity.v1-candidate-provenance",
+  "schemaVersion": 1,
+  "selector": "water:default",
+  "candidatePath": "water-default/water-default.png",
+  "candidateSha256": "221d0b06e621f3b65a1355a5e7fc7840ec3d857de6c78c5352fbcd3d093d82f0",
+  "candidateByteLength": 2985,
+  "source": {
+    "sourceOriginal": "field_harbor_docks_tiles_sheet.png",
+    "sourceRect": [
+      530,
+      0,
+      650,
+      120
+    ],
+    "method": "extract-crop-transform",
+    "description": "water and rocky coast tile crop",
+    "kind": "tile",
+    "dimensions": [
+      64,
+      64
+    ],
+    "sourceSha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580"
+  },
+  "reuse": {
+    "selector": "terrain:coast",
+    "reason": "intentional exact-byte reuse of terrain:coast; candidate SHA-256 matches"
+  },
+  "transform": {
+    "kind": "deterministic-local",
+    "steps": [
+      "crop or source selection",
+      "binary-alpha normalization",
+      "nearest-neighbor resize",
+      "palette mapping to palette-v2",
+      "shared tile edge normalization"
+    ]
+  },
+  "dimensions": {
+    "width": 64,
+    "height": 64,
+    "opaquePixels": 4096,
+    "transparentPixels": 0,
+    "semiTransparentPixels": 0,
+    "colors": 17
+  },
+  "alpha": {
+    "state": "observed",
+    "mode": "binary",
+    "transparentPixels": 0
+  },
+  "pivot": {
+    "state": "inferred",
+    "x": 32,
+    "y": 63
+  },
+  "frame": {
+    "state": "inferred",
+    "width": 64,
+    "height": 64,
+    "columns": 1,
+    "rows": 1
+  },
+  "mechanical": {
+    "state": "failed",
+    "palette": "observed palette-v2",
+    "dimensions": "observed",
+    "alpha": "observed-binary",
+    "seams": "passed",
+    "humanApproval": "unknown",
+    "failureCodes": [
+      "G2_COLOR_COUNT",
+      "G6_LIGHT_DIRECTION",
+      "G8_ISOLATED_PIXELS"
+    ],
+    "unknownCodes": []
+  },
+  "review": {
+    "entryPath": "water-default/review.json",
+    "contactSheetPath": "review/contact-sheet.webp",
+    "ownerDecision": "unknown"
+  }
+}

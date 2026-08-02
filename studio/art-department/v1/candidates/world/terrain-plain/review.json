@@ -1,0 +1,16 @@
+{
+  "format": "codecity.v1-candidate-review",
+  "schemaVersion": 1,
+  "selector": "terrain:plain",
+  "candidatePath": "terrain-plain/terrain-plain.png",
+  "candidateSha256": "b25e8058593ff97eb5b9ce233daa15e83a543cfee10340b1925e768d8876392f",
+  "contactSheetPath": "review/contact-sheet.webp",
+  "visualState": "reviewable extracted/generated candidate; no human approval claimed",
+  "mechanicalState": "failed",
+  "ownerDecision": "unknown",
+  "mechanicalFailures": [
+    "G2_COLOR_COUNT",
+    "G8_ISOLATED_PIXELS"
+  ],
+  "mechanicalUnknowns": []
+}

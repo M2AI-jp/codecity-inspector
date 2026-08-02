@@ -1,0 +1,31 @@
+{
+  "id": "terrain-meadow-v1",
+  "kind": "tile",
+  "dimensions": {
+    "width": 64,
+    "height": 64
+  },
+  "paletteId": "palette-v2",
+  "asset": "terrain-meadow/terrain-meadow.png",
+  "selector": "terrain:meadow",
+  "tile": {
+    "neighbors": [
+      {
+        "side": "left",
+        "path": "terrain-plain/terrain-plain.png"
+      },
+      {
+        "side": "right",
+        "path": "terrain-plain/terrain-plain.png"
+      },
+      {
+        "side": "top",
+        "path": "terrain-plain/terrain-plain.png"
+      },
+      {
+        "side": "bottom",
+        "path": "terrain-plain/terrain-plain.png"
+      }
+    ]
+  }
+}

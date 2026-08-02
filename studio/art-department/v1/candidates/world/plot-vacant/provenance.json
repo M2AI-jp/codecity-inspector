@@ -1,0 +1,79 @@
+{
+  "format": "codecity.v1-candidate-provenance",
+  "schemaVersion": 1,
+  "selector": "plot:vacant",
+  "candidatePath": "plot-vacant/plot-vacant.png",
+  "candidateSha256": "8b05f74796c82668b1d73d12e789b4f368a607bfb83b00c40ddc9a249a3395ac",
+  "candidateByteLength": 6263,
+  "source": {
+    "sourceOriginal": "world_visual_master.png",
+    "sourceRect": [
+      1150,
+      760,
+      1250,
+      860
+    ],
+    "method": "extract-crop-transform",
+    "description": "vacant overgrown ground crop",
+    "kind": "tile",
+    "dimensions": [
+      64,
+      64
+    ],
+    "sourceSha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+  },
+  "reuse": null,
+  "transform": {
+    "kind": "deterministic-local",
+    "steps": [
+      "crop or source selection",
+      "binary-alpha normalization",
+      "nearest-neighbor resize",
+      "palette mapping to palette-v2",
+      "shared tile edge normalization"
+    ]
+  },
+  "dimensions": {
+    "width": 64,
+    "height": 64,
+    "opaquePixels": 4096,
+    "transparentPixels": 0,
+    "semiTransparentPixels": 0,
+    "colors": 17
+  },
+  "alpha": {
+    "state": "observed",
+    "mode": "binary",
+    "transparentPixels": 0
+  },
+  "pivot": {
+    "state": "inferred",
+    "x": 32,
+    "y": 63
+  },
+  "frame": {
+    "state": "inferred",
+    "width": 64,
+    "height": 64,
+    "columns": 1,
+    "rows": 1
+  },
+  "mechanical": {
+    "state": "failed",
+    "palette": "observed palette-v2",
+    "dimensions": "observed",
+    "alpha": "observed-binary",
+    "seams": "passed",
+    "humanApproval": "unknown",
+    "failureCodes": [
+      "G2_COLOR_COUNT",
+      "G8_ISOLATED_PIXELS"
+    ],
+    "unknownCodes": []
+  },
+  "review": {
+    "entryPath": "plot-vacant/review.json",
+    "contactSheetPath": "review/contact-sheet.webp",
+    "ownerDecision": "unknown"
+  }
+}

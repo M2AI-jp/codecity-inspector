@@ -1,0 +1,11 @@
+{
+  "id": "building-town-hall-v1",
+  "kind": "building",
+  "dimensions": {
+    "width": 192,
+    "height": 192
+  },
+  "paletteId": "palette-v2",
+  "asset": "building-town-hall/building-town-hall.png",
+  "selector": "building:town_hall"
+}

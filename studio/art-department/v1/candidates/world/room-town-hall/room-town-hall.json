@@ -1,0 +1,11 @@
+{
+  "id": "room-town-hall-v1",
+  "kind": "room",
+  "dimensions": {
+    "width": 192,
+    "height": 192
+  },
+  "paletteId": "palette-v2",
+  "asset": "room-town-hall/room-town-hall.png",
+  "selector": "room:town_hall"
+}

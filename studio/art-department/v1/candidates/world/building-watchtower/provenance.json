@@ -1,0 +1,78 @@
+{
+  "format": "codecity.v1-candidate-provenance",
+  "schemaVersion": 1,
+  "selector": "building:watchtower",
+  "candidatePath": "building-watchtower/building-watchtower.png",
+  "candidateSha256": "4a396a12ef2d95f7ce033fabc7e3865a9d0723da2aac1f52a10c0eb311407269",
+  "candidateByteLength": 24556,
+  "source": {
+    "sourceOriginal": "building_watchtower_sheet.png",
+    "sourceRect": [
+      0,
+      0,
+      340,
+      380
+    ],
+    "method": "extract-crop-transform",
+    "description": "watchtower facade crop",
+    "kind": "building",
+    "dimensions": [
+      192,
+      192
+    ],
+    "sourceSha256": "414a38a8621c25a0b812426abbc40b46a97444923148b967be8493bc4e2a277a"
+  },
+  "reuse": null,
+  "transform": {
+    "kind": "deterministic-local",
+    "steps": [
+      "crop or source selection",
+      "binary-alpha normalization",
+      "nearest-neighbor resize",
+      "palette mapping to palette-v2",
+      "center/pivot normalization"
+    ]
+  },
+  "dimensions": {
+    "width": 192,
+    "height": 192,
+    "opaquePixels": 13529,
+    "transparentPixels": 23335,
+    "semiTransparentPixels": 0,
+    "colors": 24
+  },
+  "alpha": {
+    "state": "observed",
+    "mode": "binary",
+    "transparentPixels": 23335
+  },
+  "pivot": {
+    "state": "inferred",
+    "x": 96,
+    "y": 191
+  },
+  "frame": {
+    "state": "inferred",
+    "width": 192,
+    "height": 192,
+    "columns": 1,
+    "rows": 1
+  },
+  "mechanical": {
+    "state": "failed",
+    "palette": "observed palette-v2",
+    "dimensions": "observed",
+    "alpha": "observed-binary",
+    "seams": "not_applicable",
+    "humanApproval": "unknown",
+    "failureCodes": [
+      "G8_ISOLATED_PIXELS"
+    ],
+    "unknownCodes": []
+  },
+  "review": {
+    "entryPath": "building-watchtower/review.json",
+    "contactSheetPath": "review/contact-sheet.webp",
+    "ownerDecision": "unknown"
+  }
+}

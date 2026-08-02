@@ -1,0 +1,31 @@
+{
+  "id": "water-default-v1",
+  "kind": "tile",
+  "dimensions": {
+    "width": 64,
+    "height": 64
+  },
+  "paletteId": "palette-v2",
+  "asset": "water-default/water-default.png",
+  "selector": "water:default",
+  "tile": {
+    "neighbors": [
+      {
+        "side": "left",
+        "path": "terrain-meadow/terrain-meadow.png"
+      },
+      {
+        "side": "right",
+        "path": "terrain-meadow/terrain-meadow.png"
+      },
+      {
+        "side": "top",
+        "path": "terrain-meadow/terrain-meadow.png"
+      },
+      {
+        "side": "bottom",
+        "path": "terrain-meadow/terrain-meadow.png"
+      }
+    ]
+  }
+}

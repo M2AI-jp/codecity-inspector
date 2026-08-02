@@ -1,0 +1,83 @@
+{
+  "format": "codecity.v1-candidate-provenance",
+  "schemaVersion": 1,
+  "selector": "road:dead-end",
+  "candidatePath": "road-dead-end/road-dead-end.png",
+  "candidateSha256": "f5de4571f46e25ca9f4b0ae5adc8ada7c66c78faf10a4b54e77eb41dd69693f5",
+  "candidateByteLength": 4827,
+  "source": {
+    "sourceOriginal": "field_cobblestone_roads_sheet.png",
+    "sourceRect": [
+      780,
+      0,
+      880,
+      100
+    ],
+    "method": "extract-crop-transform",
+    "description": "cobblestone road tile crop",
+    "kind": "tile",
+    "dimensions": [
+      64,
+      64
+    ],
+    "sourceSha256": "f732a849dd88138e3acccc24970bef9e923302fec1aa01ffac195b8195cfff3d"
+  },
+  "reuse": {
+    "selector": "road:main",
+    "reason": "intentional exact-byte reuse of road:main; candidate SHA-256 matches"
+  },
+  "transform": {
+    "kind": "deterministic-local",
+    "steps": [
+      "crop or source selection",
+      "binary-alpha normalization",
+      "nearest-neighbor resize",
+      "palette mapping to palette-v2",
+      "shared tile edge normalization"
+    ]
+  },
+  "dimensions": {
+    "width": 64,
+    "height": 64,
+    "opaquePixels": 4096,
+    "transparentPixels": 0,
+    "semiTransparentPixels": 0,
+    "colors": 17
+  },
+  "alpha": {
+    "state": "observed",
+    "mode": "binary",
+    "transparentPixels": 0
+  },
+  "pivot": {
+    "state": "inferred",
+    "x": 32,
+    "y": 63
+  },
+  "frame": {
+    "state": "inferred",
+    "width": 64,
+    "height": 64,
+    "columns": 1,
+    "rows": 1
+  },
+  "mechanical": {
+    "state": "failed",
+    "palette": "observed palette-v2",
+    "dimensions": "observed",
+    "alpha": "observed-binary",
+    "seams": "passed",
+    "humanApproval": "unknown",
+    "failureCodes": [
+      "G2_COLOR_COUNT",
+      "G6_LIGHT_DIRECTION",
+      "G8_ISOLATED_PIXELS"
+    ],
+    "unknownCodes": []
+  },
+  "review": {
+    "entryPath": "road-dead-end/review.json",
+    "contactSheetPath": "review/contact-sheet.webp",
+    "ownerDecision": "unknown"
+  }
+}

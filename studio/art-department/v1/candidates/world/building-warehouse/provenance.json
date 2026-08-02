@@ -1,0 +1,78 @@
+{
+  "format": "codecity.v1-candidate-provenance",
+  "schemaVersion": 1,
+  "selector": "building:warehouse",
+  "candidatePath": "building-warehouse/building-warehouse.png",
+  "candidateSha256": "f5bdbf4a4043645776bfeff71ec14596a4126d3198453ca5cdd3b94d7edf4806",
+  "candidateByteLength": 30223,
+  "source": {
+    "sourceOriginal": "building_warehouse_sheet.png",
+    "sourceRect": [
+      0,
+      0,
+      430,
+      350
+    ],
+    "method": "extract-crop-transform",
+    "description": "warehouse facade crop",
+    "kind": "building",
+    "dimensions": [
+      192,
+      192
+    ],
+    "sourceSha256": "36b9a4f7dc5c9d7693fd1346a559735a36062aadeac8483beb2992e0ca3be4bc"
+  },
+  "reuse": null,
+  "transform": {
+    "kind": "deterministic-local",
+    "steps": [
+      "crop or source selection",
+      "binary-alpha normalization",
+      "nearest-neighbor resize",
+      "palette mapping to palette-v2",
+      "center/pivot normalization"
+    ]
+  },
+  "dimensions": {
+    "width": 192,
+    "height": 192,
+    "opaquePixels": 17361,
+    "transparentPixels": 19503,
+    "semiTransparentPixels": 0,
+    "colors": 24
+  },
+  "alpha": {
+    "state": "observed",
+    "mode": "binary",
+    "transparentPixels": 19503
+  },
+  "pivot": {
+    "state": "inferred",
+    "x": 96,
+    "y": 191
+  },
+  "frame": {
+    "state": "inferred",
+    "width": 192,
+    "height": 192,
+    "columns": 1,
+    "rows": 1
+  },
+  "mechanical": {
+    "state": "failed",
+    "palette": "observed palette-v2",
+    "dimensions": "observed",
+    "alpha": "observed-binary",
+    "seams": "not_applicable",
+    "humanApproval": "unknown",
+    "failureCodes": [
+      "G8_ISOLATED_PIXELS"
+    ],
+    "unknownCodes": []
+  },
+  "review": {
+    "entryPath": "building-warehouse/review.json",
+    "contactSheetPath": "review/contact-sheet.webp",
+    "ownerDecision": "unknown"
+  }
+}

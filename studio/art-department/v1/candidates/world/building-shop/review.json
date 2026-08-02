@@ -1,0 +1,16 @@
+{
+  "format": "codecity.v1-candidate-review",
+  "schemaVersion": 1,
+  "selector": "building:shop",
+  "candidatePath": "building-shop/building-shop.png",
+  "candidateSha256": "34ae4fce73b91fb14648980de8da5f04b90a544ae0c6765bf26fb27e3adcad27",
+  "contactSheetPath": "review/contact-sheet.webp",
+  "visualState": "reviewable extracted/generated candidate; no human approval claimed",
+  "mechanicalState": "failed",
+  "ownerDecision": "unknown",
+  "mechanicalFailures": [
+    "G6_LIGHT_DIRECTION",
+    "G8_ISOLATED_PIXELS"
+  ],
+  "mechanicalUnknowns": []
+}
