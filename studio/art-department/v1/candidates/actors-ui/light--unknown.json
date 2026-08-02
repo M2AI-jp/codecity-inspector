@@ -4,10 +4,10 @@
   "selector": "light:unknown",
   "candidate": {
     "path": "studio/art-department/v1/candidates/actors-ui/light-unknown.png",
-    "sha256": "8e47144a3eaa9e06043a40854e7fd19e93f424a9c0ebec97d253143a881c7e73",
+    "sha256": "068d6a13943d06dffb87a8a5d991aeb33a457c2d3f222aa8558f89b4e615da1f",
     "dimensions": {
-      "width": 125,
-      "height": 170
+      "width": 45,
+      "height": 64
     },
     "pngMode": "RGBA",
     "frameCount": 1
@@ -22,23 +22,26 @@
   "method": {
     "kind": "mechanical-extraction",
     "operations": [
-      "crop-opaque-textured-floor"
+      "crop",
+      "deterministic-silhouette-mask",
+      "transparent-ring-and-attachment-holes",
+      "nearest-neighbor-resize-max64"
     ],
     "sourceCropPx": [
-      0,
-      0,
-      125,
-      170
+      15,
+      15,
+      130,
+      190
     ]
   },
   "transform": {
-    "resample": "none",
+    "resample": "nearest-neighbor",
     "colorSpace": "preserved",
-    "backgroundKey": "near-black/white border where stated; no generated pixels"
+    "backgroundKey": "manual silhouette mask over supplied dark marker sheet; no generated pixels"
   },
   "alpha": {
     "mode": "RGBA",
-    "hasTransparency": false,
+    "hasTransparency": true,
     "mechanical": "passed"
   },
   "pivot": {
@@ -64,10 +67,10 @@
   "review": {
     "state": "reviewable",
     "path": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
-    "approvalState": "pending-human-owner",
+    "approvalState": "unknown",
     "humanDecision": "unknown"
   },
   "notes": [
-    "Supplied status-marker sheet contains an explicit question-tag marker; it is reused as the unknown-state visual cue without asserting a light state."
+    "Question-tag marker is an unknown-state cue only; it does not assert that a light was observed or is unlit. No floor or scene pixels are retained."
   ]
 }

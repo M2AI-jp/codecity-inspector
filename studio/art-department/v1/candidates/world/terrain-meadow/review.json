@@ -3,15 +3,15 @@
   "schemaVersion": 1,
   "selector": "terrain:meadow",
   "candidatePath": "terrain-meadow/terrain-meadow.png",
-  "candidateSha256": "6148b4da54e8b08dfacc3d6d9f1b2691b8b08182561c082205740eee37c2ed92",
+  "candidateSha256": "c599763f8577563797f598f82610350fcb5049badfff5ebf22d68065d3c6a4b6",
   "contactSheetPath": "review/contact-sheet.webp",
   "visualState": "reviewable extracted/generated candidate; no human approval claimed",
   "mechanicalState": "failed",
   "ownerDecision": "unknown",
   "mechanicalFailures": [
-    "G2_COLOR_COUNT",
     "G6_LIGHT_DIRECTION",
-    "G8_ISOLATED_PIXELS"
+    "G8_ISOLATED_PIXELS",
+    "G10_SEAM_MISMATCH"
   ],
   "mechanicalUnknowns": []
 }

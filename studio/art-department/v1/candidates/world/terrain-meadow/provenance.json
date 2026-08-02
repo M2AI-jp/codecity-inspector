@@ -3,34 +3,33 @@
   "schemaVersion": 1,
   "selector": "terrain:meadow",
   "candidatePath": "terrain-meadow/terrain-meadow.png",
-  "candidateSha256": "6148b4da54e8b08dfacc3d6d9f1b2691b8b08182561c082205740eee37c2ed92",
-  "candidateByteLength": 5873,
+  "candidateSha256": "c599763f8577563797f598f82610350fcb5049badfff5ebf22d68065d3c6a4b6",
+  "candidateByteLength": 831,
   "source": {
-    "sourceOriginal": "world_visual_master.png",
+    "sourceOriginal": "target-town.png",
     "sourceRect": [
-      1000,
-      580,
-      1100,
-      680
+      758,
+      830,
+      774,
+      846
     ],
     "method": "extract-crop-transform",
-    "description": "meadow ground crop",
+    "description": "grass-only 16x16 seed repeated into a seamless meadow tile",
     "kind": "tile",
     "dimensions": [
       64,
       64
     ],
-    "sourceSha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+    "sourceSha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607"
   },
   "reuse": null,
   "transform": {
     "kind": "deterministic-local",
     "steps": [
-      "crop or source selection",
-      "binary-alpha normalization",
-      "nearest-neighbor resize",
-      "palette mapping to palette-v2",
-      "shared tile edge normalization"
+      "crop the declared 16x16 grass-only source rectangle",
+      "nearest-color map to palette-v2 using Euclidean RGB without dithering",
+      "repeat the mapped seed 4x4 to 64x64",
+      "copy column 0 to column 63 and row 0 to row 63 for exact self edges"
     ]
   },
   "dimensions": {
@@ -39,7 +38,7 @@
     "opaquePixels": 4096,
     "transparentPixels": 0,
     "semiTransparentPixels": 0,
-    "colors": 17
+    "colors": 14
   },
   "alpha": {
     "state": "observed",
@@ -63,12 +62,12 @@
     "palette": "observed palette-v2",
     "dimensions": "observed",
     "alpha": "observed-binary",
-    "seams": "passed",
+    "seams": "self seams passed; declared-neighbor G10 failed",
     "humanApproval": "unknown",
     "failureCodes": [
-      "G2_COLOR_COUNT",
       "G6_LIGHT_DIRECTION",
-      "G8_ISOLATED_PIXELS"
+      "G8_ISOLATED_PIXELS",
+      "G10_SEAM_MISMATCH"
     ],
     "unknownCodes": []
   },

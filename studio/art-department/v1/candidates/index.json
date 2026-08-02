@@ -94,8 +94,8 @@
     {
       "selector": "building:gate",
       "candidatePath": "studio/art-department/v1/candidates/world/building-gate/building-gate.png",
-      "candidateSha256": "bf7f90138fdaeb8cc90079cc07e60c9419b520bfd32823e3c4e8a5a886662bb2",
-      "candidateByteLength": 19406,
+      "candidateSha256": "476883224c8e12fc57a99cce7aa9a4f68787db1bd514a49330dd25a3ffd511bd",
+      "candidateByteLength": 5462,
       "dimensions": {
         "width": 192,
         "height": 192
@@ -106,13 +106,13 @@
       "source": {
         "sourceOriginal": "field_stairs_bridges_cliffs_sheet.png",
         "sourceRect": [
-          1000,
-          0,
-          1200,
-          230
+          1020,
+          10,
+          1096,
+          166
         ],
         "method": "extract-crop-transform",
-        "description": "stone gatehouse crop",
+        "description": "tight isolated stone gatehouse crop; neighboring walls and loose parts excluded",
         "kind": "building",
         "dimensions": [
           192,
@@ -130,7 +130,7 @@
         "G5": "passed",
         "G6": "passed",
         "G7": "passed",
-        "G8": "failed",
+        "G8": "passed",
         "G9": "passed",
         "G10": "unknown"
       },
@@ -635,19 +635,19 @@
     {
       "selector": "effect:town_hall_lantern_lit",
       "candidatePath": "studio/art-department/v1/candidates/actors-ui/effect-town_hall_lantern_lit.png",
-      "candidateSha256": "cc4b135b1694973ef5ca55dcc963fe07200128c46c13b598ae2ba82da6c79a4a",
-      "candidateByteLength": 83057,
+      "candidateSha256": "8fc4cddf7ec81f6b849bc8469b906aec314c8a753f64933d858f2f2dc2202115",
+      "candidateByteLength": 2379,
       "dimensions": {
-        "width": 180,
-        "height": 220
+        "width": 14,
+        "height": 64
       },
       "sidecarPath": "studio/art-department/v1/candidates/actors-ui/effect--town_hall_lantern_lit.json",
       "reviewPath": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
       "source": {
         "sourceOriginals": [
           {
-            "path": "art/references/user-provided/object_status_markers_sheet.png",
-            "sha256": "e3d2f177bf10bc07d1362251d8aa80d490fc6f58999d24b06a66c34a177e1d1b",
+            "path": "art/references/user-provided/object_street_props_sheet.png",
+            "sha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
             "immutable": true
           }
         ],
@@ -657,15 +657,15 @@
             "exact-byte-reuse-of-light-lit"
           ],
           "sourceCropPx": [
-            145,
-            245,
-            325,
-            465
+            920,
+            20,
+            985,
+            215
           ]
         }
       },
       "reuseOf": "light:lit",
-      "reuseReason": "The effect name explicitly identifies the same supplied lit lantern visual; exact-byte reuse preserves one review identity for the reward effect.",
+      "reuseReason": "The effect is the same local lit lantern visual; exact-byte reuse keeps the effect and light visually corresponding.",
       "mechanicalChecks": {
         "pngReadable": "passed",
         "dimensions": "passed",
@@ -682,32 +682,36 @@
     {
       "selector": "light:lit",
       "candidatePath": "studio/art-department/v1/candidates/actors-ui/light-lit.png",
-      "candidateSha256": "cc4b135b1694973ef5ca55dcc963fe07200128c46c13b598ae2ba82da6c79a4a",
-      "candidateByteLength": 83057,
+      "candidateSha256": "8fc4cddf7ec81f6b849bc8469b906aec314c8a753f64933d858f2f2dc2202115",
+      "candidateByteLength": 2379,
       "dimensions": {
-        "width": 180,
-        "height": 220
+        "width": 14,
+        "height": 64
       },
       "sidecarPath": "studio/art-department/v1/candidates/actors-ui/light--lit.json",
       "reviewPath": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
       "source": {
         "sourceOriginals": [
           {
-            "path": "art/references/user-provided/object_status_markers_sheet.png",
-            "sha256": "e3d2f177bf10bc07d1362251d8aa80d490fc6f58999d24b06a66c34a177e1d1b",
+            "path": "art/references/user-provided/object_street_props_sheet.png",
+            "sha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
             "immutable": true
           }
         ],
         "method": {
           "kind": "mechanical-extraction",
           "operations": [
-            "crop-opaque-textured-floor"
+            "crop",
+            "white-border-flood-key-to-alpha",
+            "deterministic-silhouette-clip",
+            "background-color-key-with-warm-glow-preservation",
+            "nearest-neighbor-resize-max64"
           ],
           "sourceCropPx": [
-            145,
-            245,
-            325,
-            465
+            920,
+            20,
+            985,
+            215
           ]
         }
       },
@@ -729,11 +733,11 @@
     {
       "selector": "light:unknown",
       "candidatePath": "studio/art-department/v1/candidates/actors-ui/light-unknown.png",
-      "candidateSha256": "8e47144a3eaa9e06043a40854e7fd19e93f424a9c0ebec97d253143a881c7e73",
-      "candidateByteLength": 43184,
+      "candidateSha256": "068d6a13943d06dffb87a8a5d991aeb33a457c2d3f222aa8558f89b4e615da1f",
+      "candidateByteLength": 7760,
       "dimensions": {
-        "width": 125,
-        "height": 170
+        "width": 45,
+        "height": 64
       },
       "sidecarPath": "studio/art-department/v1/candidates/actors-ui/light--unknown.json",
       "reviewPath": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
@@ -748,13 +752,16 @@
         "method": {
           "kind": "mechanical-extraction",
           "operations": [
-            "crop-opaque-textured-floor"
+            "crop",
+            "deterministic-silhouette-mask",
+            "transparent-ring-and-attachment-holes",
+            "nearest-neighbor-resize-max64"
           ],
           "sourceCropPx": [
-            0,
-            0,
-            125,
-            170
+            15,
+            15,
+            130,
+            190
           ]
         }
       },
@@ -776,11 +783,11 @@
     {
       "selector": "light:unlit",
       "candidatePath": "studio/art-department/v1/candidates/actors-ui/light-unlit.png",
-      "candidateSha256": "e4aca9db5101bd5327d4bc9fddb5a2d009757850a0ce7d48ea5b8d854c6cc9e5",
-      "candidateByteLength": 10714,
+      "candidateSha256": "3253600a175b474fd1687d7e29e929e16b55df7a5fc67e0d884a0f7896f4e42d",
+      "candidateByteLength": 2357,
       "dimensions": {
-        "width": 38,
-        "height": 145
+        "width": 14,
+        "height": 64
       },
       "sidecarPath": "studio/art-department/v1/candidates/actors-ui/light--unlit.json",
       "reviewPath": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
@@ -793,23 +800,22 @@
           }
         ],
         "method": {
-          "kind": "exact-byte-reuse",
+          "kind": "mechanical-state-variant",
           "operations": [
-            "exact-byte-reuse-of-prop-lamp",
-            "crop",
-            "white-border-key-to-alpha",
-            "largest-connected-component"
+            "exact-byte-reuse-of-light-lit",
+            "copy-alpha-mask",
+            "localized-lantern-rgb-dimming"
           ],
           "sourceCropPx": [
-            900,
-            0,
-            1000,
-            210
+            920,
+            20,
+            985,
+            215
           ]
         }
       },
-      "reuseOf": "prop:lamp",
-      "reuseReason": "No distinct unlit frame is present in the supplied sheets; exact neutral lamp bytes are intentionally reused, with state-specific semantics left for H1 review.",
+      "reuseOf": null,
+      "reuseReason": null,
       "mechanicalChecks": {
         "pngReadable": "passed",
         "dimensions": "passed",
@@ -845,7 +851,7 @@
         "method": {
           "kind": "exact-byte-reuse",
           "operations": [
-            "exact-byte-reuse-of-player-default"
+            "exact-byte-reuse-of-npc-townsperson"
           ],
           "sourceCropPx": [
             205,
@@ -855,8 +861,8 @@
           ]
         }
       },
-      "reuseOf": "player:default",
-      "reuseReason": "Role-specific actor art is not separately present in the supplied sheet; exact neutral actor bytes are intentionally reused so this selector has a reviewable candidate without inventing role semantics.",
+      "reuseOf": "npc:townsperson",
+      "reuseReason": "Role-specific actor art intentionally reuses the unchanged townsperson candidate; no role semantics are inferred from the shared bytes.",
       "mechanicalChecks": {
         "pngReadable": "passed",
         "dimensions": "passed",
@@ -892,7 +898,7 @@
         "method": {
           "kind": "exact-byte-reuse",
           "operations": [
-            "exact-byte-reuse-of-player-default"
+            "exact-byte-reuse-of-npc-townsperson"
           ],
           "sourceCropPx": [
             205,
@@ -902,8 +908,8 @@
           ]
         }
       },
-      "reuseOf": "player:default",
-      "reuseReason": "Role-specific actor art is not separately present in the supplied sheet; exact neutral actor bytes are intentionally reused so this selector has a reviewable candidate without inventing role semantics.",
+      "reuseOf": "npc:townsperson",
+      "reuseReason": "Role-specific actor art intentionally reuses the unchanged townsperson candidate; no role semantics are inferred from the shared bytes.",
       "mechanicalChecks": {
         "pngReadable": "passed",
         "dimensions": "passed",
@@ -939,7 +945,7 @@
         "method": {
           "kind": "exact-byte-reuse",
           "operations": [
-            "exact-byte-reuse-of-player-default"
+            "exact-byte-reuse-of-npc-townsperson"
           ],
           "sourceCropPx": [
             205,
@@ -949,8 +955,8 @@
           ]
         }
       },
-      "reuseOf": "player:default",
-      "reuseReason": "Role-specific actor art is not separately present in the supplied sheet; exact neutral actor bytes are intentionally reused so this selector has a reviewable candidate without inventing role semantics.",
+      "reuseOf": "npc:townsperson",
+      "reuseReason": "Role-specific actor art intentionally reuses the unchanged townsperson candidate; no role semantics are inferred from the shared bytes.",
       "mechanicalChecks": {
         "pngReadable": "passed",
         "dimensions": "passed",
@@ -986,7 +992,7 @@
         "method": {
           "kind": "exact-byte-reuse",
           "operations": [
-            "exact-byte-reuse-of-player-default"
+            "exact-byte-reuse-of-npc-townsperson"
           ],
           "sourceCropPx": [
             205,
@@ -996,8 +1002,8 @@
           ]
         }
       },
-      "reuseOf": "player:default",
-      "reuseReason": "Role-specific actor art is not separately present in the supplied sheet; exact neutral actor bytes are intentionally reused so this selector has a reviewable candidate without inventing role semantics.",
+      "reuseOf": "npc:townsperson",
+      "reuseReason": "Role-specific actor art intentionally reuses the unchanged townsperson candidate; no role semantics are inferred from the shared bytes.",
       "mechanicalChecks": {
         "pngReadable": "passed",
         "dimensions": "passed",
@@ -1031,9 +1037,10 @@
           }
         ],
         "method": {
-          "kind": "exact-byte-reuse",
+          "kind": "mechanical-extraction",
           "operations": [
-            "exact-byte-reuse-of-player-default"
+            "crop",
+            "key-near-black-to-alpha"
           ],
           "sourceCropPx": [
             205,
@@ -1043,8 +1050,8 @@
           ]
         }
       },
-      "reuseOf": "player:default",
-      "reuseReason": "Role-specific actor art is not separately present in the supplied sheet; exact neutral actor bytes are intentionally reused so this selector has a reviewable candidate without inventing role semantics.",
+      "reuseOf": null,
+      "reuseReason": null,
       "mechanicalChecks": {
         "pngReadable": "passed",
         "dimensions": "passed",
@@ -1080,7 +1087,7 @@
         "method": {
           "kind": "exact-byte-reuse",
           "operations": [
-            "exact-byte-reuse-of-player-default"
+            "exact-byte-reuse-of-npc-townsperson"
           ],
           "sourceCropPx": [
             205,
@@ -1090,8 +1097,8 @@
           ]
         }
       },
-      "reuseOf": "player:default",
-      "reuseReason": "Role-specific actor art is not separately present in the supplied sheet; exact neutral actor bytes are intentionally reused so this selector has a reviewable candidate without inventing role semantics.",
+      "reuseOf": "npc:townsperson",
+      "reuseReason": "Role-specific actor art intentionally reuses the unchanged townsperson candidate; no role semantics are inferred from the shared bytes.",
       "mechanicalChecks": {
         "pngReadable": "passed",
         "dimensions": "passed",
@@ -1127,7 +1134,7 @@
         "method": {
           "kind": "exact-byte-reuse",
           "operations": [
-            "exact-byte-reuse-of-player-default"
+            "exact-byte-reuse-of-npc-townsperson"
           ],
           "sourceCropPx": [
             205,
@@ -1137,8 +1144,8 @@
           ]
         }
       },
-      "reuseOf": "player:default",
-      "reuseReason": "Role-specific actor art is not separately present in the supplied sheet; exact neutral actor bytes are intentionally reused so this selector has a reviewable candidate without inventing role semantics.",
+      "reuseOf": "npc:townsperson",
+      "reuseReason": "Role-specific actor art intentionally reuses the unchanged townsperson candidate; no role semantics are inferred from the shared bytes.",
       "mechanicalChecks": {
         "pngReadable": "passed",
         "dimensions": "passed",
@@ -1155,33 +1162,35 @@
     {
       "selector": "player:default",
       "candidatePath": "studio/art-department/v1/candidates/actors-ui/player-default.png",
-      "candidateSha256": "62f3251e9464bdcbf9791c72034577093637988a96ee35f56323b98b12418011",
-      "candidateByteLength": 45704,
+      "candidateSha256": "d5fbb67c6d26e107b0cec6e78f09715e95be54cf4201de44025ca00477dd658f",
+      "candidateByteLength": 47678,
       "dimensions": {
-        "width": 133,
-        "height": 249
+        "width": 192,
+        "height": 256
       },
       "sidecarPath": "studio/art-department/v1/candidates/actors-ui/player--default.json",
       "reviewPath": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
       "source": {
         "sourceOriginals": [
           {
-            "path": "art/references/user-provided/character_style_reference_sheet.png",
-            "sha256": "910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b",
+            "path": "art/references/user-provided/character_style_authority_20260722_v1.png",
+            "sha256": "446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932",
             "immutable": true
           }
         ],
         "method": {
           "kind": "mechanical-extraction",
           "operations": [
-            "crop",
-            "key-near-black-to-alpha"
+            "extract-40-source-poses",
+            "magenta-key-to-alpha",
+            "nearest-neighbor-resize-to-32px-cell",
+            "deterministic-motion-offset-variants"
           ],
           "sourceCropPx": [
-            205,
-            145,
-            380,
-            445
+            40,
+            74,
+            1388,
+            1040
           ]
         }
       },
@@ -1194,7 +1203,9 @@
         "sourceCustody": "passed",
         "alpha": "passed",
         "pivot": "unknown",
-        "frameGrid": "unknown",
+        "frameGrid": "passed",
+        "frameCount": "passed",
+        "animationDiversity": "passed",
         "visualFit": "unknown",
         "ownerApproval": "unknown"
       },
@@ -1241,7 +1252,7 @@
         "G7": "passed",
         "G8": "failed",
         "G9": "passed",
-        "G10": "passed"
+        "G10": "failed"
       },
       "approval": "unknown"
     },
@@ -1286,7 +1297,7 @@
         "G7": "passed",
         "G8": "failed",
         "G9": "passed",
-        "G10": "passed"
+        "G10": "failed"
       },
       "approval": "unknown"
     },
@@ -1489,11 +1500,11 @@
     {
       "selector": "quest:inspect",
       "candidatePath": "studio/art-department/v1/candidates/actors-ui/quest-inspect.png",
-      "candidateSha256": "000aa366cf3f53297bb1e25e4288cd5308ca9029a727a71a160386c81ee8fcdc",
-      "candidateByteLength": 78957,
+      "candidateSha256": "d08cc4bdbc12dc5ea83b592e70d790e0b7579e4a983b348738102c15e3dd6d40",
+      "candidateByteLength": 8722,
       "dimensions": {
-        "width": 190,
-        "height": 195
+        "width": 48,
+        "height": 64
       },
       "sidecarPath": "studio/art-department/v1/candidates/actors-ui/quest--inspect.json",
       "reviewPath": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
@@ -1508,13 +1519,15 @@
         "method": {
           "kind": "mechanical-extraction",
           "operations": [
-            "crop-opaque-textured-floor"
+            "crop",
+            "deterministic-central-board-silhouette-mask",
+            "nearest-neighbor-resize-max64"
           ],
           "sourceCropPx": [
-            0,
-            135,
-            190,
-            330
+            10,
+            145,
+            185,
+            360
           ]
         }
       },
@@ -1574,7 +1587,7 @@
         "G7": "passed",
         "G8": "failed",
         "G9": "passed",
-        "G10": "passed"
+        "G10": "failed"
       },
       "approval": "unknown"
     },
@@ -1619,7 +1632,7 @@
         "G7": "passed",
         "G8": "failed",
         "G9": "passed",
-        "G10": "passed"
+        "G10": "failed"
       },
       "approval": "unknown"
     },
@@ -1664,7 +1677,7 @@
         "G7": "passed",
         "G8": "failed",
         "G9": "passed",
-        "G10": "passed"
+        "G10": "failed"
       },
       "approval": "unknown"
     },
@@ -2339,7 +2352,7 @@
         "G7": "passed",
         "G8": "failed",
         "G9": "passed",
-        "G10": "passed"
+        "G10": "failed"
       },
       "approval": "unknown"
     },
@@ -2384,15 +2397,15 @@
         "G7": "passed",
         "G8": "failed",
         "G9": "passed",
-        "G10": "passed"
+        "G10": "failed"
       },
       "approval": "unknown"
     },
     {
       "selector": "terrain:meadow",
       "candidatePath": "studio/art-department/v1/candidates/world/terrain-meadow/terrain-meadow.png",
-      "candidateSha256": "6148b4da54e8b08dfacc3d6d9f1b2691b8b08182561c082205740eee37c2ed92",
-      "candidateByteLength": 5873,
+      "candidateSha256": "c599763f8577563797f598f82610350fcb5049badfff5ebf22d68065d3c6a4b6",
+      "candidateByteLength": 831,
       "dimensions": {
         "width": 64,
         "height": 64
@@ -2401,27 +2414,27 @@
       "provenancePath": "studio/art-department/v1/candidates/world/terrain-meadow/provenance.json",
       "reviewPath": "studio/art-department/v1/candidates/world/terrain-meadow/review.json",
       "source": {
-        "sourceOriginal": "world_visual_master.png",
+        "sourceOriginal": "target-town.png",
         "sourceRect": [
-          1000,
-          580,
-          1100,
-          680
+          758,
+          830,
+          774,
+          846
         ],
         "method": "extract-crop-transform",
-        "description": "meadow ground crop",
+        "description": "grass-only 16x16 seed repeated into a seamless meadow tile",
         "kind": "tile",
         "dimensions": [
           64,
           64
         ],
-        "sourceSha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+        "sourceSha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607"
       },
       "reuseOf": null,
       "reuseReason": null,
       "mechanicalChecks": {
         "G1": "passed",
-        "G2": "failed",
+        "G2": "passed",
         "G3": "passed",
         "G4": "passed",
         "G5": "passed",
@@ -2429,7 +2442,7 @@
         "G7": "passed",
         "G8": "failed",
         "G9": "passed",
-        "G10": "passed"
+        "G10": "failed"
       },
       "approval": "unknown"
     },
@@ -2474,7 +2487,7 @@
         "G7": "passed",
         "G8": "failed",
         "G9": "passed",
-        "G10": "passed"
+        "G10": "failed"
       },
       "approval": "unknown"
     },
@@ -2519,18 +2532,18 @@
         "G7": "passed",
         "G8": "failed",
         "G9": "passed",
-        "G10": "passed"
+        "G10": "failed"
       },
       "approval": "unknown"
     },
     {
       "selector": "ui:choice",
       "candidatePath": "studio/art-department/v1/candidates/actors-ui/ui-choice.png",
-      "candidateSha256": "29d06f9ff3e3c6e8753148a9fdb35533c6d4d0903deb6a63777e15cefae8ef9b",
-      "candidateByteLength": 101317,
+      "candidateSha256": "0c573020a30dc3adf5f4bdccdeb387daa20ed51bb3bf493720caa64dbc2cb00a",
+      "candidateByteLength": 16161,
       "dimensions": {
-        "width": 215,
-        "height": 230
+        "width": 384,
+        "height": 216
       },
       "sidecarPath": "studio/art-department/v1/candidates/actors-ui/ui--choice.json",
       "reviewPath": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
@@ -2539,20 +2552,48 @@
           {
             "path": "art/references/user-provided/ui_dialogue_frames_sheet.png",
             "sha256": "60a2255fe72e2e96c91f00caa93fa7f4906f57fc1f8f0332bdbe91648b9ba29d",
-            "immutable": true
+            "immutable": true,
+            "cropPx": [
+              910,
+              536,
+              985,
+              560
+            ]
+          },
+          {
+            "path": "art/references/user-provided/ui_dialogue_frames_sheet.png",
+            "sha256": "60a2255fe72e2e96c91f00caa93fa7f4906f57fc1f8f0332bdbe91648b9ba29d",
+            "immutable": true,
+            "cropPx": [
+              908,
+              616,
+              934,
+              662
+            ]
           }
         ],
         "method": {
-          "kind": "mechanical-extraction",
+          "kind": "mechanical-frame-composition",
           "operations": [
-            "crop",
-            "key-near-black-to-alpha"
+            "extract lower frame-part crops",
+            "edge-connected background key",
+            "nearest-neighbor placement",
+            "fixed 384x216 canvas",
+            "binary alpha normalization"
           ],
-          "sourceCropPx": [
-            865,
-            15,
-            1080,
-            245
+          "sourceCropsPx": [
+            [
+              910,
+              536,
+              985,
+              560
+            ],
+            [
+              908,
+              616,
+              934,
+              662
+            ]
           ]
         }
       },
@@ -2564,9 +2605,11 @@
         "candidateHash": "passed",
         "sourceCustody": "passed",
         "alpha": "passed",
+        "textContent": "passed",
+        "dataContent": "passed",
+        "visualFit": "passed",
         "pivot": "unknown",
         "frameGrid": "unknown",
-        "visualFit": "unknown",
         "ownerApproval": "unknown"
       },
       "approval": "unknown"
@@ -2574,11 +2617,11 @@
     {
       "selector": "ui:dialogue",
       "candidatePath": "studio/art-department/v1/candidates/actors-ui/ui-dialogue.png",
-      "candidateSha256": "739f250bb9380c436e12a9e412314478416d8fdbdb1d1a1b7e1f2b10069ca630",
-      "candidateByteLength": 212326,
+      "candidateSha256": "5a4d3e86817d971a7f3413d26e1c8c85eecc7792459a916585a25432ac9177d2",
+      "candidateByteLength": 10790,
       "dimensions": {
-        "width": 470,
-        "height": 225
+        "width": 384,
+        "height": 216
       },
       "sidecarPath": "studio/art-department/v1/candidates/actors-ui/ui--dialogue.json",
       "reviewPath": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
@@ -2587,20 +2630,48 @@
           {
             "path": "art/references/user-provided/ui_dialogue_frames_sheet.png",
             "sha256": "60a2255fe72e2e96c91f00caa93fa7f4906f57fc1f8f0332bdbe91648b9ba29d",
-            "immutable": true
+            "immutable": true,
+            "cropPx": [
+              910,
+              536,
+              985,
+              560
+            ]
+          },
+          {
+            "path": "art/references/user-provided/ui_dialogue_frames_sheet.png",
+            "sha256": "60a2255fe72e2e96c91f00caa93fa7f4906f57fc1f8f0332bdbe91648b9ba29d",
+            "immutable": true,
+            "cropPx": [
+              908,
+              616,
+              934,
+              662
+            ]
           }
         ],
         "method": {
-          "kind": "mechanical-extraction",
+          "kind": "mechanical-frame-composition",
           "operations": [
-            "crop",
-            "key-near-black-to-alpha"
+            "extract lower frame-part crops",
+            "edge-connected background key",
+            "nearest-neighbor placement",
+            "fixed 384x216 canvas",
+            "binary alpha normalization"
           ],
-          "sourceCropPx": [
-            0,
-            20,
-            470,
-            245
+          "sourceCropsPx": [
+            [
+              910,
+              536,
+              985,
+              560
+            ],
+            [
+              908,
+              616,
+              934,
+              662
+            ]
           ]
         }
       },
@@ -2612,9 +2683,11 @@
         "candidateHash": "passed",
         "sourceCustody": "passed",
         "alpha": "passed",
+        "textContent": "passed",
+        "dataContent": "passed",
+        "visualFit": "passed",
         "pivot": "unknown",
         "frameGrid": "unknown",
-        "visualFit": "unknown",
         "ownerApproval": "unknown"
       },
       "approval": "unknown"
@@ -2622,33 +2695,61 @@
     {
       "selector": "ui:guild-roster",
       "candidatePath": "studio/art-department/v1/candidates/actors-ui/ui-guild-roster.png",
-      "candidateSha256": "357c9ae914f67fb409ea3713bb8b034fa6dc62b584fccb317f42050eb17ff381",
-      "candidateByteLength": 313160,
+      "candidateSha256": "09d034684e5170e12fa0fa27dad592ed67cdd2b2482042a04ef9549fc301ebce",
+      "candidateByteLength": 28037,
       "dimensions": {
-        "width": 510,
-        "height": 365
+        "width": 384,
+        "height": 216
       },
       "sidecarPath": "studio/art-department/v1/candidates/actors-ui/ui--guild-roster.json",
       "reviewPath": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
       "source": {
         "sourceOriginals": [
           {
-            "path": "art/references/user-provided/ui_guild_roster_sheet.png",
-            "sha256": "5104c1dc835712a3d3bd6c50dc89b19f4a9489e27c655f15dd63f3ffdbe9bc99",
-            "immutable": true
+            "path": "art/references/user-provided/ui_inspection_report_sheet.png",
+            "sha256": "c4c14e83e5f4e5fec8f7eaea537e6befa5f2762aaed11d07a5a86c05b6294892",
+            "immutable": true,
+            "cropPx": [
+              94,
+              1238,
+              274,
+              1268
+            ]
+          },
+          {
+            "path": "art/references/user-provided/ui_inspection_report_sheet.png",
+            "sha256": "c4c14e83e5f4e5fec8f7eaea537e6befa5f2762aaed11d07a5a86c05b6294892",
+            "immutable": true,
+            "cropPx": [
+              65,
+              1208,
+              95,
+              1282
+            ]
           }
         ],
         "method": {
-          "kind": "mechanical-extraction",
+          "kind": "mechanical-frame-composition",
           "operations": [
-            "crop",
-            "key-near-black-to-alpha"
+            "extract lower frame-part crops",
+            "edge-connected background key",
+            "nearest-neighbor placement",
+            "fixed 384x216 canvas",
+            "binary alpha normalization"
           ],
-          "sourceCropPx": [
-            0,
-            0,
-            510,
-            365
+          "sourceCropsPx": [
+            [
+              94,
+              1238,
+              274,
+              1268
+            ],
+            [
+              65,
+              1208,
+              95,
+              1282
+            ]
           ]
         }
       },
@@ -2660,9 +2761,11 @@
         "candidateHash": "passed",
         "sourceCustody": "passed",
         "alpha": "passed",
+        "textContent": "passed",
+        "dataContent": "passed",
+        "visualFit": "passed",
         "pivot": "unknown",
         "frameGrid": "unknown",
-        "visualFit": "unknown",
         "ownerApproval": "unknown"
       },
       "approval": "unknown"
@@ -2670,11 +2773,11 @@
     {
       "selector": "ui:inspection-report",
       "candidatePath": "studio/art-department/v1/candidates/actors-ui/ui-inspection-report.png",
-      "candidateSha256": "a37a6c02246408b374bf806eea00fc20646a39bcb97942c5eb9c18705abcf093",
-      "candidateByteLength": 342021,
+      "candidateSha256": "5d191399c5afd59b6a41781e7df637bf9ea2596fb80dc7d06340d5aca01523ca",
+      "candidateByteLength": 34633,
       "dimensions": {
-        "width": 520,
-        "height": 345
+        "width": 384,
+        "height": 216
       },
       "sidecarPath": "studio/art-department/v1/candidates/actors-ui/ui--inspection-report.json",
       "reviewPath": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
@@ -2683,20 +2786,82 @@
           {
             "path": "art/references/user-provided/ui_inspection_report_sheet.png",
             "sha256": "c4c14e83e5f4e5fec8f7eaea537e6befa5f2762aaed11d07a5a86c05b6294892",
-            "immutable": true
+            "immutable": true,
+            "cropPx": [
+              94,
+              1238,
+              274,
+              1268
+            ]
+          },
+          {
+            "path": "art/references/user-provided/ui_inspection_report_sheet.png",
+            "sha256": "c4c14e83e5f4e5fec8f7eaea537e6befa5f2762aaed11d07a5a86c05b6294892",
+            "immutable": true,
+            "cropPx": [
+              65,
+              1208,
+              95,
+              1282
+            ]
+          },
+          {
+            "path": "art/references/user-provided/ui_inspection_report_sheet.png",
+            "sha256": "c4c14e83e5f4e5fec8f7eaea537e6befa5f2762aaed11d07a5a86c05b6294892",
+            "immutable": true,
+            "cropPx": [
+              418,
+              1170,
+              555,
+              1198
+            ]
+          },
+          {
+            "path": "art/references/user-provided/ui_inspection_report_sheet.png",
+            "sha256": "c4c14e83e5f4e5fec8f7eaea537e6befa5f2762aaed11d07a5a86c05b6294892",
+            "immutable": true,
+            "cropPx": [
+              418,
+              1226,
+              555,
+              1255
+            ]
           }
         ],
         "method": {
-          "kind": "mechanical-extraction",
+          "kind": "mechanical-frame-composition",
           "operations": [
-            "crop",
-            "key-near-black-to-alpha"
+            "extract lower frame-part crops",
+            "edge-connected background key",
+            "nearest-neighbor placement",
+            "fixed 384x216 canvas",
+            "binary alpha normalization"
           ],
-          "sourceCropPx": [
-            0,
-            0,
-            520,
-            345
+          "sourceCropsPx": [
+            [
+              94,
+              1238,
+              274,
+              1268
+            ],
+            [
+              65,
+              1208,
+              95,
+              1282
+            ],
+            [
+              418,
+              1170,
+              555,
+              1198
+            ],
+            [
+              418,
+              1226,
+              555,
+              1255
+            ]
           ]
         }
       },
@@ -2708,9 +2873,11 @@
         "candidateHash": "passed",
         "sourceCustody": "passed",
         "alpha": "passed",
+        "textContent": "passed",
+        "dataContent": "passed",
+        "visualFit": "passed",
         "pivot": "unknown",
         "frameGrid": "unknown",
-        "visualFit": "unknown",
         "ownerApproval": "unknown"
       },
       "approval": "unknown"
@@ -2718,8 +2885,8 @@
     {
       "selector": "water:default",
       "candidatePath": "studio/art-department/v1/candidates/world/water-default/water-default.png",
-      "candidateSha256": "221d0b06e621f3b65a1355a5e7fc7840ec3d857de6c78c5352fbcd3d093d82f0",
-      "candidateByteLength": 2985,
+      "candidateSha256": "2b960207c8f16679370edcc961f1932f205d6019451e83ecfbb62f99d3163813",
+      "candidateByteLength": 1714,
       "dimensions": {
         "width": 64,
         "height": 64
@@ -2730,13 +2897,13 @@
       "source": {
         "sourceOriginal": "field_harbor_docks_tiles_sheet.png",
         "sourceRect": [
-          530,
-          0,
-          650,
-          120
+          588,
+          32,
+          652,
+          96
         ],
         "method": "extract-crop-transform",
-        "description": "water and rocky coast tile crop",
+        "description": "shoreless open-water tile crop",
         "kind": "tile",
         "dimensions": [
           64,
@@ -2744,19 +2911,19 @@
         ],
         "sourceSha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580"
       },
-      "reuseOf": "terrain:coast",
-      "reuseReason": "intentional exact-byte reuse of terrain:coast; candidate SHA-256 matches",
+      "reuseOf": null,
+      "reuseReason": null,
       "mechanicalChecks": {
         "G1": "passed",
-        "G2": "failed",
+        "G2": "passed",
         "G3": "passed",
         "G4": "passed",
         "G5": "passed",
-        "G6": "failed",
+        "G6": "passed",
         "G7": "passed",
         "G8": "failed",
         "G9": "passed",
-        "G10": "passed"
+        "G10": "failed"
       },
       "approval": "unknown"
     }
@@ -2764,23 +2931,28 @@
   "contactSheets": [
     {
       "path": "studio/art-department/v1/candidates/world/review/contact-sheet.webp",
-      "sha256": "b007ab40177ff3b378f9f18ff5975e8f017c3a367895a338761a8b78a68b8dce"
+      "sha256": "0ad06a9f77326d93d7e38c689556459a4b9166422de7e38864dfd45b45492f5d"
     },
     {
       "path": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
-      "sha256": "3b3a697a040aa53e637c1a8dc317320380f49210e8df9f235c44f7dd6b4a1945"
+      "sha256": "65c8d7225972d426e25efc5eed0a9557e7c7bf19301eecdbddc7f4bdf56036d2"
     }
   ],
   "reviewManifests": [
     {
       "path": "studio/art-department/v1/candidates/world/review/index.json",
-      "sha256": "99124504c6636f7c5585b276c00b7411e3649480bb4aaf05c945eb8e04217eff"
+      "sha256": "2a73a441efd66495b5721ee911c7b91838aba68fd8d30bfad1d429cb299fdc5a"
     },
     {
       "path": "studio/art-department/v1/candidates/actors-ui/review/review-report.json",
-      "sha256": "e770b10fb36dd0617434d9e0dc439c1361047dedd0879145186d03b88318d950"
+      "sha256": "7a300c4f4ecbc216ffa55a78843b8ebca8d42a13925b3ae88d26dc6e6606ead3"
     }
   ],
+  "evidenceManifest": {
+    "path": "studio/art-department/v1/candidates/evidence/manifest.json",
+    "sha256": "00e6cb7f43690b2f64bdafc816f99971970cd9b03795127062bb4b7d525d999d",
+    "targetSelectorCount": 7
+  },
   "custody": {
     "expected": 22,
     "checked": 22,
@@ -2788,8 +2960,8 @@
   },
   "legacyPixelGate": {
     "status": "failed",
-    "candidatePassed": 14,
-    "candidateFailed": 25,
+    "candidatePassed": 15,
+    "candidateFailed": 24,
     "failedSelectors": [
       {
         "candidate": "building-dock/building-dock.png",
@@ -2801,12 +2973,6 @@
         "candidate": "building-dojo/building-dojo.png",
         "failureCodes": [
           "G6_LIGHT_DIRECTION",
-          "G8_ISOLATED_PIXELS"
-        ]
-      },
-      {
-        "candidate": "building-gate/building-gate.png",
-        "failureCodes": [
           "G8_ISOLATED_PIXELS"
         ]
       },
@@ -2886,14 +3052,16 @@
         "candidate": "plot-occupied/plot-occupied.png",
         "failureCodes": [
           "G6_LIGHT_DIRECTION",
-          "G8_ISOLATED_PIXELS"
+          "G8_ISOLATED_PIXELS",
+          "G10_SEAM_MISMATCH"
         ]
       },
       {
         "candidate": "plot-vacant/plot-vacant.png",
         "failureCodes": [
           "G2_COLOR_COUNT",
-          "G8_ISOLATED_PIXELS"
+          "G8_ISOLATED_PIXELS",
+          "G10_SEAM_MISMATCH"
         ]
       },
       {
@@ -2901,7 +3069,8 @@
         "failureCodes": [
           "G2_COLOR_COUNT",
           "G6_LIGHT_DIRECTION",
-          "G8_ISOLATED_PIXELS"
+          "G8_ISOLATED_PIXELS",
+          "G10_SEAM_MISMATCH"
         ]
       },
       {
@@ -2909,7 +3078,8 @@
         "failureCodes": [
           "G2_COLOR_COUNT",
           "G6_LIGHT_DIRECTION",
-          "G8_ISOLATED_PIXELS"
+          "G8_ISOLATED_PIXELS",
+          "G10_SEAM_MISMATCH"
         ]
       },
       {
@@ -2917,7 +3087,8 @@
         "failureCodes": [
           "G2_COLOR_COUNT",
           "G6_LIGHT_DIRECTION",
-          "G8_ISOLATED_PIXELS"
+          "G8_ISOLATED_PIXELS",
+          "G10_SEAM_MISMATCH"
         ]
       },
       {
@@ -2925,7 +3096,8 @@
         "failureCodes": [
           "G2_COLOR_COUNT",
           "G6_LIGHT_DIRECTION",
-          "G8_ISOLATED_PIXELS"
+          "G8_ISOLATED_PIXELS",
+          "G10_SEAM_MISMATCH"
         ]
       },
       {
@@ -2933,22 +3105,24 @@
         "failureCodes": [
           "G2_COLOR_COUNT",
           "G6_LIGHT_DIRECTION",
-          "G8_ISOLATED_PIXELS"
+          "G8_ISOLATED_PIXELS",
+          "G10_SEAM_MISMATCH"
         ]
       },
       {
         "candidate": "terrain-meadow/terrain-meadow.png",
         "failureCodes": [
-          "G2_COLOR_COUNT",
           "G6_LIGHT_DIRECTION",
-          "G8_ISOLATED_PIXELS"
+          "G8_ISOLATED_PIXELS",
+          "G10_SEAM_MISMATCH"
         ]
       },
       {
         "candidate": "terrain-plain/terrain-plain.png",
         "failureCodes": [
           "G2_COLOR_COUNT",
-          "G8_ISOLATED_PIXELS"
+          "G8_ISOLATED_PIXELS",
+          "G10_SEAM_MISMATCH"
         ]
       },
       {
@@ -2956,15 +3130,15 @@
         "failureCodes": [
           "G2_COLOR_COUNT",
           "G6_LIGHT_DIRECTION",
-          "G8_ISOLATED_PIXELS"
+          "G8_ISOLATED_PIXELS",
+          "G10_SEAM_MISMATCH"
         ]
       },
       {
         "candidate": "water-default/water-default.png",
         "failureCodes": [
-          "G2_COLOR_COUNT",
-          "G6_LIGHT_DIRECTION",
-          "G8_ISOLATED_PIXELS"
+          "G8_ISOLATED_PIXELS",
+          "G10_SEAM_MISMATCH"
         ]
       }
     ],

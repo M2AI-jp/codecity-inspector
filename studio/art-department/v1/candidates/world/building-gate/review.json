@@ -3,13 +3,15 @@
   "schemaVersion": 1,
   "selector": "building:gate",
   "candidatePath": "building-gate/building-gate.png",
-  "candidateSha256": "bf7f90138fdaeb8cc90079cc07e60c9419b520bfd32823e3c4e8a5a886662bb2",
+  "candidateSha256": "476883224c8e12fc57a99cce7aa9a4f68787db1bd514a49330dd25a3ffd511bd",
   "contactSheetPath": "review/contact-sheet.webp",
-  "visualState": "reviewable extracted/generated candidate; no human approval claimed",
-  "mechanicalState": "failed",
+  "visualState": "unknown contact-sheet not regenerated; direct PNG shows one isolated gatehouse",
+  "mechanicalState": "passed",
   "ownerDecision": "unknown",
-  "mechanicalFailures": [
-    "G8_ISOLATED_PIXELS"
-  ],
-  "mechanicalUnknowns": []
+  "mechanicalFailures": [],
+  "mechanicalUnknowns": [],
+  "limits": [
+    "pixel gate proves bytes/palette/alpha/dimensions/light/isolation checks only",
+    "no owner approval or runtime composition proof"
+  ]
 }

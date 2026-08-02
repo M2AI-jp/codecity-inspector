@@ -4,44 +4,120 @@
   "selector": "ui:dialogue",
   "candidate": {
     "path": "studio/art-department/v1/candidates/actors-ui/ui-dialogue.png",
-    "sha256": "739f250bb9380c436e12a9e412314478416d8fdbdb1d1a1b7e1f2b10069ca630",
+    "sha256": "5a4d3e86817d971a7f3413d26e1c8c85eecc7792459a916585a25432ac9177d2",
+    "byteLength": 10790,
     "dimensions": {
-      "width": 470,
-      "height": 225
+      "width": 384,
+      "height": 216
     },
     "pngMode": "RGBA",
-    "frameCount": 1
+    "frameCount": 1,
+    "opaquePixels": 71537,
+    "transparentPixels": 11407,
+    "semiTransparentPixels": 0
   },
   "sourceOriginals": [
     {
       "path": "art/references/user-provided/ui_dialogue_frames_sheet.png",
       "sha256": "60a2255fe72e2e96c91f00caa93fa7f4906f57fc1f8f0332bdbe91648b9ba29d",
-      "immutable": true
+      "immutable": true,
+      "cropPx": [
+        910,
+        536,
+        985,
+        560
+      ]
+    },
+    {
+      "path": "art/references/user-provided/ui_dialogue_frames_sheet.png",
+      "sha256": "60a2255fe72e2e96c91f00caa93fa7f4906f57fc1f8f0332bdbe91648b9ba29d",
+      "immutable": true,
+      "cropPx": [
+        908,
+        616,
+        934,
+        662
+      ]
     }
   ],
   "method": {
-    "kind": "mechanical-extraction",
+    "kind": "mechanical-frame-composition",
     "operations": [
-      "crop",
-      "key-near-black-to-alpha"
+      "extract lower frame-part crops",
+      "edge-connected background key",
+      "nearest-neighbor placement",
+      "fixed 384x216 canvas",
+      "binary alpha normalization"
     ],
-    "sourceCropPx": [
-      0,
-      20,
-      470,
-      245
+    "sourceCropsPx": [
+      [
+        910,
+        536,
+        985,
+        560
+      ],
+      [
+        908,
+        616,
+        934,
+        662
+      ]
     ]
   },
   "transform": {
-    "resample": "none",
-    "colorSpace": "preserved",
-    "backgroundKey": "near-black/white border where stated; no generated pixels"
+    "resample": "nearest-neighbor",
+    "colorSpace": "source frame-part colors preserved",
+    "background": "opaque near-black interior with transparent exterior rounded panel mask",
+    "placementsPx": [
+      [
+        12,
+        10,
+        360,
+        24
+      ],
+      [
+        12,
+        182,
+        360,
+        24
+      ],
+      [
+        10,
+        20,
+        24,
+        176
+      ],
+      [
+        350,
+        20,
+        24,
+        176
+      ],
+      [
+        34,
+        26,
+        115,
+        18
+      ]
+    ],
+    "generatedTextOrData": false
   },
   "alpha": {
     "mode": "RGBA",
     "hasTransparency": true,
+    "opaquePixels": 71537,
+    "transparentPixels": 11407,
+    "semiTransparentPixels": 0,
     "mechanical": "passed"
   },
+  "contentReview": {
+    "state": "passed",
+    "textObserved": "none in selected frame parts",
+    "dataObserved": "none; empty rails/panels only",
+    "method": "manual visual inspection of immutable source regions and rendered candidate",
+    "limits": "no OCR or semantic classifier; runtime-inserted text/data not represented"
+  },
+  "purpose": "wide dialogue chrome with empty dark interior; runtime supplies text/data",
   "pivot": {
     "status": "unknown",
     "reason": "runtime sprite pivot contract is not exported in P1"
@@ -57,15 +133,64 @@
     "candidateHash": "passed",
     "sourceCustody": "passed",
     "alpha": "passed",
+    "textContent": "passed",
+    "dataContent": "passed",
+    "visualFit": "passed",
     "pivot": "unknown",
     "frameGrid": "unknown",
-    "visualFit": "unknown",
     "ownerApproval": "unknown"
   },
   "review": {
-    "state": "reviewable",
+    "state": "unknown",
     "path": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
-    "approvalState": "pending-human-owner",
-    "humanDecision": "unknown"
+    "approvalState": "unknown",
+    "humanDecision": "unknown",
+    "note": "contact sheet intentionally not regenerated in this worker; direct candidate PNG is the current evidence"
+  },
+  "mechanicalEvidence": {
+    "pngReadable": {
+      "state": "passed",
+      "originalValue": "passed"
+    },
+    "dimensions": {
+      "state": "passed",
+      "originalValue": "passed (384x216 within <=384x216 budget)"
+    },
+    "candidateHash": {
+      "state": "passed",
+      "originalValue": "passed"
+    },
+    "sourceCustody": {
+      "state": "passed",
+      "originalValue": "passed"
+    },
+    "alpha": {
+      "state": "passed",
+      "originalValue": "passed (binary)"
+    },
+    "textContent": {
+      "state": "passed",
+      "originalValue": "passed (none observed)"
+    },
+    "dataContent": {
+      "state": "passed",
+      "originalValue": "passed (none observed)"
+    },
+    "visualFit": {
+      "state": "passed",
+      "originalValue": "passed (bounded canvas)"
+    },
+    "pivot": {
+      "state": "unknown",
+      "originalValue": "unknown"
+    },
+    "frameGrid": {
+      "state": "unknown",
+      "originalValue": "unknown"
+    },
+    "ownerApproval": {
+      "state": "unknown",
+      "originalValue": "unknown"
+    }
   }
 }

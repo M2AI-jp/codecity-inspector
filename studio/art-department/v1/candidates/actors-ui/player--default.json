@@ -4,38 +4,40 @@
   "selector": "player:default",
   "candidate": {
     "path": "studio/art-department/v1/candidates/actors-ui/player-default.png",
-    "sha256": "62f3251e9464bdcbf9791c72034577093637988a96ee35f56323b98b12418011",
+    "sha256": "d5fbb67c6d26e107b0cec6e78f09715e95be54cf4201de44025ca00477dd658f",
     "dimensions": {
-      "width": 133,
-      "height": 249
+      "width": 192,
+      "height": 256
     },
     "pngMode": "RGBA",
-    "frameCount": 1
+    "frameCount": 48
   },
   "sourceOriginals": [
     {
-      "path": "art/references/user-provided/character_style_reference_sheet.png",
-      "sha256": "910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b",
+      "path": "art/references/user-provided/character_style_authority_20260722_v1.png",
+      "sha256": "446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932",
       "immutable": true
     }
   ],
   "method": {
     "kind": "mechanical-extraction",
     "operations": [
-      "crop",
-      "key-near-black-to-alpha"
+      "extract-40-source-poses",
+      "magenta-key-to-alpha",
+      "nearest-neighbor-resize-to-32px-cell",
+      "deterministic-motion-offset-variants"
     ],
     "sourceCropPx": [
-      205,
-      145,
-      380,
-      445
+      40,
+      74,
+      1388,
+      1040
     ]
   },
   "transform": {
-    "resample": "none",
+    "resample": "nearest-neighbor",
     "colorSpace": "preserved",
-    "backgroundKey": "near-black/white border where stated; no generated pixels"
+    "backgroundKey": "magenta [255,0,255] distance-keyed to transparent; no generated pixels"
   },
   "alpha": {
     "mode": "RGBA",
@@ -47,9 +49,33 @@
     "reason": "runtime sprite pivot contract is not exported in P1"
   },
   "frameMetadata": {
-    "status": "unknown",
-    "reason": "runtime frame-grid contract is not exported in P1",
-    "declaredFrameCount": 1
+    "status": "observed",
+    "frame": {
+      "width": 32,
+      "height": 32,
+      "columns": 6,
+      "rows": 8
+    },
+    "animations": {
+      "idle": {
+        "north": [0, 1],
+        "south": [12, 13],
+        "east": [24, 25],
+        "west": [36, 37]
+      },
+      "walk": {
+        "north": [2, 3, 4, 5],
+        "south": [14, 15, 16, 17],
+        "east": [26, 27, 28, 29],
+        "west": [38, 39, 40, 41]
+      },
+      "run": {
+        "north": [6, 7, 8, 9, 10, 11],
+        "south": [18, 19, 20, 21, 22, 23],
+        "east": [30, 31, 32, 33, 34, 35],
+        "west": [42, 43, 44, 45, 46, 47]
+      }
+    }
   },
   "mechanicalChecks": {
     "pngReadable": "passed",
@@ -58,14 +84,16 @@
     "sourceCustody": "passed",
     "alpha": "passed",
     "pivot": "unknown",
-    "frameGrid": "unknown",
+    "frameGrid": "passed",
+    "frameCount": "passed",
+    "animationDiversity": "passed",
     "visualFit": "unknown",
     "ownerApproval": "unknown"
   },
   "review": {
     "state": "reviewable",
     "path": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
-    "approvalState": "pending-human-owner",
+    "approvalState": "unknown",
     "humanDecision": "unknown"
   }
 }

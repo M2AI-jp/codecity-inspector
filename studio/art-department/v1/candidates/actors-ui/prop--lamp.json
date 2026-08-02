@@ -66,7 +66,7 @@
   "review": {
     "state": "reviewable",
     "path": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
-    "approvalState": "pending-human-owner",
+    "approvalState": "unknown",
     "humanDecision": "unknown"
   }
 }

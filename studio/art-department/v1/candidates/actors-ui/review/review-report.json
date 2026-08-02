@@ -47,30 +47,30 @@
     "KGI journey"
   ],
   "reusePolicy": "Each exact-byte reuse has its own selector sidecar and explicit rationale; no wildcard, nearest-match, or silent fallback is used.",
-  "contactSheetSha256": "3b3a697a040aa53e637c1a8dc317320380f49210e8df9f235c44f7dd6b4a1945",
+  "contactSheetSha256": "65c8d7225972d426e25efc5eed0a9557e7c7bf19301eecdbddc7f4bdf56036d2",
   "entries": [
     {
       "selector": "effect:town_hall_lantern_lit",
       "candidatePath": "studio/art-department/v1/candidates/actors-ui/effect-town_hall_lantern_lit.png",
-      "sha256": "cc4b135b1694973ef5ca55dcc963fe07200128c46c13b598ae2ba82da6c79a4a",
+      "sha256": "8fc4cddf7ec81f6b849bc8469b906aec314c8a753f64933d858f2f2dc2202115",
       "gridIndex": 0
     },
     {
       "selector": "light:lit",
       "candidatePath": "studio/art-department/v1/candidates/actors-ui/light-lit.png",
-      "sha256": "cc4b135b1694973ef5ca55dcc963fe07200128c46c13b598ae2ba82da6c79a4a",
+      "sha256": "8fc4cddf7ec81f6b849bc8469b906aec314c8a753f64933d858f2f2dc2202115",
       "gridIndex": 1
     },
     {
       "selector": "light:unknown",
       "candidatePath": "studio/art-department/v1/candidates/actors-ui/light-unknown.png",
-      "sha256": "8e47144a3eaa9e06043a40854e7fd19e93f424a9c0ebec97d253143a881c7e73",
+      "sha256": "068d6a13943d06dffb87a8a5d991aeb33a457c2d3f222aa8558f89b4e615da1f",
       "gridIndex": 2
     },
     {
       "selector": "light:unlit",
       "candidatePath": "studio/art-department/v1/candidates/actors-ui/light-unlit.png",
-      "sha256": "e4aca9db5101bd5327d4bc9fddb5a2d009757850a0ce7d48ea5b8d854c6cc9e5",
+      "sha256": "3253600a175b474fd1687d7e29e929e16b55df7a5fc67e0d884a0f7896f4e42d",
       "gridIndex": 3
     },
     {
@@ -118,7 +118,7 @@
     {
       "selector": "player:default",
       "candidatePath": "studio/art-department/v1/candidates/actors-ui/player-default.png",
-      "sha256": "62f3251e9464bdcbf9791c72034577093637988a96ee35f56323b98b12418011",
+      "sha256": "d5fbb67c6d26e107b0cec6e78f09715e95be54cf4201de44025ca00477dd658f",
       "gridIndex": 11
     },
     {
@@ -148,31 +148,31 @@
     {
       "selector": "quest:inspect",
       "candidatePath": "studio/art-department/v1/candidates/actors-ui/quest-inspect.png",
-      "sha256": "000aa366cf3f53297bb1e25e4288cd5308ca9029a727a71a160386c81ee8fcdc",
+      "sha256": "d08cc4bdbc12dc5ea83b592e70d790e0b7579e4a983b348738102c15e3dd6d40",
       "gridIndex": 16
     },
     {
       "selector": "ui:choice",
       "candidatePath": "studio/art-department/v1/candidates/actors-ui/ui-choice.png",
-      "sha256": "29d06f9ff3e3c6e8753148a9fdb35533c6d4d0903deb6a63777e15cefae8ef9b",
+      "sha256": "0c573020a30dc3adf5f4bdccdeb387daa20ed51bb3bf493720caa64dbc2cb00a",
       "gridIndex": 17
     },
     {
       "selector": "ui:dialogue",
       "candidatePath": "studio/art-department/v1/candidates/actors-ui/ui-dialogue.png",
-      "sha256": "739f250bb9380c436e12a9e412314478416d8fdbdb1d1a1b7e1f2b10069ca630",
+      "sha256": "5a4d3e86817d971a7f3413d26e1c8c85eecc7792459a916585a25432ac9177d2",
       "gridIndex": 18
     },
     {
       "selector": "ui:guild-roster",
       "candidatePath": "studio/art-department/v1/candidates/actors-ui/ui-guild-roster.png",
-      "sha256": "357c9ae914f67fb409ea3713bb8b034fa6dc62b584fccb317f42050eb17ff381",
+      "sha256": "09d034684e5170e12fa0fa27dad592ed67cdd2b2482042a04ef9549fc301ebce",
       "gridIndex": 19
     },
     {
       "selector": "ui:inspection-report",
       "candidatePath": "studio/art-department/v1/candidates/actors-ui/ui-inspection-report.png",
-      "sha256": "a37a6c02246408b374bf806eea00fc20646a39bcb97942c5eb9c18705abcf093",
+      "sha256": "5d191399c5afd59b6a41781e7df637bf9ea2596fb80dc7d06340d5aca01523ca",
       "gridIndex": 20
     }
   ]

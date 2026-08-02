@@ -20,9 +20,10 @@
     }
   ],
   "method": {
-    "kind": "exact-byte-reuse",
+    "kind": "mechanical-extraction",
     "operations": [
-      "exact-byte-reuse-of-player-default"
+      "crop",
+      "key-near-black-to-alpha"
     ],
     "sourceCropPx": [
       205,
@@ -64,12 +65,7 @@
   "review": {
     "state": "reviewable",
     "path": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
-    "approvalState": "pending-human-owner",
+    "approvalState": "unknown",
     "humanDecision": "unknown"
-  },
-  "reuse": {
-    "ofSelector": "player:default",
-    "exactByteMatch": true,
-    "explicitReason": "Role-specific actor art is not separately present in the supplied sheet; exact neutral actor bytes are intentionally reused so this selector has a reviewable candidate without inventing role semantics."
   }
 }

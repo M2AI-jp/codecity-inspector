@@ -3,18 +3,18 @@
   "schemaVersion": 1,
   "selector": "building:gate",
   "candidatePath": "building-gate/building-gate.png",
-  "candidateSha256": "bf7f90138fdaeb8cc90079cc07e60c9419b520bfd32823e3c4e8a5a886662bb2",
-  "candidateByteLength": 19406,
+  "candidateSha256": "476883224c8e12fc57a99cce7aa9a4f68787db1bd514a49330dd25a3ffd511bd",
+  "candidateByteLength": 5462,
   "source": {
     "sourceOriginal": "field_stairs_bridges_cliffs_sheet.png",
     "sourceRect": [
-      1000,
-      0,
-      1200,
-      230
+      1020,
+      10,
+      1096,
+      166
     ],
     "method": "extract-crop-transform",
-    "description": "stone gatehouse crop",
+    "description": "tight isolated stone gatehouse crop; neighboring walls and loose parts excluded",
     "kind": "building",
     "dimensions": [
       192,
@@ -26,25 +26,27 @@
   "transform": {
     "kind": "deterministic-local",
     "steps": [
-      "crop or source selection",
-      "binary-alpha normalization",
-      "nearest-neighbor resize",
-      "palette mapping to palette-v2",
-      "center/pivot normalization"
+      "tight source crop",
+      "edge-connected dark-background removal",
+      "alpha bounding-box crop",
+      "2x block reduction",
+      "palette mapping to first 24 palette-v2 colors",
+      "directional tone remap for top-left lighting",
+      "center/bottom pivot normalization"
     ]
   },
   "dimensions": {
     "width": 192,
     "height": 192,
-    "opaquePixels": 8517,
-    "transparentPixels": 28347,
+    "opaquePixels": 5924,
+    "transparentPixels": 30940,
     "semiTransparentPixels": 0,
     "colors": 24
   },
   "alpha": {
     "state": "observed",
     "mode": "binary",
-    "transparentPixels": 28347
+    "transparentPixels": 30940
   },
   "pivot": {
     "state": "inferred",
@@ -59,20 +61,26 @@
     "rows": 1
   },
   "mechanical": {
-    "state": "failed",
-    "palette": "observed palette-v2",
-    "dimensions": "observed",
-    "alpha": "observed-binary",
+    "state": "passed",
+    "palette": "passed palette-v2 (24 colors)",
+    "dimensions": "passed",
+    "alpha": "passed-binary",
     "seams": "not_applicable",
     "humanApproval": "unknown",
-    "failureCodes": [
-      "G8_ISOLATED_PIXELS"
-    ],
-    "unknownCodes": []
+    "failureCodes": [],
+    "unknownCodes": [],
+    "gateInvocation": "isolated candidate gate with spec asset path normalized; full-world aggregate remains a separate release gate"
+  },
+  "isolation": {
+    "state": "passed",
+    "looseParts": "none observed",
+    "neighboringWalls": "excluded by crop and edge flood-fill",
+    "limit": "visual fit and owner approval remain unknown"
   },
   "review": {
     "entryPath": "building-gate/review.json",
     "contactSheetPath": "review/contact-sheet.webp",
-    "ownerDecision": "unknown"
+    "ownerDecision": "unknown",
+    "note": "contact sheet intentionally not regenerated in this worker"
   }
 }

@@ -4,44 +4,162 @@
   "selector": "ui:guild-roster",
   "candidate": {
     "path": "studio/art-department/v1/candidates/actors-ui/ui-guild-roster.png",
-    "sha256": "357c9ae914f67fb409ea3713bb8b034fa6dc62b584fccb317f42050eb17ff381",
+    "sha256": "09d034684e5170e12fa0fa27dad592ed67cdd2b2482042a04ef9549fc301ebce",
+    "byteLength": 28037,
     "dimensions": {
-      "width": 510,
-      "height": 365
+      "width": 384,
+      "height": 216
     },
     "pngMode": "RGBA",
-    "frameCount": 1
+    "frameCount": 1,
+    "opaquePixels": 82944,
+    "transparentPixels": 0,
+    "semiTransparentPixels": 0
   },
   "sourceOriginals": [
     {
-      "path": "art/references/user-provided/ui_guild_roster_sheet.png",
-      "sha256": "5104c1dc835712a3d3bd6c50dc89b19f4a9489e27c655f15dd63f3ffdbe9bc99",
-      "immutable": true
+      "path": "art/references/user-provided/ui_inspection_report_sheet.png",
+      "sha256": "c4c14e83e5f4e5fec8f7eaea537e6befa5f2762aaed11d07a5a86c05b6294892",
+      "immutable": true,
+      "cropPx": [
+        94,
+        1238,
+        274,
+        1268
+      ]
+    },
+    {
+      "path": "art/references/user-provided/ui_inspection_report_sheet.png",
+      "sha256": "c4c14e83e5f4e5fec8f7eaea537e6befa5f2762aaed11d07a5a86c05b6294892",
+      "immutable": true,
+      "cropPx": [
+        65,
+        1208,
+        95,
+        1282
+      ]
     }
   ],
   "method": {
-    "kind": "mechanical-extraction",
+    "kind": "mechanical-frame-composition",
     "operations": [
-      "crop",
-      "key-near-black-to-alpha"
+      "extract lower frame-part crops",
+      "edge-connected background key",
+      "nearest-neighbor placement",
+      "fixed 384x216 canvas",
+      "binary alpha normalization"
     ],
-    "sourceCropPx": [
-      0,
-      0,
-      510,
-      365
+    "sourceCropsPx": [
+      [
+        94,
+        1238,
+        274,
+        1268
+      ],
+      [
+        65,
+        1208,
+        95,
+        1282
+      ]
     ]
   },
   "transform": {
-    "resample": "none",
-    "colorSpace": "preserved",
-    "backgroundKey": "near-black/white border where stated; no generated pixels"
+    "resample": "nearest-neighbor",
+    "colorSpace": "source frame-part colors preserved",
+    "background": "opaque paper-toned modal panel",
+    "placementsPx": [
+      [
+        10,
+        6,
+        364,
+        18
+      ],
+      [
+        10,
+        192,
+        364,
+        18
+      ],
+      [
+        8,
+        18,
+        20,
+        180
+      ],
+      [
+        356,
+        18,
+        20,
+        180
+      ],
+      [
+        190,
+        26,
+        8,
+        164
+      ],
+      [
+        18,
+        42,
+        348,
+        5
+      ],
+      [
+        18,
+        65,
+        348,
+        5
+      ],
+      [
+        18,
+        88,
+        348,
+        5
+      ],
+      [
+        18,
+        111,
+        348,
+        5
+      ],
+      [
+        18,
+        134,
+        348,
+        5
+      ],
+      [
+        18,
+        157,
+        348,
+        5
+      ],
+      [
+        18,
+        180,
+        348,
+        5
+      ]
+    ],
+    "generatedTextOrData": false
   },
   "alpha": {
     "mode": "RGBA",
-    "hasTransparency": true,
+    "hasTransparency": false,
+    "opaquePixels": 82944,
+    "transparentPixels": 0,
+    "semiTransparentPixels": 0,
     "mechanical": "passed"
   },
+  "contentReview": {
+    "state": "passed",
+    "textObserved": "none in selected frame parts",
+    "dataObserved": "none; empty rails/panels only",
+    "method": "manual visual inspection of immutable source regions and rendered candidate",
+    "limits": "no OCR or semantic classifier; runtime-inserted text/data not represented"
+  },
+  "purpose": "two-column roster/grid chrome with empty rows; runtime supplies names/status/data",
   "pivot": {
     "status": "unknown",
     "reason": "runtime sprite pivot contract is not exported in P1"
@@ -57,15 +175,64 @@
     "candidateHash": "passed",
     "sourceCustody": "passed",
     "alpha": "passed",
+    "textContent": "passed",
+    "dataContent": "passed",
+    "visualFit": "passed",
     "pivot": "unknown",
     "frameGrid": "unknown",
-    "visualFit": "unknown",
     "ownerApproval": "unknown"
   },
   "review": {
-    "state": "reviewable",
+    "state": "unknown",
     "path": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
-    "approvalState": "pending-human-owner",
-    "humanDecision": "unknown"
+    "approvalState": "unknown",
+    "humanDecision": "unknown",
+    "note": "contact sheet intentionally not regenerated in this worker; direct candidate PNG is the current evidence"
+  },
+  "mechanicalEvidence": {
+    "pngReadable": {
+      "state": "passed",
+      "originalValue": "passed"
+    },
+    "dimensions": {
+      "state": "passed",
+      "originalValue": "passed (384x216 within <=384x216 budget)"
+    },
+    "candidateHash": {
+      "state": "passed",
+      "originalValue": "passed"
+    },
+    "sourceCustody": {
+      "state": "passed",
+      "originalValue": "passed"
+    },
+    "alpha": {
+      "state": "passed",
+      "originalValue": "passed (binary)"
+    },
+    "textContent": {
+      "state": "passed",
+      "originalValue": "passed (none observed)"
+    },
+    "dataContent": {
+      "state": "passed",
+      "originalValue": "passed (none observed)"
+    },
+    "visualFit": {
+      "state": "passed",
+      "originalValue": "passed (bounded canvas)"
+    },
+    "pivot": {
+      "state": "unknown",
+      "originalValue": "unknown"
+    },
+    "frameGrid": {
+      "state": "unknown",
+      "originalValue": "unknown"
+    },
+    "ownerApproval": {
+      "state": "unknown",
+      "originalValue": "unknown"
+    }
   }
 }

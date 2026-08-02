@@ -4,41 +4,45 @@
   "selector": "light:lit",
   "candidate": {
     "path": "studio/art-department/v1/candidates/actors-ui/light-lit.png",
-    "sha256": "cc4b135b1694973ef5ca55dcc963fe07200128c46c13b598ae2ba82da6c79a4a",
+    "sha256": "8fc4cddf7ec81f6b849bc8469b906aec314c8a753f64933d858f2f2dc2202115",
     "dimensions": {
-      "width": 180,
-      "height": 220
+      "width": 14,
+      "height": 64
     },
     "pngMode": "RGBA",
     "frameCount": 1
   },
   "sourceOriginals": [
     {
-      "path": "art/references/user-provided/object_status_markers_sheet.png",
-      "sha256": "e3d2f177bf10bc07d1362251d8aa80d490fc6f58999d24b06a66c34a177e1d1b",
+      "path": "art/references/user-provided/object_street_props_sheet.png",
+      "sha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
       "immutable": true
     }
   ],
   "method": {
     "kind": "mechanical-extraction",
     "operations": [
-      "crop-opaque-textured-floor"
+      "crop",
+      "white-border-flood-key-to-alpha",
+      "deterministic-silhouette-clip",
+      "background-color-key-with-warm-glow-preservation",
+      "nearest-neighbor-resize-max64"
     ],
     "sourceCropPx": [
-      145,
-      245,
-      325,
-      465
+      920,
+      20,
+      985,
+      215
     ]
   },
   "transform": {
-    "resample": "none",
+    "resample": "nearest-neighbor",
     "colorSpace": "preserved",
-    "backgroundKey": "near-black/white border where stated; no generated pixels"
+    "backgroundKey": "near-white source border keyed to transparent; enclosed warm lantern pixels preserved; no generated pixels"
   },
   "alpha": {
     "mode": "RGBA",
-    "hasTransparency": false,
+    "hasTransparency": true,
     "mechanical": "passed"
   },
   "pivot": {
@@ -64,10 +68,10 @@
   "review": {
     "state": "reviewable",
     "path": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
-    "approvalState": "pending-human-owner",
+    "approvalState": "unknown",
     "humanDecision": "unknown"
   },
   "notes": [
-    "Supplied status-marker sheet contains a lit hanging lantern; textured floor is retained to preserve exact source pixels pending alpha review."
+    "Isolated lit street lantern from the supplied street-props sheet; no floor or scene pixels are retained."
   ]
 }

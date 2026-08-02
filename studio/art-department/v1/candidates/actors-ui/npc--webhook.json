@@ -22,7 +22,7 @@
   "method": {
     "kind": "exact-byte-reuse",
     "operations": [
-      "exact-byte-reuse-of-player-default"
+      "exact-byte-reuse-of-npc-townsperson"
     ],
     "sourceCropPx": [
       205,
@@ -64,12 +64,12 @@
   "review": {
     "state": "reviewable",
     "path": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
-    "approvalState": "pending-human-owner",
+    "approvalState": "unknown",
     "humanDecision": "unknown"
   },
   "reuse": {
-    "ofSelector": "player:default",
+    "ofSelector": "npc:townsperson",
     "exactByteMatch": true,
-    "explicitReason": "Role-specific actor art is not separately present in the supplied sheet; exact neutral actor bytes are intentionally reused so this selector has a reviewable candidate without inventing role semantics."
+    "explicitReason": "Role-specific actor art intentionally reuses the unchanged townsperson candidate; no role semantics are inferred from the shared bytes."
   }
 }

@@ -436,11 +436,23 @@ exist; and all 22 immutable originals retain their frozen hashes. Exact-byte
 reuse is explicit and hash-equal with one canonical selector per byte group. All
 14 `room:*` selectors use one source-traced cutaway interior candidate that is
 byte-distinct from every exterior; facility-specific visual differentiation is
-`unknown` for H1 rather than inferred. The full world pixel gate truthfully
-reports 14 candidate passes and 25 candidate failures, with G2, G6, and G8
-failures preserved per selector; every check is recorded as passed, failed, or
-unknown, and no pending state remains. One Codex-included generation call was
-used for `building:dock`; no paid API, external service, API key, machine
+`unknown` for H1 rather than inferred. Release-focused H1 review replaced ten
+known blockers: the player now has the required 192x256, 6x8, 32px animation
+sheet; foreground markers are isolated at no more than 64px; the gate is one
+building; and four UI candidates are text-free, data-free frames within the
+384x216 viewport. The final owner-quality correction also makes lit/unlit
+lantern states share one alpha mask with a visible color-state difference,
+replaces the path-like meadow with a ground-only seamless grass tile, and
+separates shoreless open water from the coast candidate. A hash-bound evidence
+manifest provides 3x3 seam and
+plot/building composition previews for the seven previously undecidable
+tile/plot selectors plus final semantic previews for meadow and water. The full
+world pixel gate truthfully reports 15 candidate passes and 24 candidate
+failures, with G2, G6, G8, and G10 failures preserved per
+selector; every check is recorded as passed, failed, or unknown, and no pending
+state remains. One Codex-included generation call was used for `building:dock`;
+the blocker-correction loop used deterministic extraction and zero additional
+generation calls. No paid API, external service, API key, machine
 promotion, original mutation, or `ship/` write was used. This closes candidate
 production only: owner approval remains unknown, and the evidence does not prove
 H1, P2-P6, scene composition, browser playability, or the product KGI. The

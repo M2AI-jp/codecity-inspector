@@ -25,6 +25,27 @@ function pngDimensions(file) {
   return { width: inspected.width, height: inspected.height };
 }
 
+function inspectPng(file) {
+  return inspectPngBytes(readFileSync(file), path.relative(root, file));
+}
+
+function frameDigest(inspected, index, frame) {
+  const column = index % frame.columns;
+  const row = Math.floor(index / frame.columns);
+  const bytes = Buffer.alloc(frame.width * frame.height * 4);
+  let offset = 0;
+  for (let y = 0; y < frame.height; y += 1) {
+    for (let x = 0; x < frame.width; x += 1) {
+      const pixel = inspected.pixels[(row * frame.height + y) * inspected.width + column * frame.width + x];
+      bytes[offset++] = pixel.r;
+      bytes[offset++] = pixel.g;
+      bytes[offset++] = pixel.b;
+      bytes[offset++] = pixel.a;
+    }
+  }
+  return createHash('sha256').update(bytes).digest('hex');
+}
+
 function requireFile(file, label) {
   const entry = lstatSync(file, { throwIfNoEntry: false });
   if (!entry?.isFile() || entry.isSymbolicLink()) {
@@ -208,6 +229,63 @@ for (const group of byHash.values()) {
   }
 }
 
+const player = bySelector.get('player:default');
+const playerSidecar = json(path.join(root, player.sidecarPath));
+const playerFrame = playerSidecar.frameMetadata?.frame;
+if (player.dimensions.width !== 192 || player.dimensions.height !== 256 || playerSidecar.candidate?.frameCount !== 48 || JSON.stringify(playerFrame) !== JSON.stringify({ width: 32, height: 32, columns: 6, rows: 8 })) {
+  throw new Error('player:default does not satisfy the 192x256 6x8 32px frame contract');
+}
+const playerPng = inspectPng(path.join(root, player.candidatePath));
+for (const [state, expectedLength] of Object.entries({ idle: 2, walk: 4, run: 6 })) {
+  for (const direction of ['north', 'south', 'east', 'west']) {
+    const frames = playerSidecar.frameMetadata?.animations?.[state]?.[direction];
+    if (!Array.isArray(frames) || frames.length !== expectedLength || frames.some((index) => !Number.isInteger(index) || index < 0 || index >= 48)) {
+      throw new Error(`player animation mapping invalid: ${state}/${direction}`);
+    }
+    if (new Set(frames.map((index) => frameDigest(playerPng, index, playerFrame))).size < 2) {
+      throw new Error(`player animation has no visible frame diversity: ${state}/${direction}`);
+    }
+  }
+}
+
+const foregroundSelectors = ['effect:town_hall_lantern_lit', 'light:lit', 'light:unknown', 'quest:inspect'];
+for (const selector of foregroundSelectors) {
+  const entry = bySelector.get(selector);
+  const inspected = inspectPng(path.join(root, entry.candidatePath));
+  if (entry.dimensions.width > 64 || entry.dimensions.height > 64 || !inspected.pixels.some(({ a }) => a === 0)) {
+    throw new Error(`foreground candidate is not an isolated transparent <=64px asset: ${selector}`);
+  }
+}
+if (bySelector.get('effect:town_hall_lantern_lit').candidateSha256 !== bySelector.get('light:lit').candidateSha256) {
+  throw new Error('town-hall lit effect does not correspond to light:lit exact bytes');
+}
+const litLight = bySelector.get('light:lit');
+const unlitLight = bySelector.get('light:unlit');
+if (JSON.stringify(litLight.dimensions) !== JSON.stringify(unlitLight.dimensions)) {
+  throw new Error('light:lit and light:unlit do not share dimensions');
+}
+const litPixels = inspectPng(path.join(root, litLight.candidatePath)).pixels;
+const unlitPixels = inspectPng(path.join(root, unlitLight.candidatePath)).pixels;
+let lightColorDifferenceCount = 0;
+for (let index = 0; index < litPixels.length; index += 1) {
+  const litPixel = litPixels[index];
+  const unlitPixel = unlitPixels[index];
+  if (litPixel.a !== unlitPixel.a) throw new Error('light:lit and light:unlit do not share an alpha mask');
+  if (litPixel.r !== unlitPixel.r || litPixel.g !== unlitPixel.g || litPixel.b !== unlitPixel.b) {
+    lightColorDifferenceCount += 1;
+  }
+}
+if (lightColorDifferenceCount === 0) throw new Error('light:lit and light:unlit have no visible state difference');
+
+for (const selector of ['ui:choice', 'ui:dialogue', 'ui:guild-roster', 'ui:inspection-report']) {
+  const entry = bySelector.get(selector);
+  if (entry.dimensions.width > 384 || entry.dimensions.height > 216) throw new Error(`UI candidate exceeds the logical viewport: ${selector}`);
+  if (['ui:choice', 'ui:dialogue'].includes(selector)) {
+    const inspected = inspectPng(path.join(root, entry.candidatePath));
+    if (!inspected.pixels.some(({ a }) => a === 0)) throw new Error(`overlay UI has no transparent exterior: ${selector}`);
+  }
+}
+
 for (const entry of entries.filter(({ selector }) => selector.startsWith('room:'))) {
   const building = bySelector.get(`building:${entry.selector.slice('room:'.length)}`);
   if (!building || building.candidateSha256 === entry.candidateSha256) {
@@ -254,6 +332,46 @@ if (actorsReview.candidateCount !== 21 || JSON.stringify(actorsReview.selectors)
 }
 if (actorsReview.contactSheetSha256 !== contactSheets[1].sha256) throw new Error('actors/UI contact sheet hash is stale');
 
+const evidenceManifestPath = path.join(candidateRoot, 'evidence/manifest.json');
+requireFile(evidenceManifestPath, 'seven-selector evidence manifest');
+const evidenceManifest = json(evidenceManifestPath);
+const expectedEvidenceSelectors = ['plot:occupied', 'plot:vacant', 'road:main', 'terrain:basin', 'terrain:coast', 'terrain:plain', 'terrain:terrace'];
+if (JSON.stringify(evidenceManifest.targetSelectors?.map(({ selector }) => selector)) !== JSON.stringify(expectedEvidenceSelectors)) {
+  throw new Error('evidence manifest does not bind exactly the seven declared selectors');
+}
+for (const evidence of evidenceManifest.targetSelectors) {
+  const entry = bySelector.get(evidence.selector);
+  const candidate = path.join(root, evidence.candidatePath);
+  const preview = path.join(root, evidence.previewPath);
+  requireFile(candidate, 'evidence candidate');
+  requireFile(preview, 'evidence preview');
+  if (entry.candidatePath !== evidence.candidatePath || digest(candidate) !== evidence.candidateSha256 || entry.candidateSha256 !== evidence.candidateSha256 || digest(preview) !== evidence.previewSha256) {
+    throw new Error(`stale seven-selector evidence binding: ${evidence.selector}`);
+  }
+}
+const expectedFinalSemanticSelectors = ['terrain:meadow', 'water:default'];
+if (JSON.stringify(evidenceManifest.finalSemanticReviews?.map(({ selector }) => selector)) !== JSON.stringify(expectedFinalSemanticSelectors)) {
+  throw new Error('final semantic evidence does not bind meadow and water exactly');
+}
+for (const evidence of evidenceManifest.finalSemanticReviews) {
+  const entry = bySelector.get(evidence.selector);
+  const candidate = path.join(root, evidence.candidatePath);
+  const preview = path.join(root, evidence.previewPath);
+  requireFile(candidate, 'final semantic candidate');
+  requireFile(preview, 'final semantic preview');
+  if (entry.candidatePath !== evidence.candidatePath || digest(candidate) !== evidence.candidateSha256 || entry.candidateSha256 !== evidence.candidateSha256 || digest(preview) !== evidence.previewSha256) {
+    throw new Error(`stale final semantic evidence binding: ${evidence.selector}`);
+  }
+}
+for (const dependency of evidenceManifest.compositionDependencies ?? []) {
+  const file = path.join(root, dependency.path);
+  requireFile(file, 'composition dependency');
+  if (digest(file) !== dependency.sha256) throw new Error(`stale composition dependency: ${dependency.selector}`);
+}
+
+const pendingEvidence = JSON.stringify({ world, actors, worldReview, actorsReview, entries, evidenceManifest });
+if (pendingEvidence.includes('pending')) throw new Error('candidate batch still contains a pending evidence state');
+
 const report = {
   format: 'codecity.v1-candidate-review-batch',
   schemaVersion: 1,
@@ -265,6 +383,7 @@ const report = {
     { path: rootRelative(worldReviewPath), sha256: digest(worldReviewPath) },
     { path: rootRelative(actorsReviewPath), sha256: digest(actorsReviewPath) }
   ],
+  evidenceManifest: { path: rootRelative(evidenceManifestPath), sha256: digest(evidenceManifestPath), targetSelectorCount: 7 },
   custody: { expected: 22, checked: demand.custody.originals.length, originalsUnchanged: true },
   legacyPixelGate: {
     status: legacy.status,

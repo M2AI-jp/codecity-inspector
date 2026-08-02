@@ -18,7 +18,7 @@
     {
       "selector": "building:gate",
       "candidatePath": "building-gate/building-gate.png",
-      "sha256": "bf7f90138fdaeb8cc90079cc07e60c9419b520bfd32823e3c4e8a5a886662bb2",
+      "sha256": "476883224c8e12fc57a99cce7aa9a4f68787db1bd514a49330dd25a3ffd511bd",
       "gridIndex": 2
     },
     {
@@ -216,7 +216,7 @@
     {
       "selector": "terrain:meadow",
       "candidatePath": "terrain-meadow/terrain-meadow.png",
-      "sha256": "6148b4da54e8b08dfacc3d6d9f1b2691b8b08182561c082205740eee37c2ed92",
+      "sha256": "c599763f8577563797f598f82610350fcb5049badfff5ebf22d68065d3c6a4b6",
       "gridIndex": 35
     },
     {
@@ -234,10 +234,10 @@
     {
       "selector": "water:default",
       "candidatePath": "water-default/water-default.png",
-      "sha256": "221d0b06e621f3b65a1355a5e7fc7840ec3d857de6c78c5352fbcd3d093d82f0",
+      "sha256": "2b960207c8f16679370edcc961f1932f205d6019451e83ecfbb62f99d3163813",
       "gridIndex": 38
     }
   ],
   "ownerDecision": "unknown",
-  "contactSheetSha256": "b007ab40177ff3b378f9f18ff5975e8f017c3a367895a338761a8b78a68b8dce"
+  "contactSheetSha256": "0ad06a9f77326d93d7e38c689556459a4b9166422de7e38864dfd45b45492f5d"
 }

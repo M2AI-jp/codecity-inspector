@@ -4,10 +4,10 @@
   "selector": "quest:inspect",
   "candidate": {
     "path": "studio/art-department/v1/candidates/actors-ui/quest-inspect.png",
-    "sha256": "000aa366cf3f53297bb1e25e4288cd5308ca9029a727a71a160386c81ee8fcdc",
+    "sha256": "d08cc4bdbc12dc5ea83b592e70d790e0b7579e4a983b348738102c15e3dd6d40",
     "dimensions": {
-      "width": 190,
-      "height": 195
+      "width": 48,
+      "height": 64
     },
     "pngMode": "RGBA",
     "frameCount": 1
@@ -22,23 +22,25 @@
   "method": {
     "kind": "mechanical-extraction",
     "operations": [
-      "crop-opaque-textured-floor"
+      "crop",
+      "deterministic-central-board-silhouette-mask",
+      "nearest-neighbor-resize-max64"
     ],
     "sourceCropPx": [
-      0,
-      135,
-      190,
-      330
+      10,
+      145,
+      185,
+      360
     ]
   },
   "transform": {
-    "resample": "none",
+    "resample": "nearest-neighbor",
     "colorSpace": "preserved",
-    "backgroundKey": "near-black/white border where stated; no generated pixels"
+    "backgroundKey": "manual board silhouette mask over supplied marker sheet; no generated pixels"
   },
   "alpha": {
     "mode": "RGBA",
-    "hasTransparency": false,
+    "hasTransparency": true,
     "mechanical": "passed"
   },
   "pivot": {
@@ -64,10 +66,10 @@
   "review": {
     "state": "reviewable",
     "path": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
-    "approvalState": "pending-human-owner",
+    "approvalState": "unknown",
     "humanDecision": "unknown"
   },
   "notes": [
-    "Standing inspection-board marker is the supplied visual cue for the inspect quest action; no gameplay completion is inferred."
+    "Standing inspection-board marker is the supplied visual cue for the inspect action; no gameplay completion is inferred. No floor or scene pixels are retained."
   ]
 }

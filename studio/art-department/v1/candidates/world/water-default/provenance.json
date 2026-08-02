@@ -3,18 +3,18 @@
   "schemaVersion": 1,
   "selector": "water:default",
   "candidatePath": "water-default/water-default.png",
-  "candidateSha256": "221d0b06e621f3b65a1355a5e7fc7840ec3d857de6c78c5352fbcd3d093d82f0",
-  "candidateByteLength": 2985,
+  "candidateSha256": "2b960207c8f16679370edcc961f1932f205d6019451e83ecfbb62f99d3163813",
+  "candidateByteLength": 1714,
   "source": {
     "sourceOriginal": "field_harbor_docks_tiles_sheet.png",
     "sourceRect": [
-      530,
-      0,
-      650,
-      120
+      588,
+      32,
+      652,
+      96
     ],
     "method": "extract-crop-transform",
-    "description": "water and rocky coast tile crop",
+    "description": "shoreless open-water tile crop",
     "kind": "tile",
     "dimensions": [
       64,
@@ -22,18 +22,15 @@
     ],
     "sourceSha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580"
   },
-  "reuse": {
-    "selector": "terrain:coast",
-    "reason": "intentional exact-byte reuse of terrain:coast; candidate SHA-256 matches"
-  },
+  "reuse": null,
   "transform": {
     "kind": "deterministic-local",
     "steps": [
-      "crop or source selection",
-      "binary-alpha normalization",
-      "nearest-neighbor resize",
-      "palette mapping to palette-v2",
-      "shared tile edge normalization"
+      "crop the declared 64x64 open-water source rectangle",
+      "Pillow RGB quantize to 16 colors with MEDIANCUT and no dithering",
+      "map each quantized RGB to the nearest palette-v2 RGB by squared Euclidean distance, breaking ties by palette order",
+      "copy column 0 to column 63 and row 0 to row 63 for exact self edges",
+      "save as PNG with optimize=false and compress_level=9"
     ]
   },
   "dimensions": {
@@ -42,7 +39,7 @@
     "opaquePixels": 4096,
     "transparentPixels": 0,
     "semiTransparentPixels": 0,
-    "colors": 17
+    "colors": 4
   },
   "alpha": {
     "state": "observed",
@@ -66,12 +63,11 @@
     "palette": "observed palette-v2",
     "dimensions": "observed",
     "alpha": "observed-binary",
-    "seams": "passed",
+    "seams": "self seams passed; declared-neighbor G10 failed",
     "humanApproval": "unknown",
     "failureCodes": [
-      "G2_COLOR_COUNT",
-      "G6_LIGHT_DIRECTION",
-      "G8_ISOLATED_PIXELS"
+      "G8_ISOLATED_PIXELS",
+      "G10_SEAM_MISMATCH"
     ],
     "unknownCodes": []
   },

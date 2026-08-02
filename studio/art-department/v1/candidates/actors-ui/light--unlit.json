@@ -4,10 +4,10 @@
   "selector": "light:unlit",
   "candidate": {
     "path": "studio/art-department/v1/candidates/actors-ui/light-unlit.png",
-    "sha256": "e4aca9db5101bd5327d4bc9fddb5a2d009757850a0ce7d48ea5b8d854c6cc9e5",
+    "sha256": "3253600a175b474fd1687d7e29e929e16b55df7a5fc67e0d884a0f7896f4e42d",
     "dimensions": {
-      "width": 38,
-      "height": 145
+      "width": 14,
+      "height": 64
     },
     "pngMode": "RGBA",
     "frameCount": 1
@@ -20,24 +20,23 @@
     }
   ],
   "method": {
-    "kind": "exact-byte-reuse",
+    "kind": "mechanical-state-variant",
     "operations": [
-      "exact-byte-reuse-of-prop-lamp",
-      "crop",
-      "white-border-key-to-alpha",
-      "largest-connected-component"
+      "exact-byte-reuse-of-light-lit",
+      "copy-alpha-mask",
+      "localized-lantern-rgb-dimming"
     ],
     "sourceCropPx": [
-      900,
-      0,
-      1000,
-      210
+      920,
+      20,
+      985,
+      215
     ]
   },
   "transform": {
-    "resample": "none",
+    "resample": "nearest-neighbor",
     "colorSpace": "preserved",
-    "backgroundKey": "near-black/white border where stated; no generated pixels"
+    "backgroundKey": "inherits light:lit transparent silhouette; only lantern/glow RGB is darkened; no generated pixels"
   },
   "alpha": {
     "mode": "RGBA",
@@ -67,12 +66,10 @@
   "review": {
     "state": "reviewable",
     "path": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
-    "approvalState": "pending-human-owner",
+    "approvalState": "unknown",
     "humanDecision": "unknown"
   },
-  "reuse": {
-    "ofSelector": "prop:lamp",
-    "exactByteMatch": true,
-    "explicitReason": "No distinct unlit frame is present in the supplied sheets; exact neutral lamp bytes are intentionally reused, with state-specific semantics left for H1 review."
-  }
+  "notes": [
+    "Unlit state keeps the exact light:lit dimensions and alpha mask; RGB differs only in the lantern/glow rows to remove the warm glow."
+  ]
 }

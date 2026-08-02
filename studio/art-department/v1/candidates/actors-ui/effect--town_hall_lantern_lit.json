@@ -4,18 +4,18 @@
   "selector": "effect:town_hall_lantern_lit",
   "candidate": {
     "path": "studio/art-department/v1/candidates/actors-ui/effect-town_hall_lantern_lit.png",
-    "sha256": "cc4b135b1694973ef5ca55dcc963fe07200128c46c13b598ae2ba82da6c79a4a",
+    "sha256": "8fc4cddf7ec81f6b849bc8469b906aec314c8a753f64933d858f2f2dc2202115",
     "dimensions": {
-      "width": 180,
-      "height": 220
+      "width": 14,
+      "height": 64
     },
     "pngMode": "RGBA",
     "frameCount": 1
   },
   "sourceOriginals": [
     {
-      "path": "art/references/user-provided/object_status_markers_sheet.png",
-      "sha256": "e3d2f177bf10bc07d1362251d8aa80d490fc6f58999d24b06a66c34a177e1d1b",
+      "path": "art/references/user-provided/object_street_props_sheet.png",
+      "sha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
       "immutable": true
     }
   ],
@@ -25,20 +25,20 @@
       "exact-byte-reuse-of-light-lit"
     ],
     "sourceCropPx": [
-      145,
-      245,
-      325,
-      465
+      920,
+      20,
+      985,
+      215
     ]
   },
   "transform": {
     "resample": "none",
     "colorSpace": "preserved",
-    "backgroundKey": "near-black/white border where stated; no generated pixels"
+    "backgroundKey": "reuses transparent light:lit candidate bytes; no generated pixels"
   },
   "alpha": {
     "mode": "RGBA",
-    "hasTransparency": false,
+    "hasTransparency": true,
     "mechanical": "passed"
   },
   "pivot": {
@@ -64,12 +64,12 @@
   "review": {
     "state": "reviewable",
     "path": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
-    "approvalState": "pending-human-owner",
+    "approvalState": "unknown",
     "humanDecision": "unknown"
   },
   "reuse": {
     "ofSelector": "light:lit",
     "exactByteMatch": true,
-    "explicitReason": "The effect name explicitly identifies the same supplied lit lantern visual; exact-byte reuse preserves one review identity for the reward effect."
+    "explicitReason": "The effect is the same local lit lantern visual; exact-byte reuse keeps the effect and light visually corresponding."
   }
 }

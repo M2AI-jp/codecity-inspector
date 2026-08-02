@@ -57,8 +57,8 @@
     {
       "selector": "building:gate",
       "candidatePath": "building-gate/building-gate.png",
-      "candidateSha256": "bf7f90138fdaeb8cc90079cc07e60c9419b520bfd32823e3c4e8a5a886662bb2",
-      "candidateByteLength": 19406,
+      "candidateSha256": "476883224c8e12fc57a99cce7aa9a4f68787db1bd514a49330dd25a3ffd511bd",
+      "candidateByteLength": 5462,
       "metadataPath": "building-gate/building-gate.json",
       "provenancePath": "building-gate/provenance.json",
       "reviewPath": "building-gate/review.json",
@@ -66,13 +66,13 @@
       "source": {
         "sourceOriginal": "field_stairs_bridges_cliffs_sheet.png",
         "sourceRect": [
-          1000,
-          0,
-          1200,
-          230
+          1020,
+          10,
+          1096,
+          166
         ],
         "method": "extract-crop-transform",
-        "description": "stone gatehouse crop",
+        "description": "tight isolated stone gatehouse crop; neighboring walls and loose parts excluded",
         "kind": "building",
         "dimensions": [
           192,
@@ -1030,28 +1030,28 @@
     {
       "selector": "terrain:meadow",
       "candidatePath": "terrain-meadow/terrain-meadow.png",
-      "candidateSha256": "6148b4da54e8b08dfacc3d6d9f1b2691b8b08182561c082205740eee37c2ed92",
-      "candidateByteLength": 5873,
+      "candidateSha256": "c599763f8577563797f598f82610350fcb5049badfff5ebf22d68065d3c6a4b6",
+      "candidateByteLength": 831,
       "metadataPath": "terrain-meadow/terrain-meadow.json",
       "provenancePath": "terrain-meadow/provenance.json",
       "reviewPath": "terrain-meadow/review.json",
       "kind": "tile",
       "source": {
-        "sourceOriginal": "world_visual_master.png",
+        "sourceOriginal": "target-town.png",
         "sourceRect": [
-          1000,
-          580,
-          1100,
-          680
+          758,
+          830,
+          774,
+          846
         ],
         "method": "extract-crop-transform",
-        "description": "meadow ground crop",
+        "description": "grass-only 16x16 seed repeated into a seamless meadow tile",
         "kind": "tile",
         "dimensions": [
           64,
           64
         ],
-        "sourceSha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
+        "sourceSha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607"
       },
       "reuse": null
     },
@@ -1114,8 +1114,8 @@
     {
       "selector": "water:default",
       "candidatePath": "water-default/water-default.png",
-      "candidateSha256": "221d0b06e621f3b65a1355a5e7fc7840ec3d857de6c78c5352fbcd3d093d82f0",
-      "candidateByteLength": 2985,
+      "candidateSha256": "2b960207c8f16679370edcc961f1932f205d6019451e83ecfbb62f99d3163813",
+      "candidateByteLength": 1714,
       "metadataPath": "water-default/water-default.json",
       "provenancePath": "water-default/provenance.json",
       "reviewPath": "water-default/review.json",
@@ -1123,13 +1123,13 @@
       "source": {
         "sourceOriginal": "field_harbor_docks_tiles_sheet.png",
         "sourceRect": [
-          530,
-          0,
-          650,
-          120
+          588,
+          32,
+          652,
+          96
         ],
         "method": "extract-crop-transform",
-        "description": "water and rocky coast tile crop",
+        "description": "shoreless open-water tile crop",
         "kind": "tile",
         "dimensions": [
           64,
@@ -1137,10 +1137,7 @@
         ],
         "sourceSha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580"
       },
-      "reuse": {
-        "selector": "terrain:coast",
-        "reason": "intentional exact-byte reuse of terrain:coast; candidate SHA-256 matches"
-      }
+      "reuse": null
     }
   ],
   "custody": {
