@@ -15,6 +15,33 @@ SSOT, design projection, backlog, or historical summary.
 
 ## 0. Executive mandate and investment contract
 
+### Parties and identities
+
+- **Investor / human owner:** the human user who commissioned this repository,
+  pays for the Codex subscription, supplied the 22 originals and product intent,
+  and owns final product and exact-byte asset-promotion decisions. In this file,
+  `owner` always means that human user; it never means Codex, a PM, or a worker.
+- **End customer:** a person authorized to inspect a local repository who runs
+  `npx codecity <their-repository>`. They may be starting a project, actively
+  building it, or trying to understand work created with an LLM. They may also
+  be the investor, but customer value must still be evaluated separately from
+  investor return.
+- **Accountable executive / Lead:** the root Codex agent in the active session.
+  The Lead allocates the owner's entrusted resources and commands PMs and
+  workers. `Lead` is an operational office, not human ownership or legal title.
+- **Codex / “I”:** the non-human AI system occupying the Lead office in the
+  current session. Codex is not the investor, end customer, human approver, or
+  beneficiary. By declaring an allocation, Codex accepts responsibility for
+  delegating it, stopping deviations, integrating the result, and reporting the
+  promise against evidence.
+- **PM and worker agents:** subordinate Codex agents commissioned by the Lead.
+  A PM plans and audits; a worker implements only the bounded assignment.
+
+The repository is not a stakeholder. Protecting it from execution, mutation,
+or upload is part of the value promised to its authorized end customer. Never
+collapse the investor, executive, and customer viewpoints even when the same
+human happens to occupy more than one human role.
+
 The human owner has appointed the Lead as the accountable executive, not the
 default implementation worker. The Lead owns requirement selection, scope,
 priority, capital allocation, decomposition, assignment, integration,
@@ -77,6 +104,91 @@ forbidden paths, bounded output, acceptance evidence, dependencies, and stop
 condition. A worker stops rather than improvises when it needs owner approval,
 external spend, a frozen feature, an undefined selector, a scope change, or a
 write outside its owned paths.
+
+### G0 — Binding three-view pre-start declaration
+
+Execution defaults to `STOP` for every fresh Lead. Before `GO`, the Lead and
+read-only PM agents may inspect the repository, identify dependencies, estimate
+subscription resource use, and draft the declaration below. They may not mutate
+the workspace or external state, start implementation workers, generate
+candidate assets, commit, push, publish, approve, or promote anything.
+
+The Lead issues one user-visible declaration in this exact form:
+
+```text
+G0 EXECUTION DECLARATION
+Status: GO | STOP
+
+IDENTITIES
+Investor / owner:
+Accountable executive / Lead:
+Codex / I:
+End customer:
+
+INVESTOR / OWNER
+Return promised:
+Owner requirements covered by this execution:
+Authorized subscription investment:
+Owner attention or asset decisions required:
+Excluded spend and authority:
+
+ACCOUNTABLE EXECUTIVE / LEAD
+Why this allocation is the smallest viable path to customer value:
+Critical-path allocation and order:
+PM and worker assignments:
+Independent work allowed in parallel:
+Resource envelope before the next checkpoint:
+Dependencies and unresolved decisions:
+Scope explicitly frozen:
+
+END CUSTOMER AND THEIR REPOSITORY
+Supported repository class:
+Acceptance repositories or selection rule:
+Literal acquisition and launch command:
+Browser environment and supported viewports:
+Customer behavior changed by this execution:
+Repository harm or failure prevented:
+
+EVIDENCE VALUE
+Observed evidence required:
+What that evidence proves for the owner:
+What that evidence proves for the customer:
+What it explicitly does not prove:
+Inferred assumptions:
+Unknowns that remain visible:
+Independent reviewer:
+
+TEST OBLIGATIONS
+For each planned test or test group:
+- concrete customer failure prevented:
+- owner requirement evidenced:
+- repository harm prevented:
+- observable pass/fail result:
+- what passing does not prove:
+
+STOP CONDITIONS
+Conditions that immediately return execution to STOP:
+Next Lead/owner checkpoint:
+```
+
+`GO` is valid only when all identities and all three viewpoints are concrete,
+every unresolved owner choice that could change the next allocation is resolved,
+the subscription resource envelope is finite, and every planned test names a
+concrete customer failure plus the owner requirement it evidences. A module
+name, implementation detail, coverage percentage, test count, or “more safety”
+without a named harm is not a valid investment reason.
+
+The Lead's declaration is binding. A changed customer, repository class,
+selector vocabulary, customer journey, safety assumption, resource envelope,
+owner dependency, test purpose, or critical path invalidates `GO`. The Lead
+returns to `STOP`, performs only read-only replanning, and issues a replacement
+declaration before work resumes.
+
+At handoff, the Lead reproduces the governing declaration and marks every
+promised line `met`, `not met`, or `blocked`, with observed evidence and actual
+resource use. An undeclared deviation is an executive failure, not implicit
+approval. No completion claim is permitted unless P6 independently verifies
+the customer obligations under the same declaration.
 
 ## 1. Product KGI
 
@@ -255,6 +367,11 @@ do not append a diary.
 
 ## 7. Remaining action items
 
+No action item may receive an implementation worker, mutation, asset generation,
+or external-state action unless the current Lead has issued a valid `G0: GO`
+declaration. Read-only Lead/PM planning before `GO` does not change item status
+and is not reported as return.
+
 Each item is an investment allocation, not a milestone claim. Before assigning
 work from an item, the Lead creates a bounded assignment that names the KGI
 requirement covered, owned and forbidden paths, output, acceptance evidence,
@@ -279,6 +396,14 @@ division.
 4,654-item target; `npm run check` passes; `npm pack --dry-run` contains no
 tests, studio files, originals, candidates, or diagnostic art. P0 remains
 closed unless an actual organizational regression is observed.
+
+**Three-view value:** the owner no longer funds contradictory context; the
+Lead has one authority for allocation; the customer package excludes internal
+tests, originals, candidates, and diagnostic art. These checks prove repository
+organization and package exclusion only; they do not prove a playable town.
+
+**Stop condition:** keep P0 closed unless an observed organizational regression
+reintroduces conflicting authority or non-product bytes into the package.
 
 ### [ ] P1 — Lead obtains the minimum reviewable v1 art candidates
 
@@ -312,6 +437,12 @@ inventory.
 empty. Do not create variants, inventory, production frameworks, or assets for
 frozen scope.
 
+**Three-view value:** the owner funds only art required by the frozen customer
+journey; the Lead can stop at a finite selector gap; the customer receives
+reviewable visual coverage without their repository being written, executed,
+or uploaded. Candidate hashes and gate reports prove custody and measured
+properties only; they do not prove human approval, shipping, or playability.
+
 ### [ ] H1 — Human owner promotes the complete v1 visual vocabulary
 
 **Subject/action/object:** The human owner accepts or rejects each exact
@@ -324,6 +455,14 @@ source hash, decision, and time; rejected or changed bytes cannot be published.
 Asset promotion is the only required human art-production action. The Lead
 batches the complete bounded review set to minimize owner attention. Rejected
 required selectors return to P1; only accepted selectors proceed to P2.
+
+**Three-view value:** the owner controls the exact bytes representing the
+product; the Lead cannot counterfeit that authority; the customer is protected
+from unapproved or silently changed visuals. Approval proves byte authorization
+only, not readability, navigation, browser behavior, or the KGI.
+
+**Stop condition:** wait for the human decision; never infer acceptance. A
+rejection reopens only its selector work order.
 
 ### [ ] P2 — Art publisher completes the shipping catalog module
 
@@ -338,6 +477,15 @@ the v1 WorldPlan grammar can emit.
 dimensions, pivots, usage records, and selector mappings validate; changing or
 removing one byte fails; no human hand-edits JSON; no candidate, original,
 fixture, wildcard, fallback, or unapproved byte enters `ship/`.
+
+**Three-view value:** the owner's approved visual investment becomes a bounded
+shipping input; the Lead receives a deterministic integration boundary; the
+customer cannot receive mismatched, placeholder, fallback, or unapproved bytes.
+Catalog validation proves integrity and mapping only, not aesthetics, routes,
+browser play, or the KGI.
+
+**Stop condition:** stop when every frozen v1 selector resolves to an approved
+byte and the generated catalog validates; block on any missing or changed byte.
 
 ### [ ] P3 — Repository intelligence completes the truthful journey contract
 
@@ -356,6 +504,18 @@ each yield exactly three questions and one observed inspection event; trap
 scripts/hooks/binaries remain unexecuted; inferred/unknown facts never become
 observed; repeated identical bytes produce byte-identical output.
 
+**Three-view value:** the owner receives the core repository-to-game meaning
+instead of more infrastructure; the Lead obtains a truthful serialized contract;
+the customer receives three understandable repository-derived investigations
+without their repository being executed, modified, uploaded, or falsely
+certified. These tests prove backend truth and determinism for the frozen
+repository cohort only, not browser delivery or customer experience.
+
+**Stop condition:** stop when the frozen accepted-repository cohort produces
+three questions and the one permitted observed event with evidence states
+preserved; stop immediately if implementation would execute customer code or
+add another reward.
+
 ### [ ] P4 — Scene compiler completes catalog-to-town composition
 
 **Subject/action/object:** `60-scene-compiler` selects the exact required subset
@@ -369,6 +529,16 @@ and one conditional town-hall-lantern renderable.
 unused valid catalog mappings are accepted; missing selectors and fallbacks
 fail; spawn-to-request, request-to-three-sites, sites-to-report, and interior
 NPC routes are collision-free.
+
+**Three-view value:** the owner's backend and art investments become one bounded
+scene; the Lead retires the composition dependency; the customer receives a
+navigable logical route through request, three sites, report, NPCs, and the
+permitted change without exposing their repository to the runtime. Compiler
+tests prove bindings, collisions, and logical reachability only, not browser
+feel, persistence, acquisition, or the KGI.
+
+**Stop condition:** do not start before P2 and P3 are covered; stop once the
+bounded SceneBundle and required routes validate, without adding world variants.
 
 ### [ ] P5 — Game runtime completes the ordinary RPG loop
 
@@ -385,6 +555,17 @@ reachable without fractional pixel scaling; the lantern changes only after
 the report; explicit exit persists state; process restart with the same
 identity and content digest restores the completed town; one-minute frame
 measurement stays within the declared runtime budget.
+
+**Three-view value:** the owner first receives an executable customer-value
+slice rather than another internal artifact; the Lead proves that composition
+works as a game; the customer can actually move, understand, report, see change,
+exit, and revisit while their repository remains outside the runtime. Browser
+acceptance proves the frozen runtime environment only, not package acquisition,
+independent review, or final KGI return.
+
+**Stop condition:** stop when the declared browser journey and performance
+envelope pass; do not expand into frozen audio, localization, settings, gamepad,
+or cosmetic work.
 
 ### [ ] P6 — Delivery and independent QA prove the product KGI
 
@@ -404,14 +585,27 @@ package contains only intended `ship/` bytes; first interaction is available
 within 3 seconds on the acceptance machine. Only after this evidence may the
 Lead declare CodeCity v1 complete.
 
+**Three-view value:** the owner receives the promised requirement coverage from
+the authorized subscription investment; the Lead's declaration is independently
+audited; the end customer obtains and plays the literal product while their
+repository remains unchanged, unexecuted, local, and truthfully represented.
+This is the only action whose evidence can realize the full investment return.
+
+**Stop condition:** any missing KGI step, acquisition failure, repository
+mutation/execution, upload, non-loopback service, package contamination, or
+reviewer conflict returns status to `STOP` and forbids completion or publication.
+
 ## 8. Execution order and parallelism
 
 ```text
-P1 -> H1 accepted -> P2 --+
- ^      |                  +-> P4 -> P5 -> P6
- +------+ rejected         |
-P3 ------------------------+
+G0 GO -> P1 -> H1 accepted -> P2 --+
+          ^      |                  +-> P4 -> P5 -> P6
+          +------+ rejected         |
+       -> P3 -----------------------+
 ```
+
+`G0` is a continuing execution condition, not a milestone. Any declared stop
+condition suspends P1–P6 until the Lead issues a valid replacement declaration.
 
 The Lead allocates `P1` and `P3` in parallel only while their worker assignments
 are independent and bounded. PM agents own decomposition, dependency tracking,
@@ -431,6 +625,8 @@ Workers and the Lead must not say “the game is complete,” “release-ready,�
 equivalent because any of these happened alone:
 
 - tests or boundary checks passed;
+- a test count, coverage percentage, or green suite is reported without the
+  owner requirement and concrete customer failure it evidences;
 - an intermediate module, backend, factory, catalog, asset, or document exists;
 - exactly three fixture or inferred investigations exist;
 - diagnostic art reaches the browser;
