@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { generateWorldPlan, validateWorldPlan } from '../../../ship/40-worldgen/index.mjs';
+import { generateWorldPlan, validateWorldPlan, WORLD_PLAN_PUBLIC_VOCABULARY } from '../../../ship/40-worldgen/index.mjs';
 
 const FACILITY_KINDS = [
   'inn', 'pub', 'guild', 'town_hall', 'dock', 'warehouse', 'well', 'workshop',
@@ -10,7 +10,7 @@ const FACILITY_KINDS = [
 const PRIORITY = ['entrypoint', 'persistence', 'configuration', 'test', 'observability', 'recovery'];
 
 function evidence() {
-  return { observed: [], inferred: [], unknown: [] };
+  return { observed: ['repository.inspection.completed'], inferred: [], unknown: ['repository.inspection.runtime.unknown'] };
 }
 
 function town({ identity = 'fixture-identity', name = 'Fixture Town', level = 1 } = {}) {
@@ -24,7 +24,7 @@ function town({ identity = 'fixture-identity', name = 'Fixture Town', level = 1 
       role: kind === 'shop' ? 'repair' : 'role',
       variant: kind === 'shop' ? 'repair' : null,
       presence: index === 0 ? 'not-applicable' : 'present',
-      condition: 'ready',
+      condition: 'active',
       blocksProgress: false,
       sourceFileIds: [],
       evidence: evidence(),
@@ -48,11 +48,27 @@ function town({ identity = 'fixture-identity', name = 'Fixture Town', level = 1 
       representativeConnections: [],
       connections: [],
     },
-    investigations: { priority: PRIORITY, candidates: [] },
-    rewards: {
-      bindings: Array.from({ length: 9 }, (_, index) => ({ id: `reward-${index}`, kind: 'reward' })),
-      transitions: [],
+    investigations: {
+      priority: PRIORITY,
+      candidates: [
+        { id: 'investigation.configuration', capability: 'configuration', facilityKind: 'well', role: 'configuration', variant: null, subject: '井戸の水', statement: '井戸から水が使える', state: 'unknown', evidence: evidence() },
+        { id: 'investigation.recovery', capability: 'recovery', facilityKind: 'shop', role: 'repair', variant: 'repair', subject: '修理小屋の道具', statement: '修理小屋に戻すための道具がある', state: 'unknown', evidence: evidence() },
+        { id: 'investigation.test', capability: 'test', facilityKind: 'dojo', role: 'verification', variant: null, subject: '道場の検査', statement: '道場に検査済みの印がある', state: 'unknown', evidence: evidence() },
+      ],
     },
+    rewards: {
+      bindings: [{ id: 'repository_inspected', event: 'repository_inspected', transition: 'repository_inspected', facilityKind: 'town_hall', effect: 'town_hall_lantern_lit' }],
+      transitions: [{
+        id: 'transition.repository_inspected',
+        event: 'repository_inspected',
+        bindingId: 'repository_inspected',
+        facilityKind: 'town_hall',
+        effect: 'town_hall_lantern_lit',
+        state: 'observed',
+        evidence: { observed: ['repository.inspection.completed'], inferred: [], unknown: [] },
+      }],
+    },
+    evidence: evidence(),
   };
 }
 
@@ -131,10 +147,6 @@ test('validator rejects a serialized plan with overlapping plots', () => {
 
 test('investigations are placed at the corresponding facility or its planned region', () => {
   const source = town();
-  source.investigations.candidates = [
-    { id: 'investigation.configuration', capability: 'configuration', facilityKind: 'well', role: 'configuration', variant: null, subject: '井戸の水', statement: '井戸から水が使える', state: 'unknown', evidence: evidence() },
-    { id: 'investigation.recovery', capability: 'recovery', facilityKind: 'shop', role: 'repair', variant: 'repair', subject: '修理小屋の道具', statement: '修理小屋に戻すための道具がある', state: 'unknown', evidence: evidence() },
-  ];
   const plan = generateWorldPlan({ town: source });
   const candidateById = new Map(plan.townState.investigations.candidates.map((candidate) => [candidate.id, candidate]));
   for (const site of plan.questSites) {
@@ -147,4 +159,72 @@ test('investigations are placed at the corresponding facility or its planned reg
   tampered.questSites[0].plotId = tampered.regions.find((region) => region.id === 'past').plotIds[0];
   tampered.l2.questSites = structuredClone(tampered.questSites);
   assert.throws(() => validateWorldPlan(tampered), (error) => error.issues.some(({ code }) => code === 'QUEST_FACILITY_MISMATCH'));
+});
+
+// T3 obligation: prevent an arbitrary 30->40 value from becoming an art/NPC
+// selector and prevent duplicate quest sites. It evidences the owner's finite
+// v1 grammar and repository-safety requirement. Passing does not prove art
+// approval, scene compilation, browser movement, or the KGI journey.
+test('T3 emits deterministic bytes, finite selectors, three distinct sites, and an unlit baseline lantern', () => {
+  for (const invalidTransitions of [[], [
+    ...town().rewards.transitions,
+    ...town().rewards.transitions,
+  ]]) {
+    const invalid = town();
+    invalid.rewards.transitions = invalidTransitions;
+    assert.throws(
+      () => generateWorldPlan({ town: invalid }),
+      (error) => error?.issues?.some(({ code }) => code === 'INVALID_REWARD_TRANSITION_COUNT'),
+    );
+  }
+
+  const arbitrary = town();
+  arbitrary.guild.representativeConnections = [{
+    id: 'customer-controlled-representative',
+    kind: 'customer-controlled-arbitrary',
+    name: 'customer-controlled-arbitrary',
+    evidence: evidence(),
+  }];
+  assert.throws(
+    () => generateWorldPlan({ town: arbitrary }),
+    (error) => error?.issues?.some(({ code }) => code === 'INVALID_NPC_ROLE'),
+  );
+
+  const validUnknown = town();
+  validUnknown.guild.representativeConnections = [{
+    id: 'unknown-representative',
+    kind: 'unknown',
+    name: 'unknown',
+    evidence: evidence(),
+  }];
+  const first = generateWorldPlan({ town: validUnknown });
+  const second = generateWorldPlan({ town: validUnknown });
+  assert.equal(JSON.stringify(first), JSON.stringify(second));
+  assert.equal(first.questSites.length, 3);
+  assert.equal(new Set(first.questSites.map((site) => site.candidateId)).size, 3);
+  assert.equal(new Set(first.questSites.map((site) => site.plotId)).size, 3);
+  assert.ok(first.npcs.some(({ role }) => role === 'unknown'));
+  assert.ok(first.npcs.every((npc) => WORLD_PLAN_PUBLIC_VOCABULARY.npcRoles.includes(npc.role)));
+  assert.ok(first.props.every((prop) => WORLD_PLAN_PUBLIC_VOCABULARY.propKinds.includes(prop.kind)));
+  assert.ok(first.lights.every((light) => WORLD_PLAN_PUBLIC_VOCABULARY.lightStates.includes(light.state)));
+  assert.ok(first.rooms.every((room) => WORLD_PLAN_PUBLIC_VOCABULARY.roomKinds.includes(room.kind)));
+  assert.deepEqual(first.rewardBindings, [{
+    id: 'repository_inspected',
+    event: 'repository_inspected',
+    transition: 'repository_inspected',
+    facilityKind: 'town_hall',
+    effect: 'town_hall_lantern_lit',
+  }]);
+  for (const invalidCount of [0, 2]) {
+    const tampered = structuredClone(first);
+    tampered.townState.rewards.transitions = invalidCount === 0
+      ? []
+      : [first.townState.rewards.transitions[0], first.townState.rewards.transitions[0]];
+    tampered.l2.townState = structuredClone(tampered.townState);
+    assert.throws(
+      () => validateWorldPlan(tampered),
+      (error) => error?.issues?.some(({ code }) => code === 'INVALID_REWARD_TRANSITION_COUNT'),
+    );
+  }
+  assert.equal(first.lights.find((light) => light.id === 'light-town-hall-lantern').state, 'unlit');
 });

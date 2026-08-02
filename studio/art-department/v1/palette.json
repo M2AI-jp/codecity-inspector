@@ -1,0 +1,79 @@
+{
+  "id": "palette-v2",
+  "schemaVersion": 1,
+  "colors": [
+    "#aca78f",
+    "#918d7e",
+    "#918060",
+    "#757e7e",
+    "#836f51",
+    "#746c56",
+    "#6a6c62",
+    "#596a5f",
+    "#715c40",
+    "#635945",
+    "#5b5645",
+    "#525557",
+    "#52532f",
+    "#415246",
+    "#5c452f",
+    "#514534",
+    "#4d4435",
+    "#494234",
+    "#44413c",
+    "#433d28",
+    "#3b3e3c",
+    "#393633",
+    "#3a3e21",
+    "#393526",
+    "#253b4c",
+    "#2d391f",
+    "#3e2e23",
+    "#352e26",
+    "#312c26",
+    "#2e2d26",
+    "#2d241e",
+    "#2a2c25",
+    "#29231f",
+    "#24282b",
+    "#242521",
+    "#24291a",
+    "#23211b",
+    "#221c1a",
+    "#172735",
+    "#1b2418",
+    "#191d22",
+    "#191d17",
+    "#1b1a1a",
+    "#13191b",
+    "#181617",
+    "#101518",
+    "#111215",
+    "#0c0c10"
+  ],
+  "derivation": {
+    "state": "observed",
+    "source": "art/references/user-provided/world_visual_master.png",
+    "sourceSha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+    "algorithm": "Pillow Image.quantize(colors=48, method=MEDIANCUT, dither=NONE)",
+    "requestedColors": 48,
+    "emittedColors": 48,
+    "deterministic": true,
+    "meaning": "measured representative colors only; not an approval or a candidate constraint"
+  },
+  "evidence": {
+    "observed": [
+      "palette colors are six-digit RGB hex values",
+      "all 48 entries are unique",
+      "source byte hash matches the immutable original registry"
+    ],
+    "inferred": [
+      "the quantized source is a useful style reference for v1 preparation"
+    ],
+    "unknown": [
+      "whether every future candidate should use every listed color",
+      "whether a selector needs a smaller per-asset palette",
+      "owner approval of any candidate bytes"
+    ]
+  }
+}

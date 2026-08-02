@@ -10,6 +10,13 @@ import { fileURLToPath } from 'node:url';
  */
 export const INSPECTION_REPORT_SCHEMA_VERSION = 1;
 
+// These addresses are the only cross-module facts that static inspection may
+// publish about the inspection itself.  Completion is an observed bounded
+// read; runtime behaviour remains explicitly unknown because customer code is
+// never executed.
+const INSPECTION_COMPLETION_EVIDENCE_ID = 'repository.inspection.completed';
+const INSPECTION_RUNTIME_UNKNOWN_EVIDENCE_ID = 'repository.inspection.runtime.unknown';
+
 const DEFAULT_LIMITS = Object.freeze({
   maxFiles: 5_000,
   maxDepth: 32,
@@ -633,6 +640,27 @@ export async function inspectRepository(root, options = {}) {
   let realRoot;
   let rootName = path.basename(absoluteRoot) || 'repository';
   try {
+    // A symlink supplied as the repository root is not an accepted repository
+    // class.  Check the lexical root before realpath so the root itself is
+    // never silently promoted to its target.  Symlinks below an accepted root
+    // are handled by walkDirectory and remain untracked.
+    const lexicalRoot = await fs.lstat(absoluteRoot);
+    if (lexicalRoot.isSymbolicLink()) {
+      return emptyReport(rootName, rootName, [unknownEntry({
+        id: 'unknown:repository-root',
+        claim: 'repository.root',
+        pathValue: '.',
+        reason: 'repository-root-symlink',
+      })]);
+    }
+    if (!lexicalRoot.isDirectory()) {
+      return emptyReport(rootName, rootName, [unknownEntry({
+        id: 'unknown:repository-root',
+        claim: 'repository.root',
+        pathValue: '.',
+        reason: 'repository-root-not-directory',
+      })]);
+    }
     realRoot = await fs.realpath(absoluteRoot);
     const rootStat = await fs.lstat(realRoot);
     if (!rootStat.isDirectory()) {
@@ -1112,6 +1140,25 @@ export async function inspectRepository(root, options = {}) {
       source: 'extension-count',
     }));
   }
+
+  // This is the sole observed transition emitted by the inspection boundary:
+  // the bounded, read-only inspection completed.  It is intentionally
+  // independent from every capability inference below; completion does not
+  // certify that customer code builds, runs, or passes tests.
+  observed.push({
+    id: INSPECTION_COMPLETION_EVIDENCE_ID,
+    state: 'observed',
+    claim: INSPECTION_COMPLETION_EVIDENCE_ID,
+    subject: 'repository',
+    value: true,
+    source: 'bounded-read-only-inspection',
+  });
+  unknown.push(unknownEntry({
+    id: INSPECTION_RUNTIME_UNKNOWN_EVIDENCE_ID,
+    claim: 'repository.runtime-behavior',
+    reason: 'source-not-executed',
+    details: { policy: 'read-only-static-inspection' },
+  }));
 
   const report = {
     schemaVersion: INSPECTION_REPORT_SCHEMA_VERSION,

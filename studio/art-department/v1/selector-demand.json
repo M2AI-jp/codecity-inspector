@@ -1,0 +1,1663 @@
+{
+  "format": "codecity.v1-selector-demand",
+  "schemaVersion": 1,
+  "status": "ready",
+  "derivation": {
+    "kind": "boundedPublicIndexLiteralRead",
+    "repositoryRoot": ".",
+    "modules": {
+      "sceneCompiler": "ship/60-scene-compiler/index.mjs",
+      "townDomain": "ship/30-town-domain/index.mjs",
+      "worldgen": "ship/40-worldgen/index.mjs"
+    },
+    "publicExports": [
+      "source.sceneCompiler.PRODUCT_SELECTORS",
+      "source.sceneCompiler.requiredAssetSelectors.water-default",
+      "source.townDomain.NPC_ROLE_VOCABULARY",
+      "source.townDomain.REPOSITORY_INSPECTION_BINDING",
+      "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.facilityKinds",
+      "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.lightStates",
+      "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.occupancyStates",
+      "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.propKinds",
+      "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.questActions",
+      "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.roadKinds",
+      "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.roomKinds",
+      "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.terrains"
+    ],
+    "grammarModules": [
+      "worldgen"
+    ],
+    "missingFamilies": [],
+    "boundedWater": {
+      "path": "ship/60-scene-compiler/index.mjs",
+      "function": "requiredSelectorsForPlan",
+      "literal": "selectors.add('water:default')",
+      "literalDigest": "6b3161caed8dc21f0077c54849181d77261addf931b2aff742afb523661996f1",
+      "fileSha256": "c70c70457f496c91902ef63b0ccc939aa92ea0c1a2b9439f230a797115319633",
+      "matchCount": 1,
+      "policy": "exact-single-literal; wildcard/fallback/unknown rejected"
+    },
+    "moduleErrors": [],
+    "sourceReadPolicy": "bounded-exact-public-index-literal-only",
+    "noWildcardOrFallback": true,
+    "integrationBlockers": [
+      {
+        "id": "p4-scene-reward-transition-alignment",
+        "state": "known",
+        "owner": "P4",
+        "source": "ship/60-scene-compiler/index.mjs#REWARD_CHANGES",
+        "transition": "repository_inspected",
+        "effectSelector": "effect:town_hall_lantern_lit",
+        "expectedError": "REWARD_TRANSITION_INVALID",
+        "limitation": "selector demand proves finite asset identity and custody only; it does not prove WorldPlan-to-SceneBundle composition or reward-transition acceptance"
+      }
+    ]
+  },
+  "custody": {
+    "ok": true,
+    "expected": 22,
+    "checked": 22,
+    "failures": [],
+    "unexpected": [],
+    "originals": [
+      {
+        "id": "original-01",
+        "file": "character_style_authority_20260722_v1.png",
+        "dimensions": {
+          "width": 1402,
+          "height": 1122
+        },
+        "sha256": "446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932",
+        "immutable": true,
+        "observed": true
+      },
+      {
+        "id": "original-02",
+        "file": "character_style_reference_sheet.png",
+        "dimensions": {
+          "width": 1536,
+          "height": 1024
+        },
+        "sha256": "910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b",
+        "immutable": true,
+        "observed": true
+      },
+      {
+        "id": "original-03",
+        "file": "world_visual_master.png",
+        "dimensions": {
+          "width": 1491,
+          "height": 1055
+        },
+        "sha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+        "immutable": true,
+        "observed": true
+      },
+      {
+        "id": "original-04",
+        "file": "target-town.png",
+        "dimensions": {
+          "width": 1586,
+          "height": 992
+        },
+        "sha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607",
+        "immutable": true,
+        "observed": true
+      },
+      {
+        "id": "original-05",
+        "file": "building_inn_sheet.png",
+        "dimensions": {
+          "width": 1491,
+          "height": 1055
+        },
+        "sha256": "78b18d8ee84c8bd57444babe6923cdb3b16fcfcf592ebbf3411df74bd16c069a",
+        "immutable": true,
+        "observed": true
+      },
+      {
+        "id": "original-06",
+        "file": "building_town_hall_sheet.png",
+        "dimensions": {
+          "width": 1491,
+          "height": 1055
+        },
+        "sha256": "af560250efd3d45fb00c7ba4a486e6245db5318c564bc72a8a11ba84bbbfb1c9",
+        "immutable": true,
+        "observed": true
+      },
+      {
+        "id": "original-07",
+        "file": "building_workshop_sheet.png",
+        "dimensions": {
+          "width": 1448,
+          "height": 1086
+        },
+        "sha256": "a28070edeec7d93df772ffe856bcaa49a11ba8ec55e60ddd5af15eab56f23ac7",
+        "immutable": true,
+        "observed": true
+      },
+      {
+        "id": "original-08",
+        "file": "building_warehouse_sheet.png",
+        "dimensions": {
+          "width": 1448,
+          "height": 1086
+        },
+        "sha256": "36b9a4f7dc5c9d7693fd1346a559735a36062aadeac8483beb2992e0ca3be4bc",
+        "immutable": true,
+        "observed": true
+      },
+      {
+        "id": "original-09",
+        "file": "building_watchtower_sheet.png",
+        "dimensions": {
+          "width": 1491,
+          "height": 1055
+        },
+        "sha256": "414a38a8621c25a0b812426abbc40b46a97444923148b967be8493bc4e2a277a",
+        "immutable": true,
+        "observed": true
+      },
+      {
+        "id": "original-10",
+        "file": "building_guild_variant_01_sheet.png",
+        "dimensions": {
+          "width": 1448,
+          "height": 1086
+        },
+        "sha256": "e6d0904d6b2ac1af8ebf8d01df1662ccab49489ead967e0e244f4db6135701c9",
+        "immutable": true,
+        "observed": true
+      },
+      {
+        "id": "original-11",
+        "file": "building_guild_variant_02_sheet.png",
+        "dimensions": {
+          "width": 1448,
+          "height": 1086
+        },
+        "sha256": "764747f9059825cde6836c8951946afb459f8eacb3441d6ac58026d76f6d1597",
+        "immutable": true,
+        "observed": true
+      },
+      {
+        "id": "original-12",
+        "file": "building_guild_variant_03_sheet.png",
+        "dimensions": {
+          "width": 1448,
+          "height": 1086
+        },
+        "sha256": "ea65fa6023f2fa96c44a22885b1957f94b5fe923b52c3ee0edc6e66fe2b6b71d",
+        "immutable": true,
+        "observed": true
+      },
+      {
+        "id": "original-13",
+        "file": "building_guild_variant_04_sheet.png",
+        "dimensions": {
+          "width": 1448,
+          "height": 1086
+        },
+        "sha256": "4e5844615e24eba837e181cce1f23001cc2b7f7ab13fd9cd189b5e6d86f4a6b3",
+        "immutable": true,
+        "observed": true
+      },
+      {
+        "id": "original-14",
+        "file": "building_houses_shops_ruins_sheet.png",
+        "dimensions": {
+          "width": 1536,
+          "height": 1024
+        },
+        "sha256": "ec8afeadfe709cc6ae489d3e895a2a290eff79cb598db8c1925f548fd9e14225",
+        "immutable": true,
+        "observed": true
+      },
+      {
+        "id": "original-15",
+        "file": "field_cobblestone_roads_sheet.png",
+        "dimensions": {
+          "width": 1491,
+          "height": 1055
+        },
+        "sha256": "f732a849dd88138e3acccc24970bef9e923302fec1aa01ffac195b8195cfff3d",
+        "immutable": true,
+        "observed": true
+      },
+      {
+        "id": "original-16",
+        "file": "field_stairs_bridges_cliffs_sheet.png",
+        "dimensions": {
+          "width": 1491,
+          "height": 1055
+        },
+        "sha256": "24e899bfb25552aa96e453a74e574337fc65481791fa572accdd8758615387bd",
+        "immutable": true,
+        "observed": true
+      },
+      {
+        "id": "original-17",
+        "file": "field_harbor_docks_tiles_sheet.png",
+        "dimensions": {
+          "width": 1536,
+          "height": 1024
+        },
+        "sha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580",
+        "immutable": true,
+        "observed": true
+      },
+      {
+        "id": "original-18",
+        "file": "object_street_props_sheet.png",
+        "dimensions": {
+          "width": 1536,
+          "height": 1024
+        },
+        "sha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+        "immutable": true,
+        "observed": true
+      },
+      {
+        "id": "original-19",
+        "file": "object_status_markers_sheet.png",
+        "dimensions": {
+          "width": 1491,
+          "height": 1055
+        },
+        "sha256": "e3d2f177bf10bc07d1362251d8aa80d490fc6f58999d24b06a66c34a177e1d1b",
+        "immutable": true,
+        "observed": true
+      },
+      {
+        "id": "original-20",
+        "file": "ui_dialogue_frames_sheet.png",
+        "dimensions": {
+          "width": 1448,
+          "height": 1086
+        },
+        "sha256": "60a2255fe72e2e96c91f00caa93fa7f4906f57fc1f8f0332bdbe91648b9ba29d",
+        "immutable": true,
+        "observed": true
+      },
+      {
+        "id": "original-21",
+        "file": "ui_guild_roster_sheet.png",
+        "dimensions": {
+          "width": 1536,
+          "height": 1024
+        },
+        "sha256": "5104c1dc835712a3d3bd6c50dc89b19f4a9489e27c655f15dd63f3ffdbe9bc99",
+        "immutable": true,
+        "observed": true
+      },
+      {
+        "id": "original-22",
+        "file": "ui_inspection_report_sheet.png",
+        "dimensions": {
+          "width": 1086,
+          "height": 1448
+        },
+        "sha256": "c4c14e83e5f4e5fec8f7eaea537e6befa5f2762aaed11d07a5a86c05b6294892",
+        "immutable": true,
+        "observed": true
+      }
+    ]
+  },
+  "selectors": [
+    {
+      "selector": "building:dock",
+      "family": "building",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.facilityKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-gap",
+        "directOriginals": [],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "building:dojo",
+      "family": "building",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.facilityKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-gap",
+        "directOriginals": [],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "building:gate",
+      "family": "building",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.facilityKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-gap",
+        "directOriginals": [],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "building:guild",
+      "family": "building",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.facilityKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "building_guild_variant_01_sheet.png",
+          "building_guild_variant_02_sheet.png",
+          "building_guild_variant_03_sheet.png",
+          "building_guild_variant_04_sheet.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "building:house",
+      "family": "building",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.facilityKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "building_houses_shops_ruins_sheet.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "building:inn",
+      "family": "building",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.facilityKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "building_inn_sheet.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "building:pub",
+      "family": "building",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.facilityKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-gap",
+        "directOriginals": [],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "building:ruin",
+      "family": "building",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.facilityKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "building_houses_shops_ruins_sheet.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "building:shop",
+      "family": "building",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.facilityKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "building_houses_shops_ruins_sheet.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "building:town_hall",
+      "family": "building",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.facilityKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "building_town_hall_sheet.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "building:warehouse",
+      "family": "building",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.facilityKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "building_warehouse_sheet.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "building:watchtower",
+      "family": "building",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.facilityKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "building_watchtower_sheet.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "building:well",
+      "family": "building",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.facilityKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-gap",
+        "directOriginals": [],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "building:workshop",
+      "family": "building",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.facilityKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "building_workshop_sheet.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "effect:town_hall_lantern_lit",
+      "family": "effect",
+      "sourceTraceIds": [
+        "source.townDomain.REPOSITORY_INSPECTION_BINDING"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "object_status_markers_sheet.png",
+          "world_visual_master.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "light:lit",
+      "family": "light",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.lightStates"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "object_status_markers_sheet.png",
+          "world_visual_master.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "light:unknown",
+      "family": "light",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.lightStates"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "object_status_markers_sheet.png",
+          "world_visual_master.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "light:unlit",
+      "family": "light",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.lightStates"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "object_status_markers_sheet.png",
+          "world_visual_master.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "npc:external-api",
+      "family": "npc",
+      "sourceTraceIds": [
+        "source.townDomain.NPC_ROLE_VOCABULARY"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "character_style_authority_20260722_v1.png",
+          "character_style_reference_sheet.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "npc:http",
+      "family": "npc",
+      "sourceTraceIds": [
+        "source.townDomain.NPC_ROLE_VOCABULARY"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "character_style_authority_20260722_v1.png",
+          "character_style_reference_sheet.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "npc:llm",
+      "family": "npc",
+      "sourceTraceIds": [
+        "source.townDomain.NPC_ROLE_VOCABULARY"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "character_style_authority_20260722_v1.png",
+          "character_style_reference_sheet.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "npc:storage",
+      "family": "npc",
+      "sourceTraceIds": [
+        "source.townDomain.NPC_ROLE_VOCABULARY"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "character_style_authority_20260722_v1.png",
+          "character_style_reference_sheet.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "npc:townsperson",
+      "family": "npc",
+      "sourceTraceIds": [
+        "source.townDomain.NPC_ROLE_VOCABULARY"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "character_style_authority_20260722_v1.png",
+          "character_style_reference_sheet.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "npc:unknown",
+      "family": "npc",
+      "sourceTraceIds": [
+        "source.townDomain.NPC_ROLE_VOCABULARY"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "character_style_authority_20260722_v1.png",
+          "character_style_reference_sheet.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "npc:webhook",
+      "family": "npc",
+      "sourceTraceIds": [
+        "source.townDomain.NPC_ROLE_VOCABULARY"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "character_style_authority_20260722_v1.png",
+          "character_style_reference_sheet.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "player:default",
+      "family": "player",
+      "sourceTraceIds": [
+        "source.sceneCompiler.PRODUCT_SELECTORS"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "character_style_authority_20260722_v1.png",
+          "character_style_reference_sheet.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "plot:occupied",
+      "family": "plot",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.occupancyStates"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "world_visual_master.png",
+          "target-town.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "plot:vacant",
+      "family": "plot",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.occupancyStates"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "world_visual_master.png",
+          "target-town.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "prop:lamp",
+      "family": "prop",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.propKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "object_street_props_sheet.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "prop:sign",
+      "family": "prop",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.propKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "object_street_props_sheet.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "prop:tree",
+      "family": "prop",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.propKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "object_street_props_sheet.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "prop:well",
+      "family": "prop",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.propKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "object_street_props_sheet.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "quest:inspect",
+      "family": "quest",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.questActions"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "object_status_markers_sheet.png",
+          "ui_inspection_report_sheet.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "road:branch",
+      "family": "road",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.roadKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "field_cobblestone_roads_sheet.png",
+          "world_visual_master.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "road:dead-end",
+      "family": "road",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.roadKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "field_cobblestone_roads_sheet.png",
+          "world_visual_master.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "road:main",
+      "family": "road",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.roadKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "field_cobblestone_roads_sheet.png",
+          "world_visual_master.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "room:dock",
+      "family": "room",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.roomKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "world_visual_master.png",
+          "target-town.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "room:dojo",
+      "family": "room",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.roomKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "world_visual_master.png",
+          "target-town.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "room:gate",
+      "family": "room",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.roomKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "world_visual_master.png",
+          "target-town.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "room:guild",
+      "family": "room",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.roomKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "world_visual_master.png",
+          "target-town.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "room:house",
+      "family": "room",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.roomKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "world_visual_master.png",
+          "target-town.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "room:inn",
+      "family": "room",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.roomKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "world_visual_master.png",
+          "target-town.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "room:pub",
+      "family": "room",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.roomKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "world_visual_master.png",
+          "target-town.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "room:ruin",
+      "family": "room",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.roomKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "world_visual_master.png",
+          "target-town.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "room:shop",
+      "family": "room",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.roomKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "world_visual_master.png",
+          "target-town.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "room:town_hall",
+      "family": "room",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.roomKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "world_visual_master.png",
+          "target-town.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "room:warehouse",
+      "family": "room",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.roomKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "world_visual_master.png",
+          "target-town.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "room:watchtower",
+      "family": "room",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.roomKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "world_visual_master.png",
+          "target-town.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "room:well",
+      "family": "room",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.roomKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "world_visual_master.png",
+          "target-town.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "room:workshop",
+      "family": "room",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.roomKinds"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "world_visual_master.png",
+          "target-town.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "terrain:basin",
+      "family": "terrain",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.terrains"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "world_visual_master.png",
+          "target-town.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "terrain:coast",
+      "family": "terrain",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.terrains"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "world_visual_master.png",
+          "target-town.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "terrain:meadow",
+      "family": "terrain",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.terrains"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "world_visual_master.png",
+          "target-town.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "terrain:plain",
+      "family": "terrain",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.terrains"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "world_visual_master.png",
+          "target-town.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "terrain:terrace",
+      "family": "terrain",
+      "sourceTraceIds": [
+        "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.terrains"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "world_visual_master.png",
+          "target-town.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "ui:choice",
+      "family": "ui",
+      "sourceTraceIds": [
+        "source.sceneCompiler.PRODUCT_SELECTORS"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "ui_dialogue_frames_sheet.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "ui:dialogue",
+      "family": "ui",
+      "sourceTraceIds": [
+        "source.sceneCompiler.PRODUCT_SELECTORS"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "ui_dialogue_frames_sheet.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "ui:guild-roster",
+      "family": "ui",
+      "sourceTraceIds": [
+        "source.sceneCompiler.PRODUCT_SELECTORS"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "ui_guild_roster_sheet.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "ui:inspection-report",
+      "family": "ui",
+      "sourceTraceIds": [
+        "source.sceneCompiler.PRODUCT_SELECTORS"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "ui_inspection_report_sheet.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    },
+    {
+      "selector": "water:default",
+      "family": "water",
+      "sourceTraceIds": [
+        "source.sceneCompiler.requiredAssetSelectors.water-default"
+      ],
+      "originalCoverage": {
+        "status": "reference-available",
+        "directOriginals": [
+          "field_harbor_docks_tiles_sheet.png",
+          "world_visual_master.png"
+        ],
+        "interpretation": "mechanical filename association; not an asset approval"
+      },
+      "candidate": {
+        "state": "none",
+        "path": null,
+        "sha256": null
+      }
+    }
+  ],
+  "selectorCount": 60,
+  "candidatePngCount": 0,
+  "candidatePolicy": "generation-disabled-for-this-preparation; candidate path is not read or written",
+  "sourceTraces": [
+    {
+      "id": "source.sceneCompiler.PRODUCT_SELECTORS",
+      "module": "ship/60-scene-compiler/index.mjs",
+      "export": "PRODUCT_SELECTORS",
+      "kind": "public-export",
+      "valueDigest": "240fe2954e328bd0dca58664397ce51fa6cd51c6fc993e518daae590dac1a2b9",
+      "values": [
+        "player:default",
+        "ui:choice",
+        "ui:dialogue",
+        "ui:guild-roster",
+        "ui:inspection-report"
+      ]
+    },
+    {
+      "id": "source.sceneCompiler.requiredAssetSelectors.water-default",
+      "module": "ship/60-scene-compiler/index.mjs",
+      "export": "requiredAssetSelectors",
+      "kind": "bounded-public-index-literal",
+      "valueDigest": "d51e04efe22313330ba8739871eb1750ebe11cbc11776cf27c9b606b8709fc24",
+      "values": [
+        "water:default"
+      ],
+      "fileSha256": "c70c70457f496c91902ef63b0ccc939aa92ea0c1a2b9439f230a797115319633",
+      "matchedLiteral": "selectors.add('water:default')",
+      "matchedLiteralDigest": "6b3161caed8dc21f0077c54849181d77261addf931b2aff742afb523661996f1",
+      "matchCount": 1
+    },
+    {
+      "id": "source.townDomain.NPC_ROLE_VOCABULARY",
+      "module": "ship/30-town-domain/index.mjs",
+      "export": "NPC_ROLE_VOCABULARY",
+      "kind": "public-export",
+      "valueDigest": "fe125328aa5fdfbfe4a4bcc40be1abc55c947c9ea59453e39c7fe15ce09c7b3f",
+      "values": [
+        "npc:external-api",
+        "npc:http",
+        "npc:llm",
+        "npc:storage",
+        "npc:townsperson",
+        "npc:unknown",
+        "npc:webhook"
+      ]
+    },
+    {
+      "id": "source.townDomain.REPOSITORY_INSPECTION_BINDING",
+      "module": "ship/30-town-domain/index.mjs",
+      "export": "REPOSITORY_INSPECTION_BINDING",
+      "kind": "public-export",
+      "valueDigest": "097f60c0b1e2149a3cc02020c733d229cf851393dbf016c9191836977967778c",
+      "values": [
+        "town_hall_lantern_lit"
+      ]
+    },
+    {
+      "id": "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.facilityKinds",
+      "module": "ship/40-worldgen/index.mjs",
+      "export": "WORLD_PLAN_PUBLIC_VOCABULARY",
+      "kind": "public-export",
+      "valueDigest": "dc38ab4e63dd709fc734bcda036296dd396dcf746e6dbb0abe086b29d3176657",
+      "values": [
+        "building:dock",
+        "building:dojo",
+        "building:gate",
+        "building:guild",
+        "building:house",
+        "building:inn",
+        "building:pub",
+        "building:ruin",
+        "building:shop",
+        "building:town_hall",
+        "building:warehouse",
+        "building:watchtower",
+        "building:well",
+        "building:workshop"
+      ]
+    },
+    {
+      "id": "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.lightStates",
+      "module": "ship/40-worldgen/index.mjs",
+      "export": "WORLD_PLAN_PUBLIC_VOCABULARY",
+      "kind": "public-export",
+      "valueDigest": "1235fd72cff336a3f783812358550cb83d65da5900ec9ddd17aa5a4e4506dcfa",
+      "values": [
+        "light:lit",
+        "light:unknown",
+        "light:unlit"
+      ]
+    },
+    {
+      "id": "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.occupancyStates",
+      "module": "ship/40-worldgen/index.mjs",
+      "export": "WORLD_PLAN_PUBLIC_VOCABULARY",
+      "kind": "public-export",
+      "valueDigest": "e73531f1c5402dc82cb6c29eba365d63f80a14d0dc8e62cc4a8b54fb45ce6908",
+      "values": [
+        "plot:occupied",
+        "plot:vacant"
+      ]
+    },
+    {
+      "id": "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.propKinds",
+      "module": "ship/40-worldgen/index.mjs",
+      "export": "WORLD_PLAN_PUBLIC_VOCABULARY",
+      "kind": "public-export",
+      "valueDigest": "07f1938ccffc471428585ecb2f727f77a0f492be2bda6306c7355f6d26cec818",
+      "values": [
+        "prop:lamp",
+        "prop:sign",
+        "prop:tree",
+        "prop:well"
+      ]
+    },
+    {
+      "id": "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.questActions",
+      "module": "ship/40-worldgen/index.mjs",
+      "export": "WORLD_PLAN_PUBLIC_VOCABULARY",
+      "kind": "public-export",
+      "valueDigest": "5ab21a055924dad5241e2d0e61f3f3fa4d32e9254d5090047df7ec6b9fd1c72c",
+      "values": [
+        "quest:inspect"
+      ]
+    },
+    {
+      "id": "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.roadKinds",
+      "module": "ship/40-worldgen/index.mjs",
+      "export": "WORLD_PLAN_PUBLIC_VOCABULARY",
+      "kind": "public-export",
+      "valueDigest": "7b05690469782865630d9cc50a21d5b9ff6d46486871ec6d1dca19cabb720c36",
+      "values": [
+        "road:branch",
+        "road:dead-end",
+        "road:main"
+      ]
+    },
+    {
+      "id": "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.roomKinds",
+      "module": "ship/40-worldgen/index.mjs",
+      "export": "WORLD_PLAN_PUBLIC_VOCABULARY",
+      "kind": "public-export",
+      "valueDigest": "dc38ab4e63dd709fc734bcda036296dd396dcf746e6dbb0abe086b29d3176657",
+      "values": [
+        "room:dock",
+        "room:dojo",
+        "room:gate",
+        "room:guild",
+        "room:house",
+        "room:inn",
+        "room:pub",
+        "room:ruin",
+        "room:shop",
+        "room:town_hall",
+        "room:warehouse",
+        "room:watchtower",
+        "room:well",
+        "room:workshop"
+      ]
+    },
+    {
+      "id": "source.worldgen.WORLD_PLAN_PUBLIC_VOCABULARY.terrains",
+      "module": "ship/40-worldgen/index.mjs",
+      "export": "WORLD_PLAN_PUBLIC_VOCABULARY",
+      "kind": "public-export",
+      "valueDigest": "538b03ab6af7ec0739d3e3dfbc36a24b1873ad60b8224cc675da73867e854cf6",
+      "values": [
+        "terrain:basin",
+        "terrain:coast",
+        "terrain:meadow",
+        "terrain:plain",
+        "terrain:terrace"
+      ]
+    }
+  ],
+  "limits": {
+    "maxFiniteVocabulary": 256,
+    "selectorsSortedUnique": true,
+    "sourceTracePerSelector": true,
+    "wildcardOrFallbackPresent": false
+  }
+}

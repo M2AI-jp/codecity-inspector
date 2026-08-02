@@ -4,6 +4,17 @@
 
 const TOWN_SCHEMA_VERSION = 1;
 const EVIDENCE_STATES = Object.freeze(['observed', 'inferred', 'unknown']);
+export const CONNECTION_KINDS = Object.freeze([
+  'http', 'webhook', 'external-api', 'llm', 'storage', 'unknown',
+]);
+export const NPC_ROLE_VOCABULARY = Object.freeze([...CONNECTION_KINDS, 'townsperson']);
+export const REPOSITORY_INSPECTION_BINDING = Object.freeze({
+  id: 'repository_inspected',
+  event: 'repository_inspected',
+  transition: 'repository_inspected',
+  facilityKind: 'town_hall',
+  effect: 'town_hall_lantern_lit',
+});
 const FACILITY_KINDS = Object.freeze([
   'inn', 'pub', 'guild', 'town_hall', 'dock', 'warehouse', 'well',
   'workshop', 'dojo', 'watchtower', 'house', 'shop', 'ruin', 'gate',
@@ -20,6 +31,15 @@ const INVESTIGATION_COPY = Object.freeze({
   observability: Object.freeze({ subject: '見張り台の記録', statement: '見張り台に夜の記録がある' }),
   recovery: Object.freeze({ subject: '修理小屋の道具', statement: '修理小屋に戻すための道具がある' }),
   ruin: Object.freeze({ subject: '廃屋に残された物', statement: '廃屋に由来のわかる物が残っている' }),
+});
+const UNKNOWN_INVESTIGATION_COPY = Object.freeze({
+  gate: Object.freeze({ subject: '城門の手がかり', statement: '城門から人が入れるかは未確認です' }),
+  warehouse: Object.freeze({ subject: '倉庫の台帳の手がかり', statement: '倉庫に記録が残るかは未確認です' }),
+  well: Object.freeze({ subject: '井戸の水の手がかり', statement: '井戸から水が使えるかは未確認です' }),
+  dojo: Object.freeze({ subject: '道場の検査の手がかり', statement: '道場に検査済みの印があるかは未確認です' }),
+  watchtower: Object.freeze({ subject: '見張り台の記録の手がかり', statement: '見張り台に夜の記録があるかは未確認です' }),
+  shop: Object.freeze({ subject: '修理小屋の道具の手がかり', statement: '修理小屋に戻す道具があるかは未確認です' }),
+  ruin: Object.freeze({ subject: '廃屋の手がかり', statement: '廃屋に由来のわかる物があるかは未確認です' }),
 });
 
 const LABELS = Object.freeze({
@@ -46,21 +66,12 @@ const FACILITY_ROLES = Object.freeze({
 const TAB_IDS = Object.freeze(['companions', 'reception', 'requests', 'items', 'status']);
 const TAB_KINDS = Object.freeze({ companions: ['llm', 'external-api'], reception: ['inbound'], requests: ['outbound', 'http', 'webhook'], });
 
-// The nine bindings are the complete reward vocabulary.  A binding is only
-// activated by an explicitly observed transition; static semantic evidence or
-// a contractor's claim never activates one.
-const REWARD_BINDINGS = Object.freeze([
-  { id: 'reward.build_passed', event: 'build_passed', transition: 'build_passed', facilityKind: 'workshop', effect: 'forge_fire' },
-  { id: 'reward.local_run', event: 'local_run', transition: 'local_run', facilityKind: 'town_hall', effect: 'town_powered' },
-  { id: 'reward.public_url_responded', event: 'public_url_responded', transition: 'public_url_responded', facilityKind: 'inn', effect: 'inn_lit' },
-  { id: 'reward.real_access', event: 'real_access', transition: 'real_access', facilityKind: 'inn', effect: 'traveler_arrived' },
-  { id: 'reward.external_api_responded', event: 'external_api_responded', transition: 'external_api_responded', facilityKind: 'pub', effect: 'pub_bustle' },
-  { id: 'reward.distribution_released', event: 'distribution_released', transition: 'distribution_released', facilityKind: 'dock', effect: 'ship_departed' },
-  { id: 'reward.logs_recorded', event: 'logs_recorded', transition: 'logs_recorded', facilityKind: 'watchtower', effect: 'watch_lit' },
-  { id: 'reward.tests_passed', event: 'tests_passed', transition: 'tests_passed', facilityKind: 'dojo', effect: 'inspection_stamp' },
-  { id: 'reward.rollback_confirmed', event: 'rollback_confirmed', transition: 'rollback_confirmed', facilityKind: 'shop', effect: 'repair_tools' },
-]);
-const REWARD_BY_EVENT = new Map(REWARD_BINDINGS.map((binding) => [binding.event, binding]));
+// The bounded v1 journey has exactly one permitted transition. It is derived
+// from the inspection-completed evidence address; no customer claim or
+// execution-result event can activate another binding.
+const REWARD_BINDINGS = Object.freeze([REPOSITORY_INSPECTION_BINDING]);
+const INSPECTION_COMPLETION_EVIDENCE_ID = 'repository.inspection.completed';
+const INSPECTION_RUNTIME_UNKNOWN_EVIDENCE_ID = 'repository.inspection.runtime.unknown';
 
 class TownDomainError extends TypeError {
   constructor(code, message, issues = []) {
@@ -76,6 +87,7 @@ export function buildTownModel(semanticModel) {
   const files = normalizeFiles(semanticModel.files);
   const capabilities = normalizeCapabilities(semanticModel.capabilities);
   const connections = normalizeConnections(semanticModel.connections);
+  const evidence = normalizeTopLevelEvidence(semanticModel.evidence);
   const personality = derivePersonality(files, capabilities, connections);
   const facts = capabilityFacts(capabilities);
   facts.push({ id: 'repository.personality', kind: 'personality', subject: personality, state: 'inferred', evidence: { observed: [], inferred: [`personality.${personality}`], unknown: [] } });
@@ -86,7 +98,7 @@ export function buildTownModel(semanticModel) {
   }
   facts.sort((a, b) => a.id.localeCompare(b.id));
   const guild = makeGuild(connections, files);
-  const investigations = makeInvestigations(capabilities, facilities, dirt);
+  const investigations = makeInvestigations(capabilities, facilities, dirt, evidence);
   const habitability = makeHabitability(capabilities, facilities);
   const rewards = makeRewards(semanticModel);
   return {
@@ -99,6 +111,7 @@ export function buildTownModel(semanticModel) {
     investigations,
     habitability,
     rewards,
+    evidence,
   };
 }
 
@@ -146,11 +159,16 @@ function normalizeConnections(source) {
     if (!id) continue;
     const evidence = normalizeEvidence(raw.evidence);
     if (!hasEvidence(evidence)) evidence.unknown.push(`connection.${id}.unknown`);
+    const rawKind = stringOrNull(raw.kind);
+    const kind = canonicalConnectionKind(rawKind);
+    if (rawKind !== null && kind === 'unknown' && rawKind !== 'unknown') {
+      evidence.unknown.push(`connection.${id}.kind.unknown`);
+    }
     const count = finiteCount(raw);
     const item = {
       id,
       direction: stringOrNull(raw.direction) ?? 'internal',
-      kind: stringOrNull(raw.kind) ?? 'unknown',
+      kind,
       target: stringOrNull(raw.target) ?? id,
       sourceFileIds: uniqueStrings(Array.isArray(raw.sourceFileIds) ? raw.sourceFileIds : []),
       evidence,
@@ -245,13 +263,40 @@ function makeGuild(connections, files) {
 function tabEntry(connection) { return { id: connection.id, name: connection.target, state: connection.state, evidence: connection.evidence }; }
 function statusLabel(state) { return state === 'observed' ? '観測済み' : state === 'inferred' ? '推定' : '未確認'; }
 
-function makeInvestigations(capabilities, facilities, ruin) {
+function makeInvestigations(capabilities, facilities, ruin, inspectionEvidence) {
   const candidates = [];
+  const usedFacilities = new Set();
+  const facilityByCapability = {
+    entrypoint: 'gate',
+    persistence: 'warehouse',
+    configuration: 'well',
+    test: 'dojo',
+    observability: 'watchtower',
+    recovery: 'shop',
+  };
+  const completionEvidence = {
+    observed: inspectionEvidence.observed.filter((key) => key === INSPECTION_COMPLETION_EVIDENCE_ID),
+    inferred: [],
+    unknown: [],
+  };
+  const unknownEvidence = inspectionEvidence.unknown.length > 0
+    ? inspectionEvidence.unknown
+    : [INSPECTION_RUNTIME_UNKNOWN_EVIDENCE_ID];
+  const evidenceForQuestion = (base) => {
+    const result = mergeEvidence(completionEvidence, base);
+    result.unknown = uniqueStrings([...result.unknown, ...unknownEvidence]);
+    return result;
+  };
+
+  // Prefer real capability signals, but never reuse an observed capability as
+  // an unanswered question.  Inferred and unknown capability states remain
+  // visible on the candidate and retain their own evidence addresses.
   for (const capability of INVESTIGATION_PRIORITY) {
+    if (candidates.length >= 3) break;
     const fact = capabilities[capability];
-    const facilityKind = ({ entrypoint: 'gate', persistence: 'warehouse', configuration: 'well', test: 'dojo', observability: 'watchtower', recovery: 'shop' })[capability];
+    const facilityKind = facilityByCapability[capability];
     const facility = facilities.find((entry) => entry.kind === facilityKind);
-    if (fact.state === 'observed' || facility?.presence === 'not_applicable') continue;
+    if (fact.state === 'observed' || facility?.presence === 'not_applicable' || usedFacilities.has(facilityKind)) continue;
     candidates.push({
       id: `investigation.${capability}`,
       capability,
@@ -261,26 +306,36 @@ function makeInvestigations(capabilities, facilities, ruin) {
       subject: INVESTIGATION_COPY[capability].subject,
       statement: INVESTIGATION_COPY[capability].statement,
       state: fact.state,
-      evidence: fact.evidence,
+      evidence: evidenceForQuestion(fact.evidence),
     });
-    if (candidates.length === 3) break;
+    usedFacilities.add(facilityKind);
   }
-  if (candidates.length < 3 && ruin?.presence === 'present') {
-    const dirtSources = ruin.sourceFileIds.length ? ruin.sourceFileIds : ['dirt'];
-    for (const [index, source] of dirtSources.entries()) {
-      if (candidates.length === 3) break;
-      candidates.push({
-        id: index === 0 ? 'investigation.ruin' : `investigation.ruin.${source}`,
-        capability: null,
-        facilityKind: 'ruin',
-        role: 'dirt',
-        variant: null,
-        subject: INVESTIGATION_COPY.ruin.subject,
-        statement: INVESTIGATION_COPY.ruin.statement,
-        state: 'inferred',
-        evidence: ruin.evidence,
-      });
-    }
+
+  // A small or highly observed repository can leave fewer than three genuine
+  // capability candidates. Fill the fixed journey with distinct, explicitly
+  // unknown questions grounded in the observed inspection completion and the
+  // inspector's runtime-unknown evidence; this does not invent a capability.
+  const fallbackKinds = ['gate', 'warehouse', 'well', 'dojo', 'watchtower', 'shop'];
+  if (ruin?.presence === 'present') fallbackKinds.push('ruin');
+  for (const facilityKind of fallbackKinds) {
+    if (candidates.length >= 3) break;
+    if (usedFacilities.has(facilityKind)) continue;
+    const facility = facilities.find((entry) => entry.kind === facilityKind);
+    if (facility?.presence === 'not_applicable') continue;
+    const copy = UNKNOWN_INVESTIGATION_COPY[facilityKind];
+    if (!copy) continue;
+    candidates.push({
+      id: `investigation.unknown.${facilityKind}`,
+      capability: null,
+      facilityKind,
+      role: FACILITY_ROLES[facilityKind],
+      variant: facilityKind === 'shop' ? 'repair' : null,
+      subject: copy.subject,
+      statement: copy.statement,
+      state: 'unknown',
+      evidence: evidenceForQuestion({ observed: [], inferred: [], unknown: [`investigation.${facilityKind}.unknown`] }),
+    });
+    usedFacilities.add(facilityKind);
   }
   return { priority: [...INVESTIGATION_PRIORITY], candidates };
 }
@@ -297,35 +352,31 @@ function makeHabitability(capabilities, facilities) {
 }
 
 function makeRewards(semanticModel) {
-  const transitions = [];
-  const sources = [];
-  for (const raw of Array.isArray(semanticModel.observedTransitions) ? semanticModel.observedTransitions : []) sources.push(raw);
-  for (const raw of Array.isArray(semanticModel.transitions) ? semanticModel.transitions : []) sources.push(raw);
-  for (const raw of Array.isArray(semanticModel.events) ? semanticModel.events : []) sources.push(raw);
-  for (const raw of sources) {
-    if (!isRecord(raw) || isSelfReport(raw)) continue;
-    const event = canonicalEvent(raw.event ?? raw.transition ?? raw.name ?? raw.type ?? raw.id);
-    const binding = REWARD_BY_EVENT.get(event);
-    if (!binding) continue;
-    const evidence = normalizeEvidence(raw.evidence);
-    // A field name or state label is not proof. Reward activation requires an
-    // actual observed evidence address preserved from the upstream report.
-    if (evidence.observed.length === 0) continue;
-    transitions.push({ id: stringOrNull(raw.id) ?? `transition.${event}.${transitions.length + 1}`, event, bindingId: binding.id, facilityKind: binding.facilityKind, effect: binding.effect, state: 'observed', evidence });
-  }
-  transitions.sort(compareId);
+  const evidence = normalizeTopLevelEvidence(semanticModel.evidence);
+  const transitions = evidence.observed.includes(INSPECTION_COMPLETION_EVIDENCE_ID)
+    ? [{
+      id: 'transition.repository_inspected',
+      event: REPOSITORY_INSPECTION_BINDING.event,
+      bindingId: REPOSITORY_INSPECTION_BINDING.id,
+      facilityKind: REPOSITORY_INSPECTION_BINDING.facilityKind,
+      effect: REPOSITORY_INSPECTION_BINDING.effect,
+      state: 'observed',
+      evidence: {
+        observed: [INSPECTION_COMPLETION_EVIDENCE_ID],
+        inferred: [],
+        unknown: [],
+      },
+    }]
+    : [];
   return { bindings: REWARD_BINDINGS.map((binding) => ({ ...binding })), transitions };
 }
-
-const EVENT_ALIASES = Object.freeze({ build: 'build_passed', build_passed: 'build_passed', local_run: 'local_run', localrun: 'local_run', public_url: 'public_url_responded', public_url_responded: 'public_url_responded', real_access: 'real_access', visitor_access: 'real_access', external_api: 'external_api_responded', external_api_responded: 'external_api_responded', distribution: 'distribution_released', distribution_released: 'distribution_released', release: 'distribution_released', logs: 'logs_recorded', logs_recorded: 'logs_recorded', tests: 'tests_passed', tests_passed: 'tests_passed', rollback: 'rollback_confirmed', rollback_confirmed: 'rollback_confirmed' });
-function canonicalEvent(value) { const key = String(value ?? '').toLowerCase().replace(/[- ]/g, '_'); return EVENT_ALIASES[key] ?? key; }
-function isSelfReport(raw) { return raw.selfReport === true || /self[-_ ]?report|claim|contractor/i.test(String(raw.source ?? raw.actor ?? raw.actorType ?? '')); }
 
 export function validateTownModel(model) {
   const issues = [];
   if (!isRecord(model) || model.schemaVersion !== TOWN_SCHEMA_VERSION) issues.push(issue('SCHEMA_VERSION', 'schemaVersion', 'TownModel v1 required'));
   if (typeof model?.inspectionDigest !== 'string' || !/^[0-9a-f]{64}$/u.test(model.inspectionDigest)) issues.push(issue('INSPECTION_DIGEST', 'inspectionDigest', 'lowercase SHA-256 required'));
   if (!isRecord(model?.repository) || typeof model.repository.name !== 'string' || !model.repository.name || typeof model.repository.identity !== 'string' || !model.repository.identity) issues.push(issue('REPOSITORY', 'repository', 'name and identity required'));
+  if (!isStrictEvidence(model?.evidence)) issues.push(issue('EVIDENCE', 'evidence', 'top-level strict tri-state evidence bag required'));
   const facilities = Array.isArray(model?.facilities) ? model.facilities : [];
   const kinds = facilities.map((facility) => facility?.kind);
   if (facilities.length !== FACILITY_KINDS.length || new Set(kinds).size !== FACILITY_KINDS.length || FACILITY_KINDS.some((kind) => !kinds.includes(kind))) issues.push(issue('FACILITIES_CANONICAL', 'facilities', 'exactly one entry for each canonical facility kind required'));
@@ -338,11 +389,18 @@ export function validateTownModel(model) {
   if (!Array.isArray(model?.facts)) issues.push(issue('FACTS_ARRAY', 'facts', 'facts array required'));
   if (!Array.isArray(model?.guild?.tabs) || model.guild.tabs.length !== 5 || model.guild.tabs.some((tab, index) => tab?.label !== GUILD_TABS[index])) issues.push(issue('GUILD_TABS', 'guild.tabs', 'five canonical guild tabs required'));
   if (!Array.isArray(model?.guild?.representativeConnections) || model.guild.representativeConnections.length > 3) issues.push(issue('REPRESENTATIVES', 'guild.representativeConnections', 'at most three representative connections'));
+  for (const [index, representative] of (Array.isArray(model?.guild?.representativeConnections) ? model.guild.representativeConnections : []).entries()) {
+    const kind = representative?.kind;
+    if (!CONNECTION_KINDS.includes(kind)) issues.push(issue('REPRESENTATIVE_KIND', `guild.representativeConnections[${index}].kind`, 'representative kind must use the finite connection vocabulary'));
+  }
   if (JSON.stringify(model?.investigations?.priority) !== JSON.stringify(INVESTIGATION_PRIORITY)) issues.push(issue('INVESTIGATION_PRIORITY', 'investigations.priority', 'priority order is fixed'));
-  if (!Array.isArray(model?.investigations?.candidates) || model.investigations.candidates.length > 3) {
-    issues.push(issue('INVESTIGATION_CANDIDATES', 'investigations.candidates', 'zero through three real candidates required'));
+  if (!Array.isArray(model?.investigations?.candidates) || model.investigations.candidates.length !== 3) {
+    issues.push(issue('INVESTIGATION_CANDIDATES', 'investigations.candidates', 'exactly three evidence-grounded candidates required'));
   } else {
     const expectedKeys = ['capability', 'evidence', 'facilityKind', 'id', 'role', 'state', 'statement', 'subject', 'variant'];
+    const ids = new Set();
+    const facilitiesSeen = new Set();
+    const questionsSeen = new Set();
     for (const [index, candidate] of model.investigations.candidates.entries()) {
       const path = `investigations.candidates[${index}]`;
       if (!isRecord(candidate) || JSON.stringify(Object.keys(candidate).sort()) !== JSON.stringify(expectedKeys)) {
@@ -350,15 +408,38 @@ export function validateTownModel(model) {
         continue;
       }
       if (![candidate.id, candidate.facilityKind, candidate.role, candidate.subject, candidate.statement].every((value) => typeof value === 'string' && value.length > 0)) issues.push(issue('INVESTIGATION_CANDIDATE', path, 'candidate identity and domain copy are required'));
+      if (!FACILITY_KINDS.includes(candidate.facilityKind)) issues.push(issue('INVESTIGATION_CANDIDATE', path, 'candidate facility must use the finite facility vocabulary'));
       if (!EVIDENCE_STATES.includes(candidate.state) || !isEvidence(candidate.evidence)) issues.push(issue('INVESTIGATION_CANDIDATE', path, 'candidate state and tri-state evidence are required'));
+      if (ids.has(candidate.id)) issues.push(issue('INVESTIGATION_CANDIDATE', path, 'candidate IDs must be distinct'));
+      if (facilitiesSeen.has(candidate.facilityKind)) issues.push(issue('INVESTIGATION_CANDIDATE', path, 'investigation sites must use distinct facility kinds'));
+      if (questionsSeen.has(`${candidate.subject}\u0000${candidate.statement}`)) issues.push(issue('INVESTIGATION_CANDIDATE', path, 'investigation questions must be distinct'));
+      ids.add(candidate.id);
+      facilitiesSeen.add(candidate.facilityKind);
+      questionsSeen.add(`${candidate.subject}\u0000${candidate.statement}`);
+      if (isEvidence(candidate.evidence)) {
+        if (!candidate.evidence.observed.includes(INSPECTION_COMPLETION_EVIDENCE_ID)) issues.push(issue('INVESTIGATION_EVIDENCE', path, 'each question must retain observed inspection completion evidence'));
+        if (candidate.evidence.unknown.length === 0) issues.push(issue('INVESTIGATION_EVIDENCE', path, 'each question must retain unknown evidence'));
+      }
     }
   }
   if (!Number.isInteger(model?.habitability?.level) || model.habitability.level < 0 || model.habitability.level > 5) issues.push(issue('LEVEL', 'habitability.level', 'Lv must be 0..5'));
-  if (!Array.isArray(model?.rewards?.bindings) || model.rewards.bindings.length !== REWARD_BINDINGS.length || model.rewards.bindings.some((binding, index) => binding?.id !== REWARD_BINDINGS[index].id)) issues.push(issue('REWARD_BINDINGS', 'rewards.bindings', 'exactly nine allowed bindings required'));
+  if (!Array.isArray(model?.rewards?.bindings) || model.rewards.bindings.length !== REWARD_BINDINGS.length || model.rewards.bindings.some((binding, index) => JSON.stringify(binding) !== JSON.stringify(REWARD_BINDINGS[index]))) {
+    issues.push(issue('REWARD_BINDINGS', 'rewards.bindings', 'exactly one canonical repository_inspected binding required'));
+  }
   for (const transition of Array.isArray(model?.rewards?.transitions) ? model.rewards.transitions : []) {
-    if (transition?.state !== 'observed' || !REWARD_BY_EVENT.has(transition.event) || isSelfReport(transition) || !isEvidence(transition?.evidence) || transition.evidence.observed.length === 0) {
-      issues.push(issue('REWARD_TRANSITION', 'rewards.transitions', 'only transitions with preserved observed evidence may activate rewards'));
+    if (transition?.state !== 'observed'
+      || transition?.event !== REPOSITORY_INSPECTION_BINDING.event
+      || transition?.bindingId !== REPOSITORY_INSPECTION_BINDING.id
+      || transition?.facilityKind !== REPOSITORY_INSPECTION_BINDING.facilityKind
+      || transition?.effect !== REPOSITORY_INSPECTION_BINDING.effect
+      || !isEvidence(transition?.evidence)
+      || JSON.stringify(transition.evidence.observed) !== JSON.stringify([INSPECTION_COMPLETION_EVIDENCE_ID])) {
+      issues.push(issue('REWARD_TRANSITION', 'rewards.transitions', 'only the observed repository_inspected transition may activate the town-hall lantern'));
     }
+  }
+  const completionObserved = isStrictEvidence(model?.evidence) && model.evidence.observed.includes(INSPECTION_COMPLETION_EVIDENCE_ID);
+  if (!Array.isArray(model?.rewards?.transitions) || model.rewards.transitions.length !== (completionObserved ? 1 : 0)) {
+    issues.push(issue('REWARD_TRANSITIONS', 'rewards.transitions', 'transition count must match observed inspection completion'));
   }
   return { ok: issues.length === 0, issues };
 }
@@ -366,11 +447,21 @@ function issue(code, path, message) { return { code, path, message }; }
 function isRecord(value) { return value !== null && typeof value === 'object' && !Array.isArray(value); }
 function stringOrNull(value) { return typeof value === 'string' && value.length ? value : null; }
 function validRole(value) { return ['service', 'interface', 'data', 'configuration', 'test', 'tooling', 'module'].includes(value) ? value : 'module'; }
+function canonicalConnectionKind(value) {
+  return CONNECTION_KINDS.includes(value) ? value : 'unknown';
+}
 function uniqueStrings(values) { return [...new Set((values ?? []).filter((value) => typeof value === 'string' && value.length))].sort(); }
 function compareId(a, b) { return a.id.localeCompare(b.id); }
 function emptyEvidence() { return { observed: [], inferred: [], unknown: [] }; }
 function hasEvidence(evidence) { return EVIDENCE_STATES.some((state) => evidence[state].length > 0); }
 function normalizeEvidence(value) { const result = emptyEvidence(); if (Array.isArray(value)) result.unknown.push(...uniqueStrings(value)); else if (isRecord(value)) for (const state of EVIDENCE_STATES) result[state].push(...uniqueStrings(value[state])); for (const state of EVIDENCE_STATES) result[state] = uniqueStrings(result[state]); return result; }
+function normalizeTopLevelEvidence(value) {
+  const result = normalizeEvidence(value);
+  if (!result.observed.includes(INSPECTION_COMPLETION_EVIDENCE_ID)) {
+    result.unknown = uniqueStrings([...result.unknown, INSPECTION_RUNTIME_UNKNOWN_EVIDENCE_ID]);
+  }
+  return result;
+}
 function mergeEvidence(...bags) { const result = emptyEvidence(); for (const bag of bags) for (const state of EVIDENCE_STATES) result[state].push(...(bag?.[state] ?? [])); for (const state of EVIDENCE_STATES) result[state] = uniqueStrings(result[state]); return result; }
 function evidenceForState(value, state, fallback) {
   const target = EVIDENCE_STATES.includes(state) ? state : value === 'observed' ? 'observed' : 'unknown';
@@ -387,6 +478,11 @@ function evidenceForState(value, state, fallback) {
 }
 function evidenceState(evidence) { return evidence.observed.length ? 'observed' : evidence.inferred.length ? 'inferred' : 'unknown'; }
 function isEvidence(value) { return isRecord(value) && EVIDENCE_STATES.every((state) => Array.isArray(value[state]) && value[state].every((entry) => typeof entry === 'string')); }
+function isStrictEvidence(value) {
+  if (!isEvidence(value)) return false;
+  const keys = Object.keys(value).sort();
+  return JSON.stringify(keys) === JSON.stringify([...EVIDENCE_STATES].sort());
+}
 function finiteCount(raw) { for (const key of ['invocationCount', 'count', 'calls', 'requestCount', 'usageCount', 'frequency']) if (Number.isFinite(raw?.[key]) && raw[key] >= 0) return raw[key]; return 0; }
 function isDirtPath(path) { return /(^|[/\\])(legacy|deprecated|unused|archive|old|todo|backup)([/\\]|$)/i.test(path) || /(?:legacy|deprecated|unused|todo|old[-_.])/i.test(path); }
 

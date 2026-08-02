@@ -6,6 +6,7 @@ import {
   inferSemanticModel,
   normalizeSemanticModel,
 } from '../../../ship/20-semantics/index.mjs';
+import { buildTownModel, validateTownModel } from '../../../ship/30-town-domain/index.mjs';
 import { inspectionReport } from '../fixtures/20-inspection-report.fixture.mjs';
 
 test('exports only the two semantic boundary functions', async () => {
@@ -120,4 +121,47 @@ test('normalization is deterministic, order independent, and non-mutating', () =
 test('shipping semantics does not import filesystem/process/network/DOM modules', async () => {
   const source = await readFile(new URL('../../../ship/20-semantics/index.mjs', import.meta.url), 'utf8');
   assert.doesNotMatch(source, /(?:fs|process|child_process|net|http|https|DOM|document|window)/iu);
+});
+
+// T2 obligation: prevent the customer from receiving fewer than three
+// truthful questions or a fabricated execution result. It evidences the
+// owner requirement that static inspection retain observed/inferred/unknown
+// states and one permitted transition, and prevents repository certification
+// harm. Passing does not prove world geometry, art, browser play, packaging,
+// persistence, or the KGI journey.
+test('T2 carries inspection completion and unknowns into exactly three distinct questions', () => {
+  const report = structuredClone(inspectionReport);
+  report.evidence.observed = [
+    ...report.evidence.observed,
+    { id: 'repository.inspection.completed', state: 'observed', claim: 'repository.inspection.completed', value: true },
+  ];
+  report.evidence.unknown = [
+    ...report.evidence.unknown,
+    { id: 'repository.inspection.runtime.unknown', state: 'unknown', claim: 'repository.runtime-behavior', reason: 'source-not-executed' },
+  ];
+  report.connections = [
+    ...report.graph.edges,
+    { id: 'customer-controlled-arbitrary', from: 'file-api', to: 'customer-controlled-arbitrary', kind: 'customer-controlled-arbitrary' },
+  ];
+  const semantics = inferSemanticModel(report);
+  assert.ok(semantics.evidence.observed.includes('repository.inspection.completed'));
+  assert.ok(semantics.evidence.unknown.includes('repository.inspection.runtime.unknown'));
+  const town = buildTownModel(semantics);
+  assert.equal(town.investigations.candidates.length, 3);
+  assert.equal(new Set(town.investigations.candidates.map((candidate) => candidate.id)).size, 3);
+  assert.equal(new Set(town.investigations.candidates.map((candidate) => candidate.facilityKind)).size, 3);
+  for (const candidate of town.investigations.candidates) {
+    assert.ok(candidate.evidence.observed.includes('repository.inspection.completed'));
+    assert.ok(candidate.evidence.unknown.length > 0);
+  }
+  assert.deepEqual(town.rewards.bindings, [{
+    id: 'repository_inspected',
+    event: 'repository_inspected',
+    transition: 'repository_inspected',
+    facilityKind: 'town_hall',
+    effect: 'town_hall_lantern_lit',
+  }]);
+  assert.equal(town.rewards.transitions.length, 1);
+  assert.equal(town.rewards.transitions[0].evidence.observed[0], 'repository.inspection.completed');
+  assert.equal(validateTownModel(town).ok, true);
 });

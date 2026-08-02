@@ -1,5 +1,10 @@
 import { createHash } from 'node:crypto';
 
+import {
+  NPC_ROLE_VOCABULARY,
+  REPOSITORY_INSPECTION_BINDING,
+} from '../30-town-domain/index.mjs';
+
 /**
  * The logical world boundary.  World generation intentionally knows nothing
  * about pixels, Canvas, or a renderer.  A cell is simply one addressable
@@ -11,7 +16,48 @@ const FORMAT = 'codecity.world-plan';
 const TOWN_TYPES = Object.freeze(['river', 'harbor', 'hill', 'valley', 'plain']);
 const CLIMATES = Object.freeze(['spring', 'summer', 'autumn', 'winter', 'mist']);
 const TERRAINS = Object.freeze(['meadow', 'coast', 'terrace', 'basin', 'plain']);
+const ROAD_KINDS = Object.freeze(['main', 'branch', 'dead-end']);
+const WATER_KINDS = Object.freeze(['river', 'estuary', 'stream']);
 const REGION_IDS = Object.freeze(['entrance', 'life', 'work', 'edge', 'past']);
+const FACILITY_KINDS = Object.freeze([
+  'inn', 'pub', 'guild', 'town_hall', 'dock', 'warehouse', 'well', 'workshop',
+  'dojo', 'watchtower', 'house', 'shop', 'ruin', 'gate',
+]);
+const OCCUPANCY_STATES = Object.freeze(['occupied', 'vacant']);
+const PROP_KINDS = Object.freeze(['well', 'tree', 'sign', 'lamp']);
+const LIGHT_STATES = Object.freeze(['lit', 'unlit', 'unknown']);
+const QUEST_ACTIONS = Object.freeze(['inspect']);
+const REWARD_EFFECTS = Object.freeze([REPOSITORY_INSPECTION_BINDING.effect]);
+const REPOSITORY_INSPECTION_TRANSITION_ID = 'transition.repository_inspected';
+const NPC_MOVEMENTS = Object.freeze(['patrol', 'idle']);
+const ROOM_STATES = Object.freeze(['active', 'missing', 'not_applicable', 'unconfirmed', 'dirt', 'unknown', 'closed']);
+const SIGHTLINE_FOCI = Object.freeze(['arrival', 'work', 'water']);
+
+/**
+ * Finite public selector vocabulary for the 30 -> 40 boundary.  P1 art
+ * demand tooling can import this object instead of guessing from fixtures or
+ * source strings.  Every selector emitted by this module is a member of one
+ * of these arrays; validators reject values outside them.
+ */
+export const WORLD_PLAN_PUBLIC_VOCABULARY = Object.freeze({
+  townTypes: TOWN_TYPES,
+  climates: CLIMATES,
+  terrains: TERRAINS,
+  roadKinds: ROAD_KINDS,
+  waterKinds: WATER_KINDS,
+  regions: REGION_IDS,
+  occupancyStates: OCCUPANCY_STATES,
+  facilityKinds: FACILITY_KINDS,
+  roomKinds: FACILITY_KINDS,
+  npcRoles: NPC_ROLE_VOCABULARY,
+  propKinds: PROP_KINDS,
+  lightStates: LIGHT_STATES,
+  questActions: QUEST_ACTIONS,
+  rewardEffects: REWARD_EFFECTS,
+  npcMovements: NPC_MOVEMENTS,
+  roomStates: ROOM_STATES,
+  sightlineFoci: SIGHTLINE_FOCI,
+});
 const REGION_EDGES = Object.freeze([
   Object.freeze({ from: 'entrance', to: 'life' }),
   Object.freeze({ from: 'life', to: 'work' }),
@@ -28,6 +74,7 @@ const TOWN_KEYS = Object.freeze([
   'guild',
   'investigations',
   'rewards',
+  'evidence',
 ]);
 const PLAN_KEYS = Object.freeze([
   'format',
@@ -304,6 +351,21 @@ function normalizeRecordArray(value, path, issues, prefix) {
   return records;
 }
 
+function normalizeGuildRecordArray(value, path, issues, prefix) {
+  const records = normalizeRecordArray(value, path, issues, prefix);
+  return records.map((record, index) => {
+    // The 30 -> 40 contract is a closed selector boundary. A repository may
+    // describe an unknown role explicitly, but it may not invent a new role
+    // token that this module silently rewrites. Reject it with a structured
+    // validation issue so the caller can distinguish malformed input from a
+    // truthful unknown observation.
+    if (!NPC_ROLE_VOCABULARY.includes(record.kind)) {
+      issues.push(issue(`${path}[${index}].kind`, 'must use the finite NPC role vocabulary', 'INVALID_NPC_ROLE'));
+    }
+    return record;
+  });
+}
+
 function normalizeTownModel(town) {
   const issues = [];
   if (!assertRecord(town, '$', issues)) fail('TownModel must be a plain object', issues);
@@ -328,10 +390,7 @@ function normalizeTownModel(town) {
   if (Array.isArray(town.facilities) && town.facilities.length !== 14) {
     issues.push(issue('$.facilities', 'must contain the fourteen canonical facilities', 'INVALID_FACILITY_COUNT'));
   }
-  const canonicalFacilityKinds = new Set([
-    'inn', 'pub', 'guild', 'town_hall', 'dock', 'warehouse', 'well', 'workshop',
-    'dojo', 'watchtower', 'house', 'shop', 'ruin', 'gate',
-  ]);
+  const canonicalFacilityKinds = new Set(FACILITY_KINDS);
   if (Array.isArray(town.facilities)) {
     for (const [index, facility] of town.facilities.entries()) {
       const path = `$.facilities[${index}]`;
@@ -414,8 +473,8 @@ function normalizeTownModel(town) {
     if (assertArray(town.guild.representativeConnections, '$.guild.representativeConnections', issues) && town.guild.representativeConnections.length > 3) {
       issues.push(issue('$.guild.representativeConnections', 'must contain at most three representatives', 'INVALID_GUILD_REPRESENTATIVES'));
     }
-    const representatives = normalizeRecordArray(town.guild.representativeConnections, '$.guild.representativeConnections', issues, 'representative');
-    const connections = normalizeRecordArray(town.guild.connections, '$.guild.connections', issues, 'connection');
+    const representatives = normalizeGuildRecordArray(town.guild.representativeConnections, '$.guild.representativeConnections', issues, 'representative');
+    const connections = normalizeGuildRecordArray(town.guild.connections, '$.guild.connections', issues, 'connection');
     guild = {
       tabs: Array.isArray(town.guild.tabs) ? stableClone(town.guild.tabs) : [],
       representativeConnections: representatives,
@@ -432,14 +491,16 @@ function normalizeTownModel(town) {
       issues.push(issue('$.investigations', 'must contain exactly candidates and priority', 'INVALID_INVESTIGATIONS'));
     }
     const candidates = normalizeRecordArray(town.investigations.candidates, '$.investigations.candidates', issues, 'candidate');
-    if (Array.isArray(town.investigations.candidates) && town.investigations.candidates.length > 3) {
-      issues.push(issue('$.investigations.candidates', 'must contain at most three candidates', 'INVALID_CANDIDATE_COUNT'));
+    if (Array.isArray(town.investigations.candidates) && town.investigations.candidates.length !== 3) {
+      issues.push(issue('$.investigations.candidates', 'must contain exactly three candidates', 'INVALID_CANDIDATE_COUNT'));
     }
     const expectedPriority = ['entrypoint', 'persistence', 'configuration', 'test', 'observability', 'recovery'];
     if (JSON.stringify(town.investigations.priority) !== JSON.stringify(expectedPriority)) {
       issues.push(issue('$.investigations.priority', 'must preserve the six habitability priorities', 'INVALID_INVESTIGATION_PRIORITY'));
     }
     if (Array.isArray(town.investigations.candidates)) {
+      const candidateFacilities = new Set();
+      const candidateQuestions = new Set();
       for (const [index, candidate] of town.investigations.candidates.entries()) {
         const path = `$.investigations.candidates[${index}]`;
         if (!assertRecord(candidate, path, issues)) continue;
@@ -449,12 +510,17 @@ function normalizeTownModel(town) {
         assertNonEmptyString(candidate.id, `${path}.id`, issues);
         assertNullableString(candidate.capability, `${path}.capability`, issues);
         assertNonEmptyString(candidate.facilityKind, `${path}.facilityKind`, issues);
+        if (!FACILITY_KINDS.includes(candidate.facilityKind)) issues.push(issue(`${path}.facilityKind`, 'must use the finite facility vocabulary', 'INVALID_CANDIDATE_FACILITY'));
         assertNonEmptyString(candidate.role, `${path}.role`, issues);
         assertNullableString(candidate.variant, `${path}.variant`, issues);
         assertNonEmptyString(candidate.subject, `${path}.subject`, issues);
         assertNonEmptyString(candidate.statement, `${path}.statement`, issues);
         assertEvidenceState(candidate.state, `${path}.state`, issues);
         validateEvidenceBag(candidate.evidence, `${path}.evidence`, issues);
+        if (candidateFacilities.has(candidate.facilityKind)) issues.push(issue(`${path}.facilityKind`, 'investigation facilities must be distinct', 'DUPLICATE_FACILITY'));
+        if (candidateQuestions.has(`${candidate.subject}\u0000${candidate.statement}`)) issues.push(issue(path, 'investigation questions must be distinct', 'DUPLICATE_QUESTION'));
+        candidateFacilities.add(candidate.facilityKind);
+        candidateQuestions.add(`${candidate.subject}\u0000${candidate.statement}`);
       }
     }
     investigations = {
@@ -471,22 +537,62 @@ function normalizeTownModel(town) {
     if (JSON.stringify(rewardKeys) !== JSON.stringify(['bindings', 'transitions'])) {
       issues.push(issue('$.rewards', 'must contain exactly bindings and transitions', 'INVALID_REWARDS'));
     }
-    const bindings = normalizeRecordArray(town.rewards.bindings, '$.rewards.bindings', issues, 'reward');
-    if (Array.isArray(town.rewards.bindings) && town.rewards.bindings.length !== 9) {
-      issues.push(issue('$.rewards.bindings', 'must contain exactly nine reward bindings', 'INVALID_REWARD_COUNT'));
+    // Reward bindings are a public finite vocabulary, not generic records;
+    // retain their canonical fields verbatim for the WorldPlan boundary.
+    const bindings = Array.isArray(town.rewards.bindings)
+      ? stableClone(town.rewards.bindings)
+      : (assertArray(town.rewards.bindings, '$.rewards.bindings', issues), []);
+    if (Array.isArray(town.rewards.bindings) && town.rewards.bindings.length !== 1) {
+      issues.push(issue('$.rewards.bindings', 'must contain exactly one repository_inspected binding', 'INVALID_REWARD_COUNT'));
+    }
+    if (Array.isArray(town.rewards.bindings) && town.rewards.bindings.length === 1) {
+      const binding = town.rewards.bindings[0];
+      const expected = REPOSITORY_INSPECTION_BINDING;
+      if (!isRecord(binding)
+        || JSON.stringify(Object.keys(binding).sort(compareStrings)) !== JSON.stringify(['effect', 'event', 'facilityKind', 'id', 'transition'])
+        || binding.id !== expected.id
+        || binding.event !== expected.event
+        || binding.transition !== expected.transition
+        || binding.facilityKind !== expected.facilityKind
+        || binding.effect !== expected.effect) {
+        issues.push(issue('$.rewards.bindings[0]', 'must be the canonical repository_inspected town-hall lantern binding', 'INVALID_REWARD_BINDING'));
+      }
     }
     const transitions = Array.isArray(town.rewards.transitions) ? stableClone(town.rewards.transitions) : [];
     if (Array.isArray(town.rewards.transitions)) {
+      const inspectionCompleted = Array.isArray(town.evidence?.observed)
+        && town.evidence.observed.includes('repository.inspection.completed');
+      const expectedTransitionCount = inspectionCompleted ? 1 : 0;
+      if (town.rewards.transitions.length !== expectedTransitionCount) {
+        issues.push(issue(
+          '$.rewards.transitions',
+          `must contain exactly ${expectedTransitionCount} transition(s) for the inspection-completion evidence state`,
+          'INVALID_REWARD_TRANSITION_COUNT',
+        ));
+      }
       for (const [index, transition] of town.rewards.transitions.entries()) {
         scanEvidenceStates(transition, `$.rewards.transitions[${index}]`, issues);
         const state = transition?.state ?? transition?.evidence?.state ?? transition?.evidence;
-        if (state !== 'observed') issues.push(issue(`$.rewards.transitions[${index}]`, 'reward transitions must be observed events', 'UNOBSERVED_REWARD_TRANSITION'));
+        if (!isRecord(transition)
+          || JSON.stringify(Object.keys(transition).sort(compareStrings)) !== JSON.stringify(['bindingId', 'effect', 'event', 'evidence', 'facilityKind', 'id', 'state'])
+          || transition.id !== REPOSITORY_INSPECTION_TRANSITION_ID
+          || state !== 'observed'
+          || transition?.event !== REPOSITORY_INSPECTION_BINDING.event
+          || transition?.bindingId !== REPOSITORY_INSPECTION_BINDING.id
+          || transition?.facilityKind !== REPOSITORY_INSPECTION_BINDING.facilityKind
+          || transition?.effect !== REPOSITORY_INSPECTION_BINDING.effect
+          || !isRecord(transition?.evidence)
+          || JSON.stringify(transition.evidence.observed) !== JSON.stringify(['repository.inspection.completed'])) {
+          issues.push(issue(`$.rewards.transitions[${index}]`, 'only observed repository_inspected may activate the town-hall lantern', 'UNOBSERVED_REWARD_TRANSITION'));
+        }
       }
     } else {
       issues.push(issue('$.rewards.transitions', 'must be an array', 'INVALID_ARRAY'));
     }
     rewards = { bindings, transitions };
   }
+
+  validateEvidenceBag(town.evidence, '$.evidence', issues);
 
   if (issues.length > 0) fail('TownModel failed the version 1 contract', issues, 'TOWN_MODEL_INVALID');
   const identity = {
@@ -502,7 +608,7 @@ function normalizeTownModel(town) {
     ...((investigations?.candidates ?? []).map((entry) => entry.value?.evidence ?? entry.evidence)),
     ...((rewards?.transitions ?? []).map((entry) => entry.evidence)),
   ];
-  const evidence = mergeEvidenceBags(...evidenceBags);
+  const evidence = mergeEvidenceBags(town.evidence, ...evidenceBags);
   const normalized = {
     schemaVersion: 1,
     repository: {
@@ -700,8 +806,11 @@ function makeL1(identityKey) {
   const centers = makeRegionCenters(identityHash, grid);
   const countRng = makeRng(hashParts(identityHash, 'plot-count'));
   const totalPlots = 12 + countRng.int(9);
-  const regionCounts = Object.fromEntries(REGION_IDS.map((id) => [id, 2]));
-  for (let extra = totalPlots - 10, index = 0; extra > 0; extra -= 1, index += 1) {
+  // Three investigations may legitimately all target work facilities. Keep
+  // three deterministic work plots available so distinct quest sites never
+  // spill into an unrelated region when every work plot is occupied.
+  const regionCounts = Object.fromEntries(REGION_IDS.map((id) => [id, id === 'work' ? 3 : 2]));
+  for (let extra = totalPlots - 11, index = 0; extra > 0; extra -= 1, index += 1) {
     const region = REGION_IDS[(countRng.int(REGION_IDS.length) + index) % REGION_IDS.length];
     regionCounts[region] += 1;
   }
@@ -892,6 +1001,18 @@ function facilityIsApplicable(record) {
   return presence === 'present';
 }
 
+function normalizeNpcMember(member) {
+  const kind = NPC_ROLE_VOCABULARY.includes(member?.kind) ? member.kind : 'unknown';
+  return {
+    ...member,
+    kind,
+    value: {
+      ...(isRecord(member?.value) ? member.value : {}),
+      kind,
+    },
+  };
+}
+
 function makeOccupancy(town, l1, contentHash) {
   const byRegion = Object.fromEntries(REGION_IDS.map((region) => [region, l1.regions.find((entry) => entry.id === region).plotIds]));
   const plotMap = new Map(l1.plots.map((plot) => [plot.id, plot]));
@@ -954,11 +1075,12 @@ function makeL2(town, l1, contentHash) {
     kind: occupant.kind,
     state: occupant.state,
   }));
-  const roster = town.guild.representativeConnections.length > 0
+  const rawRoster = town.guild.representativeConnections.length > 0
     ? town.guild.representativeConnections
-    : (town.guild.connections.length > 0
-      ? town.guild.connections.slice(0, 3)
-      : [{ id: 'ambient-townsperson', kind: 'townsperson', value: { name: 'townsperson' } }]);
+    : town.guild.connections.slice(0, 3);
+  const roster = rawRoster.length > 0
+    ? rawRoster.map((member) => normalizeNpcMember(member))
+    : [{ id: 'ambient-townsperson', kind: 'townsperson', value: { name: 'townsperson', kind: 'townsperson' } }];
   const npcs = roster.map((member, index) => {
     const plot = occupied[index % Math.max(1, occupied.length)]?.plotId ?? l1.regions[index % REGION_IDS.length].anchorPlotId;
     return {
@@ -970,13 +1092,12 @@ function makeL2(town, l1, contentHash) {
       movement: index % 2 === 0 ? 'patrol' : 'idle',
     };
   });
-  const propKinds = ['well', 'tree', 'sign', 'lamp'];
   const props = l1.roads.flatMap((road, roadIndex) => road.path
     .filter((_, pointIndex) => pointIndex > 0 && pointIndex < road.path.length - 1 && pointIndex % 3 === 0)
     .slice(0, 2)
     .map((point, index) => ({
       id: `prop-${road.id}-${index + 1}`,
-      kind: propKinds[(roadIndex + index) % propKinds.length],
+      kind: PROP_KINDS[(roadIndex + index) % PROP_KINDS.length],
       cell: point,
       roadId: road.id,
     })));
@@ -985,6 +1106,14 @@ function makeL2(town, l1, contentHash) {
     { id: 'light-plaza', plotId: l1.regions.find((region) => region.id === 'life').anchorPlotId, state: town.habitability.level > 0 ? 'lit' : 'unknown' },
     ...rooms.map((room) => ({ id: `light-${room.id}`, plotId: room.plotId, state: room.state === 'closed' ? 'unlit' : 'lit' })),
   ];
+  const townHallRoom = rooms.find((room) => room.kind === 'town_hall');
+  lights.push({
+    id: 'light-town-hall-lantern',
+    plotId: townHallRoom?.plotId ?? l1.regions.find((region) => region.id === 'life').anchorPlotId,
+    // P3 carries the evidence-permitted binding only. The lantern remains a
+    // baseline unlit selector until P5 applies the report-time town change.
+    state: 'unlit',
+  });
   const candidates = town.investigations.candidates;
   const occupantPlotByKind = new Map(occupied.map((occupant) => [occupant.kind, occupant.plotId]));
   const questPlots = new Set();
@@ -995,14 +1124,15 @@ function makeL2(town, l1, contentHash) {
     const regionPlots = l1.regions.find((entry) => entry.id === region)?.plotIds ?? l1.plotIds;
     const vacantInRegion = regionPlots.find((plotId) => !questPlots.has(plotId) && occupancy.find((entry) => entry.plotId === plotId)?.state === 'vacant');
     const anyInRegion = regionPlots.find((plotId) => !questPlots.has(plotId));
-    const plotId = matchingFacilityPlot ?? vacantInRegion ?? anyInRegion ?? l1.plotIds[index % l1.plotIds.length];
+    const matchingAvailable = matchingFacilityPlot && !questPlots.has(matchingFacilityPlot) ? matchingFacilityPlot : null;
+    const plotId = matchingAvailable ?? vacantInRegion ?? anyInRegion ?? l1.plotIds.find((candidatePlot) => !questPlots.has(candidatePlot)) ?? l1.plotIds[index % l1.plotIds.length];
     questPlots.add(plotId);
     const evidence = isRecord(candidate.value.evidence) ? stableClone(candidate.value.evidence) : { observed: [], inferred: [], unknown: [`candidate.${candidate.id}.unknown`] };
     return {
       id: `quest-site-${candidate.id}`,
       candidateId: candidate.id,
       plotId,
-      action: candidate.value.action ?? 'inspect',
+      action: QUEST_ACTIONS.includes(candidate.value.action) ? candidate.value.action : 'inspect',
       evidence,
     };
   });
@@ -1163,6 +1293,7 @@ function validatePlanShape(plan) {
   if (!assertRecord(plan.water, '$.water', issues)) {
     // no-op
   } else {
+    if (!WATER_KINDS.includes(plan.water.kind)) issues.push(issue('$.water.kind', 'must use the finite water vocabulary', 'INVALID_WATER_KIND'));
     if (plan.water.crossesMap !== true) issues.push(issue('$.water.crossesMap', 'water must cross the map', 'WATER_NOT_THROUGH'));
     if (!assertArray(plan.water.path, '$.water.path', issues) || plan.water.path.length < 2) {
       issues.push(issue('$.water.path', 'must contain at least two cells', 'INVALID_WATER_PATH'));
@@ -1203,7 +1334,7 @@ function validatePlanShape(plan) {
         issues.push(issue(`${path}.cell`, 'plot rectangle must remain inside the logical grid', 'PLOT_OUT_OF_BOUNDS'));
       }
       assertInteger(plot.elevation, `${path}.elevation`, issues, { min: 0, max: 2 });
-      assertNonEmptyString(plot.terrain, `${path}.terrain`, issues);
+      if (!TERRAINS.includes(plot.terrain)) issues.push(issue(`${path}.terrain`, 'must use the finite terrain vocabulary', 'INVALID_TERRAIN'));
     }
   }
   if (Array.isArray(plan.plots)) {
@@ -1263,7 +1394,7 @@ function validatePlanShape(plan) {
       assertNonEmptyString(road.id, `${path}.id`, issues);
       if (roadIds.has(road.id)) issues.push(issue(`${path}.id`, 'road IDs must be unique', 'DUPLICATE_ID'));
       roadIds.add(road.id);
-      if (!OWN_KEYS.call(counts, road.kind)) issues.push(issue(`${path}.kind`, 'must be main, branch, or dead-end', 'INVALID_ROAD_KIND'));
+      if (!ROAD_KINDS.includes(road.kind)) issues.push(issue(`${path}.kind`, 'must use the finite road vocabulary', 'INVALID_ROAD_KIND'));
       else counts[road.kind] += 1;
       if (!plotIds.has(road.fromPlotId) || !plotIds.has(road.toPlotId)) issues.push(issue(path, 'road endpoints must reference plots', 'UNKNOWN_PLOT'));
       if (!assertArray(road.path, `${path}.path`, issues) || road.path.length < 2) continue;
@@ -1292,6 +1423,7 @@ function validatePlanShape(plan) {
       const path = `$.sightlines[${index}]`;
       if (!assertRecord(sightline, path, issues)) continue;
       for (const key of ['fromPlotId', 'toPlotId']) if (!plotIds.has(sightline[key])) issues.push(issue(`${path}.${key}`, 'must reference a plot', 'UNKNOWN_PLOT'));
+      if (!SIGHTLINE_FOCI.includes(sightline.focus)) issues.push(issue(`${path}.focus`, 'must use the finite sightline vocabulary', 'INVALID_SIGHTLINE_FOCUS'));
     }
   }
   if (!assertRecord(plan.nav, '$.nav', issues)) {
@@ -1322,12 +1454,30 @@ function validatePlanShape(plan) {
     for (const [index, entry] of plan[key].entries()) {
       if (!assertRecord(entry, `$.${key}[${index}]`, issues)) continue;
       if (OWN_KEYS.call(entry, 'plotId') && !plotIds.has(entry.plotId)) issues.push(issue(`$.${key}[${index}].plotId`, 'must reference a plot', 'UNKNOWN_PLOT'));
+      if (key === 'occupancy' && !OCCUPANCY_STATES.includes(entry.state)) issues.push(issue(`$.${key}[${index}].state`, 'must use the finite occupancy vocabulary', 'INVALID_OCCUPANCY'));
+      if (key === 'occupancy' && Array.isArray(entry.occupants)) {
+        for (const [occupantIndex, occupant] of entry.occupants.entries()) {
+          if (!FACILITY_KINDS.includes(occupant?.kind)) issues.push(issue(`$.${key}[${index}].occupants[${occupantIndex}].kind`, 'must use the finite facility vocabulary', 'INVALID_FACILITY_KIND'));
+        }
+      }
+      if (key === 'rooms' && (!FACILITY_KINDS.includes(entry.kind) || !ROOM_STATES.includes(entry.state))) {
+        if (!FACILITY_KINDS.includes(entry.kind)) issues.push(issue(`$.${key}[${index}].kind`, 'must use the finite room/facility vocabulary', 'INVALID_ROOM_KIND'));
+        if (!ROOM_STATES.includes(entry.state)) issues.push(issue(`$.${key}[${index}].state`, 'must use the finite room-state vocabulary', 'INVALID_ROOM_STATE'));
+      }
+      if (key === 'npcs' && (!NPC_ROLE_VOCABULARY.includes(entry.role) || !NPC_MOVEMENTS.includes(entry.movement))) {
+        if (!NPC_ROLE_VOCABULARY.includes(entry.role)) issues.push(issue(`$.${key}[${index}].role`, 'must use the finite NPC role vocabulary', 'INVALID_NPC_ROLE'));
+        if (!NPC_MOVEMENTS.includes(entry.movement)) issues.push(issue(`$.${key}[${index}].movement`, 'must use the finite NPC movement vocabulary', 'INVALID_NPC_MOVEMENT'));
+      }
+      if (key === 'props' && !PROP_KINDS.includes(entry.kind)) issues.push(issue(`$.${key}[${index}].kind`, 'must use the finite prop vocabulary', 'INVALID_PROP_KIND'));
+      if (key === 'lights' && !LIGHT_STATES.includes(entry.state)) issues.push(issue(`$.${key}[${index}].state`, 'must use the finite light-state vocabulary', 'INVALID_LIGHT_STATE'));
+      if (key === 'questSites' && entry.action !== undefined && !QUEST_ACTIONS.includes(entry.action)) issues.push(issue(`$.${key}[${index}].action`, 'must use the finite quest-action vocabulary', 'INVALID_QUEST_ACTION'));
     }
   }
   if (Array.isArray(plan.questSites) && isRecord(plan.townState?.investigations)) {
     const candidates = new Map((plan.townState.investigations.candidates ?? []).map((candidate) => [candidate.id, candidate]));
     const occupantPlotByKind = new Map(plan.occupancy.flatMap((entry) => entry.occupants.map((occupant) => [occupant.kind, entry.plotId])));
     const seenCandidates = new Set();
+    const seenQuestPlots = new Set();
     for (const [index, site] of plan.questSites.entries()) {
       const path = `$.questSites[${index}]`;
       if (!isRecord(site)) continue;
@@ -1340,6 +1490,8 @@ function validatePlanShape(plan) {
       if (!candidate) issues.push(issue(`${path}.candidateId`, 'must reference a TownModel investigation candidate', 'UNKNOWN_CANDIDATE'));
       if (seenCandidates.has(site.candidateId)) issues.push(issue(`${path}.candidateId`, 'candidate may be placed only once', 'DUPLICATE_ID'));
       seenCandidates.add(site.candidateId);
+      if (seenQuestPlots.has(site.plotId)) issues.push(issue(`${path}.plotId`, 'investigation sites must use distinct plots', 'DUPLICATE_QUEST_PLOT'));
+      seenQuestPlots.add(site.plotId);
       if (candidate) {
         const occupiedPlot = occupantPlotByKind.get(candidate.facilityKind);
         const actualRegion = plan.nav.regionByPlot[site.plotId];
@@ -1347,7 +1499,7 @@ function validatePlanShape(plan) {
         if (!occupiedPlot && actualRegion !== facilityRegion(candidate.facilityKind)) issues.push(issue(`${path}.plotId`, 'must use a vacant/planned plot in the corresponding facility region', 'QUEST_FACILITY_MISMATCH'));
       }
     }
-    if (seenCandidates.size !== candidates.size) issues.push(issue('$.questSites', 'must place every real investigation candidate exactly once', 'QUEST_UNASSIGNED'));
+    if (seenCandidates.size !== candidates.size || seenCandidates.size !== 3 || seenQuestPlots.size !== 3) issues.push(issue('$.questSites', 'must place exactly three distinct investigation candidates and plots', 'QUEST_UNASSIGNED'));
   }
   if (!assertArray(plan.rewardBindings, '$.rewardBindings', issues)) {
     // no-op
@@ -1356,7 +1508,19 @@ function validatePlanShape(plan) {
       if (!assertRecord(binding, `$.rewardBindings[${index}]`, issues)) continue;
       assertNonEmptyString(binding.id, `$.rewardBindings[${index}].id`, issues);
     }
-    if (plan.rewardBindings.length !== 9) issues.push(issue('$.rewardBindings', 'must contain exactly nine bindings', 'INVALID_REWARD_COUNT'));
+    if (plan.rewardBindings.length !== 1) issues.push(issue('$.rewardBindings', 'must contain exactly one binding', 'INVALID_REWARD_COUNT'));
+    if (plan.rewardBindings.length === 1) {
+      const binding = plan.rewardBindings[0];
+      if (!isRecord(binding)
+        || JSON.stringify(Object.keys(binding).sort(compareStrings)) !== JSON.stringify(['effect', 'event', 'facilityKind', 'id', 'transition'])
+        || binding.id !== REPOSITORY_INSPECTION_BINDING.id
+        || binding.event !== REPOSITORY_INSPECTION_BINDING.event
+        || binding.transition !== REPOSITORY_INSPECTION_BINDING.transition
+        || binding.facilityKind !== REPOSITORY_INSPECTION_BINDING.facilityKind
+        || binding.effect !== REPOSITORY_INSPECTION_BINDING.effect) {
+        issues.push(issue('$.rewardBindings[0]', 'must be the canonical repository_inspected town-hall lantern binding', 'INVALID_REWARD_BINDING'));
+      }
+    }
   }
   if (!assertRecord(plan.townState, '$.townState', issues)) {
     // Domain content is required by the scene compiler and runtime.
@@ -1384,7 +1548,27 @@ function validatePlanShape(plan) {
       // no-op
     } else {
       assertArray(plan.townState.rewards.bindings, '$.townState.rewards.bindings', issues);
-      assertArray(plan.townState.rewards.transitions, '$.townState.rewards.transitions', issues);
+      if (assertArray(plan.townState.rewards.transitions, '$.townState.rewards.transitions', issues)) {
+        if (plan.townState.rewards.transitions.length !== 1) {
+          issues.push(issue('$.townState.rewards.transitions', 'must contain exactly one observed repository_inspected transition', 'INVALID_REWARD_TRANSITION_COUNT'));
+        }
+        for (const [index, transition] of plan.townState.rewards.transitions.entries()) {
+          const path = `$.townState.rewards.transitions[${index}]`;
+          if (!isRecord(transition)
+            || JSON.stringify(Object.keys(transition).sort(compareStrings)) !== JSON.stringify(['bindingId', 'effect', 'event', 'evidence', 'facilityKind', 'id', 'state'])
+            || transition.id !== REPOSITORY_INSPECTION_TRANSITION_ID
+            || transition.event !== REPOSITORY_INSPECTION_BINDING.event
+            || transition.bindingId !== REPOSITORY_INSPECTION_BINDING.id
+            || transition.facilityKind !== REPOSITORY_INSPECTION_BINDING.facilityKind
+            || transition.effect !== REPOSITORY_INSPECTION_BINDING.effect
+            || transition.state !== 'observed'
+            || !isRecord(transition.evidence)
+            || JSON.stringify(transition.evidence.observed) !== JSON.stringify(['repository.inspection.completed'])) {
+            issues.push(issue(path, 'must be the canonical observed repository_inspected transition', 'INVALID_REWARD_TRANSITION'));
+          }
+          validateEvidenceBag(transition?.evidence, `${path}.evidence`, issues);
+        }
+      }
     }
   }
   if (assertArray(plan.occupancy, '$.occupancy', issues)) {
@@ -1400,6 +1584,9 @@ function validatePlanShape(plan) {
     if (occupancyPlots.size !== plotIds.size) issues.push(issue('$.occupancy', 'must include every plot', 'INVALID_OCCUPANCY'));
   }
   validateEvidenceBag(plan.evidence, '$.evidence', issues);
+  if (isRecord(plan.evidence) && !plan.evidence.observed.includes('repository.inspection.completed')) {
+    issues.push(issue('$.evidence.observed', 'must retain observed repository inspection completion', 'INSPECTION_NOT_COMPLETED'));
+  }
   if (!assertRecord(plan.l1, '$.l1', issues)) {
     // no-op
   }

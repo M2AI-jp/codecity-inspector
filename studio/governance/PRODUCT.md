@@ -427,6 +427,15 @@ every item has an exact submitted candidate; each candidate has visible review
 material and reports every mechanical check as passed, failed, or unknown;
 originals are unchanged; no machine promotion command, paid API, external
 service, API key, or separately built image-generation platform is required.
+Current checkpoint evidence does not cover P1: the deterministic demand artifact
+records 60 sorted, unique, source-traced selectors, 22/22 immutable-original
+custody, and zero candidate PNGs; a fresh derivation equals the checked-in
+artifact. Five building selectors have filename-level reference gaps, every
+candidate state is `none`, and no sidecar, provenance record, review set, or H1
+approval exists. `water:default` is bound by one exact hash-traced public-index
+literal; that bounded read does not prove general scene composition. The
+unchanged scene compiler still rejects the new reward transition with
+`REWARD_TRANSITION_INVALID`, which is recorded as a P4 blocker.
 
 **Owner dependency:** the Lead batches the complete exact candidate set for H1
 and minimizes review cycles. A rejection reopens only that selector's work
@@ -487,7 +496,7 @@ browser play, or the KGI.
 **Stop condition:** stop when every frozen v1 selector resolves to an approved
 byte and the generated catalog validates; block on any missing or changed byte.
 
-### [ ] P3 — Repository intelligence completes the truthful journey contract
+### [x] P3 — Repository intelligence completes the truthful journey contract
 
 **Subject/action/object:** Modules `10` through `40` convert every accepted
 repository into exactly three distinct evidence-grounded investigations and
@@ -499,10 +508,21 @@ objects containing three reachable questions, separate evidence bags, and the
 town-hall-lantern transition. The other former execution-result rewards are
 removed from the v1 contract.
 
-**Acceptance evidence:** empty, small, and representative inert repositories
-each yield exactly three questions and one observed inspection event; trap
-scripts/hooks/binaries remain unexecuted; inferred/unknown facts never become
-observed; repeated identical bytes produce byte-identical output.
+**Acceptance evidence:** the frozen empty, small, and representative inert
+regular-directory cohort each produces exactly three distinct candidate IDs,
+facility kinds, and WorldPlan plots plus the single canonical
+`repository_inspected` binding and observed transition. The representative
+fixture includes lifecycle/build/test traps, a Git hook, executable shell and
+ELF-like bytes, excluded dependency/build directories, credential-bearing Git
+configuration, and an out-of-root symlink sentinel; before/after byte hashes,
+modes, mtimes, and outside snapshots remain identical and no marker appears.
+Root symlinks are rejected and internal symlinks are not followed. Repeated
+inspection and WorldPlan serialization are byte-identical; malformed evidence,
+arbitrary NPC roles, and zero or duplicate inspection transitions are rejected
+at the public boundaries. This targeted evidence covers backend truth and
+determinism only for that synthetic cohort; it does not prove approved art,
+scene compilation, browser behavior, package acquisition, privacy capture,
+persistence, distribution/security, or the KGI journey.
 
 **Three-view value:** the owner receives the core repository-to-game meaning
 instead of more infrastructure; the Lead obtains a truthful serialized contract;

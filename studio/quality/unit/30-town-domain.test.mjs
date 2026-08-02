@@ -28,6 +28,11 @@ function semantic(overrides = {}) {
       distribution: { state: 'unknown', evidence: [] },
       externalConnections: { state: 'inferred', evidence: ['cap.external'] },
     },
+    evidence: {
+      observed: ['repository.inspection.completed'],
+      inferred: [],
+      unknown: ['repository.inspection.runtime.unknown'],
+    },
     ...overrides,
   };
 }
@@ -57,35 +62,26 @@ test('buildTownModel emits canonical facilities, guild tabs, and ordered investi
   assert.equal(validateTownModel(model).ok, true);
 });
 
-test('only observed transitions activate one of the nine allowed reward bindings', () => {
+// T2 obligation: prevent reward fabrication from customer-controlled event
+// fields and keep the one observed inspection binding explicit. Passing does
+// not prove scene composition, browser rendering, or the KGI journey.
+test('only observed inspection completion activates the single permitted binding', () => {
   const model = buildTownModel({
     ...semantic(),
     transitions: [
-      { id: 'claim-build', event: 'build', state: 'inferred', source: 'self-report' },
-      { id: 'real-build', event: 'build_passed', state: 'observed', evidence: { observed: ['run.build'], inferred: [], unknown: [] } },
-      { id: 'unknown-api', event: 'external_api_responded', state: 'unknown' },
+      { id: 'customer-claim', event: 'customer-controlled-arbitrary', state: 'observed', evidence: { observed: ['run.anything'], inferred: [], unknown: [] } },
     ],
   });
-  assert.equal(model.rewards.bindings.length, 9);
-  assert.deepEqual(model.rewards.bindings.map((binding) => binding.id), [
-    'reward.build_passed', 'reward.local_run', 'reward.public_url_responded', 'reward.real_access',
-    'reward.external_api_responded', 'reward.distribution_released', 'reward.logs_recorded',
-    'reward.tests_passed', 'reward.rollback_confirmed',
-  ]);
-  assert.deepEqual(model.rewards.transitions.map((transition) => transition.event), ['build_passed']);
+  assert.deepEqual(model.rewards.bindings, [{
+    id: 'repository_inspected',
+    event: 'repository_inspected',
+    transition: 'repository_inspected',
+    facilityKind: 'town_hall',
+    effect: 'town_hall_lantern_lit',
+  }]);
+  assert.deepEqual(model.rewards.transitions.map((transition) => transition.event), ['repository_inspected']);
   assert.equal(model.rewards.transitions[0].state, 'observed');
-});
-
-test('an observedTransitions field name cannot upgrade inferred or unknown evidence into a reward', () => {
-  const model = buildTownModel({
-    ...semantic(),
-    observedTransitions: [
-      { id: 'unknown-build', event: 'build_passed', state: 'observed', evidence: { observed: [], inferred: [], unknown: ['build.not-verified'] } },
-      { id: 'inferred-run', event: 'local_run', evidence: { observed: [], inferred: ['manifest.script'], unknown: [] } },
-      { id: 'verified-test', event: 'tests_passed', evidence: { observed: ['inspection.test-result'], inferred: [], unknown: [] } },
-    ],
-  });
-  assert.deepEqual(model.rewards.transitions.map((transition) => transition.event), ['tests_passed']);
+  assert.equal(model.rewards.transitions[0].evidence.observed[0], 'repository.inspection.completed');
   const corrupted = structuredClone(model);
   corrupted.rewards.transitions[0].evidence = { observed: [], inferred: [], unknown: ['not-run'] };
   assert.equal(validateTownModel(corrupted).ok, false);
@@ -97,6 +93,19 @@ test('unknown evidence is not converted into missing and an invalid model is rej
   assert.equal(model.facilities.find((facility) => facility.kind === 'ruin').presence, 'not_applicable');
   const invalid = { ...model, facilities: model.facilities.filter((facility) => facility.kind !== 'shop') };
   assert.equal(validateTownModel(invalid).ok, false);
+});
+
+test('top-level evidence rejects malformed tri-state bags', () => {
+  const malformed = buildTownModel(semantic());
+  malformed.evidence = {
+    observed: ['repository.inspection.completed'],
+    inferred: [],
+    unknown: [],
+    extra: ['customer-controlled-arbitrary'],
+  };
+  const result = validateTownModel(malformed);
+  assert.equal(result.ok, false);
+  assert.ok(result.issues.some(({ code, path }) => code === 'EVIDENCE' && path === 'evidence'));
 });
 
 test('library personality keeps service-only facilities out of expectations', () => {
