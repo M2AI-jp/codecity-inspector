@@ -5,6 +5,16 @@ export const LOGICAL_SIZE = Object.freeze({ width: 384, height: 216 });
 export const DIRECTIONS = Object.freeze(['up', 'down', 'left', 'right']);
 export const QUEST_CHOICES = Object.freeze(['見た', 'そうらしい', 'わからない']);
 export const GUILD_TAB_LABELS = Object.freeze(['なかま', 'うけつけ', 'いらい', 'もちもの', 'じょうたい']);
+// The browser distribution serves only the self-contained 70-runtime module.
+// Keep its single accepted serialized transition local instead of importing a
+// build-time domain module that is intentionally absent from the web artifact.
+export const RUNTIME_REPOSITORY_INSPECTION_BINDING = Object.freeze({
+  id: 'repository_inspected',
+  event: 'repository_inspected',
+  transition: 'repository_inspected',
+  facilityKind: 'town_hall',
+  effect: 'town_hall_lantern_lit',
+});
 
 const KEY_TO_DIRECTION = Object.freeze({
   ArrowUp: 'up', KeyW: 'up',
@@ -26,15 +36,7 @@ const DIALOGUE_ENDINGS = Object.freeze({
   'わからない': 'まだ、わかりません。',
 });
 const PERSISTED_REWARD_CHANGES = Object.freeze({
-  build_passed: Object.freeze({ bindingId: 'reward.build_passed', facilityKind: 'workshop', effect: 'forge_fire' }),
-  local_run: Object.freeze({ bindingId: 'reward.local_run', facilityKind: 'town_hall', effect: 'town_powered' }),
-  public_url_responded: Object.freeze({ bindingId: 'reward.public_url_responded', facilityKind: 'inn', effect: 'inn_lit' }),
-  real_access: Object.freeze({ bindingId: 'reward.real_access', facilityKind: 'inn', effect: 'traveler_arrived' }),
-  external_api_responded: Object.freeze({ bindingId: 'reward.external_api_responded', facilityKind: 'pub', effect: 'pub_bustle' }),
-  distribution_released: Object.freeze({ bindingId: 'reward.distribution_released', facilityKind: 'dock', effect: 'ship_departed' }),
-  logs_recorded: Object.freeze({ bindingId: 'reward.logs_recorded', facilityKind: 'watchtower', effect: 'watch_lit' }),
-  tests_passed: Object.freeze({ bindingId: 'reward.tests_passed', facilityKind: 'dojo', effect: 'inspection_stamp' }),
-  rollback_confirmed: Object.freeze({ bindingId: 'reward.rollback_confirmed', facilityKind: 'shop', effect: 'repair_tools' }),
+  [RUNTIME_REPOSITORY_INSPECTION_BINDING.event]: RUNTIME_REPOSITORY_INSPECTION_BINDING,
 });
 
 export function createInitialState(bundle, persisted = null) {
@@ -59,7 +61,7 @@ export function createInitialState(bundle, persisted = null) {
     moving: false,
     footbox: { ...game.player.footbox },
   };
-  if (!canOccupy(game, player, player.x, player.y)) {
+  if (!canOccupy(bundle, savedRoom ? 'room' : 'explore', savedRoom?.id ?? null, player, player.x, player.y)) {
     savedRoom = null;
     player = { ...player, x: game.spawn.x, y: game.spawn.y };
   }
@@ -144,7 +146,7 @@ function normalizePersistedTownChange(value) {
   if (JSON.stringify(Object.keys(value).sort()) !== JSON.stringify(keys)) return null;
   const expected = PERSISTED_REWARD_CHANGES[value.event];
   if (!expected || typeof value.id !== 'string' || value.id.trim() === '' || value.state !== 'observed'
-    || value.bindingId !== expected.bindingId || value.facilityKind !== expected.facilityKind || value.effect !== expected.effect) return null;
+    || value.bindingId !== expected.id || value.facilityKind !== expected.facilityKind || value.effect !== expected.effect) return null;
   if (!isRecord(value.evidence) || JSON.stringify(Object.keys(value.evidence).sort()) !== JSON.stringify(['inferred', 'observed', 'unknown'])) return null;
   for (const state of ['observed', 'inferred', 'unknown']) {
     if (!Array.isArray(value.evidence[state]) || value.evidence[state].some((entry) => typeof entry !== 'string' || entry.trim() === '')) return null;
@@ -180,9 +182,9 @@ export function reduceGameState(state, action, bundle) {
     case 'GAMEPAD_INPUT':
       return onGamepadInput(state, action.directions);
     case 'TICK':
-      return advance(state, game, finite(action.dtMs, 0));
+      return advance(state, bundle, finite(action.dtMs, 0));
     case 'MOVE':
-      return moveExplicit(state, game, action);
+      return moveExplicit(state, bundle, action);
     case 'INTERACT':
       return interact(state, game);
     case 'CHOOSE':
@@ -294,7 +296,8 @@ function onGamepadInput(state, directions) {
   };
 }
 
-function advance(state, game, dtMs) {
+function advance(state, bundle, dtMs) {
+  const game = bundle.game;
   const elapsed = Math.max(0, Math.min(dtMs, 250));
   const animated = { ...state, animationMs: (state.animationMs + elapsed) % 3_600_000 };
   if (state.phase !== 'explore' && state.phase !== 'room') return { ...animated, player: { ...state.player, moving: false } };
@@ -303,17 +306,19 @@ function advance(state, game, dtMs) {
   if (!direction || elapsed <= 0) return { ...animated, player: { ...state.player, moving: false } };
   const speed = state.input.shift ? game.player.speeds.walk : game.player.speeds.run;
   const distance = speed * elapsed / 1000;
-  return moveInDirection(animated, game, direction, distance);
+  return moveInDirection(animated, bundle, direction, distance);
 }
 
-function moveExplicit(state, game, action) {
+function moveExplicit(state, bundle, action) {
+  const game = bundle.game;
   const direction = DIRECTIONS.includes(action.direction) ? action.direction : state.player.direction;
   const seconds = Math.max(0, Math.min(finite(action.seconds, 0), 0.25));
   const speed = action.walk === true ? game.player.speeds.walk : game.player.speeds.run;
-  return moveInDirection(state, game, direction, speed * seconds);
+  return moveInDirection(state, bundle, direction, speed * seconds);
 }
 
-function moveInDirection(state, game, direction, distance) {
+function moveInDirection(state, bundle, direction, distance) {
+  const game = bundle.game;
   const vector = DIRECTION_VECTOR[direction];
   let x = state.player.x;
   let y = state.player.y;
@@ -325,7 +330,7 @@ function moveInDirection(state, game, direction, distance) {
     const step = Math.min(1, remaining);
     const nextX = x + vector.x * step;
     const nextY = y + vector.y * step;
-    if (!canOccupy(game, state.player, nextX, nextY)) break;
+    if (!canOccupy(bundle, state.phase, state.roomId, state.player, nextX, nextY)) break;
     x = nextX;
     y = nextY;
     remaining -= step;
@@ -360,14 +365,23 @@ function interact(state, game) {
   if (state.dialogue?.kind === 'report') return report(state, game);
   if (state.dialogue) return state;
   const foot = playerFootRect(state.player);
-  if (state.quest.status === 'available' && intersects(foot, game.request.rect)) return { ...state, dialogue: { kind: 'request', prompt: game.request.prompt, lines: ['街の三か所を、確かめてくれますか。'] } };
-  const questIndex = state.quest.accepted ? game.quests.findIndex((quest, index) => !state.quest.answers[index] && intersects(foot, quest.rect)) : -1;
+  const outdoors = state.phase === 'explore';
+  if (outdoors && state.quest.status === 'available' && intersects(foot, game.request.rect)) return { ...state, dialogue: { kind: 'request', prompt: game.request.prompt, lines: ['街の三か所を、確かめてくれますか。'] } };
+  const questIndex = outdoors && state.quest.accepted ? game.quests.findIndex((quest, index) => !state.quest.answers[index] && intersects(foot, quest.rect)) : -1;
   if (questIndex >= 0) return openQuestDialogue(state, game, questIndex);
-  if (state.quest.status === 'ready_report' && intersects(foot, game.report.rect)) return { ...state, phase: 'report', dialogue: { kind: 'report', prompt: game.report.prompt, lines: ['調査の記録を役場へ届けますか。'] } };
-  const npc = game.npcs.find((entry) => intersects(foot, entry.interactionRect));
+  if (outdoors && state.quest.status === 'ready_report' && intersects(foot, game.report.rect)) return { ...state, phase: 'report', dialogue: { kind: 'report', prompt: game.report.prompt, lines: ['調査の記録を役場へ届けますか。'] } };
+  const npc = game.npcs.find((entry) => {
+    const inActiveRoom = state.phase === 'room' && entry.cutawayId === state.roomId;
+    const outsideActiveRoom = outdoors && !entry.cutawayId;
+    return (inActiveRoom || outsideActiveRoom) && intersects(foot, entry.interactionRect);
+  });
   if (npc) {
     if (npc.kind === 'guild') return { ...state, guild: { open: true, tabIndex: 0 } };
-    return { ...state, dialogue: { kind: 'npc', npcId: npc.id, prompt: npc.prompt, lines: [...npc.dialogue] } };
+    // A sparse repository model may not have dialogue copy for a resident.
+    // Keep the interaction readable without inventing a claim about the
+    // inspected repository.
+    const lines = npc.dialogue.length > 0 ? [...npc.dialogue] : ['住民に話しかけました。'];
+    return { ...state, dialogue: { kind: 'npc', npcId: npc.id, prompt: npc.prompt, lines } };
   }
   return state;
 }
@@ -455,8 +469,16 @@ function activeDirection(state) {
   return DIRECTIONS.find((direction) => state.input[direction] || gamepad[direction]) ?? null;
 }
 
-function canOccupy(game, player, x, y) {
+function canOccupy(bundle, phase, roomId, player, x, y) {
+  const game = bundle.game;
   const foot = playerFootRect({ ...player, x, y });
+  if (phase === 'room') {
+    const room = game.rooms.find((entry) => entry.id === roomId);
+    if (!room || !contains(room.bounds, foot)) return false;
+    const roomCollisions = bundle.collisions?.interiorByRoom?.find((entry) => entry.roomId === roomId);
+    if (!roomCollisions || !Array.isArray(roomCollisions.solidRects)) return false;
+    return !roomCollisions.solidRects.some((rect) => intersects(foot, rect));
+  }
   if (foot.x < 0 || foot.y < 0 || foot.x + foot.width > game.worldSize.width || foot.y + foot.height > game.worldSize.height) return false;
   return !game.collisions.some((rect) => intersects(foot, rect));
 }
@@ -484,6 +506,12 @@ function updateCamera(state, game) {
 
 function intersects(a, b) {
   return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+}
+
+function contains(outer, inner) {
+  return inner.x >= outer.x && inner.y >= outer.y
+    && inner.x + inner.width <= outer.x + outer.width
+    && inner.y + inner.height <= outer.y + outer.height;
 }
 
 function integerScale(value) { return clamp(Number.isFinite(value) ? Math.round(value) : 1, 1, 4); }

@@ -15,7 +15,7 @@ import {
 const HASH = 'a'.repeat(64);
 
 function asset(selector) {
-  const character = selector === 'player' || selector === 'npc';
+  const character = selector === 'player' || selector.startsWith('npc');
   const player = selector === 'player';
   const directions = ['north', 'south', 'east', 'west'];
   const animation = (frames) => Object.fromEntries(directions.map((direction) => [direction, { frames, fps: 8 }]));
@@ -65,7 +65,7 @@ function bundle({ questCount = 3, reportChange = null } = {}) {
     world: { identity: { key: 'repo-test', name: 'Test Repo' }, contentDigest: 'b'.repeat(64), seed: 1, townType: 'town', climate: 'clear', terrain: 'grass', grid: { width: 32, height: 23 } },
     assets,
     layers: { terrain: {}, water: {}, roads: [], plots: [], buildings: [], props: [], lights: [] },
-    collisions: { blockedPlotIds: [], blockedCells: [], waterCells: [], vacantPlotIds: [] },
+    collisions: { solidRects: [], entranceRects: [], blockedPlotIds: [], blockedCells: [], waterCells: [], vacantPlotIds: [], interiorByRoom: [{ roomId: 'room-1', solidRects: [] }] },
     nav: { nodes: [], edges: [] },
     rooms: [{ id: 'room-1', bounds: { x: 80, y: 80, width: 80, height: 60 }, cutawayIds: ['roof-1'], asset: assets[2] }],
     actors: [],
@@ -182,6 +182,46 @@ test('player footbox blocks collisions and entrance transitions use both spawn p
   assert.deepEqual({ x: state.player.x, y: state.player.y }, scene.game.entrances[0].exteriorSpawn);
 });
 
+test('collision geometry switches from exterior walls to the active room interior', () => {
+  const scene = bundle({ questCount: 0 });
+  scene.game.collisions = [{ x: 104, y: 96, width: 8, height: 16 }];
+  scene.collisions.interiorByRoom[0].solidRects = [{ x: 108, y: 96, width: 8, height: 16 }];
+  let state = createInitialState(scene);
+  state = reduceGameState(state, { type: 'MOVE', direction: 'right', seconds: 0.25 }, scene);
+  assert.equal(state.phase, 'room');
+  state = reduceGameState(state, { type: 'MOVE', direction: 'right', seconds: 0.25 }, scene);
+  assert.equal(state.player.x, 104, 'the exterior wall does not remain active indoors');
+  state = reduceGameState(state, { type: 'MOVE', direction: 'right', seconds: 0.25 }, scene);
+  assert.equal(state.player.x, 104, 'the active room solid rectangle blocks the footbox');
+  state = reduceGameState(state, { type: 'MOVE', direction: 'up', seconds: 0.25 }, scene);
+  assert.ok(state.player.y >= 80 && state.player.y < 82, 'room bounds prevent leaving the interior map');
+});
+
+test('every room requires one collision map and a missing active-room map fails closed', () => {
+  const missing = bundle({ questCount: 0 });
+  missing.collisions.interiorByRoom = [];
+  const missingValidation = validateSceneBundle(missing);
+  assert.equal(missingValidation.ok, false);
+  assert.ok(missingValidation.issues.some((entry) => entry.code === 'INTERIOR_ROOM_MISSING'));
+
+  const absent = bundle({ questCount: 0 });
+  delete absent.collisions.interiorByRoom;
+  assert.equal(validateSceneBundle(absent).ok, false);
+
+  const extra = bundle({ questCount: 0 });
+  extra.collisions.interiorByRoom.push({ roomId: 'room-unknown', solidRects: [] });
+  assert.ok(validateSceneBundle(extra).issues.some((entry) => entry.code === 'INTERIOR_ROOM_UNKNOWN'));
+
+  const incomplete = bundle({ questCount: 0 });
+  incomplete.collisions.interiorByRoom = [];
+  let state = createInitialState(bundle({ questCount: 0 }));
+  state = reduceGameState(state, { type: 'MOVE', direction: 'right', seconds: 0.25 }, bundle({ questCount: 0 }));
+  assert.equal(state.phase, 'room');
+  const blocked = reduceGameState(state, { type: 'MOVE', direction: 'right', seconds: 0.25 }, incomplete);
+  assert.equal(blocked.player.x, state.player.x);
+  assert.equal(blocked.player.y, state.player.y);
+});
+
 test('seamless entry hides the exterior cutaway and reveals only the matching room layer', async () => {
   const scene = bundle({ questCount: 0 });
   scene.assets.push(asset('building'), asset('room'));
@@ -212,6 +252,65 @@ test('seamless entry hides the exterior cutaway and reveals only the matching ro
   assert.equal(context.drawn.includes('building'), false);
   assert.ok(context.drawn.includes('room'));
   runtime.stop();
+});
+
+test('NPC visibility and interaction are scoped to outdoors or their active room', async () => {
+  const scene = bundle({ questCount: 0 });
+  scene.assets.push(asset('npc-outdoor'), asset('npc-indoor'));
+  scene.game.npcs = [
+    { id: 'npc-outdoor', kind: 'resident', position: { x: 4, y: 4 }, assetSelector: 'npc-outdoor', footPivot: { x: 0, y: 0 }, interactionRect: { x: 4, y: 4, width: 8, height: 8 }, prompt: '外', dialogue: ['外です。'] },
+    { id: 'npc-indoor', kind: 'resident', position: { x: 100, y: 100 }, assetSelector: 'npc-indoor', footPivot: { x: 0, y: 0 }, interactionRect: { x: 96, y: 96, width: 16, height: 16 }, prompt: '中', dialogue: ['中です。'], cutawayId: 'room-1' },
+  ];
+  const context = {
+    drawn: [],
+    drawImage(image) { this.drawn.push(image.selector); },
+    clearRect() { this.drawn = []; },
+    setTransform() {},
+    imageSmoothingEnabled: true,
+  };
+  const runtime = createGameRuntime({
+    bundle: scene,
+    canvas: { width: 0, height: 0, getContext: () => context },
+    uiRoot: { textContent: '' }, storage: storage(),
+    assetLoader: async (entry) => ({ selector: entry.selector }),
+    inputTarget: fakeTarget(), clock: fakeClock(),
+  });
+  await runtime.start();
+  assert.ok(context.drawn.includes('npc-outdoor'));
+  assert.equal(context.drawn.includes('npc-indoor'), false);
+  runtime.dispatch({ type: 'INTERACT' });
+  assert.equal(runtime.state.dialogue?.npcId, 'npc-outdoor');
+  runtime.dispatch({ type: 'BACK' });
+  runtime.dispatch({ type: 'MOVE', direction: 'right', seconds: 0.25 });
+  assert.equal(runtime.state.phase, 'room');
+  assert.equal(context.drawn.includes('npc-outdoor'), false);
+  assert.ok(context.drawn.includes('npc-indoor'));
+  runtime.dispatch({ type: 'INTERACT' });
+  assert.equal(runtime.state.dialogue?.npcId, 'npc-indoor');
+  runtime.stop();
+});
+
+test('a resident with no repository-derived copy still has readable neutral dialogue', () => {
+  const scene = bundle({ questCount: 0 });
+  scene.game.npcs = [{
+    id: 'npc-sparse', kind: 'resident', position: { x: 4, y: 4 }, assetSelector: 'npc',
+    footPivot: { x: 0, y: 0 }, interactionRect: { x: 4, y: 4, width: 20, height: 20 },
+    prompt: '話す', dialogue: [],
+  }];
+  const state = reduceGameState(createInitialState(scene), { type: 'INTERACT' }, scene);
+  assert.deepEqual(state.dialogue?.lines, ['住民に話しかけました。']);
+});
+
+test('request, investigation, and report hotspots cannot activate indoors', () => {
+  const scene = bundle({ questCount: 1 });
+  scene.game.quests[0].rect = { x: 4, y: 4, width: 8, height: 8 };
+  let state = createInitialState(scene);
+  const indoorsAtHotspot = (value) => ({ ...value, phase: 'room', roomId: 'room-1', player: { ...value.player, x: 4, y: 4 } });
+  assert.equal(reduceGameState(indoorsAtHotspot(state), { type: 'INTERACT' }, scene).dialogue, null);
+  state = { ...state, quest: { ...state.quest, accepted: true, status: 'investigating' } };
+  assert.equal(reduceGameState(indoorsAtHotspot(state), { type: 'INTERACT' }, scene).dialogue, null);
+  state = { ...state, quest: { ...state.quest, accepted: true, status: 'ready_report' } };
+  assert.equal(reduceGameState(indoorsAtHotspot(state), { type: 'INTERACT' }, scene).dialogue, null);
 });
 
 test('zero requests are no_request and cannot unlock a report', () => {
@@ -247,8 +346,8 @@ test('three investigations preserve tri-state wording and report change semantic
   assert.equal(state.townRevision, 0);
 
   const changed = bundle({ questCount: 3, reportChange: {
-    id: 'transition-tests', event: 'tests_passed', bindingId: 'reward.tests_passed',
-    facilityKind: 'dojo', effect: 'inspection_stamp', state: 'observed',
+    id: 'transition-repository', event: 'repository_inspected', bindingId: 'repository_inspected',
+    facilityKind: 'town_hall', effect: 'town_hall_lantern_lit', state: 'observed',
     evidence: { observed: ['inspection.test-result'], inferred: [], unknown: [] },
   } });
   let changedState = createInitialState(changed);
@@ -260,16 +359,16 @@ test('three investigations preserve tri-state wording and report change semantic
 
 test('an approved reward effect becomes visibly renderable only after its observed report', async () => {
   const reportChange = {
-    id: 'transition-tests', event: 'tests_passed', bindingId: 'reward.tests_passed',
-    facilityKind: 'dojo', effect: 'inspection_stamp', state: 'observed',
+    id: 'transition-repository', event: 'repository_inspected', bindingId: 'repository_inspected',
+    facilityKind: 'town_hall', effect: 'town_hall_lantern_lit', state: 'observed',
     evidence: { observed: ['inspection.test-result'], inferred: [], unknown: [] },
   };
   const scene = bundle({ questCount: 1, reportChange });
   scene.assets.push(asset('effect'));
   scene.game.renderables.push({
-    id: 'effect:inspection-stamp', assetSelector: 'effect',
+    id: 'effect:town-hall-lantern', assetSelector: 'effect',
     position: { x: 4, y: 4 }, footPivot: { x: 0, y: 0 }, z: 90,
-    effect: 'inspection_stamp',
+    effect: 'town_hall_lantern_lit',
   });
   assert.equal(validateSceneBundle(scene).ok, true);
 
@@ -297,7 +396,7 @@ test('an approved reward effect becomes visibly renderable only after its observ
   runtime.dispatch({ type: 'INTERACT' });
   runtime.dispatch({ type: 'INTERACT' });
   runtime.dispatch({ type: 'INTERACT' });
-  assert.equal(runtime.state.townChange.effect, 'inspection_stamp');
+  assert.equal(runtime.state.townChange.effect, 'town_hall_lantern_lit');
   assert.equal(context.frameDraws, before + 1);
   runtime.stop();
 });
@@ -360,13 +459,13 @@ test('persistence is identity-and-content scoped and quest-id-only; exit and rev
 
 test('revisit preserves the exact accepted observed transition and rejects stale positions', () => {
   const acceptedChange = {
-    id: 'transition-tests', event: 'tests_passed', bindingId: 'reward.tests_passed',
-    facilityKind: 'dojo', effect: 'inspection_stamp', state: 'observed',
+    id: 'transition-repository', event: 'repository_inspected', bindingId: 'repository_inspected',
+    facilityKind: 'town_hall', effect: 'town_hall_lantern_lit', state: 'observed',
     evidence: { observed: ['inspection.test-result'], inferred: [], unknown: [] },
   };
   const newerChange = {
-    id: 'transition-build', event: 'build_passed', bindingId: 'reward.build_passed',
-    facilityKind: 'workshop', effect: 'forge_fire', state: 'observed',
+    id: 'transition-repository-new', event: 'repository_inspected', bindingId: 'repository_inspected',
+    facilityKind: 'town_hall', effect: 'town_hall_lantern_lit', state: 'observed',
     evidence: { observed: ['inspection.build-result'], inferred: [], unknown: [] },
   };
   const original = bundle({ questCount: 3, reportChange: acceptedChange });

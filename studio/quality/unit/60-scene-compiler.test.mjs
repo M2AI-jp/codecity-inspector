@@ -181,7 +181,9 @@ test('compiled town covers the grid and every required interaction has a collisi
   assert.equal(bundle.game.entrances.every((entrance) => hasCollisionFreePoint(entrance.rect, bundle.game.collisions)), true);
   assert.equal(bundle.game.npcs.every((npc) => hasCollisionFreePoint(npc.interactionRect, bundle.game.collisions)), true);
   assert.equal(bundle.game.quests.every((quest) => !bundle.game.collisions.some((collision) => intersects(quest.rect, collision))), true);
+  assert.equal(bundle.game.quests.every((quest) => !bundle.game.entrances.some((entrance) => intersects(quest.rect, entrance.rect))), true);
   assert.equal(bundle.game.collisions.some((collision) => intersects(bundle.game.report.rect, collision)), false);
+  assert.equal(bundle.game.entrances.some((entrance) => intersects(bundle.game.report.rect, entrance.rect)), false);
   assert.equal(bundle.game.collisions.some((collision) => intersects(bundle.game.request.rect, collision)), false);
   assert.notDeepEqual(bundle.game.request.rect, bundle.game.report.rect);
   const playerFoot = {
@@ -191,6 +193,7 @@ test('compiled town covers the grid and every required interaction has a collisi
     height: bundle.game.player.footbox.height,
   };
   assert.equal(bundle.game.collisions.some((collision) => intersects(playerFoot, collision)), false);
+  assert.equal(bundle.game.entrances.some((entrance) => intersects(playerFoot, entrance.rect)), false);
   assert.equal(bundle.nav.routes.journey.length, 5);
   assert.equal(new Set(bundle.game.quests.map((quest) => quest.siteId)).size, 3);
   assert.deepEqual(bundle.nav.routes.journey.map((route) => route.to), [

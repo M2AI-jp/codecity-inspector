@@ -613,13 +613,15 @@ interior collision fields, and emits deterministic player-footbox routes for
 spawn to request, three distinct investigation sites, report, and every indoor
 NPC. The only accepted reward is the public canonical
 `repository_inspected -> town_hall -> town_hall_lantern_lit` transition.
-Eleven focused compiler checks pass, including compilation against the real P2
+Focused compiler checks include compilation against the real P2
 manifest, bindings, and PNG root in about 0.26 seconds; malformed routes and
 unknown, missing, wildcard, fallback, unresolved, or usage-incompatible
-bindings fail closed. Independent review found no P4 blocker. The shared
-compiler-to-runtime check still fails only because P5 retains the obsolete
-nine-reward whitelist; it reports `REWARD_CHANGE_NOT_ALLOWED` and
-`RENDERABLE_EFFECT_INVALID`. P4 evidence proves deterministic logical
+bindings fail closed. Browser correction evidence additionally excludes every
+entrance transition from spawn, investigation, and report hotspots; this closes
+the real-keyboard failures where moving from spawn or reaching a hotspot forced
+the player indoors. Twelve focused compiler checks and the shared
+compiler-to-runtime check pass. Independent review found no P4 blocker. P4
+evidence proves deterministic logical
 composition and reachability, not runtime input, persistence, browser play,
 package acquisition, or the product KGI.
 
@@ -633,7 +635,7 @@ feel, persistence, acquisition, or the KGI.
 **Stop condition:** do not start before P2 and P3 are covered; stop once the
 bounded SceneBundle and required routes validate, without adding world variants.
 
-### [ ] P5 — Game runtime completes the ordinary RPG loop
+### [x] P5 — Game runtime completes the ordinary RPG loop
 
 **Subject/action/object:** `70-game-runtime` consumes only the serialized
 SceneBundle and presents the complete journey with approved art.
@@ -648,6 +650,27 @@ reachable without fractional pixel scaling; the lantern changes only after
 the report; explicit exit persists state; process restart with the same
 identity and content digest restores the completed town; one-minute frame
 measurement stays within the declared runtime budget.
+
+P5 evidence is the self-contained runtime and CDP browser acceptance harness in
+`ship/70-game-runtime/`, `studio/quality/unit/70-game-runtime.test.mjs`, and
+`studio/quality/e2e/70-browser-journey.mjs`. Twenty-four focused runtime and
+browser-contract checks pass. Chrome 150 completed the real CLI-generated town
+with held keyboard input at the default 756x469 viewport and at 320x568: request,
+three distinct `見た` / `そうらしい` / `わからない` answers, report, lantern
+change, workshop entry, readable resident dialogue, exit, process restart, and
+revisit. The actual P2 bytes drawn include `player:default`, nine building
+selectors, terrain/road/water/plot selectors, and prop/quest/light selectors.
+The conditional `effect:town_hall_lantern_lit` was absent before report and drawn
+after it. At the narrow viewport the canvas remained an integer 384x216 CSS and
+backing rectangle with pixelated rendering. The declared visible-tab budget was
+60 seconds with rAF p95 at most 33.4ms and no interval over 100ms; the observed
+60,008ms run produced 7,201 frames, p95 9.1ms, max 9.4ms, and zero intervals over
+100ms. A fresh Chrome process using the same profile restored the explicit exit
+and completed lantern, and Enter revisited the completed town. Independent
+review marked P5 met. This evidence proves the recorded Chrome, machine,
+viewport, approved-byte draw, and identity/content persistence only; it does
+not judge asset aesthetics, prove universal-device performance, package
+acquisition, or the P6 product KGI.
 
 **Three-view value:** the owner first receives an executable customer-value
 slice rather than another internal artifact; the Lead proves that composition

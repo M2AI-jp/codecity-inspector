@@ -10,6 +10,7 @@ import {
   readGamepadInput,
   persistenceSnapshot,
   reduceGameState,
+  RUNTIME_REPOSITORY_INSPECTION_BINDING,
 } from './state.mjs';
 
 export const SCENE_BUNDLE_FORMAT = 'codecity.scene-bundle';
@@ -20,15 +21,7 @@ const HASH_RE = /^[a-f0-9]{64}$/iu;
 const EVIDENCE_STATES = Object.freeze(['observed', 'inferred', 'unknown']);
 const ASSET_DIRECTIONS = Object.freeze(['north', 'south', 'east', 'west']);
 const REWARD_CHANGES = Object.freeze({
-  build_passed: Object.freeze({ bindingId: 'reward.build_passed', facilityKind: 'workshop', effect: 'forge_fire' }),
-  local_run: Object.freeze({ bindingId: 'reward.local_run', facilityKind: 'town_hall', effect: 'town_powered' }),
-  public_url_responded: Object.freeze({ bindingId: 'reward.public_url_responded', facilityKind: 'inn', effect: 'inn_lit' }),
-  real_access: Object.freeze({ bindingId: 'reward.real_access', facilityKind: 'inn', effect: 'traveler_arrived' }),
-  external_api_responded: Object.freeze({ bindingId: 'reward.external_api_responded', facilityKind: 'pub', effect: 'pub_bustle' }),
-  distribution_released: Object.freeze({ bindingId: 'reward.distribution_released', facilityKind: 'dock', effect: 'ship_departed' }),
-  logs_recorded: Object.freeze({ bindingId: 'reward.logs_recorded', facilityKind: 'watchtower', effect: 'watch_lit' }),
-  tests_passed: Object.freeze({ bindingId: 'reward.tests_passed', facilityKind: 'dojo', effect: 'inspection_stamp' }),
-  rollback_confirmed: Object.freeze({ bindingId: 'reward.rollback_confirmed', facilityKind: 'shop', effect: 'repair_tools' }),
+  [RUNTIME_REPOSITORY_INSPECTION_BINDING.event]: RUNTIME_REPOSITORY_INSPECTION_BINDING,
 });
 const REWARD_EFFECTS = new Set(Object.values(REWARD_CHANGES).map(({ effect }) => effect));
 const REQUIRED_GAME_KEYS = Object.freeze([
@@ -87,7 +80,7 @@ function validateRewardChange(value, path, issues) {
   rejectUnknownKeys(value, ['id', 'event', 'bindingId', 'facilityKind', 'effect', 'state', 'evidence'], path, issues);
   for (const key of ['id', 'event', 'bindingId', 'facilityKind', 'effect']) if (!nonEmpty(value[key])) issues.push(issue(`${path}.${key}`, 'REWARD_CHANGE_INVALID', 'reward transition field is required'));
   const expected = REWARD_CHANGES[value.event];
-  if (!expected || value.bindingId !== expected.bindingId || value.facilityKind !== expected.facilityKind || value.effect !== expected.effect) issues.push(issue(path, 'REWARD_CHANGE_NOT_ALLOWED', 'change must match one of the exact nine reward bindings'));
+  if (!expected || value.bindingId !== expected.id || value.facilityKind !== expected.facilityKind || value.effect !== expected.effect) issues.push(issue(path, 'REWARD_CHANGE_NOT_ALLOWED', 'change must match the canonical repository_inspected reward binding'));
   if (value.state !== 'observed') issues.push(issue(`${path}.state`, 'REWARD_CHANGE_NOT_OBSERVED', 'reward transition state must be observed'));
   if (!isRecord(value.evidence)) issues.push(issue(`${path}.evidence`, 'REWARD_EVIDENCE_REQUIRED', 'tri-state evidence is required'));
   else {
@@ -155,6 +148,34 @@ function validateRectArray(value, path, issues) {
   value.forEach((entry, index) => { if (!rect(entry)) issues.push(issue(`${path}[${index}]`, 'RECT_INVALID', 'positive pixel rectangle required')); });
 }
 
+function validateSceneCollisions(value, game, issues) {
+  if (!isRecord(value)) {
+    issues.push(issue('$.collisions', 'COLLISIONS_REQUIRED', 'serialized exterior and interior collision layers are required'));
+    return;
+  }
+  for (const key of ['solidRects', 'entranceRects', 'blockedPlotIds', 'blockedCells', 'waterCells', 'vacantPlotIds', 'interiorByRoom']) {
+    if (!array(value[key])) issues.push(issue(`$.collisions.${key}`, 'COLLISION_ARRAY_REQUIRED', 'collision field must be an array'));
+  }
+  const roomIds = new Set();
+  for (const [index, entry] of (array(value.interiorByRoom) ? value.interiorByRoom : []).entries()) {
+    const path = `$.collisions.interiorByRoom[${index}]`;
+    rejectUnknownKeys(entry, ['roomId', 'solidRects'], path, issues);
+    if (!isRecord(entry) || !nonEmpty(entry.roomId)) issues.push(issue(`${path}.roomId`, 'INTERIOR_ROOM_ID_INVALID', 'interior collision record requires a roomId'));
+    validateRectArray(entry?.solidRects, `${path}.solidRects`, issues);
+    if (nonEmpty(entry?.roomId)) {
+      if (roomIds.has(entry.roomId)) issues.push(issue(`${path}.roomId`, 'DUPLICATE_ID', 'interior collision room IDs must be unique'));
+      roomIds.add(entry.roomId);
+    }
+  }
+  const declaredRoomIds = new Set(array(game?.rooms) ? game.rooms.filter((room) => nonEmpty(room?.id)).map((room) => room.id) : []);
+  for (const roomId of declaredRoomIds) {
+    if (!roomIds.has(roomId)) issues.push(issue('$.collisions.interiorByRoom', 'INTERIOR_ROOM_MISSING', `interior collision record is required for room ${roomId}`));
+  }
+  for (const roomId of roomIds) {
+    if (!declaredRoomIds.has(roomId)) issues.push(issue('$.collisions.interiorByRoom', 'INTERIOR_ROOM_UNKNOWN', `interior collision record references unknown room ${roomId}`));
+  }
+}
+
 function validateGame(game, assets, issues) {
   if (!isRecord(game)) {
     issues.push(issue('$.game', 'GAME_REQUIRED', 'SceneBundle.game is required'));
@@ -210,7 +231,7 @@ function validateGame(game, assets, issues) {
     const path = `$.game.renderables[${index}]`;
     rejectUnknownKeys(entry, ['id', 'assetSelector', 'position', 'footPivot', 'z', 'cutawayId', 'roomId', 'effect'], path, issues);
     if (!isRecord(entry) || !nonEmpty(entry.id) || !nonEmpty(entry.assetSelector) || !assets.has(entry.assetSelector) || !point(entry.position) || !point(entry.footPivot) || !finite(entry.z)) issues.push(issue(path, 'RENDERABLE_INVALID', 'renderable needs declared asset, position, footPivot, and z'));
-    if (own(entry, 'effect') && (!nonEmpty(entry.effect) || !REWARD_EFFECTS.has(entry.effect))) issues.push(issue(`${path}.effect`, 'RENDERABLE_EFFECT_INVALID', 'conditional renderable effect must be one of the nine observed town changes'));
+    if (own(entry, 'effect') && (!nonEmpty(entry.effect) || !REWARD_EFFECTS.has(entry.effect))) issues.push(issue(`${path}.effect`, 'RENDERABLE_EFFECT_INVALID', 'conditional renderable effect must be the observed town-hall lantern change'));
   });
 }
 
@@ -264,6 +285,7 @@ export function validateSceneBundle(bundle) {
   if (!array(bundle.assets) || bundle.assets.length === 0) issues.push(issue('$.assets', 'ASSETS_REQUIRED', 'at least one approved asset binding is required'));
   const selectors = new Map();
   if (array(bundle.assets)) bundle.assets.forEach((asset, index) => validateAsset(asset, `$.assets[${index}]`, selectors, issues));
+  validateSceneCollisions(bundle.collisions, bundle.game, issues);
   validateGame(bundle.game, selectors, issues);
   try { JSON.stringify(bundle); } catch { issues.push(issue('$', 'SERIALIZATION_INVALID', 'SceneBundle must be JSON-serializable')); }
   return Object.freeze({ ok: issues.length === 0, issues: Object.freeze(issues) });
@@ -370,12 +392,13 @@ function drawFrame(context, canvas, bundle, state, images) {
   const assets = new Map(bundle.assets.map((asset) => [asset.selector, asset]));
   const camera = state.overlook ? centerCamera(game) : state.camera;
   const renderables = game.renderables.map((entry) => ({ ...entry, dynamic: false }));
-  for (const npc of game.npcs) renderables.push({ id: `npc:${npc.id}`, assetSelector: npc.assetSelector, position: npc.position, footPivot: npc.footPivot, z: 10, cutawayId: npc.cutawayId, animationState: 'idle', direction: 'down' });
+  for (const npc of game.npcs) renderables.push({ id: `npc:${npc.id}`, assetSelector: npc.assetSelector, position: npc.position, footPivot: npc.footPivot, z: 10, roomId: npc.cutawayId, exteriorOnly: !npc.cutawayId, animationState: 'idle', direction: 'down' });
   renderables.push({ id: 'player', assetSelector: game.player.assetSelector, position: { x: state.player.x, y: state.player.y }, footPivot: { x: game.player.footbox.x + game.player.footbox.width / 2, y: game.player.footbox.y + game.player.footbox.height }, z: 100, animationState: state.player.moving ? (state.input.shift ? 'walk' : 'run') : 'idle', direction: state.player.direction });
   const activeRoom = game.rooms.find((room) => room.id === state.roomId);
   const visible = renderables.filter((entry) =>
     (!entry.effect || state.townChange?.effect === entry.effect)
     && (!entry.roomId || activeRoom?.id === entry.roomId)
+    && (!entry.exteriorOnly || !activeRoom)
     && (!entry.cutawayId || !activeRoom || !activeRoom.cutawayIds.includes(entry.cutawayId))
   );
   visible.sort((left, right) => (left.position.y + left.footPivot.y) - (right.position.y + right.footPivot.y) || left.z - right.z || left.id.localeCompare(right.id));

@@ -816,9 +816,10 @@ function reportPayload(plan, layers, collisions) {
     ? { x: townHall.entranceRect.x + townHall.entranceRect.width / 2, y: townHall.entranceRect.y + townHall.entranceRect.height }
     : null;
   const transition = observedRewardTransition(plan);
+  const transitionRects = layers.buildings.filter((building) => building.entranceRect).map((building) => building.entranceRect);
   return {
     id: 'report-town-hall',
-    rect: walkableRect(plotPixelRect(plot), collisions, preferred),
+    rect: walkableRect(plotPixelRect(plot), [...collisions, ...transitionRects], preferred),
     prompt: '工事報告を見る',
     change: transition ? clone(transition) : null,
   };
@@ -845,7 +846,8 @@ function buildGame(plan, layers, roomActorData, quests, collisionData, assets) {
   const playerAsset = assets.get('player:default');
   const startPlot = plan.plots.find((plot) => plot.id === plan.nav.startPlotId) ?? plan.plots[0];
   const { kind: _footboxKind, ...playerFootbox } = playerAsset.usage.collision;
-  const spawnFoot = walkableRect(plotPixelRect(startPlot), collisionData.gameCollisions);
+  const exteriorTransitionRects = layers.buildings.filter((building) => building.entranceRect).map((building) => building.entranceRect);
+  const spawnFoot = walkableRect(plotPixelRect(startPlot), [...collisionData.gameCollisions, ...exteriorTransitionRects]);
   const playerPosition = { x: spawnFoot.x - playerFootbox.x, y: spawnFoot.y - playerFootbox.y };
   const roomByFacility = new Map(layers.rooms.map((room) => [room.facilityId, room]));
   const entrances = layers.buildings.filter((building) => building.entranceRect).map((building) => {
@@ -865,6 +867,10 @@ function buildGame(plan, layers, roomActorData, quests, collisionData, assets) {
       interiorSpawn: { x: interiorFoot.x - playerFootbox.x, y: interiorFoot.y - playerFootbox.y },
     };
   }).sort(compareId);
+  // Entrance rectangles are transitions, not solid collision. They must still
+  // be excluded when choosing exterior quest hotspots: otherwise reaching a
+  // quest can force the player indoors before the interaction is available.
+  const questTargetObstacles = [...collisionData.gameCollisions, ...entrances.map((entrance) => entrance.rect)];
   const rooms = roomActorData.rooms.map((room) => ({
     id: room.id,
     bounds: room.bounds,
@@ -932,7 +938,7 @@ function buildGame(plan, layers, roomActorData, quests, collisionData, assets) {
       return {
         id: quest.id,
         siteId: quest.siteId,
-        rect: walkableRect(plotPixelRect(plot), collisionData.gameCollisions, preferred),
+        rect: walkableRect(plotPixelRect(plot), questTargetObstacles, preferred),
         subject: quest.subject,
         statement: quest.statement,
         evidenceAddresses: clone(quest.evidenceAddresses),
