@@ -14,6 +14,7 @@ const KEY = Object.freeze({
   ArrowDown: { key: 'ArrowDown', code: 'ArrowDown', keyCode: 40 },
   ArrowLeft: { key: 'ArrowLeft', code: 'ArrowLeft', keyCode: 37 },
   ArrowRight: { key: 'ArrowRight', code: 'ArrowRight', keyCode: 39 },
+  ShiftLeft: { key: 'Shift', code: 'ShiftLeft', keyCode: 16 },
   Enter: { key: 'Enter', code: 'Enter', keyCode: 13 },
   Escape: { key: 'Escape', code: 'Escape', keyCode: 27 },
 });
@@ -50,6 +51,7 @@ class Cdp {
   constructor(url) {
     this.nextId = 0;
     this.pending = new Map();
+    this.handlers = new Map();
     this.socket = new WebSocket(url);
   }
 
@@ -60,7 +62,10 @@ class Cdp {
     });
     this.socket.addEventListener('message', (event) => {
       const message = JSON.parse(String(event.data));
-      if (!message.id) return;
+      if (!message.id) {
+        for (const handler of this.handlers.get(message.method) ?? []) handler(message.params, message.sessionId);
+        return;
+      }
       const pending = this.pending.get(message.id);
       if (!pending) return;
       this.pending.delete(message.id);
@@ -68,6 +73,13 @@ class Cdp {
       else pending.resolve(message.result);
     });
     return this;
+  }
+
+  on(method, handler) {
+    const handlers = this.handlers.get(method) ?? new Set();
+    handlers.add(handler);
+    this.handlers.set(method, handlers);
+    return () => handlers.delete(handler);
   }
 
   call(method, params = {}, sessionId) {
@@ -144,13 +156,28 @@ async function openPage(browser, url, viewport = VIEWPORT) {
   const { targetId } = await browser.cdp.call('Target.createTarget', { url: 'about:blank' });
   const { sessionId } = await browser.cdp.call('Target.attachToTarget', { targetId, flatten: true });
   const call = (method, params = {}) => browser.cdp.call(method, params, sessionId);
+  const networkRequests = [];
+  const removeNetworkListener = browser.cdp.on('Network.requestWillBeSent', (params, eventSessionId) => {
+    if (eventSessionId === sessionId) networkRequests.push({ url: params.request.url, method: params.request.method, type: params.type });
+  });
   await call('Page.enable');
   await call('Runtime.enable');
+  await call('Network.enable');
   if (viewport) await call('Emulation.setDeviceMetricsOverride', viewport);
   await call('Page.addScriptToEvaluateOnNewDocument', { source: INSTRUMENTATION });
   await call('Page.navigate', { url });
   await call('Page.bringToFront');
-  return { targetId, sessionId, call };
+  return { targetId, sessionId, call, networkRequests, removeNetworkListener };
+}
+
+function loopbackNetworkEvidence(page) {
+  const requests = page.networkRequests.map((request) => ({ ...request }));
+  const external = requests.filter(({ url }) => {
+    const parsed = new URL(url);
+    return ['http:', 'https:', 'ws:', 'wss:'].includes(parsed.protocol) && parsed.hostname !== '127.0.0.1';
+  });
+  if (external.length > 0) throw new Error(`browser made non-loopback requests: ${JSON.stringify(external)}`);
+  return { requests, loopbackOnly: true };
 }
 
 async function evaluate(page, expression, { awaitPromise = false } = {}) {
@@ -185,12 +212,16 @@ async function press(page, code) {
 
 async function moveAxis(page, code, distance, speed) {
   if (distance <= 0.25) return;
+  const fineCorrection = distance <= 4;
+  const effectiveSpeed = fineCorrection ? 45 : speed;
+  if (fineCorrection) await keyEvent(page, 'ShiftLeft', 'rawKeyDown');
   await keyEvent(page, code, 'rawKeyDown');
   // The first animation frame after keyDown already advances one frame. Remove
   // that frame from the wall-clock hold so short orthogonal route segments do
   // not accumulate a one-pixel overshoot at every corner.
-  await sleep(Math.max(1, Math.round(distance / speed * 1000 - 17)));
+  await sleep(Math.max(1, Math.round(distance / effectiveSpeed * 1000 - 17)));
   await keyEvent(page, code, 'keyUp');
+  if (fineCorrection) await keyEvent(page, 'ShiftLeft', 'keyUp');
   await sleep(34);
 }
 
@@ -210,7 +241,7 @@ async function visualPlayerFoot(page, scene) {
   };
 }
 
-async function moveToPoint(page, scene, target, speed) {
+async function moveToPoint(page, scene, target, speed, acceptsArrival = () => false) {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const current = await visualPlayerFoot(page, scene);
     const dx = target.x - current.x;
@@ -220,10 +251,27 @@ async function moveToPoint(page, scene, target, speed) {
     if (Math.abs(dy) > Math.abs(dx)) { await moveY(); await moveX(); }
     else { await moveX(); await moveY(); }
     const observed = await visualPlayerFoot(page, scene);
-    if (Math.abs(target.x - observed.x) <= 1.5 && Math.abs(target.y - observed.y) <= 1.5) return observed;
+    if ((Math.abs(target.x - observed.x) <= 1.5 && Math.abs(target.y - observed.y) <= 1.5) || acceptsArrival(observed)) return observed;
   }
   const diagnostics = await evaluate(page, `({ keys: window.__codecityQa.keys.slice(-8), draws: { ...window.__codecityQa.drawUrls }, visibility: document.visibilityState, errors: [...window.__codecityQa.errors] })`);
   throw new Error(`could not reach route point ${JSON.stringify(target)}; observed ${JSON.stringify(await visualPlayerFoot(page, scene))}; diagnostics=${JSON.stringify(diagnostics)}`);
+}
+
+function acceptsCornerDrift(scene, target, next, observed) {
+  if (!next) return false;
+  const horizontal = Math.abs(next.x - target.x) >= Math.abs(next.y - target.y);
+  const direction = Math.sign(horizontal ? next.x - target.x : next.y - target.y);
+  if (direction === 0) return false;
+  const forward = direction * (horizontal ? observed.x - target.x : observed.y - target.y);
+  const perpendicular = Math.abs(horizontal ? observed.y - target.y : observed.x - target.x);
+  if (forward < 0 || forward > 3 || perpendicular > 1.5) return false;
+  const distance = Math.abs(horizontal ? next.x - observed.x : next.y - observed.y);
+  for (let step = 0; step <= Math.ceil(distance); step += 1) {
+    const offset = Math.min(step, distance) * direction;
+    const sample = horizontal ? { x: observed.x + offset, y: observed.y } : { x: observed.x, y: observed.y + offset };
+    if (!collisionFree(scene, sample)) return false;
+  }
+  return true;
 }
 
 function collisionFree(scene, point) {
@@ -257,8 +305,9 @@ function safeCorner(scene, point, next) {
 async function followRoute(page, scene, route, start, speed) {
   let current = { ...start };
   for (let index = 0; index < route.points.length; index += 1) {
-    const point = safeCorner(scene, route.points[index], route.points[index + 1]);
-    current = await moveToPoint(page, scene, point, speed);
+    const next = route.points[index + 1];
+    const point = safeCorner(scene, route.points[index], next);
+    current = await moveToPoint(page, scene, point, speed, (observed) => acceptsCornerDrift(scene, point, next, observed));
   }
   return current;
 }
@@ -365,7 +414,7 @@ async function runJourney(browser, url, scene, performanceMs, viewport) {
   if (performanceMs === 60_000 && (performance.p95Ms > 33.4 || performance.over100ms !== 0)) throw new Error(`rAF budget failed: ${JSON.stringify(performance)}`);
   const npc = await observeResidentDialogue(page, scene, point);
   await waitFor(page, `document.querySelector('#game-ui')?.textContent.includes('同じ街へ戻れます')`, 'saved exit');
-  return { initial, investigations: investigationEvidence, beforeReport: { lanternDrawn: false }, afterReport: { lanternDrawn: true, ...afterReport }, npc, performance, exitObserved: true };
+  return { initial, investigations: investigationEvidence, beforeReport: { lanternDrawn: false }, afterReport: { lanternDrawn: true, ...afterReport }, npc, performance, network: loopbackNetworkEvidence(page), exitObserved: true };
 }
 
 async function runDefaultViewportProbe(browser, url, scene) {
@@ -421,7 +470,7 @@ async function runRevisit(browser, url, scene, viewport) {
   const evidence = await pageEvidence(page, scene);
   const effectSelector = scene.game.renderables.find((entry) => entry.effect)?.assetSelector;
   if (!evidence.drawnSelectors.includes(effectSelector)) throw new Error('persisted lantern effect was not drawn on revisit');
-  return { persistedExitObserved: true, revisitObserved: true, lanternRestored: true, page: evidence };
+  return { persistedExitObserved: true, revisitObserved: true, lanternRestored: true, network: loopbackNetworkEvidence(page), page: evidence };
 }
 
 async function main() {

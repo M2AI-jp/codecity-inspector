@@ -683,7 +683,7 @@ independent review, or final KGI return.
 envelope pass; do not expand into frozen audio, localization, settings, gamepad,
 or cosmetic work.
 
-### [ ] P6 — Delivery and independent QA prove the product KGI
+### [x] P6 — Delivery and independent QA prove the product KGI
 
 **Subject/action/object:** `90-cli` and `80-local-server` package and serve the
 approved product, then an independent read-only reviewer repeats the whole
@@ -700,6 +700,26 @@ unchanged; network capture shows no upload and only loopback service; the
 package contains only intended `ship/` bytes; first interaction is available
 within 3 seconds on the acceptance machine. Only after this evidence may the
 Lead declare CodeCity v1 complete.
+
+P6 evidence is the packed-artifact orchestrator in
+`studio/quality/e2e/90-packed-kgi.mjs` and its independently reviewed external
+evidence record. The 1,039,513-byte tarball has SHA-256
+`95c9825ec0580d68a1b6b13d1d16c6940b2fbb62b0859d3e9a825b243fb81bc6` and 91
+entries limited to `package.json`, `README.md`, and `ship/**`; all 60 packed PNG
+hashes match the accepted manifest and the license/provenance records cover all
+60. An actual offline local-tar `npx` run produced held-arrow movement in
+2,255.92ms, completed the three distinct answers, report, lantern change,
+resident room/dialogue, explicit exit, process restart, and restored revisit.
+The browser drew approved character, building, map, and object assets. CDP
+recorded 45 then 46 requests, all to `127.0.0.1:4273`; both server listeners
+were loopback-only, finite network samples found no npm-parent socket, and both
+processes stopped by SIGINT. Before and after snapshots contained the same
+4,895 entries with exact file hashes and file/symlink mtimes and no changed
+entry. Directory mtimes are deliberately excluded because read-only Git status
+polling changes `.git` directory mtime while leaving its contents exact. The
+independent distribution/security reviewer marked P6 met. This proves this
+tarball, repository, and macOS/Node/Chrome acceptance run only; it does not
+prove every repository, device, or registry path, nor judge asset aesthetics.
 
 **Three-view value:** the owner receives the promised requirement coverage from
 the authorized subscription investment; the Lead's declaration is independently
