@@ -2,7 +2,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { buildCodeCity, runCodeCity } from '../../../ship/90-cli/index.mjs';
-import { createTestOnlyArt } from './test-only-art.mjs';
+import { createTestOnlyArt } from './fixtures/diagnostic-art.fixture.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repositoryPath = path.resolve(process.argv[2] ?? path.resolve(here, '../../..'));

@@ -1,5 +1,6 @@
-# Governance
+# Product governance
 
-`contracts/MASTER.md` is the design authority. Decisions record reasons for
-contract changes; approvals record human asset promotion.
-
+[`PRODUCT.md`](PRODUCT.md) is the only product specification and action queue.
+Add no second projection or historical narrative. Owner promotion records and
+contract-changing decisions are added only when the corresponding event
+actually occurs.

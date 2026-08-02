@@ -4,10 +4,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /**
- * Art-factory custody gate.
+ * Art-department original custody gate.
  *
- * The registry below is a transcription of MASTER.md §8/§14.  It is
- * intentionally read-only: verification reads the 22 user-provided PNGs and
+ * The registry below is the hash-bound custody record for the owner's source
+ * images. It is intentionally read-only: verification reads the 22 PNGs and
  * returns evidence; it never copies, edits, or promotes an original.  The only
  * write helpers in this package target candidates/ and reports/.
  */
@@ -19,7 +19,7 @@ const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 const SHA256_RE = /^[a-f0-9]{64}$/i;
 const RELATIVE_SEGMENT_RE = /^(?!$|\.)[^/]+$/;
 
-/** Exact dimensions from MASTER.md and full SHA-256 values observed at reset (22 originals). */
+/** Exact dimensions and full SHA-256 values for the 22 owner originals. */
 const ORIGINALS = [
   ['character_style_authority_20260722_v1.png', 1402, 1122, '446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932'],
   ['character_style_reference_sheet.png', 1536, 1024, '910e1fdc2773018882e74918d492b77891869720b3affa170fb96ec2ed7db08b'],
@@ -63,7 +63,7 @@ function freezeDeep(value) {
 
 export const ORIGINAL_REGISTRY = freezeDeep({
   registryVersion: ORIGINAL_REGISTRY_VERSION,
-  source: 'studio/governance/contracts/MASTER.md',
+  source: 'art/references/user-provided',
   count: ORIGINALS.length,
   originals: ORIGINALS
 });
@@ -131,7 +131,7 @@ export function findOriginal(fileOrId) {
 }
 
 /**
- * Read-only verification of the 22 original PNGs against MASTER.md.
+ * Read-only verification of the 22 original PNGs against this custody registry.
  * No directories or files are created by this function.
  */
 export function verifyOriginalRegistry({ repositoryRoot = defaultRepositoryRoot(), strictSet = true } = {}) {
@@ -156,7 +156,7 @@ export function verifyOriginalRegistry({ repositoryRoot = defaultRepositoryRoot(
   const expectedNames = new Set(ORIGINAL_REGISTRY.originals.map((entry) => entry.file));
   const unexpected = [...actualPngNames].filter((name) => !expectedNames.has(name)).sort();
   if (strictSet) {
-    for (const name of unexpected) failures.push({ code: 'UNEXPECTED_ORIGINAL', file: name, message: 'PNG is not listed in MASTER.md' });
+    for (const name of unexpected) failures.push({ code: 'UNEXPECTED_ORIGINAL', file: name, message: 'PNG is not listed in the immutable original registry' });
   }
 
   for (const entry of ORIGINAL_REGISTRY.originals) {
@@ -219,7 +219,7 @@ export const verifyOriginals = verifyOriginalRegistry;
 
 export function assertOriginalRegistry(options = {}) {
   const report = verifyOriginalRegistry(options);
-  if (!report.ok) throw new OriginalCustodyError('User-provided originals failed the MASTER custody gate', report.failures);
+  if (!report.ok) throw new OriginalCustodyError('User-provided originals failed the custody gate', report.failures);
   return report;
 }
 

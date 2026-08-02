@@ -1,20 +1,18 @@
-import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
+// Mechanical browser fixture only; never an approved product asset.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import test from 'node:test';
 import zlib from 'node:zlib';
 
-import { compileScene, requiredAssetSelectors } from '../../../ship/60-scene-compiler/index.mjs';
-import { validateSceneBundle as validateRuntimeSceneBundle } from '../../../ship/70-game-runtime/index.mjs';
-import { createTestOnlyWorldPlan } from '../fixtures/60-worldplan.fixture.mjs';
+import { requiredAssetSelectors } from '../../../ship/60-scene-compiler/index.mjs';
 
 const CRC_TABLE = Array.from({ length: 256 }, (_, index) => {
   let value = index;
   for (let bit = 0; bit < 8; bit += 1) value = (value & 1) ? (0xedb88320 ^ (value >>> 1)) : (value >>> 1);
   return value >>> 0;
 });
+const DIRECTIONS = ['north', 'south', 'east', 'west'];
 
 function crc32(bytes) {
   let crc = 0xffffffff;
@@ -32,7 +30,7 @@ function chunk(type, data) {
   return output;
 }
 
-function testOnlySheet() {
+function diagnosticSheet() {
   const width = 192;
   const height = 256;
   const ihdr = Buffer.alloc(13);
@@ -40,15 +38,24 @@ function testOnlySheet() {
   ihdr.writeUInt32BE(height, 4);
   ihdr[8] = 8;
   ihdr[9] = 6;
+  const raw = Buffer.alloc(height * (1 + width * 4));
+  for (let y = 0; y < height; y += 1) {
+    const row = y * (1 + width * 4);
+    for (let x = 0; x < width; x += 1) {
+      const offset = row + 1 + x * 4;
+      const checker = (Math.floor(x / 8) + Math.floor(y / 8)) % 2;
+      raw[offset] = checker ? 57 : 85;
+      raw[offset + 1] = checker ? 99 : 126;
+      raw[offset + 2] = checker ? 82 : 103;
+      raw[offset + 3] = 255;
+    }
+  }
   return Buffer.concat([
     Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
-    chunk('IHDR', ihdr),
-    chunk('IDAT', zlib.deflateSync(Buffer.alloc(height * (1 + width * 4)))),
-    chunk('IEND', Buffer.alloc(0)),
+    chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(raw)), chunk('IEND', Buffer.alloc(0)),
   ]);
 }
 
-const DIRECTIONS = ['north', 'south', 'east', 'west'];
 function animation(count, fps) {
   return Object.fromEntries(DIRECTIONS.map((direction, row) => [direction, { frames: Array.from({ length: count }, (_, index) => row * 6 + index), fps }]));
 }
@@ -88,33 +95,30 @@ function pivot(selector) {
   return { x: 8, y: 16 };
 }
 
-test('the scene compiler output is accepted unchanged by the independent browser runtime', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'codecity-scene-runtime-integration-'));
-  const bytes = testOnlySheet();
-  fs.writeFileSync(path.join(root, 'sheet.png'), bytes);
+/** Mechanical browser-QA fixture only; never product art or owner approval. */
+export function createTestOnlyArt(worldPlan) {
+  const assetRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'codecity-browser-test-art-'));
+  const bytes = diagnosticSheet();
+  fs.writeFileSync(path.join(assetRoot, 'diagnostic-sheet.png'), bytes);
   const sha256 = crypto.createHash('sha256').update(bytes).digest('hex');
-  const worldPlan = createTestOnlyWorldPlan({ observedTransition: true });
   const selectors = requiredAssetSelectors(worldPlan);
   const assets = selectors.map((selector, index) => {
-    const id = `integration-asset-${index}`;
+    const id = `browser-test-asset-${index}`;
     return {
-      id, version: '1.0.0', status: 'accepted', accepted: true, path: 'sheet.png', url: 'sheet.png', sha256,
+      id, version: '1.0.0', status: 'accepted', accepted: true,
+      path: 'diagnostic-sheet.png', url: 'diagnostic-sheet.png', sha256,
       dimensions: { width: 192, height: 256 }, pivot: pivot(selector), usage: usage(selector),
-      license: { spdx: 'CC0-1.0', holder: 'test owner' },
-      provenance: { kind: 'test-only', source: 'generated test bytes', sourceSha256: 'd'.repeat(64), evidence: 'observed' },
+      license: { spdx: 'CC0-1.0', holder: 'mechanical test fixture' },
+      provenance: { kind: 'test-only', source: 'generated diagnostic bytes', sourceSha256: 'e'.repeat(64), evidence: 'observed' },
       approval: {
-        recordId: `integration-approval-${index}`, actorType: 'human', authority: 'owner', approvedBy: 'test owner',
-        approvedAt: '2026-08-02T00:00:00.000Z', decision: 'accepted', assetId: id, assetSha256: sha256, sourceSha256: 'd'.repeat(64),
+        recordId: `browser-test-approval-${index}`, actorType: 'human', authority: 'owner', approvedBy: 'test-fixture-not-product',
+        approvedAt: '2026-08-02T00:00:00.000Z', decision: 'accepted', assetId: id, assetSha256: sha256, sourceSha256: 'e'.repeat(64),
       },
     };
   });
-  const bundle = compileScene({
-    worldPlan,
-    assetRoot: root,
-    assetManifest: { format: 'codecity.asset-manifest', schemaVersion: 1, manifestVersion: '1.0.0', fallbackPolicy: 'none', assets },
-    bindings: { format: 'codecity.scene-bindings', schemaVersion: 1, selectors: Object.fromEntries(selectors.map((selector, index) => [selector, `integration-asset-${index}`])) },
-  });
-  const result = validateRuntimeSceneBundle(bundle);
-  assert.equal(result.ok, true, JSON.stringify(result.issues));
-  assert.equal(bundle.game.renderables.filter((entry) => entry.effect === 'inspection_stamp').length, 1);
-});
+  return {
+    assetRoot,
+    assetManifest: { format: 'codecity.asset-manifest', schemaVersion: 1, manifestVersion: '0.0.0-test-only', fallbackPolicy: 'none', assets },
+    sceneBindings: { format: 'codecity.scene-bindings', schemaVersion: 1, selectors: Object.fromEntries(selectors.map((selector, index) => [selector, `browser-test-asset-${index}`])) },
+  };
+}

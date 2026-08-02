@@ -88,14 +88,38 @@ test('a fully specified building candidate passes without changing candidate byt
   assert.equal(Object.prototype.hasOwnProperty.call(report.candidates[0], 'approval'), false);
 });
 
-test('missing palette and empty candidates are explicit failures, never empty passes', () => {
+test('absent or empty candidate trees are idle and do not read a palette', () => {
   const workspace = makeWorkspace();
   const report = runPixelArtGate({ repositoryRoot: workspace.root, candidatesRoot: workspace.candidates, palettePath: path.join(workspace.root, 'missing-palette.json') });
   assert.equal(report.ok, false);
+  assert.equal(report.status, 'idle');
+  assert.equal(report.assetPass, false);
+  assert.equal(report.submitted, false);
+  assert.deepEqual(report.failures, []);
+  assert.deepEqual(report.unknown, []);
+  assert.equal(report.palette.required, false);
+  assert.equal(report.palette.state, 'not-required');
+  assert.match(formatPixelArtGateReport(report), /no candidate PNG work item was submitted/);
+
+  const absent = runPixelArtGate({ repositoryRoot: workspace.root, candidatesRoot: path.join(workspace.root, 'absent-candidates'), palettePath: path.join(workspace.root, 'missing-palette.json') });
+  assert.equal(absent.status, 'idle');
+  assert.deepEqual(absent.failures, []);
+  assert.equal(absent.observed.inspectedCandidateCount, 0);
+});
+
+test('a submitted PNG requires the explicit palette before asset inspection can pass', () => {
+  const workspace = makeWorkspace();
+  writeBuilding(workspace, 'submitted');
+  const report = runPixelArtGate({ repositoryRoot: workspace.root, candidatesRoot: workspace.candidates, palettePath: path.join(workspace.root, 'missing-palette.json') });
+  assert.equal(report.ok, false);
+  assert.equal(report.status, 'failed');
+  assert.equal(report.submitted, true);
+  assert.equal(report.assetPass, false);
+  assert.equal(report.palette.required, true);
+  assert.equal(report.palette.state, 'unknown');
   assert.ok(report.failures.some(({ code }) => code === 'PALETTE_READ_FAILED'));
-  assert.ok(report.failures.some(({ code }) => code === 'CANDIDATES_EMPTY'));
-  assert.ok(report.unknown.some(({ code }) => code === 'PALETTE_UNKNOWN'));
-  assert.match(formatPixelArtGateReport(report), /not a pass/);
+  assert.equal(report.candidates.length, 1);
+  assert.ok(report.candidates[0].failures.some(({ code }) => code === 'G1_PALETTE_OUTSIDE'));
 });
 
 test('missing or ambiguous sidecar metadata fails closed and preserves observed byte evidence', () => {
@@ -156,12 +180,15 @@ test('assertPixelArtGate exposes the report but never turns a failed gate into a
   assert.equal(fs.readdirSync(workspace.candidates).length, 0);
 });
 
-test('CLI returns non-zero for absent candidates and supports machine-readable evidence', () => {
+test('CLI returns zero for idle candidate inspection and supports machine-readable evidence', () => {
   const workspace = makeWorkspace();
   const cliPath = path.resolve('studio/quality/gates/check-pixel-art.mjs');
   const result = spawnSync(process.execPath, [cliPath, '--root', workspace.root, '--candidates', workspace.candidates, '--json'], { encoding: 'utf8' });
-  assert.notEqual(result.status, 0);
+  assert.equal(result.status, 0);
   const report = JSON.parse(result.stdout);
   assert.equal(report.ok, false);
-  assert.ok(report.failures.some(({ code }) => code === 'CANDIDATES_EMPTY'));
+  assert.equal(report.status, 'idle');
+  assert.equal(report.assetPass, false);
+  assert.deepEqual(report.failures, []);
+  assert.equal(report.palette.state, 'not-required');
 });

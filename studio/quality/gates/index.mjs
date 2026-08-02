@@ -5,7 +5,7 @@ import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 
 /**
- * Pixel-art acceptance gates from MASTER.md §10/§14 (G1-G10 and C1-C6).
+ * Read-only quantitative inspection for submitted pixel-art candidates.
  *
  * This module is deliberately a read-only verifier.  It reads candidate PNG
  * bytes and explicit JSON metadata, and returns evidence.  It never writes,
@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 
 export const PIXEL_ART_GATE_VERSION = '1.0.0';
 export const DEFAULT_CANDIDATES_RELATIVE_ROOT = 'studio/art-department/candidates';
-export const DEFAULT_PALETTE_RELATIVE_PATH = 'studio/art-department/authority/palette-v1.json';
+export const DEFAULT_PALETTE_RELATIVE_PATH = 'studio/art-department/palette.json';
 
 export const DEFAULT_GATE_LIMITS = Object.freeze({
   paletteMinColors: 32,
@@ -753,33 +753,71 @@ function loadPalette(palettePath) {
 
 function defaultRepositoryRoot() { return path.resolve(fileURLToPath(new URL('../../../', import.meta.url))); }
 
+function markIdle(report, reason, repositoryRoot, candidateRootPath) {
+  report.status = 'idle';
+  report.reason = reason;
+  report.submitted = false;
+  report.assetPass = false;
+  report.palette = {
+    path: null,
+    id: null,
+    colors: null,
+    observed: false,
+    required: false,
+    state: 'not-required',
+    failures: []
+  };
+  report.observed = {
+    candidateRoot: candidateRootPath ? path.relative(repositoryRoot, candidateRootPath).split(path.sep).join('/') : null,
+    candidateCount: 0,
+    inspectedCandidateCount: 0,
+    passingCandidateCount: 0
+  };
+  return freezeDeep(report);
+}
+
 /** Inspect all candidate PNGs below a read-only candidate tree. */
 export function runPixelArtGate({ repositoryRoot = defaultRepositoryRoot(), candidatesRoot, candidateRoot: candidateRootOption, palettePath, palette, limits = DEFAULT_GATE_LIMITS } = {}) {
   limits = normalizeLimits(limits);
+  const candidateRootInput = candidatesRoot ?? candidateRootOption ?? path.join(repositoryRoot, DEFAULT_CANDIDATES_RELATIVE_ROOT);
   const report = {
     gateVersion: PIXEL_ART_GATE_VERSION,
     ok: false,
     status: 'failed',
     policy: 'read-only; no approval or promotion is performed',
+    submitted: false,
+    assetPass: false,
+    reason: null,
     palette: null,
     candidates: [],
-    observed: {},
+    observed: { candidateRoot: null, candidateCount: 0, inspectedCandidateCount: 0, passingCandidateCount: 0 },
     inferred: { limits },
     unknown: [],
     failures: []
   };
   let candidateRoot;
-  try { candidateRoot = normalizedRoot(candidatesRoot ?? candidateRootOption ?? path.join(repositoryRoot, DEFAULT_CANDIDATES_RELATIVE_ROOT), 'candidates root'); }
-  catch (error) { report.failures.push(issue('CANDIDATES_MISSING', error.message, 'candidatesRoot')); report.unknown.push(issue('CANDIDATES_UNKNOWN', 'candidate tree is unavailable', 'candidatesRoot', 'unknown')); return freezeDeep(report); }
+  try { candidateRoot = normalizedRoot(candidateRootInput, 'candidates root'); }
+  catch (error) {
+    if (error?.code === 'ENOENT') return markIdle(report, 'candidate tree is absent; no PNG work item was submitted', repositoryRoot, path.resolve(candidateRootInput));
+    report.failures.push(issue('CANDIDATES_READ_FAILED', error.message, 'candidatesRoot'));
+    report.unknown.push(issue('CANDIDATES_UNKNOWN', 'candidate tree is unavailable', 'candidatesRoot', 'unknown'));
+    return freezeDeep(report);
+  }
+  report.observed.candidateRoot = path.relative(repositoryRoot, candidateRoot).split(path.sep).join('/');
+  let pngFiles;
+  try { pngFiles = listPngFiles(candidateRoot); }
+  catch (error) {
+    report.failures.push(issue('CANDIDATES_READ_FAILED', error.message, 'candidatesRoot'));
+    return freezeDeep(report);
+  }
+  if (pngFiles.length === 0) return markIdle(report, 'candidate tree is empty; no PNG work item was submitted', repositoryRoot, candidateRoot);
+  report.submitted = true;
   const paletteResult = palette
     ? normalizePalette(palette, '<inline palette>')
     : loadPalette(palettePath ?? path.join(repositoryRoot, DEFAULT_PALETTE_RELATIVE_PATH));
-  report.palette = { path: path.relative(repositoryRoot, paletteResult.path ?? palettePath ?? '').split(path.sep).join('/'), id: paletteResult.palette?.id ?? null, colors: paletteResult.palette?.colors?.length ?? null, observed: Boolean(paletteResult.palette), failures: paletteResult.failures };
+  report.palette = { path: paletteResult.path ? path.relative(repositoryRoot, paletteResult.path).split(path.sep).join('/') : null, id: paletteResult.palette?.id ?? null, colors: paletteResult.palette?.colors?.length ?? null, observed: Boolean(paletteResult.palette), required: true, state: paletteResult.palette ? 'observed' : 'unknown', failures: paletteResult.failures };
   report.failures.push(...(paletteResult.failures ?? []));
   if (!paletteResult.palette) report.unknown.push(issue('PALETTE_UNKNOWN', 'palette metadata is unavailable or invalid', 'palette', 'unknown'));
-  let pngFiles;
-  try { pngFiles = listPngFiles(candidateRoot); } catch (error) { report.failures.push(issue('CANDIDATES_READ_FAILED', error.message, 'candidatesRoot')); return freezeDeep(report); }
-  if (pngFiles.length === 0) { report.failures.push(issue('CANDIDATES_EMPTY', 'no candidate PNGs were found; an empty tree is not a passing gate', 'candidatesRoot')); report.unknown.push(issue('CANDIDATES_UNKNOWN', 'there are no candidate PNG bytes to inspect', 'candidatesRoot', 'unknown')); return freezeDeep(report); }
   for (const pngPath of pngFiles) {
     const candidate = inspectCandidateFile({ pngPath, candidatesRoot: candidateRoot, palette: paletteResult.palette, limits });
     report.candidates.push(candidate);
@@ -787,8 +825,10 @@ export function runPixelArtGate({ repositoryRoot = defaultRepositoryRoot(), cand
     report.unknown.push(...candidate.unknown.map((entry) => ({ ...entry, candidate: candidate.path })));
   }
   report.observed.candidateCount = report.candidates.length;
+  report.observed.inspectedCandidateCount = report.candidates.length;
   report.observed.passingCandidateCount = report.candidates.filter((candidate) => candidate.ok).length;
   report.ok = Boolean(paletteResult.palette) && report.candidates.length > 0 && report.candidates.every((candidate) => candidate.ok) && report.failures.length === 0 && report.unknown.length === 0;
+  report.assetPass = report.ok;
   report.status = report.ok ? 'passed' : 'failed';
   return freezeDeep(report);
 }
@@ -812,8 +852,9 @@ export function assertPixelArtGate(options = {}) {
 }
 
 export function formatPixelArtGateReport(report) {
+  if (report.status === 'idle') return [`pixel-art gate idle (v${report.gateVersion})`, 'no candidate PNG work item was submitted; palette inspection was not required', 'asset pass: no (idle)'].join('\n');
   const lines = [`pixel-art gate ${report.status} (v${report.gateVersion})`, `palette: ${report.palette?.id ?? 'unknown'} (${report.palette?.colors ?? 'unknown'} colors)`];
-  if (report.candidates.length === 0) lines.push('candidates: none (not a pass)');
+  if (report.candidates.length === 0) lines.push('candidates: none');
   else for (const candidate of report.candidates) lines.push(`${candidate.ok ? 'PASS' : 'FAIL'} ${candidate.path}${candidate.id ? ` [${candidate.id}]` : ''}: ${candidate.failures.length} failure(s), ${candidate.unknown.length} unknown(s)`);
   for (const failure of report.failures) lines.push(`ERROR ${failure.code} ${failure.candidate ? `${failure.candidate}: ` : ''}${failure.message}`);
   for (const unknown of report.unknown) lines.push(`UNKNOWN ${unknown.code} ${unknown.candidate ? `${unknown.candidate}: ` : ''}${unknown.message}`);

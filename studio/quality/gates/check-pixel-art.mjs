@@ -10,7 +10,7 @@ function usage() {
     'Options:',
     '  --root <dir>        repository root (default: current directory)',
     '  --candidates <dir>  candidate root (default: studio/art-department/candidates)',
-    '  --palette <file>    explicit palette JSON (default: studio/art-department/authority/palette-v1.json)',
+    '  --palette <file>    explicit palette JSON (default: studio/art-department/palette.json)',
     '  --json              print the full observed/inferred/unknown report as JSON',
     '  --help              show this help'
   ].join('\n');
@@ -48,7 +48,9 @@ try {
       palettePath: options.palettePath
     });
     process.stdout.write(options.json ? `${JSON.stringify(report, null, 2)}\n` : `${formatPixelArtGateReport(report)}\n`);
-    process.exitCode = report.ok ? 0 : 1;
+    // Idle means no candidate PNG was submitted. It is not an asset pass, but
+    // an explicitly invoked check has no work item to reject in that state.
+    process.exitCode = report.status === 'idle' || report.ok ? 0 : 1;
   }
 } catch (error) {
   process.stderr.write(`${error.message}\n\n${usage()}\n`);

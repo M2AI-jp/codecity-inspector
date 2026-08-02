@@ -1,5 +1,13 @@
 # CodeCity rebuild rules
 
+## Authority
+
+- Read `studio/governance/PRODUCT.md` before changing product behavior.
+- It is the only product specification and remaining-work list.
+- Do not restore requirements, assets, or implementations from Git history.
+- Do not create another roadmap, SSOT, product diagram, backlog, or historical
+  report. Update the checkbox and evidence of the assigned PRODUCT.md item.
+
 ## Product KGI
 
 The product is complete only when an end user can point `npx codecity` at their
@@ -37,4 +45,5 @@ never the product KGI by itself.
 - Workers edit only their assigned `owns` paths and never commit or push.
 - The Lead owns integration, product decisions, commits, and publication.
 - Distribution and security changes require a separate read-only reviewer.
-
+- Workers may execute only an assigned unchecked PRODUCT.md item and may not
+  widen v1 scope.

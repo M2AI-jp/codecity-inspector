@@ -4,8 +4,5 @@ node_modules/
 coverage/
 dist/
 studio/art-department/candidates/**
-!studio/art-department/candidates/README.md
 studio/art-department/reports/**
-!studio/art-department/reports/README.md
 studio/quality/evidence/**
-!studio/quality/evidence/README.md

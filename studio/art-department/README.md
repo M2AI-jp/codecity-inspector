@@ -1,29 +1,26 @@
 # Art department
 
-This package is the custody boundary for the 22 user-provided PNG originals.
-`index.mjs` is intentionally read-only with respect to
-`art/references/user-provided/`: it verifies the dimensions, PNG signature, and
-the reset-time full SHA-256 values (whose prefixes are recorded in MASTER.md)
-and returns an evidence report. It never copies or
-edits an original and has no promotion function.
+This pre-shipping department must become one demand-driven production module:
 
-Public API:
+```text
+immutable originals + finite v1 selectors
+  -> uncovered work orders
+  -> reproducible candidates and measurements
+  -> human promotion of exact bytes
+  -> deterministic approved shipping catalog
+```
 
-- `ORIGINAL_REGISTRY` / `getOriginalRegistry()` — frozen, 22-entry registry
-  derived from the preserved authority (filename, dimensions, full hash,
-  custody).
-- `verifyOriginalRegistry({ repositoryRoot, strictSet })` (also
-  `verifyOriginals`) — read-only report with `ok`, `checked`, `entries`,
-  `failures`, and unexpected PNG names.
-- `assertOriginalRegistry(options)` — same gate, throwing
-  `OriginalCustodyError` when any original is missing, tampered, malformed, or
-  unlisted.
-- `findOriginal(fileOrId)` — lookup for provenance checks.
-- `writeCandidate(factoryRoot, relativePath, data)` and `writeReport(...)` —
-  the only write helpers. They reject absolute paths, traversal, symlinks,
-  `masters/`, `ship/`, and every directory other than `candidates/` or
-  `reports/`.
+Today only original custody and candidate/report write containment are
+implemented. Candidate planning, production, palette derivation, review queue,
+promotion transaction, and catalog publication are incomplete; see `P1` and
+`P2` in `studio/governance/PRODUCT.md`.
 
-The registry gate does not grant approval. Human approval and shipping are
-separate lifecycle steps; nothing in this module can auto-promote a candidate
-into `masters/` or `ship/50-art/`.
+`index.mjs` exposes the current custody boundary:
+
+- `ORIGINAL_REGISTRY`, `getOriginalRegistry()`, `findOriginal()`
+- `verifyOriginalRegistry()` and `assertOriginalRegistry()`
+- `writeCandidate()` and `writeReport()`, which cannot write originals,
+  masters, or shipping paths
+
+The machine may prepare every byte and metadata field. Only the human owner
+may promote an exact candidate to an approved master.
