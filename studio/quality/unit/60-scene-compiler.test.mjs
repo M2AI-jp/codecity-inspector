@@ -167,7 +167,7 @@ test('compiles a complete logical SceneBundle with exact asset bindings', () => 
   assert.ok(bundle.rooms.length > 0);
   assert.ok(bundle.actors.length > 0);
   assert.ok(bundle.interactions.length > 0);
-  assert.equal(bundle.questSites.length, 1);
+  assert.equal(bundle.questSites.length, 3);
   assert.equal(validateSceneBundle(bundle).ok, true);
   assert.equal(bundle.assets.every((asset) => asset.url === '/assets/sheet.png' && asset.sha256.length === 64 && asset.dimensions.width === 192), true);
 });
@@ -191,17 +191,30 @@ test('compiled town covers the grid and every required interaction has a collisi
     height: bundle.game.player.footbox.height,
   };
   assert.equal(bundle.game.collisions.some((collision) => intersects(playerFoot, collision)), false);
+  assert.equal(bundle.nav.routes.journey.length, 5);
+  assert.equal(new Set(bundle.game.quests.map((quest) => quest.siteId)).size, 3);
+  assert.deepEqual(bundle.nav.routes.journey.map((route) => route.to), [
+    bundle.game.request.id,
+    ...bundle.game.quests.map((quest) => quest.id),
+    bundle.game.report.id,
+  ]);
+  assert.equal(bundle.nav.routes.journey[0].from, 'spawn');
+  assert.equal(bundle.nav.routes.journey.at(-1).to, bundle.game.report.id);
+  assert.equal(bundle.nav.routes.journey.every((route) => route.points.length > 0), true);
+  assert.equal(bundle.nav.routes.interiors.length, bundle.game.npcs.filter((npc) => npc.cutawayId).length);
+  assert.equal(bundle.nav.routes.interiors.every((route) => route.points.length > 0), true);
+  assert.equal(bundle.layers.buildings.every((building) => bundle.collisions.solidRects.some((solid) => intersects(solid, building.collisionRect))), true);
 });
 
-test('an observed canonical transition requires and emits one conditional approved effect', () => {
+test('the canonical repository inspection transition emits one conditional town-hall lantern effect', () => {
   const root = assetRoot();
   const plan = JSON.parse(JSON.stringify(createTestOnlyWorldPlan({ observedTransition: true })));
   const selectors = requiredAssetSelectors(plan);
-  assert.ok(selectors.includes('effect:inspection_stamp'));
+  assert.ok(selectors.includes('effect:town_hall_lantern_lit'));
   const bundle = compileScene({ worldPlan: plan, assetManifest: manifest(root, selectors), assetRoot: root, bindings: bindingsFor(selectors) });
-  const effect = bundle.game.renderables.filter((entry) => entry.effect === 'inspection_stamp');
+  const effect = bundle.game.renderables.filter((entry) => entry.effect === 'town_hall_lantern_lit');
   assert.equal(effect.length, 1);
-  assert.equal(effect[0].assetSelector, 'effect:inspection_stamp');
+  assert.equal(effect[0].assetSelector, 'effect:town_hall_lantern_lit');
 });
 
 test('same inputs produce byte-identical deterministic output', () => {
@@ -244,6 +257,40 @@ test('bindings remain explicit and reject wildcard or fallback shortcuts', () =>
   assert.throws(() => compileScene({ worldPlan: plan, assetManifest: manifest(root, selectors), assetRoot: root, bindings: fallback }), (error) => error instanceof SceneCompilerError && error.code === 'BINDINGS_INVALID' && error.issues.some(({ code }) => code === 'FALLBACK_FORBIDDEN'));
 });
 
+test('a full frozen catalog is accepted, but every unused mapping is still validated', () => {
+  const root = assetRoot();
+  const plan = serializedFixture();
+  const required = requiredAssetSelectors(plan);
+  const extra = ['terrain:meadow', 'light:unknown', 'npc:http'].find((selector) => !required.includes(selector));
+  assert.ok(extra);
+  const full = [...required, extra].sort();
+  const bundle = compileScene({ worldPlan: plan, assetManifest: manifest(root, full), assetRoot: root, bindings: bindingsFor(full) });
+  assert.deepEqual(bundle.assets.map((asset) => asset.selector).sort(), [...required].sort());
+
+  const unresolved = bindingsFor(full);
+  unresolved.selectors[extra] = 'not-an-approved-asset';
+  assert.throws(
+    () => compileScene({ worldPlan: plan, assetManifest: manifest(root, full), assetRoot: root, bindings: unresolved }),
+    (error) => error instanceof SceneCompilerError && error.code === 'ASSET_BINDINGS_INVALID' && error.issues.some(({ cause }) => cause === 'ASSET_NOT_FOUND'),
+  );
+
+  const mismatchedManifest = manifest(root, full);
+  const mismatchedAsset = mismatchedManifest.assets[full.indexOf(extra)];
+  mismatchedAsset.usage.kind = 'prop';
+  mismatchedAsset.usage.layer = 'object';
+  assert.throws(
+    () => compileScene({ worldPlan: plan, assetManifest: mismatchedManifest, assetRoot: root, bindings: bindingsFor(full) }),
+    (error) => error instanceof SceneCompilerError && error.code === 'ASSET_BINDINGS_INVALID' && error.issues.some(({ code }) => code === 'USAGE_INCOMPATIBLE'),
+  );
+
+  const unknown = bindingsFor(required);
+  unknown.selectors['building:made_up'] = unknown.selectors[required[0]];
+  assert.throws(
+    () => compileScene({ worldPlan: plan, assetManifest: manifest(root, required), assetRoot: root, bindings: unknown }),
+    (error) => error instanceof SceneCompilerError && error.code === 'BINDINGS_INVALID' && error.issues.some(({ code }) => code === 'SELECTOR_UNKNOWN'),
+  );
+});
+
 test('bundle validation catches schema and binding tampering', () => {
   const root = assetRoot();
   const plan = serializedFixture();
@@ -258,4 +305,28 @@ test('bundle validation catches schema and binding tampering', () => {
   assert.ok(result.issues.some(({ code }) => code === 'UNSUPPORTED_SCHEMA'));
   assert.ok(result.issues.some(({ code }) => code === 'CONTENT_DIGEST_INVALID'));
   assert.ok(result.issues.some(({ code }) => code === 'ASSET_REFERENCE_MISMATCH'));
+});
+
+test('malformed public route dependencies return validation issues instead of throwing', () => {
+  const root = assetRoot();
+  const plan = serializedFixture();
+  const selectors = requiredAssetSelectors(plan);
+  const bundle = compileScene({ worldPlan: plan, assetManifest: manifest(root, selectors), assetRoot: root, bindings: bindingsFor(selectors) });
+  const mutations = [
+    (copy) => { delete copy.game.player; },
+    (copy) => { delete copy.game.spawn; },
+    (copy) => { copy.game.quests = {}; },
+    (copy) => { delete copy.game.request; },
+    (copy) => { delete copy.game.report; },
+    (copy) => { copy.nav.routes.journey[0].points = []; },
+    (copy) => { copy.nav.routes.journey[0].points[0].x = -1; },
+    (copy) => { delete copy.game.entrances[0].interiorSpawn; },
+  ];
+  for (const mutate of mutations) {
+    const copy = structuredClone(bundle);
+    mutate(copy);
+    let result;
+    assert.doesNotThrow(() => { result = validateSceneBundle(copy); });
+    assert.equal(result.ok, false);
+  }
 });

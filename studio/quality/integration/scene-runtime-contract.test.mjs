@@ -88,6 +88,24 @@ function pivot(selector) {
   return { x: 8, y: 16 };
 }
 
+test('the actual approved P2 catalog resolves a navigable P4 representative scene', () => {
+  const assetRoot = path.resolve('ship/50-art/assets');
+  const assetManifest = JSON.parse(fs.readFileSync(path.resolve('ship/50-art/manifest.json'), 'utf8'));
+  const bindings = JSON.parse(fs.readFileSync(path.resolve('ship/50-art/scene-bindings.json'), 'utf8'));
+  const worldPlan = createTestOnlyWorldPlan();
+  const bundle = compileScene({ worldPlan, assetManifest, assetRoot, bindings });
+  const usages = new Set(bundle.assets.map((asset) => `${asset.usage.kind}/${asset.usage.layer}`));
+  assert.ok(usages.has('character/actor'));
+  assert.ok(usages.has('building/object'));
+  assert.ok(usages.has('terrain/ground'));
+  assert.ok(usages.has('road/ground'));
+  assert.ok(usages.has('water/ground'));
+  assert.ok(usages.has('prop/object'));
+  assert.ok(usages.has('quest/foreground'));
+  assert.equal(bundle.nav.routes.journey.length, 5);
+  assert.equal(bundle.nav.routes.interiors.length, bundle.game.npcs.filter((npc) => npc.cutawayId).length);
+});
+
 test('the scene compiler output is accepted unchanged by the independent browser runtime', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'codecity-scene-runtime-integration-'));
   const bytes = testOnlySheet();
@@ -116,5 +134,5 @@ test('the scene compiler output is accepted unchanged by the independent browser
   });
   const result = validateRuntimeSceneBundle(bundle);
   assert.equal(result.ok, true, JSON.stringify(result.issues));
-  assert.equal(bundle.game.renderables.filter((entry) => entry.effect === 'inspection_stamp').length, 1);
+  assert.equal(bundle.game.renderables.filter((entry) => entry.effect === 'town_hall_lantern_lit').length, 1);
 });

@@ -5,7 +5,8 @@
  * approved asset.  It deliberately contains no renderer, DOM, server,
  * network, random, or fallback behaviour.
  */
-import { validateWorldPlan } from '../40-worldgen/index.mjs';
+import { NPC_ROLE_VOCABULARY, REPOSITORY_INSPECTION_BINDING } from '../30-town-domain/index.mjs';
+import { validateWorldPlan, WORLD_PLAN_PUBLIC_VOCABULARY } from '../40-worldgen/index.mjs';
 import { resolveAsset, validateAssetManifest } from '../50-art/index.mjs';
 
 export const SCENE_BUNDLE_FORMAT = 'codecity.scene-bundle';
@@ -59,16 +60,22 @@ const EVIDENCE_SET = new Set(EVIDENCE_STATES);
 const DIRECTIONS = Object.freeze(['north', 'south', 'east', 'west']);
 const CHARACTER_STATES = Object.freeze({ player: ['idle', 'walk', 'run'], npc: ['idle', 'walk'] });
 const REWARD_CHANGES = Object.freeze({
-  build_passed: Object.freeze({ bindingId: 'reward.build_passed', facilityKind: 'workshop', effect: 'forge_fire' }),
-  local_run: Object.freeze({ bindingId: 'reward.local_run', facilityKind: 'town_hall', effect: 'town_powered' }),
-  public_url_responded: Object.freeze({ bindingId: 'reward.public_url_responded', facilityKind: 'inn', effect: 'inn_lit' }),
-  real_access: Object.freeze({ bindingId: 'reward.real_access', facilityKind: 'inn', effect: 'traveler_arrived' }),
-  external_api_responded: Object.freeze({ bindingId: 'reward.external_api_responded', facilityKind: 'pub', effect: 'pub_bustle' }),
-  distribution_released: Object.freeze({ bindingId: 'reward.distribution_released', facilityKind: 'dock', effect: 'ship_departed' }),
-  logs_recorded: Object.freeze({ bindingId: 'reward.logs_recorded', facilityKind: 'watchtower', effect: 'watch_lit' }),
-  tests_passed: Object.freeze({ bindingId: 'reward.tests_passed', facilityKind: 'dojo', effect: 'inspection_stamp' }),
-  rollback_confirmed: Object.freeze({ bindingId: 'reward.rollback_confirmed', facilityKind: 'shop', effect: 'repair_tools' }),
+  [REPOSITORY_INSPECTION_BINDING.event]: REPOSITORY_INSPECTION_BINDING,
 });
+const FROZEN_SELECTOR_SET = new Set([
+  ...PRODUCT_SELECTORS,
+  ...WORLD_PLAN_PUBLIC_VOCABULARY.terrains.map((value) => `terrain:${value}`),
+  'water:default',
+  ...WORLD_PLAN_PUBLIC_VOCABULARY.roadKinds.map((value) => `road:${value}`),
+  ...WORLD_PLAN_PUBLIC_VOCABULARY.occupancyStates.map((value) => `plot:${value}`),
+  ...WORLD_PLAN_PUBLIC_VOCABULARY.facilityKinds.map((value) => `building:${value}`),
+  ...WORLD_PLAN_PUBLIC_VOCABULARY.roomKinds.map((value) => `room:${value}`),
+  ...NPC_ROLE_VOCABULARY.map((value) => `npc:${value}`),
+  ...WORLD_PLAN_PUBLIC_VOCABULARY.propKinds.map((value) => `prop:${value}`),
+  ...WORLD_PLAN_PUBLIC_VOCABULARY.lightStates.map((value) => `light:${value}`),
+  ...WORLD_PLAN_PUBLIC_VOCABULARY.questActions.map((value) => `quest:${value}`),
+  `effect:${REPOSITORY_INSPECTION_BINDING.effect}`,
+]);
 const REWARD_TRANSITION_KEYS = Object.freeze(['bindingId', 'effect', 'event', 'evidence', 'facilityKind', 'id', 'state']);
 const USAGE_COMPATIBILITY = Object.freeze({
   terrain: Object.freeze({ kind: 'terrain', layer: 'ground' }),
@@ -244,6 +251,7 @@ function validateBindings(bindings) {
     for (const [selector, assetId] of Object.entries(bindings.selectors)) {
       if (!nonEmpty(selector)) issues.push(issue('$.selectors', 'INVALID_SELECTOR', 'selector keys must be non-empty'));
       if (selector.includes('*') || selector.includes('?')) issues.push(issue(`$.selectors.${selector}`, 'WILDCARD_FORBIDDEN', 'wildcard selectors are forbidden'));
+      if (!FROZEN_SELECTOR_SET.has(selector)) issues.push(issue(`$.selectors.${selector}`, 'SELECTOR_UNKNOWN', 'selector must belong to the exact frozen v1 selector vocabulary'));
       if (!nonEmpty(assetId)) issues.push(issue(`$.selectors.${selector}`, 'ASSET_ID_REQUIRED', 'selector value must be an explicit asset ID'));
     }
   }
@@ -281,7 +289,7 @@ function observedRewardTransition(plan) {
   const keys = Object.keys(transition).sort();
   if (JSON.stringify(keys) !== JSON.stringify([...REWARD_TRANSITION_KEYS].sort())) fail('REWARD_TRANSITION_INVALID', 'observed report change must be one exact TownModel reward transition', [issue('$.townState.rewards.transitions', 'REWARD_TRANSITION_INVALID', 'transition fields must be exactly id,event,bindingId,facilityKind,effect,state,evidence')]);
   const expected = REWARD_CHANGES[transition.event];
-  if (!expected || !nonEmpty(transition.id) || transition.bindingId !== expected.bindingId || transition.facilityKind !== expected.facilityKind || transition.effect !== expected.effect || transition.state !== 'observed') fail('REWARD_TRANSITION_INVALID', 'observed report change does not match one of the nine canonical reward bindings', [issue('$.townState.rewards.transitions', 'REWARD_TRANSITION_INVALID', 'event, binding, facility, and effect must match exactly')]);
+  if (!expected || !nonEmpty(transition.id) || transition.bindingId !== expected.id || transition.facilityKind !== expected.facilityKind || transition.effect !== expected.effect || transition.state !== 'observed') fail('REWARD_TRANSITION_INVALID', 'observed report change does not match the canonical repository inspection binding', [issue('$.townState.rewards.transitions', 'REWARD_TRANSITION_INVALID', 'event, binding, facility, and effect must match exactly')]);
   const observed = transition.evidence?.observed;
   if (!Array.isArray(observed) || observed.length === 0 || observed.some((entry) => !nonEmpty(entry)) || !Array.isArray(transition.evidence?.inferred) || transition.evidence.inferred.some((entry) => !nonEmpty(entry)) || !Array.isArray(transition.evidence?.unknown) || transition.evidence.unknown.some((entry) => !nonEmpty(entry))) fail('REWARD_TRANSITION_INVALID', 'observed report change must preserve a non-empty observed evidence bag', [issue('$.townState.rewards.transitions', 'REWARD_TRANSITION_INVALID', 'all evidence bags must contain source-address strings and observed must be non-empty')]);
   return transition;
@@ -329,10 +337,17 @@ function resolveBindings(plan, manifest, assetRoot, bindings) {
   const validation = validateBindings(bindings);
   if (!validation.ok) fail('BINDINGS_INVALID', 'Scene bindings failed the version 1 contract', validation.issues);
   const selectors = requiredSelectorsForPlan(plan);
-  const required = new Set(selectors);
   const issues = [];
-  for (const selector of Object.keys(bindings.selectors)) {
-    if (!required.has(selector)) issues.push(issue(`$.selectors.${selector}`, 'SELECTOR_UNKNOWN', 'binding selector is not required by this WorldPlan; extra bindings are forbidden'));
+  const catalog = new Map();
+  for (const [selector, assetId] of Object.entries(bindings.selectors).sort(([left], [right]) => left.localeCompare(right))) {
+    try {
+      const resolvedAsset = resolveAsset(manifest, assetId, { assetRoot });
+      const reference = assetRef(selector, resolvedAsset);
+      issues.push(...usageIssues(reference.usage, selector, `$.selectors.${selector}`, reference.dimensions));
+      catalog.set(selector, reference);
+    } catch (error) {
+      issues.push(issue(`$.selectors.${selector}`, 'ASSET_NOT_RESOLVED', error.message, { assetId, cause: error.code }));
+    }
   }
   const resolved = new Map();
   for (const selector of selectors) {
@@ -341,14 +356,7 @@ function resolveBindings(plan, manifest, assetRoot, bindings) {
       issues.push(issue(`$.selectors.${selector}`, 'BINDING_MISSING', 'every required selector needs an explicit asset ID'));
       continue;
     }
-    try {
-      const resolvedAsset = resolveAsset(manifest, assetId, { assetRoot });
-      const reference = assetRef(selector, resolvedAsset);
-      issues.push(...usageIssues(reference.usage, selector, `$.selectors.${selector}`, reference.dimensions));
-      resolved.set(selector, reference);
-    } catch (error) {
-      issues.push(issue(`$.selectors.${selector}`, 'ASSET_NOT_RESOLVED', error.message, { assetId, cause: error.code }));
-    }
+    if (catalog.has(selector)) resolved.set(selector, catalog.get(selector));
   }
   if (issues.length > 0) fail('ASSET_BINDINGS_INVALID', 'Scene asset selectors failed the explicit usage contract', issues);
   return resolved;
@@ -425,6 +433,21 @@ function pathCell(value) {
   return isRecord(value) && integer(value.x) && integer(value.y);
 }
 
+function rasterizeOrthogonalPath(path, field) {
+  if (!Array.isArray(path) || path.length === 0 || path.some((cell) => !pathCell(cell))) fail('ROAD_PATH_INVALID', `${field} must contain integer cells`, [issue(field, 'ROAD_PATH_INVALID', 'road path requires at least one integer cell')]);
+  const output = [{ ...path[0] }];
+  for (let index = 1; index < path.length; index += 1) {
+    const previous = path[index - 1];
+    const current = path[index];
+    if (previous.x !== current.x && previous.y !== current.y) fail('ROAD_PATH_INVALID', `${field} contains a diagonal segment`, [issue(`${field}[${index}]`, 'ROAD_PATH_INVALID', 'road segments must be orthogonal')]);
+    const dx = Math.sign(current.x - previous.x);
+    const dy = Math.sign(current.y - previous.y);
+    for (let x = previous.x + dx, y = previous.y + dy; x !== current.x || y !== current.y; x += dx, y += dy) output.push({ x, y });
+    output.push({ ...current });
+  }
+  return output.filter((cell, index) => index === 0 || cell.x !== output[index - 1].x || cell.y !== output[index - 1].y);
+}
+
 function compileLayers(plan, assets) {
   const occupancyByPlot = new Map(plan.occupancy.map((entry) => [entry.plotId, entry]));
   const plotById = new Map(plan.plots.map((plot) => [plot.id, plot]));
@@ -441,17 +464,18 @@ function compileLayers(plan, assets) {
     const plot = plotById.get(entry.plotId);
     const asset = binding(`building:${occupant.kind}`);
     const position = anchorForPlot(plot, asset);
+    const pixelRect = plotPixelRect(plot);
     return {
       id: occupant.facilityId,
       plotId: entry.plotId,
       kind: occupant.kind,
       name: occupant.name,
       state: occupant.state,
-      pixelRect: plotPixelRect(plot),
+      pixelRect,
       position,
       footPivot: { ...asset.pivot },
-      collisionRect: usageRect(asset, position),
-      entranceRect: usageRect(asset, position, 'entrance'),
+      collisionRect: intersectRect(usageRect(asset, position), pixelRect),
+      entranceRect: intersectRect(usageRect(asset, position, 'entrance'), pixelRect),
       asset,
     };
   }).sort(compareId);
@@ -461,13 +485,13 @@ function compileLayers(plan, assets) {
     const position = anchorForPlot(plot, asset);
     return { ...clone(room), bounds: plotPixelRect(plot), position, footPivot: { ...asset.pivot }, collisionRect: usageRect(asset, position), asset };
   }).sort(compareId);
-  const roads = plan.roads.map((road) => ({
+  const roads = plan.roads.map((road, index) => ({
     id: road.id,
     kind: road.kind,
     fromPlotId: road.fromPlotId,
     toPlotId: road.toPlotId,
     width: road.width,
-    path: clone(road.path),
+    path: rasterizeOrthogonalPath(road.path, `$.roads[${index}].path`),
     asset: binding(`road:${road.kind}`),
   }));
   const props = plan.props.map((prop) => {
@@ -546,6 +570,133 @@ function walkableRect(bounds, collisions, preferred = null) {
   return found;
 }
 
+function playerFootAt(position, footbox) {
+  return { x: Math.round(position.x + footbox.x), y: Math.round(position.y + footbox.y) };
+}
+
+function footRect(point, footbox) {
+  return { x: point.x, y: point.y, width: footbox.width, height: footbox.height };
+}
+
+function navigationField(footbox, collisions, worldSize, bounds = null) {
+  const minX = bounds ? Math.max(0, Math.ceil(bounds.x)) : 0;
+  const minY = bounds ? Math.max(0, Math.ceil(bounds.y)) : 0;
+  const maxX = Math.min(Math.floor(worldSize.width - footbox.width), bounds ? Math.floor(bounds.x + bounds.width - footbox.width) : Number.POSITIVE_INFINITY);
+  const maxY = Math.min(Math.floor(worldSize.height - footbox.height), bounds ? Math.floor(bounds.y + bounds.height - footbox.height) : Number.POSITIVE_INFINITY);
+  if (maxX < minX || maxY < minY) fail('ROUTE_UNREACHABLE', 'navigation bounds cannot fit the player footbox', [issue('$.nav.routes', 'ROUTE_UNREACHABLE', 'navigation bounds are smaller than the player footbox')]);
+  const width = maxX - minX + 1;
+  const blocked = new Uint8Array(width * (maxY - minY + 1));
+  for (let y = minY; y <= maxY; y += 1) for (let x = minX; x <= maxX; x += 1) {
+    if (collisions.some((collision) => overlaps(footRect({ x, y }, footbox), collision))) blocked[(y - minY) * width + (x - minX)] = 1;
+  }
+  return { minX, minY, maxX, maxY, width, blocked };
+}
+
+function routeTargets(target, footbox, field) {
+  const points = [];
+  const minX = Math.max(field.minX, Math.ceil(target.x));
+  const minY = Math.max(field.minY, Math.ceil(target.y));
+  const maxX = Math.min(field.maxX, Math.floor(target.x + target.width - footbox.width));
+  const maxY = Math.min(field.maxY, Math.floor(target.y + target.height - footbox.height));
+  for (let y = minY; y <= maxY; y += 1) for (let x = minX; x <= maxX; x += 1) {
+    if (field.blocked[(y - field.minY) * field.width + (x - field.minX)] === 0) points.push({ x, y });
+  }
+  return points;
+}
+
+function compressRoute(points) {
+  if (points.length <= 2) return points;
+  const output = [points[0]];
+  for (let index = 1; index < points.length - 1; index += 1) {
+    const previous = points[index - 1];
+    const current = points[index];
+    const next = points[index + 1];
+    if ((current.x - previous.x) !== (next.x - current.x) || (current.y - previous.y) !== (next.y - current.y)) output.push(current);
+  }
+  output.push(points.at(-1));
+  return output;
+}
+
+function collisionFreeRoute(start, target, footbox, field, from, to) {
+  const { minX, minY, maxX, maxY, width } = field;
+  const total = field.blocked.length;
+  const normalizedStart = { x: Math.round(start.x), y: Math.round(start.y) };
+  const valid = (point) => point.x >= minX && point.y >= minY && point.x <= maxX && point.y <= maxY
+    && field.blocked[(point.y - minY) * width + (point.x - minX)] === 0;
+  if (!valid(normalizedStart)) fail('ROUTE_UNREACHABLE', `route ${from} starts inside collision`, [issue('$.nav.routes', 'ROUTE_UNREACHABLE', 'route start must fit the player footbox')]);
+  const targets = routeTargets(target, footbox, field);
+  if (targets.length === 0) fail('ROUTE_UNREACHABLE', `route ${to} has no collision-free destination`, [issue('$.nav.routes', 'ROUTE_UNREACHABLE', 'interaction target must fit the player footbox')]);
+  const targetIndexes = new Set(targets.map((point) => (point.y - minY) * width + (point.x - minX)));
+  const parent = new Int32Array(total);
+  parent.fill(-2);
+  const queue = new Int32Array(total);
+  const startIndex = (normalizedStart.y - minY) * width + (normalizedStart.x - minX);
+  parent[startIndex] = -1;
+  queue[0] = startIndex;
+  let head = 0;
+  let tail = 1;
+  let found = targetIndexes.has(startIndex) ? startIndex : -1;
+  const directions = [[0, -1], [-1, 0], [1, 0], [0, 1]];
+  while (head < tail && found < 0) {
+    const currentIndex = queue[head++];
+    const current = { x: (currentIndex % width) + minX, y: Math.floor(currentIndex / width) + minY };
+    for (const [dx, dy] of directions) {
+      const next = { x: current.x + dx, y: current.y + dy };
+      if (!valid(next)) continue;
+      const nextIndex = (next.y - minY) * width + (next.x - minX);
+      if (parent[nextIndex] !== -2) continue;
+      parent[nextIndex] = currentIndex;
+      queue[tail++] = nextIndex;
+      if (targetIndexes.has(nextIndex)) { found = nextIndex; break; }
+    }
+  }
+  if (found < 0) fail('ROUTE_UNREACHABLE', `no collision-free route from ${from} to ${to}`, [issue('$.nav.routes', 'ROUTE_UNREACHABLE', 'player footbox cannot reach the required interaction')]);
+  const points = [];
+  for (let current = found; current >= 0; current = parent[current]) points.push({ x: (current % width) + minX, y: Math.floor(current / width) + minY });
+  points.reverse();
+  return { from, to, points: compressRoute(points), end: points.at(-1) };
+}
+
+function intersectRect(left, right) {
+  if (!rect(left) || !rect(right)) return null;
+  const x = Math.max(left.x, right.x);
+  const y = Math.max(left.y, right.y);
+  const edgeX = Math.min(left.x + left.width, right.x + right.width);
+  const edgeY = Math.min(left.y + left.height, right.y + right.height);
+  return edgeX > x && edgeY > y ? { x, y, width: edgeX - x, height: edgeY - y } : null;
+}
+
+function compileNavigationRoutes(game, interiorCollisions) {
+  const footbox = game.player.footbox;
+  const worldSize = game.worldSize;
+  const collisions = game.collisions;
+  const exteriorField = navigationField(footbox, collisions, worldSize);
+  let cursor = playerFootAt(game.spawn, footbox);
+  const journey = [];
+  const stops = [game.request, ...game.quests, game.report];
+  let from = 'spawn';
+  for (const stop of stops) {
+    const route = collisionFreeRoute(cursor, stop.rect, footbox, exteriorField, from, stop.id);
+    journey.push({ from: route.from, to: route.to, points: route.points });
+    cursor = route.end;
+    from = stop.id;
+  }
+  const roomById = new Map(game.rooms.map((room) => [room.id, room]));
+  const entranceByRoom = new Map(game.entrances.map((entrance) => [entrance.roomId, entrance]));
+  const interiors = [];
+  for (const npc of game.npcs.filter((entry) => nonEmpty(entry.cutawayId)).sort(compareId)) {
+    const room = roomById.get(npc.cutawayId);
+    const entrance = entranceByRoom.get(npc.cutawayId);
+    const target = room ? intersectRect(room.bounds, npc.interactionRect) : null;
+    if (!room || !entrance || !target) fail('INTERIOR_ROUTE_UNREACHABLE', `NPC ${npc.id} has no room entrance route`, [issue('$.nav.routes.interiors', 'INTERIOR_ROUTE_UNREACHABLE', 'indoor NPC requires an entrance and interaction area in the same room')]);
+    const start = playerFootAt(entrance.interiorSpawn, footbox);
+    const field = navigationField(footbox, interiorCollisions.get(room.id) ?? [], worldSize, room.bounds);
+    const route = collisionFreeRoute(start, target, footbox, field, entrance.id, npc.id);
+    interiors.push({ roomId: room.id, from: route.from, to: route.to, points: route.points });
+  }
+  return { journey, interiors };
+}
+
 function compileCollisions(plan, layers, npcs) {
   const staticRects = [
     ...layers.buildings.flatMap((entry) => carveRect(entry.collisionRect, entry.entranceRect)),
@@ -554,11 +705,21 @@ function compileCollisions(plan, layers, npcs) {
     ...npcs.map((entry) => entry.collisionRect),
   ];
   const solidRects = uniqueRects(staticRects);
-  const waterCells = plan.water.path.filter(pathCell).map((cell) => ({ x: cell.x * GAME_TILE_SIZE, y: cell.y * GAME_TILE_SIZE, width: GAME_TILE_SIZE, height: GAME_TILE_SIZE }));
+  const roadCells = new Set(layers.roads.flatMap((road) => road.path.filter(pathCell)).map((cell) => `${cell.x},${cell.y}`));
+  const waterCells = plan.water.path.filter(pathCell).filter((cell) => !roadCells.has(`${cell.x},${cell.y}`)).map((cell) => ({ x: cell.x * GAME_TILE_SIZE, y: cell.y * GAME_TILE_SIZE, width: GAME_TILE_SIZE, height: GAME_TILE_SIZE }));
   const gameCollisions = uniqueRects([...solidRects, ...waterCells]);
   const occupancy = new Map(plan.occupancy.map((entry) => [entry.plotId, entry]));
+  const interiorByRoom = layers.rooms.map((room) => ({
+    roomId: room.id,
+    solidRects: uniqueRects([
+      room.collisionRect,
+      ...npcs.filter((npc) => npc.plotId === room.plotId).map((npc) => npc.collisionRect),
+      ...layers.props.filter((prop) => prop.collisionRect && overlaps(prop.collisionRect, room.bounds)).map((prop) => prop.collisionRect),
+    ]),
+  })).sort((left, right) => left.roomId.localeCompare(right.roomId));
   return {
     gameCollisions,
+    interiorByRoom: new Map(interiorByRoom.map((entry) => [entry.roomId, entry.solidRects])),
     topLevel: {
       grid: { ...plan.grid },
       solidRects,
@@ -567,6 +728,7 @@ function compileCollisions(plan, layers, npcs) {
       blockedCells: [],
       waterCells: clone(plan.water.path),
       vacantPlotIds: plan.plots.filter((plot) => occupancy.get(plot.id)?.state === 'vacant').map((plot) => plot.id).sort(),
+      interiorByRoom,
     },
   };
 }
@@ -690,7 +852,10 @@ function buildGame(plan, layers, roomActorData, quests, collisionData, assets) {
     const room = roomByFacility.get(building.id);
     const entrance = building.entranceRect;
     const exteriorFoot = { x: entrance.x + entrance.width / 2 - playerFootbox.width / 2, y: entrance.y + entrance.height + 1 };
-    const interiorFoot = { x: entrance.x + entrance.width / 2 - playerFootbox.width / 2, y: entrance.y + entrance.height - playerFootbox.height - 1 };
+    const interiorFoot = walkableRect(room?.bounds ?? building.pixelRect, collisionData.interiorByRoom.get(room?.id) ?? [], {
+      x: entrance.x + entrance.width / 2,
+      y: entrance.y - playerFootbox.height,
+    });
     return {
       id: `entrance:${building.id}`,
       roomId: room?.id ?? `room-${building.id}`,
@@ -796,6 +961,7 @@ export function compileScene({ worldPlan, assetManifest, assetRoot, bindings } =
   const quests = compileQuests(plan, assets);
   const collisionData = compileCollisions(plan, layers, roomActorData.actors);
   const game = buildGame(plan, layers, roomActorData, quests, collisionData, assets);
+  const nav = { ...clone(plan.nav), routes: compileNavigationRoutes(game, collisionData.interiorByRoom) };
   const evidence = townEvidenceAddresses(plan);
   const bundle = {
     format: SCENE_BUNDLE_FORMAT,
@@ -813,7 +979,7 @@ export function compileScene({ worldPlan, assetManifest, assetRoot, bindings } =
     assets: [...assets.values()].map((entry) => clone(entry)).sort(compareId),
     layers,
     collisions: collisionData.topLevel,
-    nav: clone(plan.nav),
+    nav,
     rooms: roomActorData.rooms,
     actors: roomActorData.actors,
     interactions: roomActorData.interactions,
@@ -876,20 +1042,23 @@ function validateGame(bundle, assets, issues) {
   rejectUnknownKeys(game.player, ['assetSelector', 'footbox', 'speeds', 'interactDistance'], '$.game.player', issues);
   if (!isRecord(game.player) || game.player.assetSelector !== 'player:default' || !assets.has(game.player.assetSelector) || !rect(game.player.footbox) || game.player.speeds?.run !== 75 || game.player.speeds?.walk !== 45 || !positive(game.player.interactDistance)) issues.push(issue('$.game.player', 'PLAYER_INVALID', 'player contract is invalid'));
   if (!Array.isArray(game.collisions) || game.collisions.some((entry) => !rect(entry))) issues.push(issue('$.game.collisions', 'COLLISIONS_INVALID', 'collisions must be rectangle arrays'));
-  for (const [index, entry] of (game.entrances ?? []).entries()) {
+  if (!Array.isArray(game.entrances)) issues.push(issue('$.game.entrances', 'ENTRANCES_INVALID', 'entrances must be an array'));
+  for (const [index, entry] of (Array.isArray(game.entrances) ? game.entrances : []).entries()) {
     rejectUnknownKeys(entry, ['id', 'rect', 'roomId', 'cutawayIds', 'exteriorSpawn', 'interiorSpawn'], `$.game.entrances[${index}]`, issues);
     if (!nonEmpty(entry.id) || !nonEmpty(entry.roomId) || !rect(entry.rect) || !Array.isArray(entry.cutawayIds) || !point(entry.exteriorSpawn) || !point(entry.interiorSpawn)) issues.push(issue(`$.game.entrances[${index}]`, 'ENTRANCE_INVALID', 'entrance contract is invalid'));
   }
-  for (const [index, room] of (game.rooms ?? []).entries()) {
+  if (!Array.isArray(game.rooms)) issues.push(issue('$.game.rooms', 'ROOMS_INVALID', 'rooms must be an array'));
+  for (const [index, room] of (Array.isArray(game.rooms) ? game.rooms : []).entries()) {
     rejectUnknownKeys(room, ['id', 'bounds', 'cutawayIds'], `$.game.rooms[${index}]`, issues);
     if (!nonEmpty(room.id) || !rect(room.bounds) || !Array.isArray(room.cutawayIds)) issues.push(issue(`$.game.rooms[${index}]`, 'ROOM_INVALID', 'room contract is invalid'));
   }
-  for (const [index, npc] of (game.npcs ?? []).entries()) {
+  if (!Array.isArray(game.npcs)) issues.push(issue('$.game.npcs', 'NPCS_INVALID', 'npcs must be an array'));
+  for (const [index, npc] of (Array.isArray(game.npcs) ? game.npcs : []).entries()) {
     rejectUnknownKeys(npc, ['id', 'kind', 'position', 'assetSelector', 'footPivot', 'interactionRect', 'prompt', 'dialogue', 'cutawayId'], `$.game.npcs[${index}]`, issues);
     if (!nonEmpty(npc.id) || !['guild', 'resident'].includes(npc.kind) || !point(npc.position) || !assets.has(npc.assetSelector) || !point(npc.footPivot) || !rect(npc.interactionRect) || !nonEmpty(npc.prompt) || !Array.isArray(npc.dialogue)) issues.push(issue(`$.game.npcs[${index}]`, 'NPC_INVALID', 'npc contract is invalid'));
   }
   if (!Array.isArray(game.quests) || game.quests.length > 3) issues.push(issue('$.game.quests', 'QUEST_COUNT_INVALID', 'zero through three quests are allowed'));
-  for (const [index, quest] of (game.quests ?? []).entries()) {
+  for (const [index, quest] of (Array.isArray(game.quests) ? game.quests : []).entries()) {
     rejectUnknownKeys(quest, ['id', 'siteId', 'rect', 'subject', 'statement', 'evidenceAddresses'], `$.game.quests[${index}]`, issues);
     if (!nonEmpty(quest.id) || !nonEmpty(quest.siteId) || !rect(quest.rect) || !nonEmpty(quest.subject) || !nonEmpty(quest.statement)) issues.push(issue(`$.game.quests[${index}]`, 'QUEST_INVALID', 'quest contract is invalid'));
     validateEvidence(quest.evidenceAddresses, `$.game.quests[${index}].evidenceAddresses`, issues);
@@ -905,10 +1074,94 @@ function validateGame(bundle, assets, issues) {
     if (!nonEmpty(tab.id) || tab.label !== GUILD_TAB_LABELS[index] || !Array.isArray(tab.entries)) issues.push(issue(`$.game.guild.tabs[${index}]`, 'GUILD_TAB_INVALID', 'guild tab is invalid'));
   }
   if (!Array.isArray(game.renderables)) issues.push(issue('$.game.renderables', 'RENDERABLES_REQUIRED', 'renderables array required'));
-  for (const [index, entry] of (game.renderables ?? []).entries()) {
+  for (const [index, entry] of (Array.isArray(game.renderables) ? game.renderables : []).entries()) {
     rejectUnknownKeys(entry, ['id', 'assetSelector', 'position', 'footPivot', 'z', 'cutawayId', 'roomId', 'effect'], `$.game.renderables[${index}]`, issues);
     if (!nonEmpty(entry.id) || !assets.has(entry.assetSelector) || !point(entry.position) || !point(entry.footPivot) || !finite(entry.z)) issues.push(issue(`$.game.renderables[${index}]`, 'RENDERABLE_INVALID', 'renderable contract is invalid'));
   }
+}
+
+function samePoint(left, right) {
+  return point(left) && point(right) && left.x === right.x && left.y === right.y;
+}
+
+function containsRect(outer, inner) {
+  return rect(outer) && rect(inner) && inner.x >= outer.x && inner.y >= outer.y
+    && inner.x + inner.width <= outer.x + outer.width && inner.y + inner.height <= outer.y + outer.height;
+}
+
+function routePointsClear(points, footbox, collisions, worldSize) {
+  if (!Array.isArray(points) || points.length === 0 || points.some((entry) => !integer(entry?.x) || !integer(entry?.y))) return false;
+  for (let index = 0; index < points.length; index += 1) {
+    const current = points[index];
+    if (current.x < 0 || current.y < 0 || current.x + footbox.width > worldSize.width || current.y + footbox.height > worldSize.height) return false;
+    if (index > 0) {
+      const previous = points[index - 1];
+      if (previous.x !== current.x && previous.y !== current.y) return false;
+      const dx = Math.sign(current.x - previous.x);
+      const dy = Math.sign(current.y - previous.y);
+      for (let x = previous.x, y = previous.y; x !== current.x || y !== current.y; x += dx, y += dy) {
+        if (collisions.some((collision) => overlaps(footRect({ x, y }, footbox), collision))) return false;
+      }
+    }
+    if (collisions.some((collision) => overlaps(footRect(current, footbox), collision))) return false;
+  }
+  return true;
+}
+
+function validateNavigation(bundle, issues) {
+  const nav = bundle.nav;
+  const game = bundle.game;
+  if (!isRecord(nav) || !isRecord(nav.routes) || !Array.isArray(nav.routes.journey) || !Array.isArray(nav.routes.interiors) ||
+      !isRecord(game) || !isRecord(game.player) || !rect(game.player.footbox) || !isRecord(game.spawn) || !point(game.spawn) ||
+      !isRecord(game.worldSize) || !positive(game.worldSize.width) || !positive(game.worldSize.height) ||
+      !Array.isArray(game.collisions) || !Array.isArray(game.quests) || !Array.isArray(game.rooms) || !Array.isArray(game.entrances) || !Array.isArray(game.npcs) ||
+      !isRecord(game.request) || !rect(game.request.rect) || !isRecord(game.report) || !rect(game.report.rect)) {
+    issues.push(issue('$.nav.routes', 'NAV_ROUTES_REQUIRED', 'journey and interior collision-free routes are required'));
+    return;
+  }
+  const targets = [game.request, ...(game.quests ?? []), game.report];
+  if (nav.routes.journey.length !== targets.length) issues.push(issue('$.nav.routes.journey', 'JOURNEY_ROUTE_COUNT_INVALID', 'spawn, request, every quest, and report must form one route chain'));
+  const footbox = game.player?.footbox;
+  const collisions = game.collisions ?? [];
+  let expectedStart = playerFootAt(game.spawn, footbox);
+  let expectedFrom = 'spawn';
+  nav.routes.journey.forEach((route, index) => {
+    const target = targets[index];
+    const routePath = `$.nav.routes.journey[${index}]`;
+    if (!isRecord(target) || !rect(target.rect)) {
+      issues.push(issue(routePath, 'JOURNEY_DESTINATION_INVALID', 'route target requires an interaction rectangle'));
+      return;
+    }
+    if (!isRecord(route) || route.from !== expectedFrom || route.to !== target?.id || !samePoint(route.points?.[0], expectedStart) || !routePointsClear(route.points, footbox, collisions, game.worldSize)) {
+      issues.push(issue(routePath, 'JOURNEY_ROUTE_INVALID', 'route must be a chained collision-free orthogonal player-footbox path'));
+      return;
+    }
+    const end = route.points.at(-1);
+    if (!containsRect(target.rect, footRect(end, footbox))) issues.push(issue(routePath, 'JOURNEY_DESTINATION_INVALID', 'route must end inside its interaction rectangle'));
+    expectedStart = end;
+    expectedFrom = route.to;
+  });
+  const rooms = new Map((game.rooms ?? []).map((room) => [room.id, room]));
+  const entrances = new Map((game.entrances ?? []).map((entrance) => [entrance.roomId, entrance]));
+  const interiorCollisions = new Map((Array.isArray(bundle.collisions?.interiorByRoom) ? bundle.collisions.interiorByRoom : []).map((entry) => [entry.roomId, entry.solidRects]));
+  const indoorNpcs = (game.npcs ?? []).filter((npc) => nonEmpty(npc.cutawayId)).sort(compareId);
+  if (nav.routes.interiors.length !== indoorNpcs.length) issues.push(issue('$.nav.routes.interiors', 'INTERIOR_ROUTE_COUNT_INVALID', 'every indoor NPC requires one entrance route'));
+  nav.routes.interiors.forEach((route, index) => {
+    const npc = indoorNpcs[index];
+    const room = rooms.get(route?.roomId);
+    const entrance = entrances.get(route?.roomId);
+    const start = entrance && point(entrance.interiorSpawn) ? playerFootAt(entrance.interiorSpawn, footbox) : null;
+    const routePath = `$.nav.routes.interiors[${index}]`;
+    const scopedCollisions = interiorCollisions.get(route?.roomId);
+    if (!isRecord(route) || !npc || !room || !rect(room.bounds) || !rect(npc.interactionRect) || !entrance || !start || !Array.isArray(scopedCollisions) ||
+        route.from !== entrance.id || route.to !== npc.id || !samePoint(route.points?.[0], start) || !routePointsClear(route.points, footbox, scopedCollisions, game.worldSize) ||
+        !route.points.every((routePoint) => containsRect(room.bounds, footRect(routePoint, footbox)))) {
+      issues.push(issue(routePath, 'INTERIOR_ROUTE_INVALID', 'indoor route must connect its entrance to its NPC without collision'));
+      return;
+    }
+    const endRect = footRect(route.points.at(-1), footbox);
+    if (!containsRect(room.bounds, endRect) || !containsRect(npc.interactionRect, endRect)) issues.push(issue(routePath, 'INTERIOR_DESTINATION_INVALID', 'interior route must end within the room and NPC interaction area'));
+  });
 }
 
 /** Validate SceneBundle shape and exact asset bindings without touching disk. */
@@ -948,9 +1201,13 @@ export function validateSceneBundle(bundle) {
   else {
     if (!Array.isArray(bundle.collisions.solidRects)) issues.push(issue('$.collisions.solidRects', 'COLLISION_ARRAY_REQUIRED', 'solidRects array is required'));
     if (!Array.isArray(bundle.collisions.entranceRects)) issues.push(issue('$.collisions.entranceRects', 'COLLISION_ARRAY_REQUIRED', 'entranceRects array is required'));
-    for (const key of ['blockedPlotIds', 'blockedCells', 'waterCells', 'vacantPlotIds']) if (!Array.isArray(bundle.collisions[key])) issues.push(issue(`$.collisions.${key}`, 'COLLISION_ARRAY_REQUIRED', 'collision array is required'));
+    for (const key of ['blockedPlotIds', 'blockedCells', 'waterCells', 'vacantPlotIds', 'interiorByRoom']) if (!Array.isArray(bundle.collisions[key])) issues.push(issue(`$.collisions.${key}`, 'COLLISION_ARRAY_REQUIRED', 'collision array is required'));
+    for (const [index, entry] of (Array.isArray(bundle.collisions.interiorByRoom) ? bundle.collisions.interiorByRoom : []).entries()) {
+      if (!isRecord(entry) || !nonEmpty(entry.roomId) || !Array.isArray(entry.solidRects) || entry.solidRects.some((rectangle) => !rect(rectangle))) issues.push(issue(`$.collisions.interiorByRoom[${index}]`, 'INTERIOR_COLLISIONS_INVALID', 'room collision record requires roomId and rectangle array'));
+    }
   }
   if (!isRecord(bundle.nav)) issues.push(issue('$.nav', 'NAV_REQUIRED', 'navigation graph is required'));
+  else validateNavigation(bundle, issues);
   for (const key of ['rooms', 'actors', 'interactions', 'questSites']) if (!Array.isArray(bundle[key])) issues.push(issue(`$.${key}`, 'ARRAY_REQUIRED', 'array is required'));
   if (Array.isArray(bundle.rooms)) bundle.rooms.forEach((entry, index) => validateAssetReference(entry.asset, `$.rooms[${index}].asset`, assets, issues));
   if (Array.isArray(bundle.actors)) bundle.actors.forEach((entry, index) => validateAssetReference(entry.asset, `$.actors[${index}].asset`, assets, issues));

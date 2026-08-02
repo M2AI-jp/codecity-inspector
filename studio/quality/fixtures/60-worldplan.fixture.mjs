@@ -9,7 +9,7 @@ function evidence() {
   return { observed: [], inferred: [], unknown: [] };
 }
 
-function fixtureTown({ observedTransition = false } = {}) {
+function fixtureTown() {
   return {
     schemaVersion: 1,
     repository: { name: 'Scene compiler fixture', identity: 'scene-compiler-test-only' },
@@ -20,7 +20,7 @@ function fixtureTown({ observedTransition = false } = {}) {
       role: kind === 'shop' ? 'repair' : 'role',
       variant: kind === 'shop' ? 'repair' : 'default',
       presence: index === 0 ? 'not-applicable' : 'present',
-      condition: 'ready',
+      condition: 'active',
       blocksProgress: false,
       sourceFileIds: [],
       evidence: evidence()
@@ -33,6 +33,11 @@ function fixtureTown({ observedTransition = false } = {}) {
       evidence: evidence()
     })),
     habitability: { level: 1, label: 'habitable', knownCapabilities: [], unknownCapabilities: [], evidence: evidence() },
+    evidence: {
+      observed: ['observed:repository:name', 'repository.inspection.completed'],
+      inferred: ['inferred:repository:identity', 'inferred:repository:project-kind'],
+      unknown: ['repository.inspection.runtime.unknown', 'unknown:git-metadata', 'unknown:graph:entrypoints'],
+    },
     guild: {
       tabs: Array.from({ length: 5 }, (_, index) => ({ id: `tab-${index}`, label: 'tab', entries: [], evidence: evidence() })),
       representativeConnections: [],
@@ -40,23 +45,38 @@ function fixtureTown({ observedTransition = false } = {}) {
     },
     investigations: {
       priority: ['entrypoint', 'persistence', 'configuration', 'test', 'observability', 'recovery'],
-      candidates: [{
-        id: 'candidate-test-only', capability: 'entrypoint', facilityKind: 'gate', role: 'entrypoint', variant: null,
-        subject: '城門と宿屋の入口', statement: '城門から人が入れる', state: 'unknown',
-        evidence: { observed: [], inferred: [], unknown: ['test-only.entrypoint.unknown'] },
-      }],
+      candidates: [
+        {
+          id: 'investigation.persistence', capability: 'persistence', facilityKind: 'warehouse', role: 'persistence', variant: null,
+          subject: '倉庫の台帳', statement: '倉庫に記録が残る', state: 'unknown',
+          evidence: { observed: ['repository.inspection.completed'], inferred: [], unknown: ['test-only.persistence.unknown'] },
+        },
+        {
+          id: 'investigation.configuration', capability: 'configuration', facilityKind: 'well', role: 'configuration', variant: null,
+          subject: '井戸の水', statement: '井戸から水が使える', state: 'unknown',
+          evidence: { observed: ['repository.inspection.completed'], inferred: [], unknown: ['test-only.configuration.unknown'] },
+        },
+        {
+          id: 'investigation.test', capability: 'test', facilityKind: 'dojo', role: 'verification', variant: null,
+          subject: '道場の検査', statement: '道場に検査済みの印がある', state: 'unknown',
+          evidence: { observed: ['repository.inspection.completed'], inferred: [], unknown: ['test-only.test.unknown'] },
+        },
+      ],
     },
     rewards: {
-      bindings: Array.from({ length: 9 }, (_, index) => ({ id: `reward-${index}`, kind: 'reward' })),
-      transitions: observedTransition ? [{
-        id: 'transition.tests-passed',
-        event: 'tests_passed',
-        bindingId: 'reward.tests_passed',
-        facilityKind: 'dojo',
-        effect: 'inspection_stamp',
+      bindings: [{
+        id: 'repository_inspected', event: 'repository_inspected', transition: 'repository_inspected',
+        facilityKind: 'town_hall', effect: 'town_hall_lantern_lit',
+      }],
+      transitions: [{
+        id: 'transition.repository_inspected',
+        event: 'repository_inspected',
+        bindingId: 'repository_inspected',
+        facilityKind: 'town_hall',
+        effect: 'town_hall_lantern_lit',
         state: 'observed',
-        evidence: { observed: ['test-only.tests-passed.observed'], inferred: [], unknown: [] },
-      }] : [],
+        evidence: { observed: ['repository.inspection.completed'], inferred: [], unknown: [] },
+      }],
     }
   };
 }

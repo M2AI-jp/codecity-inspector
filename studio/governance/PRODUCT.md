@@ -587,7 +587,7 @@ three questions and the one permitted observed event with evidence states
 preserved; stop immediately if implementation would execute customer code or
 add another reward.
 
-### [ ] P4 — Scene compiler completes catalog-to-town composition
+### [x] P4 — Scene compiler completes catalog-to-town composition
 
 **Subject/action/object:** `60-scene-compiler` selects the exact required subset
 from the complete approved catalog and compiles a navigable SceneBundle.
@@ -600,6 +600,28 @@ and one conditional town-hall-lantern renderable.
 unused valid catalog mappings are accepted; missing selectors and fallbacks
 fail; spawn-to-request, request-to-three-sites, sites-to-report, and interior
 NPC routes are collision-free.
+
+P4 evidence is the canonical compiler and focused real-catalog checks in
+`ship/60-scene-compiler/index.mjs` and
+`studio/quality/unit/60-scene-compiler.test.mjs`. The compiler validates all 60
+frozen catalog mappings, rejects invalid unused mappings, and emits only the 47
+selectors required by the representative plan. Actual approved references cover
+player and NPC characters, buildings, terrain, roads, water, props, lights,
+quests, UI, and the conditional effect. It rasterizes sparse orthogonal roads,
+keeps exterior building walls solid except at entrances, creates room-bounded
+interior collision fields, and emits deterministic player-footbox routes for
+spawn to request, three distinct investigation sites, report, and every indoor
+NPC. The only accepted reward is the public canonical
+`repository_inspected -> town_hall -> town_hall_lantern_lit` transition.
+Eleven focused compiler checks pass, including compilation against the real P2
+manifest, bindings, and PNG root in about 0.26 seconds; malformed routes and
+unknown, missing, wildcard, fallback, unresolved, or usage-incompatible
+bindings fail closed. Independent review found no P4 blocker. The shared
+compiler-to-runtime check still fails only because P5 retains the obsolete
+nine-reward whitelist; it reports `REWARD_CHANGE_NOT_ALLOWED` and
+`RENDERABLE_EFFECT_INVALID`. P4 evidence proves deterministic logical
+composition and reachability, not runtime input, persistence, browser play,
+package acquisition, or the product KGI.
 
 **Three-view value:** the owner's backend and art investments become one bounded
 scene; the Lead retires the composition dependency; the customer receives a
