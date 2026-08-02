@@ -3,21 +3,27 @@
 CodeCity turns a local repository into a persistent pixel-art RPG town without
 executing or modifying the inspected repository.
 
-## Status
+## Run
 
-CodeCity v1 is under construction and is not release-ready. The command-line,
-repository, world, compiler, runtime, and loopback-server boundaries exist,
-but the approved visual catalog and the complete packed-package browser journey
-do not.
-
-The product is complete only when a user can run:
+With Node.js 22 or newer, point CodeCity at a repository you are authorized to
+inspect:
 
 ```sh
 npx codecity /path/to/repository
 ```
 
-and finish request -> three investigations -> report -> visible observed town
-change -> exit -> process restart -> revisit in a real browser.
+CodeCity serves the generated town on `127.0.0.1` and opens it in your browser.
+Accept the request, visit three investigation sites, report what you found, and
+watch the town change. Exit from the game with Escape; rerunning the same
+repository lets you revisit the persisted town.
+
+CodeCity reads repository files to build the town. It does not execute or modify
+the inspected repository, run its tests, hooks, binaries, or package manager,
+upload its source or analysis, or bind the game server to a non-loopback host.
+Use `--no-open` to print the local URL without opening a browser.
+
+The generated dialogue keeps observed, inferred, and unknown evidence distinct.
+Untested code is not reported as broken.
 
 Contributor source checkouts use `studio/governance/PRODUCT.md` as the only
 product authority and remaining-work queue; that pre-shipping file is not part
@@ -32,5 +38,4 @@ absent from the active tree.
   evidence; excluded from the npm package.
 - `ship/`: customer-delivered product modules and approved bytes only.
 
-Run enabling checks with `npm run check`. Passing them does not establish the
-product KGI.
+Contributors can run the repository checks with `npm run check`.
