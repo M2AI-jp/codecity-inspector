@@ -521,6 +521,38 @@ produced. H2 therefore remains not covered and must resume with Claude when
 that capability is available; Codex does not substitute mechanical gates or
 its own aesthetic judgment for the assigned Claude and human decisions.
 
+#### Shortest remaining path (authoritative Todo)
+
+- [x] Restore the repository to Claude's last functional endpoint,
+  `c6cb42f`, and discard the later replacement asset-factory path. P0-P6 remain
+  the completed functional baseline; H2 is the only open release gate.
+- [ ] Claude plays the existing packed product once through the complete KGI
+  journey and judges the composed game against the 22 originals. It records
+  only concrete failures that prevent the town, character, navigation cues,
+  investigation sites, report, and visible reward from reading as one
+  intentional game. It does not start from isolated asset sheets or test
+  counts.
+- [ ] Correct only the existing v1 selectors or existing composition values
+  responsible for those failures. Replacement bytes for an already required
+  selector are allowed; new selectors, variants, asset categories, gameplay
+  scope, generators, factories, frameworks, gates, tests, roadmaps, handoff
+  systems, and preview systems are forbidden. Reuse the existing v1 production,
+  promotion, publisher, runtime, and acceptance paths.
+- [ ] Present one final playable composition and its exact replacement bytes
+  to the human owner in one batch. The owner accepts or rejects the actual game
+  experience and exact bytes; no machine score, screenshot count, manifest, or
+  passing check substitutes for this decision. A rejection reopens only the
+  named selector or composition value.
+- [ ] After owner acceptance, run the existing publisher and the existing P6
+  packed-artifact journey once. Add no new check process. Release only if that
+  single run preserves the already-completed nine-step KGI, repository
+  read-only boundary, loopback-only delivery, persistence, and the accepted
+  composed visuals.
+
+No other work is on the path to v1 completion. In particular, do not rebuild
+the functional product, replace its architecture, manufacture a new production
+process, or broaden review while H2 is open.
+
 **Stop condition:** wait until the owner explicitly starts the Claude art
 cycle; then stop when the bounded selector set passes the rubric and owner
 review. Do not reopen functional scope or build an art-production platform.
