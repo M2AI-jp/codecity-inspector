@@ -1,5 +1,50 @@
 # CodeCity v1 product authority
 
+## READ FIRST — mandatory record of the failed Codex takeover
+
+This section is the first required product reading for every Lead, PM, worker,
+reviewer, and future session. Do not skip it to inspect code, run tests, assign
+work, generate assets, or continue a checkbox.
+
+After the functional v1 journey had reached commit `c6cb42f`, Codex failed its
+accountable-Lead duty. It replaced 272 tracked files in `e5f21eb`, removed the
+working approved catalog and completed game path, built a new asset factory and
+new acceptance machinery that the product did not need, and then optimized
+isolated assets, hashes, manifests, and passing checks instead of first playing
+and judging the customer's complete game experience. It treated a superficial
+appearance signal as approval, failed to preserve the scale and composition
+language of the owner originals, and presented a visibly incoherent town that
+could not start correctly as if it were approaching delivery quality.
+
+The tracked repository was restored to `c6cb42f`, and the rejected untracked
+factory output was removed from the active tree. That restores files, not the
+owner's consumed time, attention, token budget, confidence, or opportunity.
+Those losses are irreversible. They must never be hidden behind a reset,
+passing test, new document, activity count, or claim that the failure was only
+an image-sizing defect. The root failure was substituting production activity
+and machine-verifiable proxies for the KGI: an understandable, coherent and
+worthwhile game experience for the customer.
+
+Consequences for all further work are mandatory:
+
+- Begin from `c6cb42f` plus later commits that only document the recovery; never
+  restore or imitate `e5f21eb` or its replacement-factory direction.
+- Treat P0-P6 as the completed functional baseline and H2 as the only open v1
+  release gate unless observed end-to-end play proves a regression.
+- Before proposing a fix, play the existing packed product through the complete
+  KGI and identify the exact customer-experience failure. Do not begin from an
+  isolated screenshot, selector, test, manifest, or implementation convenience.
+- Create no new factory, generator, framework, gate, test system, roadmap,
+  handoff system, preview system, selector, variant, asset category, or gameplay
+  scope. Use the existing v1 paths and change only an existing selector or
+  composition value that directly blocks the accepted game experience.
+- Mechanical checks may prevent corruption but can never approve aesthetics,
+  usability, coherence, fun, or release. Only the human owner may accept the
+  final playable composition and exact replacement bytes.
+- If work cannot be justified as the shortest direct removal of an observed H2
+  blocker, stop. Resource consumption, breadth, sophistication, and test counts
+  are costs, never progress or completion evidence.
+
 Status: execution SSOT
 
 This is the only product specification and remaining-work list in the active

@@ -2,6 +2,9 @@
 
 ## Authority
 
+- Before reading any other product section or taking any action, read
+  `studio/governance/PRODUCT.md` from its first line, including the mandatory
+  failure record. Do not skip directly to a task, checkbox, test, or module.
 - Read `studio/governance/PRODUCT.md` before changing product behavior.
 - It is the only product specification and remaining-work list.
 - Do not restore requirements, assets, or implementations from Git history.
