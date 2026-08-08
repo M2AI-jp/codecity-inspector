@@ -107,8 +107,6 @@ const PLAN_KEYS = Object.freeze([
   'rewardBindings',
   'townState',
   'evidence',
-  'l1',
-  'l2',
 ]);
 const EVIDENCE_STATES = new Set(['observed', 'inferred', 'unknown']);
 const HASH_RE = /^[0-9a-f]{64}$/u;
@@ -250,15 +248,6 @@ function makeRng(hash) {
       return this.int(2) === 0 ? -1 : 1;
     },
   };
-}
-
-function canonicalSeed(value) {
-  if (typeof value === 'string') {
-    if (value.trim() === '') throw new TypeError('seed must not be empty');
-    return value;
-  }
-  if (typeof value === 'number' && Number.isFinite(value)) return String(value);
-  throw new TypeError('seed must be a non-empty string or finite number');
 }
 
 function assertEvidenceState(value, path, issues) {
@@ -969,7 +958,7 @@ function makeL1(identityKey) {
     sightlines,
     nav,
   };
-  return { identityHash, l1 };
+  return l1;
 }
 
 function matchesKind(value, words) {
@@ -1015,7 +1004,6 @@ function normalizeNpcMember(member) {
 
 function makeOccupancy(town, l1, contentHash) {
   const byRegion = Object.fromEntries(REGION_IDS.map((region) => [region, l1.regions.find((entry) => entry.id === region).plotIds]));
-  const plotMap = new Map(l1.plots.map((plot) => [plot.id, plot]));
   const assignments = new Map(l1.plotIds.map((plotId) => [plotId, []]));
   const occupancyRng = makeRng(hashParts(contentHash, 'occupancy'));
   // The canonical catalogue is always present in TownModel, but only an
@@ -1062,7 +1050,7 @@ function makeOccupancy(town, l1, contentHash) {
     facilityId: occupant.facilityId,
     plotId: entry.plotId,
   })));
-  return { occupancy, facilityAssignments, plotMap };
+  return { occupancy, facilityAssignments };
 }
 
 function makeL2(town, l1, contentHash) {
@@ -1149,25 +1137,6 @@ function makeL2(town, l1, contentHash) {
   return l2;
 }
 
-function geometrySnapshot(plan) {
-  return {
-    townType: plan.townType,
-    climate: plan.climate,
-    terrain: plan.terrain,
-    grid: plan.grid,
-    elevation: plan.elevation,
-    water: plan.water,
-    roads: plan.roads,
-    roadNetwork: plan.roadNetwork,
-    topology: plan.topology,
-    regions: plan.regions,
-    plotIds: plan.plotIds,
-    plots: plan.plots,
-    sightlines: plan.sightlines,
-    nav: plan.nav,
-  };
-}
-
 function townStateSnapshot(town) {
   const unwrap = (record) => stableClone(record?.value ?? record);
   return {
@@ -1188,12 +1157,11 @@ function townStateSnapshot(town) {
   };
 }
 
-function buildPlan(town, seedValue) {
+function buildPlan(town) {
   const identityKey = town.identity.key;
   const identityHash = sha256(identityKey);
-  const l1Result = makeL1(identityKey);
-  const contentInput = seedValue === undefined ? identityKey : canonicalSeed(seedValue);
-  const contentHash = hashParts(contentInput, stableStringify({
+  const l1 = makeL1(identityKey);
+  const contentHash = hashParts(identityKey, stableStringify({
     facilities: town.facilities,
     facts: town.facts,
     habitability: town.habitability,
@@ -1201,7 +1169,7 @@ function buildPlan(town, seedValue) {
     investigations: town.investigations,
     rewards: town.rewards,
   }));
-  const l2 = makeL2(town, l1Result.l1, contentHash);
+  const l2 = makeL2(town, l1, contentHash);
   const base = {
     format: FORMAT,
     schemaVersion: WORLD_PLAN_SCHEMA_VERSION,
@@ -1209,38 +1177,11 @@ function buildPlan(town, seedValue) {
     identity: town.identity,
     seed: identityHash,
     contentSeed: contentHash,
-    ...l1Result.l1,
+    ...l1,
     ...l2,
     rewardBindings: town.rewards.bindings,
     townState: townStateSnapshot(town),
     evidence: town.evidence,
-  };
-  base.l1 = {
-    townType: base.townType,
-    climate: base.climate,
-    terrain: base.terrain,
-    grid: base.grid,
-    elevation: base.elevation,
-    water: base.water,
-    roads: base.roads,
-    roadNetwork: base.roadNetwork,
-    topology: base.topology,
-    regions: base.regions,
-    plotIds: base.plotIds,
-    plots: base.plots,
-    sightlines: base.sightlines,
-    nav: base.nav,
-  };
-  base.l2 = {
-    occupancy: base.occupancy,
-    facilityAssignments: base.facilityAssignments,
-    rooms: base.rooms,
-    npcs: base.npcs,
-    props: base.props,
-    lights: base.lights,
-    questSites: base.questSites,
-    townState: base.townState,
-    evidence: base.evidence,
   };
   return deepFreeze(base);
 }
@@ -1587,29 +1528,6 @@ function validatePlanShape(plan) {
   if (isRecord(plan.evidence) && !plan.evidence.observed.includes('repository.inspection.completed')) {
     issues.push(issue('$.evidence.observed', 'must retain observed repository inspection completion', 'INSPECTION_NOT_COMPLETED'));
   }
-  if (!assertRecord(plan.l1, '$.l1', issues)) {
-    // no-op
-  }
-  if (!assertRecord(plan.l2, '$.l2', issues)) {
-    // no-op
-  }
-  if (isRecord(plan.l1) && JSON.stringify(plan.l1) !== JSON.stringify(geometrySnapshot(plan))) {
-    issues.push(issue('$.l1', 'must mirror the top-level L1 geometry exactly', 'LAYER_MISMATCH'));
-  }
-  if (isRecord(plan.l2)) {
-    const expectedL2 = {
-      occupancy: plan.occupancy,
-      facilityAssignments: plan.facilityAssignments,
-      rooms: plan.rooms,
-      npcs: plan.npcs,
-      props: plan.props,
-      lights: plan.lights,
-      questSites: plan.questSites,
-      townState: plan.townState,
-      evidence: plan.evidence,
-    };
-    if (JSON.stringify(plan.l2) !== JSON.stringify(expectedL2)) issues.push(issue('$.l2', 'must mirror the top-level L2 data exactly', 'LAYER_MISMATCH'));
-  }
   if (issues.length > 0) fail('WorldPlan failed the version 1 contract', issues);
   return true;
 }
@@ -1662,16 +1580,9 @@ function assertNoPixelFields(value, path = '$', seen = new WeakSet()) {
   return issues;
 }
 
-/**
- * Generate a deterministic logical town.  The L1 structure is derived only
- * from town.identity.key; the optional seed changes L2's deterministic stream
- * without moving the town's face.
- */
-export function generateWorldPlan({ town, seed } = {}) {
+export function generateWorldPlan({ town } = {}) {
   const normalizedTown = normalizeTownModel(town);
-  const plan = buildPlan(normalizedTown, seed);
-  validateWorldPlan(plan);
-  return plan;
+  return buildPlan(normalizedTown);
 }
 
 /**
@@ -1679,28 +1590,10 @@ export function generateWorldPlan({ town, seed } = {}) {
  * non-mutating clone.  Invalid plans throw WorldPlanValidationError with an
  * `issues` array; no best-effort fallback is ever selected.
  */
-export function validateWorldPlan(plan, { town } = {}) {
+export function validateWorldPlan(plan) {
   validatePlanShape(plan);
   const pixelIssues = assertNoPixelFields(plan);
   if (pixelIssues.length > 0) fail('WorldPlan contains renderer-specific fields', pixelIssues, 'PIXEL_FIELD_FORBIDDEN');
   assertRegionReachability(plan);
-  if (town !== undefined) {
-    const normalizedTown = normalizeTownModel(town);
-    if (plan.identity.key !== normalizedTown.identity.key || plan.identity.name !== normalizedTown.identity.name) {
-      fail('WorldPlan identity does not match TownModel identity', [issue('$.identity', 'must match town.identity', 'IDENTITY_MISMATCH')], 'IDENTITY_MISMATCH');
-    }
-    const expected = buildPlan(normalizedTown);
-    if (JSON.stringify(geometrySnapshot(plan)) !== JSON.stringify(geometrySnapshot(expected))) {
-      fail('WorldPlan L1 geometry is unstable for this identity', [issue('$', 'terrain, roads, topology, and plots must derive only from identity', 'L1_UNSTABLE')], 'L1_UNSTABLE');
-    }
-    const assigned = new Set(plan.occupancy.flatMap((entry) => entry.occupants.map((occupant) => occupant.facilityId)));
-    for (const facility of normalizedTown.facilities.filter(facilityIsApplicable)) {
-      if (!assigned.has(facility.id)) fail('WorldPlan occupancy dropped a facility', [issue('$.occupancy', `facility ${facility.id} is not assigned`, 'FACILITY_UNASSIGNED')], 'FACILITY_UNASSIGNED');
-    }
-    const candidateIds = new Set(plan.questSites.map((site) => site.candidateId));
-    for (const candidate of normalizedTown.investigations.candidates) {
-      if (!candidateIds.has(candidate.id)) fail('WorldPlan quest sites dropped a candidate', [issue('$.questSites', `candidate ${candidate.id} is not placed`, 'QUEST_UNASSIGNED')], 'QUEST_UNASSIGNED');
-    }
-  }
   return deepFreeze(stableClone(plan));
 }

@@ -1,14 +1,13 @@
 import { constants as fsConstants, promises as fs } from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
-import { fileURLToPath } from 'node:url';
 
 /**
  * The first wire-compatible inspection report.  Keep this number in step with
  * the repository's backend contract v1; consumers must reject an
  * unknown version instead of guessing at its meaning.
  */
-export const INSPECTION_REPORT_SCHEMA_VERSION = 1;
+const INSPECTION_REPORT_SCHEMA_VERSION = 1;
 
 // These addresses are the only cross-module facts that static inspection may
 // publish about the inspection itself.  Completion is an observed bounded
@@ -186,76 +185,13 @@ function sortStrings(values) {
 }
 
 function asFilePath(root) {
-  if (root instanceof URL) {
-    if (root.protocol !== 'file:') {
-      throw new TypeError('inspectRepository root URL must use the file: scheme');
-    }
-    return fileURLToPath(root);
+  if (typeof root !== 'string') {
+    throw new TypeError('inspectRepository root must be a path');
   }
-  if (typeof root !== 'string' && !(root instanceof String)) {
-    throw new TypeError('inspectRepository root must be a path or file URL');
-  }
-  const value = String(root);
-  if (value.length === 0) {
+  if (root.length === 0) {
     throw new TypeError('inspectRepository root must not be empty');
   }
-  return value;
-}
-
-function boundedInteger(value, fallback, maximum) {
-  if (value === undefined || value === null || value === '') {
-    return fallback;
-  }
-  const number = Number(value);
-  if (!Number.isFinite(number)) {
-    return fallback;
-  }
-  return Math.max(0, Math.min(maximum, Math.floor(number)));
-}
-
-function normalizeLimits(options) {
-  const input = options && typeof options === 'object' ? options : {};
-  const maxFiles = boundedInteger(input.maxFiles, DEFAULT_LIMITS.maxFiles, 100_000);
-  const maxDepth = boundedInteger(input.maxDepth, DEFAULT_LIMITS.maxDepth, 128);
-  const maxEntriesPerDirectory = boundedInteger(
-    input.maxEntriesPerDirectory ?? input.maxEntries,
-    DEFAULT_LIMITS.maxEntriesPerDirectory,
-    50_000,
-  );
-  const maxFileBytes = boundedInteger(
-    input.maxFileBytes ?? input.maxBytesPerFile,
-    DEFAULT_LIMITS.maxFileBytes,
-    16 * 1024 * 1024,
-  );
-  const maxTotalBytes = boundedInteger(
-    input.maxTotalBytes,
-    DEFAULT_LIMITS.maxTotalBytes,
-    512 * 1024 * 1024,
-  );
-  const maxTextBytes = boundedInteger(
-    input.maxTextBytes,
-    Math.min(DEFAULT_LIMITS.maxTextBytes, maxFileBytes),
-    maxFileBytes,
-  );
-  return Object.freeze({
-    maxFiles,
-    maxDepth,
-    maxEntriesPerDirectory,
-    maxFileBytes,
-    maxTotalBytes,
-    maxTextBytes,
-  });
-}
-
-function relativePath(root, absolutePath) {
-  const relative = path.relative(root, absolutePath);
-  if (relative === '') return '.';
-  return relative.split(path.sep).join('/');
-}
-
-function pathWithinRoot(root, candidate) {
-  const relative = path.relative(root, candidate);
-  return relative === '' || (relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative));
+  return root;
 }
 
 function basenameLower(relativePathValue) {
@@ -633,9 +569,9 @@ function emptyReport(name, identity, unknown = []) {
  * parsing.  Symlinks below the root are never followed.  The returned object
  * is JSON serializable and contains no absolute filesystem paths.
  */
-export async function inspectRepository(root, options = {}) {
+export async function inspectRepository(root) {
   const requestedRoot = asFilePath(root);
-  const limits = normalizeLimits(options);
+  const limits = DEFAULT_LIMITS;
   const absoluteRoot = path.resolve(requestedRoot);
   let realRoot;
   let rootName = path.basename(absoluteRoot) || 'repository';
@@ -1182,11 +1118,5 @@ export async function inspectRepository(root, options = {}) {
     },
   };
 
-  // Force a JSON round trip as a final contract check.  It catches accidental
-  // undefined/BigInt values while keeping this module dependency-free.  The
-  // returned object itself remains ordinary data for downstream modules.
-  JSON.stringify(report);
   return report;
 }
-
-export default inspectRepository;

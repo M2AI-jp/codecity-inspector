@@ -2,8 +2,8 @@
 // in this file. The browser adapter supplies a validated serialized bundle.
 
 export const LOGICAL_SIZE = Object.freeze({ width: 384, height: 216 });
-export const DIRECTIONS = Object.freeze(['up', 'down', 'left', 'right']);
-export const QUEST_CHOICES = Object.freeze(['見た', 'そうらしい', 'わからない']);
+const DIRECTIONS = Object.freeze(['up', 'down', 'left', 'right']);
+const QUEST_CHOICES = Object.freeze(['見た', 'そうらしい', 'わからない']);
 export const GUILD_TAB_LABELS = Object.freeze(['なかま', 'うけつけ', 'いらい', 'もちもの', 'じょうたい']);
 // The browser distribution serves only the self-contained 70-runtime module.
 // Keep its single accepted serialized transition local instead of importing a
@@ -22,8 +22,6 @@ const KEY_TO_DIRECTION = Object.freeze({
   ArrowLeft: 'left', KeyA: 'left',
   ArrowRight: 'right', KeyD: 'right',
 });
-const GAMEPAD_DIRECTION_BUTTONS = Object.freeze({ up: 12, down: 13, left: 14, right: 15 });
-const EMPTY_GAMEPAD_DIRECTIONS = Object.freeze({ up: false, down: false, left: false, right: false });
 const DIRECTION_VECTOR = Object.freeze({
   up: Object.freeze({ x: 0, y: -1 }),
   down: Object.freeze({ x: 0, y: 1 }),
@@ -73,7 +71,7 @@ export function createInitialState(bundle, persisted = null) {
     player,
     camera: { x: 0, y: 0, scale: integerScale(saved?.scale ?? 1) },
     animationMs: 0,
-    input: { up: false, down: false, left: false, right: false, shift: false, gamepad: { ...EMPTY_GAMEPAD_DIRECTIONS } },
+    input: { up: false, down: false, left: false, right: false, shift: false },
     overlook: false,
     dialogue: null,
     quest: {
@@ -96,7 +94,7 @@ export function createInitialState(bundle, persisted = null) {
   return updateCamera(state, game);
 }
 
-export function normalizePersisted(value, identity, questIds = []) {
+function normalizePersisted(value, identity, questIds = []) {
   if (!isRecord(value) || value.version !== 1 || value.identity !== identity) return null;
   if (!Array.isArray(value.questIds) || value.questIds.length !== questIds.length || value.questIds.some((id, index) => id !== questIds[index])) return null;
   const answers = isRecord(value.answers) ? Object.fromEntries(
@@ -179,12 +177,8 @@ export function reduceGameState(state, action, bundle) {
       return onKeyDown(state, action.key);
     case 'KEY_UP':
       return onKeyUp(state, action.key);
-    case 'GAMEPAD_INPUT':
-      return onGamepadInput(state, action.directions);
     case 'TICK':
       return advance(state, bundle, finite(action.dtMs, 0));
-    case 'MOVE':
-      return moveExplicit(state, bundle, action);
     case 'INTERACT':
       return interact(state, game);
     case 'CHOOSE':
@@ -193,10 +187,6 @@ export function reduceGameState(state, action, bundle) {
       return moveChoice(state, action.delta);
     case 'REPORT':
       return report(state, game);
-    case 'GUILD_OPEN':
-      return { ...state, guild: { open: true, tabIndex: 0 }, dialogue: null };
-    case 'GUILD_TAB':
-      return state.guild.open ? { ...state, guild: { ...state.guild, tabIndex: clamp(Math.trunc(action.index), 0, GUILD_TAB_LABELS.length - 1) } } : state;
     case 'SCALE':
       return { ...state, camera: { ...state.camera, scale: integerScale(state.camera.scale + Math.sign(finite(action.delta, 0))) } };
     case 'OVERLOOK':
@@ -214,56 +204,12 @@ export function reduceGameState(state, action, bundle) {
   }
 }
 
-export function evidenceSentence(statement, choice) {
+function evidenceSentence(statement, choice) {
   const ending = DIALOGUE_ENDINGS[choice];
   if (!ending) return '';
   const text = String(statement ?? '').trim().replace(/[。！？!?]+$/u, '');
   if (choice === 'わからない') return ending;
   return `${text}${ending}`;
-}
-
-/**
- * Convert one Standard Gamepad snapshot into edge-triggered runtime actions.
- * This function is deliberately pure so the browser adapter can poll an
- * unavailable or disconnected Gamepad API without leaking browser state into
- * the reducer. `previous` is the snapshot returned by the prior call.
- */
-export function gamepadToActions(gamepad, previous = null) {
-  const current = readGamepadInput(gamepad);
-  const prior = previous && isRecord(previous) ? previous : readGamepadInput(null);
-  const actions = [];
-  if (!sameDirections(current.directions, prior.directions)) actions.push({ type: 'GAMEPAD_INPUT', directions: { ...current.directions } });
-  if (current.a && !prior.a) actions.push({ type: 'INTERACT' });
-  if (current.b && !prior.b) actions.push({ type: 'BACK' });
-  if (current.start && !prior.start) actions.push({ type: 'OVERLOOK' });
-  return Object.freeze({ snapshot: current, actions: Object.freeze(actions.map((action) => Object.freeze(action))) });
-}
-
-/** Alias with an explicit input-oriented name for pure adapter tests. */
-export const mapGamepadInput = gamepadToActions;
-
-export function readGamepadInput(gamepad) {
-  const directions = { ...EMPTY_GAMEPAD_DIRECTIONS };
-  const connected = isRecord(gamepad) && gamepad.connected !== false;
-  if (connected) {
-    for (const [direction, index] of Object.entries(GAMEPAD_DIRECTION_BUTTONS)) directions[direction] = buttonPressed(gamepad.buttons?.[index]);
-    const axes = Array.isArray(gamepad.axes) ? gamepad.axes : [];
-    if (Number.isFinite(axes[0])) {
-      if (axes[0] <= -0.5) directions.left = true;
-      if (axes[0] >= 0.5) directions.right = true;
-    }
-    if (Number.isFinite(axes[1])) {
-      if (axes[1] <= -0.5) directions.up = true;
-      if (axes[1] >= 0.5) directions.down = true;
-    }
-  }
-  return Object.freeze({
-    connected,
-    directions: Object.freeze(directions),
-    a: connected && buttonPressed(gamepad?.buttons?.[0]),
-    b: connected && buttonPressed(gamepad?.buttons?.[1]),
-    start: connected && buttonPressed(gamepad?.buttons?.[9]),
-  });
 }
 
 function onKeyDown(state, key) {
@@ -285,17 +231,6 @@ function onKeyUp(state, key) {
   return state;
 }
 
-function onGamepadInput(state, directions) {
-  const gamepad = Object.fromEntries(DIRECTIONS.map((direction) => [direction, directions?.[direction] === true]));
-  const input = { ...state.input, gamepad };
-  const direction = DIRECTIONS.find((entry) => input[entry] || gamepad[entry]);
-  return {
-    ...state,
-    input,
-    player: { ...state.player, direction: direction ?? state.player.direction, moving: direction ? state.player.moving : false },
-  };
-}
-
 function advance(state, bundle, dtMs) {
   const game = bundle.game;
   const elapsed = Math.max(0, Math.min(dtMs, 250));
@@ -307,14 +242,6 @@ function advance(state, bundle, dtMs) {
   const speed = state.input.shift ? game.player.speeds.walk : game.player.speeds.run;
   const distance = speed * elapsed / 1000;
   return moveInDirection(animated, bundle, direction, distance);
-}
-
-function moveExplicit(state, bundle, action) {
-  const game = bundle.game;
-  const direction = DIRECTIONS.includes(action.direction) ? action.direction : state.player.direction;
-  const seconds = Math.max(0, Math.min(finite(action.seconds, 0), 0.25));
-  const speed = action.walk === true ? game.player.speeds.walk : game.player.speeds.run;
-  return moveInDirection(state, bundle, direction, speed * seconds);
 }
 
 function moveInDirection(state, bundle, direction, distance) {
@@ -470,9 +397,8 @@ function back(state, game) {
 }
 
 function activeDirection(state) {
-  const gamepad = state.input.gamepad ?? EMPTY_GAMEPAD_DIRECTIONS;
-  if (state.input[state.player.direction] || gamepad[state.player.direction]) return state.player.direction;
-  return DIRECTIONS.find((direction) => state.input[direction] || gamepad[direction]) ?? null;
+  if (state.input[state.player.direction]) return state.player.direction;
+  return DIRECTIONS.find((direction) => state.input[direction]) ?? null;
 }
 
 function canOccupy(bundle, phase, roomId, player, x, y) {
@@ -524,12 +450,3 @@ function integerScale(value) { return clamp(Number.isFinite(value) ? Math.round(
 function finite(value, fallback) { return Number.isFinite(value) ? value : fallback; }
 function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
 function isRecord(value) { return value !== null && typeof value === 'object' && !Array.isArray(value); }
-
-function buttonPressed(button) {
-  if (isRecord(button)) return button.pressed === true || (Number.isFinite(button.value) && button.value >= 0.5);
-  return button === true;
-}
-
-function sameDirections(left, right) {
-  return DIRECTIONS.every((direction) => left?.[direction] === right?.[direction]);
-}

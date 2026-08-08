@@ -7,9 +7,6 @@ import {
   sortedUniqueStrings,
 } from '../interface/canonical.mjs';
 
-const FILE_ID_FIELDS = Object.freeze(['id', 'fileId']);
-const PATH_FIELDS = Object.freeze(['path', 'relativePath']);
-
 export function readInspectionFiles(inspection) {
   const source = Array.isArray(inspection?.files) ? inspection.files : [];
   const result = [];
@@ -17,19 +14,18 @@ export function readInspectionFiles(inspection) {
     if (!isRecord(entry)) {
       continue;
     }
-    const fileId = firstString(entry, FILE_ID_FIELDS);
-    const path = firstString(entry, PATH_FIELDS);
-    if (fileId === null && path === null) {
+    const fileId = asNonEmptyString(entry.id);
+    const path = asNonEmptyString(entry.path);
+    if (fileId === null || path === null) {
       continue;
     }
     result.push({
-      fileId: fileId ?? path,
-      path: path ?? fileId,
+      fileId,
+      path,
       kind: asNonEmptyString(entry.kind),
-      extension: asNonEmptyString(entry.extension)?.toLowerCase() ?? extensionFromPath(path),
+      extension: asNonEmptyString(entry.extension)?.toLowerCase() ?? null,
       sizeBytes: asFiniteNonNegativeInteger(entry.sizeBytes),
       isTest: entry.isTest === true,
-      source: entry,
     });
   }
   return result;
@@ -40,15 +36,6 @@ export function readRepository(inspection) {
   return {
     name: typeof source.name === 'string' ? source.name : null,
     identity: typeof source.identity === 'string' ? source.identity : null,
-  };
-}
-
-export function readSummary(inspection) {
-  const source = isRecord(inspection?.summary) ? inspection.summary : {};
-  return {
-    filesDiscovered: asFiniteNonNegativeInteger(source.filesDiscovered),
-    filesInspected: asFiniteNonNegativeInteger(source.filesInspected),
-    truncated: source.truncated === true,
   };
 }
 
@@ -82,41 +69,11 @@ export function readEvidenceRecords(inspection) {
 }
 
 export function readGraph(inspection) {
-  const source = isRecord(inspection?.graph) ? inspection.graph : {};
-  const nodes = Array.isArray(source.nodes) ? source.nodes.filter(isRecord) : [];
-  const edges = Array.isArray(source.edges) ? source.edges.filter(isRecord) : [];
-  const entrypoints = Array.isArray(source.entrypoints)
-    ? source.entrypoints.filter((entry) => typeof entry === 'string' || isRecord(entry))
-    : [];
-  return { nodes, edges, entrypoints };
+  return inspection.graph;
 }
 
 export function readManifests(inspection) {
-  return Array.isArray(inspection?.manifests)
-    ? inspection.manifests.filter(isRecord)
-    : [];
-}
-
-export function firstString(record, fields) {
-  for (const field of fields) {
-    const candidate = asNonEmptyString(record?.[field]);
-    if (candidate !== null) {
-      return candidate;
-    }
-  }
-  return null;
-}
-
-export function extensionFromPath(path) {
-  if (typeof path !== 'string') {
-    return null;
-  }
-  const basename = path.split('/').at(-1) ?? '';
-  const dotIndex = basename.lastIndexOf('.');
-  if (dotIndex <= 0) {
-    return null;
-  }
-  return basename.slice(dotIndex).toLowerCase();
+  return inspection.manifests;
 }
 
 export function pathSegments(path) {
@@ -130,28 +87,5 @@ export function basename(path) {
 }
 
 export function evidenceSubjects(entry) {
-  if (!isRecord(entry)) {
-    return [];
-  }
-  const candidates = [
-    entry.subject,
-    entry.subjectId,
-    entry.fileId,
-    entry.path,
-    entry.target,
-    entry.node,
-    entry.nodeId,
-    entry.from,
-    entry.to,
-  ];
-  return sortedUniqueStrings(candidates.flatMap((value) => {
-    if (typeof value === 'string') {
-      return [value];
-    }
-    if (isRecord(value)) {
-      return [value.id, value.fileId, value.path, value.name]
-        .filter((candidate) => typeof candidate === 'string');
-    }
-    return [];
-  }));
+  return sortedUniqueStrings([entry.subject, entry.path].filter((value) => typeof value === 'string'));
 }

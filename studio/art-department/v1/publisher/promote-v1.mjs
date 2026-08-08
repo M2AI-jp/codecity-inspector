@@ -23,9 +23,9 @@ const stableJson = (value) => `${JSON.stringify(value, null, 2)}\n`;
 const readJson = (file) => JSON.parse(fs.readFileSync(file, 'utf8'));
 const slug = (selector) => selector.replace(':', '--');
 
-function exactFile(file, bytes, immutable = false) {
+function exactFile(file, bytes) {
   if (fs.existsSync(file)) {
-    if (!fs.readFileSync(file).equals(bytes)) throw new Error(`${immutable ? 'Immutable' : 'Generated'} output mismatch: ${path.relative(root, file)}`);
+    if (!fs.readFileSync(file).equals(bytes)) throw new Error(`Approved output mismatch: ${path.relative(root, file)}`);
     return;
   }
   if (mode === '--check') throw new Error(`Missing output: ${path.relative(root, file)}`);
@@ -126,7 +126,7 @@ const assets = batch.entries.map((entry) => {
   if (!record || record.decision !== 'accepted' || record.candidateSha256 !== entry.candidateSha256 || record.sourceSha256 !== source.sourceSha256) {
     throw new Error(`Approval mismatch: ${entry.selector}`);
   }
-  exactFile(path.join(approvedRoot, 'assets', `${slug(entry.selector)}.png`), candidateBytes, true);
+  exactFile(path.join(approvedRoot, 'assets', `${slug(entry.selector)}.png`), candidateBytes);
   return {
     selector: entry.selector,
     path: `assets/${slug(entry.selector)}.png`,
@@ -146,6 +146,4 @@ const manifest = {
 };
 const manifestBytes = Buffer.from(stableJson(manifest));
 const manifestPath = path.join(approvedRoot, 'manifest.json');
-exactFile(manifestPath, manifestBytes, true);
-
-process.stdout.write(`${JSON.stringify({ ok: true, mode, approvalSha256: sha256(approvalBytes), approvedManifestSha256: sha256(manifestBytes), assetCount: assets.length })}\n`);
+exactFile(manifestPath, manifestBytes);

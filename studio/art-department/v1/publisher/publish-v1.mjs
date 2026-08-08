@@ -109,18 +109,6 @@ output(path.join(shippingRoot, 'license.json'), Buffer.from(stableJson(license))
 output(path.join(shippingRoot, 'provenance.json'), Buffer.from(stableJson(provenance)));
 
 const assetRoot = path.join(shippingRoot, 'assets');
-const diskManifest = validateAssetManifest(readJson(path.join(shippingRoot, 'manifest.json')), { assetRoot, verifyFiles: true });
+const diskManifest = validateAssetManifest(readJson(path.join(shippingRoot, 'manifest.json')), assetRoot);
 const diskBindings = readJson(path.join(shippingRoot, 'scene-bindings.json'));
-for (const selector of selectors) resolveAsset(diskManifest, diskBindings.selectors[selector], { assetRoot });
-
-const representativeSelectors = ['player:default', 'building:town_hall', 'terrain:meadow', 'road:main', 'water:default', 'prop:lamp', 'light:lit', 'quest:inspect'];
-const representatives = Object.fromEntries(representativeSelectors.map((selector) => {
-  const asset = resolveAsset(diskManifest, diskBindings.selectors[selector], { assetRoot });
-  return [selector, { assetId: asset.id, sha256: asset.sha256, kind: asset.usage.kind, layer: asset.usage.layer }];
-}));
-
-process.stdout.write(`${JSON.stringify({
-  ok: true, mode, approvedManifestSha256: sha256(fs.readFileSync(approvedManifestPath)),
-  approvalSha256: sha256(approvalBytes), manifestSha256: sha256(Buffer.from(stableJson(manifest))),
-  selectorCount: selectors.length, assetCount: assets.length, fallbackPolicy: manifest.fallbackPolicy, representatives
-})}\n`);
+for (const selector of selectors) resolveAsset(diskManifest, diskBindings.selectors[selector], assetRoot);

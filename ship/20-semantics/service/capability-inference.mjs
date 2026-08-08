@@ -5,7 +5,6 @@ import {
   CAPABILITY_SIGNALS,
 } from '../data/role-rules.mjs';
 import {
-  readEvidenceRecords,
   readGraph,
   readManifests,
 } from '../data/inspection-access.mjs';
@@ -13,29 +12,11 @@ import {
   sortedUniqueStrings,
 } from '../interface/canonical.mjs';
 
-const OBSERVED_ALIASES = Object.freeze({
-  entrypoint: Object.freeze(['entry', 'entrypoint', 'entrypoints']),
-  persistence: Object.freeze(['persist', 'persistence', 'storage', 'database', 'db']),
-  configuration: Object.freeze(['config', 'configuration', 'settings', 'environment', 'env']),
-  build: Object.freeze(['build', 'compile', 'bundl']),
-  test: Object.freeze(['test', 'tests', 'spec']),
-  observability: Object.freeze(['observ', 'log', 'metric', 'telemetry', 'trace', 'monitor']),
-  recovery: Object.freeze(['recover', 'backup', 'restore', 'rollback', 'failover']),
-  distribution: Object.freeze(['distribut', 'deploy', 'release', 'publish', 'shipping']),
-  externalConnections: Object.freeze(['external', 'connection', 'integration', 'remote']),
-});
-
 export function buildCapabilities(inspection, semanticFiles, connections) {
-  const records = readEvidenceRecords(inspection);
   const graph = readGraph(inspection);
   const manifests = readManifests(inspection);
   const result = {};
   for (const capability of CAPABILITY_NAMES) {
-    const observed = observedEvidence(capability, records);
-    if (observed.length > 0) {
-      result[capability] = { state: 'observed', evidence: observed };
-      continue;
-    }
     const inferred = inferCapability(capability, semanticFiles, connections, graph, manifests);
     result[capability] = inferred.length > 0
       ? { state: 'inferred', evidence: sortedUniqueStrings(inferred) }
@@ -44,27 +25,13 @@ export function buildCapabilities(inspection, semanticFiles, connections) {
   return result;
 }
 
-function observedEvidence(capability, records) {
-  const aliases = new Set((OBSERVED_ALIASES[capability] ?? [capability.toLowerCase()]).map((value) => value.toLowerCase()));
-  return sortedUniqueStrings(records
-    .filter((record) => record.state === 'observed')
-    // Observing a file whose path happens to contain "test", "config", or
-    // "release" does not observe that capability. Only an upstream evidence
-    // record whose claim explicitly names the capability may upgrade it from
-    // inferred to observed.
-    .filter((record) => typeof record.raw?.claim === 'string'
-      && aliases.has(record.raw.claim.trim().toLowerCase())
-      && record.raw.value !== false)
-    .map((record) => record.key));
-}
-
 function inferCapability(capability, files, connections, graph, manifests) {
   const evidence = [];
   const role = (name) => files.filter((file) => file.role === name);
   const paths = files.map((file) => file.path.toLowerCase());
-  const signal = (name, key) => {
-    if (paths.some((path) => pathHasToken(path, name))) {
-      evidence.push(key ?? `capability.${capability}.path.${name}`);
+  const signal = (name) => {
+    if (paths.some((path) => hasToken(path, name))) {
+      evidence.push(`capability.${capability}.path.${name}`);
     }
   };
 
@@ -139,11 +106,9 @@ function inferCapability(capability, files, connections, graph, manifests) {
 }
 
 function hasBuildMetadata(manifest) {
-  return Array.isArray(manifest?.scripts)
-    ? manifest.scripts.some((script) => typeof script === 'string' && /build|compile|bundle/iu.test(script))
-    : (typeof manifest?.scripts === 'object' && manifest.scripts !== null
-      ? Object.keys(manifest.scripts).some((key) => /build|compile|bundle/iu.test(key))
-      : false);
+  return typeof manifest?.scripts === 'object'
+    && manifest.scripts !== null
+    && Object.keys(manifest.scripts).some((key) => /build|compile|bundle/iu.test(key));
 }
 
 function hasToken(value, token) {
@@ -157,8 +122,4 @@ function hasToken(value, token) {
   }
   return normalizedValue.split(/[^a-z0-9]+/u).filter(Boolean).includes(normalizedToken)
     || normalizedValue.includes(normalizedToken);
-}
-
-function pathHasToken(path, token) {
-  return hasToken(path, token);
 }

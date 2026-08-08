@@ -1,6 +1,5 @@
 import http from 'node:http';
 import crypto from 'node:crypto';
-import fs from 'node:fs';
 import path from 'node:path';
 
 const HOST = '127.0.0.1';
@@ -8,24 +7,13 @@ const DEFAULT_MAX_FILE_BYTES = 4 * 1024 * 1024;
 const DEFAULT_MAX_TOTAL_BYTES = 16 * 1024 * 1024;
 const MAX_ALLOWED_FILES = 4096;
 const MAX_REQUEST_PATH_BYTES = 8 * 1024;
-const O_NOFOLLOW = typeof fs.constants.O_NOFOLLOW === 'number' ? fs.constants.O_NOFOLLOW : 0;
 
 const MIME_TYPES = Object.freeze({
   '.css': 'text/css; charset=utf-8',
-  '.gif': 'image/gif',
   '.html': 'text/html; charset=utf-8',
-  '.ico': 'image/x-icon',
-  '.jpeg': 'image/jpeg',
-  '.jpg': 'image/jpeg',
-  '.js': 'text/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
   '.mjs': 'text/javascript; charset=utf-8',
-  '.map': 'application/json; charset=utf-8',
   '.png': 'image/png',
-  '.svg': 'image/svg+xml',
-  '.txt': 'text/plain; charset=utf-8',
-  '.wasm': 'application/wasm',
-  '.webp': 'image/webp',
 });
 
 const SECURITY_HEADERS = Object.freeze({
@@ -56,31 +44,6 @@ function assertMaxTotalBytes(value, maxFileBytes) {
   if (!Number.isInteger(value) || value <= 0 || value > 1024 * 1024 * 1024 || value < maxFileBytes) {
     throw new TypeError('maxTotalBytes must be a bounded integer at least as large as maxFileBytes');
   }
-}
-
-function absoluteRoot(root) {
-  if (typeof root !== 'string' || root.length === 0) throw new TypeError('root must be a non-empty directory path');
-  const requested = path.resolve(root);
-  let rootStat;
-  try {
-    rootStat = fs.lstatSync(requested);
-  } catch {
-    throw new TypeError('root must be an existing regular directory');
-  }
-  if (rootStat.isSymbolicLink()) throw new TypeError('root must not contain symlinks');
-  if (!rootStat.isDirectory()) throw new TypeError('root must be an existing regular directory');
-  // Canonicalize trusted parent components (for example macOS /tmp) while
-  // retaining the explicit final-root symlink rejection above.
-  try {
-    return fs.realpathSync(requested);
-  } catch {
-    throw new TypeError('root must be an existing regular directory');
-  }
-}
-
-function withinRoot(root, candidate) {
-  const relative = path.relative(root, candidate);
-  return relative === '' || (!relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative));
 }
 
 function responseHeaders(extra = {}) {
@@ -131,34 +94,6 @@ function requestedPath(rawUrl) {
   return { decoded };
 }
 
-function relativeFile(root, decoded) {
-  const relative = decoded.replace(/^\/+/, '');
-  const candidate = path.resolve(root, ...relative.split('/'));
-  if (!withinRoot(root, candidate) || candidate === root) return { error: 'forbidden_path' };
-  return { candidate, relative };
-}
-
-function assertSafePathComponents(root, relative) {
-  let current = root;
-  for (const part of relative.split('/')) {
-    if (!part) continue;
-    current = path.join(current, part);
-    const stat = fs.lstatSync(current);
-    if (stat.isSymbolicLink()) return { error: 'forbidden_path' };
-  }
-  return { candidate: current };
-}
-
-function normalizeAllowedFile(value) {
-  if (typeof value !== 'string' || value.trim() === '') throw new TypeError('allowedFiles entries must be non-empty relative paths');
-  const decoded = value.replaceAll('\\', '/').replace(/^\/+/, '');
-  const parts = decoded.split('/');
-  if (parts.some((part) => part === '' || part === '.' || part === '..' || part.startsWith('.'))) {
-    throw new TypeError('allowedFiles entries must not contain traversal or dotfiles');
-  }
-  return parts.join('/');
-}
-
 function normalizeExpectedDigests(expectedSha256, allowedFiles) {
   if (expectedSha256 === undefined) return null;
   if (!isPlainObject(expectedSha256)) throw new TypeError('expectedSha256 must be a plain object');
@@ -169,21 +104,14 @@ function normalizeExpectedDigests(expectedSha256, allowedFiles) {
   return Object.fromEntries(expectedKeys.map((key) => [key, expectedSha256[key].toLowerCase()]));
 }
 
-function loadAllowedFiles(root, allowedFiles, maxFileBytes, maxTotalBytes, expectedSha256) {
-  if (!Array.isArray(allowedFiles) || allowedFiles.length === 0 || allowedFiles.length > MAX_ALLOWED_FILES) {
-    throw new TypeError(`allowedFiles must contain 1 through ${MAX_ALLOWED_FILES} explicit paths`);
+function normalizeAllowedFile(value) {
+  if (typeof value !== 'string' || value.trim() === '') throw new TypeError('snapshot entries must be non-empty relative paths');
+  const decoded = value.replaceAll('\\', '/').replace(/^\/+/, '');
+  const parts = decoded.split('/');
+  if (parts.some((part) => part === '' || part === '.' || part === '..' || part.startsWith('.'))) {
+    throw new TypeError('snapshot entries must not contain traversal or dotfiles');
   }
-  const unique = [...new Set(allowedFiles.map(normalizeAllowedFile))].sort();
-  if (unique.length !== allowedFiles.length) throw new TypeError('allowedFiles entries must be unique');
-  const expected = normalizeExpectedDigests(expectedSha256, unique);
-  const loaded = new Map();
-  let totalBytes = 0;
-  for (const relative of unique) {
-    loaded.set(relative, loadAllowedFile(root, relative, maxFileBytes, expected?.[relative]));
-    totalBytes += loaded.get(relative).bytes.length;
-    if (totalBytes > maxTotalBytes) throw new TypeError('allowedFiles exceed maxTotalBytes');
-  }
-  return loaded;
+  return parts.join('/');
 }
 
 function loadSnapshotFiles(snapshots, maxFileBytes, maxTotalBytes, expectedSha256) {
@@ -213,56 +141,6 @@ function loadSnapshotFiles(snapshots, maxFileBytes, maxTotalBytes, expectedSha25
   return loaded;
 }
 
-function loadAllowedFile(root, relative, maxFileBytes, expectedSha256) {
-  let safe;
-  try {
-    safe = assertSafePathComponents(root, relative);
-  } catch (error) {
-    if (error?.code === 'ENOENT' || error?.code === 'ENOTDIR') throw new TypeError('allowedFiles must name existing regular files');
-    throw error;
-  }
-  if (safe.error) throw new TypeError('allowedFiles must not traverse symlinks');
-  let descriptor;
-  try {
-    descriptor = fs.openSync(safe.candidate, fs.constants.O_RDONLY | O_NOFOLLOW);
-    const stat = fs.fstatSync(descriptor);
-    if (!stat.isFile()) throw new TypeError('allowedFiles must name regular files');
-    const canonicalCandidate = fs.realpathSync(safe.candidate);
-    if (!withinRoot(root, canonicalCandidate)) throw new TypeError('allowedFiles must remain inside root');
-    const canonicalStat = fs.lstatSync(canonicalCandidate);
-    if (!canonicalStat.isFile() || canonicalStat.isSymbolicLink()
-        || canonicalStat.dev !== stat.dev || canonicalStat.ino !== stat.ino) {
-      throw new TypeError('allowedFiles changed while being loaded');
-    }
-    const extension = path.extname(relative).toLowerCase();
-    const mime = MIME_TYPES[extension];
-    if (!mime) throw new TypeError('allowedFiles contains an unsupported media type');
-    if (stat.size > maxFileBytes) throw new TypeError('allowedFiles contains a file larger than maxFileBytes');
-    const bytes = Buffer.alloc(stat.size);
-    let offset = 0;
-    while (offset < bytes.length) {
-      const count = fs.readSync(descriptor, bytes, offset, bytes.length - offset, offset);
-      if (count === 0) throw new TypeError('allowedFiles changed while being loaded');
-      offset += count;
-    }
-    const finalStat = fs.fstatSync(descriptor);
-    if (finalStat.size !== stat.size || finalStat.mtimeMs !== stat.mtimeMs) {
-      throw new TypeError('allowedFiles changed while being loaded');
-    }
-    if (expectedSha256 !== undefined) {
-      const actualSha256 = crypto.createHash('sha256').update(bytes).digest('hex');
-      if (actualSha256 !== expectedSha256) throw new TypeError('allowedFiles bytes do not match expectedSha256');
-    }
-    return Object.freeze({ bytes, mime });
-  } catch (error) {
-    if (error?.code === 'ENOENT' || error?.code === 'ENOTDIR') throw new TypeError('allowedFiles must name existing regular files');
-    if (error?.code === 'ELOOP' || error?.code === 'EACCES' || error?.code === 'EPERM') throw new TypeError('allowedFiles must not traverse symlinks');
-    throw error;
-  } finally {
-    if (descriptor !== undefined) fs.closeSync(descriptor);
-  }
-}
-
 function errorResponse(res, error) {
   const statuses = {
     bad_request: 400,
@@ -270,14 +148,12 @@ function errorResponse(res, error) {
     forbidden_path: 403,
     not_found: 404,
     method_not_allowed: 405,
-    unsupported_media_type: 415,
-    file_too_large: 413,
   };
   const status = statuses[error] ?? 500;
   sendJson(res, status, error, error === 'method_not_allowed' ? { Allow: 'GET, HEAD' } : {});
 }
 
-function configureServer(root, files) {
+function configureServer(files) {
   const server = http.createServer(async (req, res) => {
     try {
       if (req.method !== 'GET' && req.method !== 'HEAD') {
@@ -291,12 +167,8 @@ function configureServer(root, files) {
         errorResponse(res, parsed.error);
         return;
       }
-      const mapped = relativeFile(root, parsed.decoded);
-      if (mapped.error) {
-        errorResponse(res, mapped.error);
-        return;
-      }
-      const loaded = files.get(mapped.relative);
+      const relative = parsed.decoded.replace(/^\/+/, '');
+      const loaded = files.get(relative);
       if (!loaded) {
         errorResponse(res, 'not_found');
         return;
@@ -323,10 +195,7 @@ function configureServer(root, files) {
   return server;
 }
 
-/** Create an unlistening HTTP server configured for one explicit root. */
-export function createLocalServer({
-  root,
-  allowedFiles,
+function createLocalServer({
   snapshots,
   port = 0,
   maxFileBytes = DEFAULT_MAX_FILE_BYTES,
@@ -336,24 +205,14 @@ export function createLocalServer({
   assertPort(port);
   assertMaxFileBytes(maxFileBytes);
   assertMaxTotalBytes(maxTotalBytes, maxFileBytes);
-  if (snapshots !== undefined && (root !== undefined || allowedFiles !== undefined)) throw new TypeError('use either snapshots or root/allowedFiles, not both');
-  const snapshotMode = snapshots !== undefined;
-  const resolvedRoot = snapshotMode ? path.parse(process.cwd()).root : absoluteRoot(root);
-  const files = snapshotMode
-    ? loadSnapshotFiles(snapshots, maxFileBytes, maxTotalBytes, expectedSha256)
-    : loadAllowedFiles(resolvedRoot, allowedFiles, maxFileBytes, maxTotalBytes, expectedSha256);
-  const server = configureServer(resolvedRoot, files);
-  Object.defineProperties(server, {
-    root: { configurable: false, enumerable: true, value: snapshotMode ? null : resolvedRoot, writable: false },
-    port: { configurable: false, enumerable: true, value: port, writable: false },
-  });
-  return server;
+  if (snapshots === undefined) throw new TypeError('snapshots are required');
+  const files = loadSnapshotFiles(snapshots, maxFileBytes, maxTotalBytes, expectedSha256);
+  return configureServer(files);
 }
 
 /** Start a loopback-only server and return its origin plus an idempotent close. */
-export async function startLocalServer(options = {}) {
-  const server = createLocalServer(options);
-  const port = options.port ?? 0;
+export async function startLocalServer({ snapshots, expectedSha256, port = 0, maxFileBytes = DEFAULT_MAX_FILE_BYTES, maxTotalBytes = DEFAULT_MAX_TOTAL_BYTES } = {}) {
+  const server = createLocalServer({ snapshots, expectedSha256, port, maxFileBytes, maxTotalBytes });
   await new Promise((resolve, reject) => {
     const onError = (error) => {
       server.off('listening', resolve);
@@ -378,6 +237,5 @@ export async function startLocalServer(options = {}) {
   return Object.freeze({
     close,
     origin: `http://${HOST}:${actualPort}`,
-    server,
   });
 }

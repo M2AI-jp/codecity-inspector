@@ -8,17 +8,12 @@ import {
   sortByStrings,
 } from '../interface/canonical.mjs';
 import {
-  applyAnnotation,
-  readAnnotations,
-} from './annotation-normalization.mjs';
-import {
   inferFileRole,
 } from './role-inference.mjs';
 
-export function buildSemanticFiles(inspection, rawAnnotations) {
-  const sourceFiles = uniqueFiles(readInspectionFiles(inspection));
+export function buildSemanticFiles(inspection) {
+  const sourceFiles = readInspectionFiles(inspection);
   const records = readEvidenceRecords(inspection);
-  const annotations = readAnnotations(rawAnnotations, sourceFiles);
   const files = sourceFiles.map((file) => {
     const inferred = inferFileRole(file);
     const evidence = mergeEvidence(
@@ -31,7 +26,7 @@ export function buildSemanticFiles(inspection, rawAnnotations) {
       role: inferred.role,
       evidence,
     };
-    return applyAnnotation(base, annotations);
+    return base;
   });
 
   return sortByStrings(files, (file) => [file.path, file.fileId]);
@@ -46,21 +41,4 @@ function evidenceForFile(file, records) {
     result[record.state].push(record.key);
   }
   return result;
-}
-
-function uniqueFiles(files) {
-  const byId = new Map();
-  for (const file of files) {
-    const existing = byId.get(file.fileId);
-    if (existing === undefined || compareFiles(file, existing) < 0) {
-      byId.set(file.fileId, file);
-    }
-  }
-  return [...byId.values()];
-}
-
-function compareFiles(left, right) {
-  const leftKey = `${left.path}\u0000${left.fileId}`;
-  const rightKey = `${right.path}\u0000${right.fileId}`;
-  return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0;
 }

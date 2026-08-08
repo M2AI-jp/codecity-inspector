@@ -3,8 +3,5 @@
  * service/data/configuration modules are implementation details.
  */
 export {
-  inferSemanticModel,
-} from './service/infer-semantic-model.mjs';
-export {
-  normalizeSemanticModel,
+  normalizeSemanticModel as inferSemanticModel,
 } from './service/normalize-semantic-model.mjs';

@@ -1,21 +1,15 @@
 import {
-  DIRECTIONS,
   GUILD_TAB_LABELS,
   LOGICAL_SIZE,
-  QUEST_CHOICES,
   createInitialState,
-  evidenceSentence,
-  gamepadToActions,
-  mapGamepadInput,
-  readGamepadInput,
   persistenceSnapshot,
   reduceGameState,
   RUNTIME_REPOSITORY_INSPECTION_BINDING,
 } from './state.mjs';
 
-export const SCENE_BUNDLE_FORMAT = 'codecity.scene-bundle';
-export const SCENE_BUNDLE_SCHEMA_VERSION = 1;
-export const PERSISTENCE_LIMIT_BYTES = 64 * 1024;
+const SCENE_BUNDLE_FORMAT = 'codecity.scene-bundle';
+const SCENE_BUNDLE_SCHEMA_VERSION = 1;
+const PERSISTENCE_LIMIT_BYTES = 64 * 1024;
 
 const HASH_RE = /^[a-f0-9]{64}$/iu;
 const EVIDENCE_STATES = Object.freeze(['observed', 'inferred', 'unknown']);
@@ -41,14 +35,13 @@ const REQUIRED_SCENE_KEYS = Object.freeze([
 const KEY_ACTIONS = Object.freeze({
   Enter: 'INTERACT', Space: 'INTERACT', KeyE: 'INTERACT', KeyZ: 'INTERACT',
   Escape: 'EXIT', KeyX: 'BACK', KeyM: 'OVERLOOK', Tab: 'OVERLOOK',
-  Equal: 'SCALE_UP', NumpadAdd: 'SCALE_UP', Plus: 'SCALE_UP',
-  Minus: 'SCALE_DOWN', NumpadSubtract: 'SCALE_DOWN', Underscore: 'SCALE_DOWN',
+  Equal: 'SCALE_UP', NumpadAdd: 'SCALE_UP',
+  Minus: 'SCALE_DOWN', NumpadSubtract: 'SCALE_DOWN',
 });
 
 export class GameRuntimeError extends Error {
   constructor(code, message, issues = []) {
     super(message);
-    this.name = 'GameRuntimeError';
     this.code = code;
     this.issues = Object.freeze(issues.map((entry) => Object.freeze({ ...entry })));
   }
@@ -357,20 +350,6 @@ function defaultClock() {
   return { now: () => performanceObject.now(), requestFrame: raf.bind(globalThis), cancelFrame: caf.bind(globalThis) };
 }
 
-function defaultGamepadSource() {
-  const navigatorObject = globalThis.navigator;
-  if (!navigatorObject || typeof navigatorObject.getGamepads !== 'function') return [];
-  try { return navigatorObject.getGamepads() ?? []; } catch { return []; }
-}
-
-function firstConnectedGamepad(value) {
-  if (isRecord(value) && 'buttons' in value) return value;
-  if (value == null) return null;
-  let pads;
-  try { pads = Array.from(value); } catch { return null; }
-  return pads.find((gamepad) => isRecord(gamepad) && gamepad.connected !== false) ?? null;
-}
-
 function assetDirection(direction) {
   return ({ up: 'north', down: 'south', left: 'west', right: 'east' })[direction] ?? 'south';
 }
@@ -400,7 +379,7 @@ function drawFrame(context, canvas, bundle, state, images) {
   const game = bundle.game;
   const assets = new Map(bundle.assets.map((asset) => [asset.selector, asset]));
   const camera = state.overlook ? centerCamera(game) : state.camera;
-  const renderables = game.renderables.map((entry) => ({ ...entry, dynamic: false }));
+  const renderables = [...game.renderables];
   for (const npc of game.npcs) renderables.push({ id: `npc:${npc.id}`, assetSelector: npc.assetSelector, position: npc.position, footPivot: npc.footPivot, z: 10, roomId: npc.cutawayId, exteriorOnly: !npc.cutawayId, animationState: 'idle', direction: 'down' });
   renderables.push({ id: 'player', assetSelector: game.player.assetSelector, position: { x: state.player.x, y: state.player.y }, footPivot: { x: game.player.footbox.x + game.player.footbox.width / 2, y: game.player.footbox.y + game.player.footbox.height }, z: 100, animationState: state.player.moving ? (state.input.shift ? 'walk' : 'run') : 'idle', direction: state.player.direction });
   const activeRoom = game.rooms.find((room) => room.id === state.roomId);
@@ -462,10 +441,8 @@ function drawFrame(context, canvas, bundle, state, images) {
 
 function centerCamera(game) { return { x: Math.max(0, (game.worldSize.width - LOGICAL_SIZE.width) / 2), y: Math.max(0, (game.worldSize.height - LOGICAL_SIZE.height) / 2), scale: 1 }; }
 
-function renderUi(uiRoot, state, bundle, gamepadNotice = '') {
-  if (!uiRoot || !('textContent' in uiRoot)) return;
+function renderUi(uiRoot, state, bundle) {
   const lines = [];
-  if (gamepadNotice) lines.push(gamepadNotice);
   if (state.dialogue) {
     lines.push(...state.dialogue.lines);
     if (state.dialogue.kind === 'quest') lines.push(...state.dialogue.choices.map((choice, index) => `${index === state.dialogue.choiceIndex ? '▶ ' : '  '}${choice}`));
@@ -498,7 +475,7 @@ function actionForKey(key) {
   return null;
 }
 
-export function createGameRuntime({ bundle, canvas, uiRoot, storage, assetLoader, inputTarget, clock, gamepadSource } = {}) {
+function createGameRuntime({ bundle, canvas, uiRoot, storage, assetLoader } = {}) {
   assertValid(bundle);
   const context = assertCanvas(canvas);
   assertUiRoot(uiRoot);
@@ -511,19 +488,14 @@ export function createGameRuntime({ bundle, canvas, uiRoot, storage, assetLoader
   let frame = null;
   let previousTime = null;
   let running = false;
-  let previousGamepad = readGamepadInput(null);
-  let gamepadConnected = false;
-  let gamepadNoticeUntil = 0;
   let lastMovementSaveAt = 0;
-  const target = inputTarget ?? globalThis.window;
-  const timer = clock ?? defaultClock();
-  const getGamepads = typeof gamepadSource === 'function' ? gamepadSource : defaultGamepadSource;
+  const target = globalThis.window;
+  const timer = defaultClock();
   const listeners = [];
 
   const render = () => {
     drawFrame(context, canvas, bundle, state, images);
-    const now = timer && typeof timer.now === 'function' ? timer.now() : 0;
-    renderUi(uiRoot, state, bundle, gamepadNoticeUntil > now ? 'パッドで遊べます' : '');
+    renderUi(uiRoot, state, bundle);
   };
   const save = () => writeSaved(storage, key, state, identity, bundle.game.quests.map((quest) => quest.id));
   const dispatch = (action) => {
@@ -536,13 +508,12 @@ export function createGameRuntime({ bundle, canvas, uiRoot, storage, assetLoader
     // render loop into synchronous localStorage I/O at 60 Hz.
     if (action?.type === 'TICK') {
       const moved = state.player.x !== previousState.player.x || state.player.y !== previousState.player.y;
-      const now = timer && typeof timer.now === 'function' ? timer.now() : 0;
+      const now = timer.now();
       if (moved && now - lastMovementSaveAt >= 250) { save(); lastMovementSaveAt = now; }
-    } else if (!['KEY_DOWN', 'KEY_UP', 'GAMEPAD_INPUT'].includes(action?.type)) {
+    } else if (!['KEY_DOWN', 'KEY_UP'].includes(action?.type)) {
       save();
     }
     if (running) render();
-    return state;
   };
   const onKeyDown = (event) => {
     let action = actionForKey(event.code);
@@ -554,15 +525,6 @@ export function createGameRuntime({ bundle, canvas, uiRoot, storage, assetLoader
     dispatch({ type: 'KEY_DOWN', key: event.code });
   };
   const onKeyUp = (event) => dispatch({ type: 'KEY_UP', key: event.code });
-  const pollGamepad = (now) => {
-    let gamepad = null;
-    try { gamepad = firstConnectedGamepad(getGamepads()); } catch { gamepad = null; }
-    const mapped = gamepadToActions(gamepad, previousGamepad);
-    if (mapped.snapshot.connected && !gamepadConnected) gamepadNoticeUntil = now + 3200;
-    gamepadConnected = mapped.snapshot.connected;
-    previousGamepad = mapped.snapshot;
-    for (const action of mapped.actions) dispatch(action);
-  };
   const attach = () => {
     if (!target || typeof target.addEventListener !== 'function') throw new GameRuntimeError('INPUT_TARGET_REQUIRED', 'an input target with addEventListener is required');
     target.addEventListener('keydown', onKeyDown); target.addEventListener('keyup', onKeyUp);
@@ -573,52 +535,29 @@ export function createGameRuntime({ bundle, canvas, uiRoot, storage, assetLoader
     if (!running) return;
     const previous = previousTime ?? time;
     previousTime = time;
-    pollGamepad(time);
     dispatch({ type: 'TICK', dtMs: Math.max(0, Math.min(250, time - previous)) });
     frame = timer.requestFrame(tick);
   };
   return {
-    get state() { return state; },
-    get storageKey() { return key; },
-    dispatch,
-    render,
     async start() {
-      if (running) return this;
-      if (!timer || typeof timer.now !== 'function' || typeof timer.requestFrame !== 'function' || typeof timer.cancelFrame !== 'function') throw new GameRuntimeError('CLOCK_REQUIRED', 'a deterministic clock or browser animation clock is required');
+      if (!timer || typeof timer.now !== 'function' || typeof timer.requestFrame !== 'function' || typeof timer.cancelFrame !== 'function') throw new GameRuntimeError('CLOCK_REQUIRED', 'a browser animation clock is required');
       images = await loadAssets(bundle, assetLoader);
       attach();
       running = true;
       previousTime = timer.now();
       lastMovementSaveAt = previousTime;
-      previousGamepad = readGamepadInput(null);
-      gamepadConnected = false;
-      gamepadNoticeUntil = 0;
-      pollGamepad(previousTime);
       render();
       frame = timer.requestFrame(tick);
-      return this;
     },
     stop() {
-      if (frame !== null) timer?.cancelFrame?.(frame);
-      frame = null; running = false; previousTime = null; previousGamepad = readGamepadInput(null); gamepadConnected = false; gamepadNoticeUntil = 0; detach(); save();
-      return this;
+      if (frame !== null) timer.cancelFrame(frame);
+      frame = null; running = false; previousTime = null; detach(); save();
     },
-    destroy() { this.stop(); },
   };
 }
 
-export async function startGameRuntime(options = {}) {
-  const runtime = createGameRuntime(options);
+export async function startGameRuntime({ bundle, canvas, uiRoot, storage, assetLoader } = {}) {
+  const runtime = createGameRuntime({ bundle, canvas, uiRoot, storage, assetLoader });
   await runtime.start();
   return runtime;
 }
-
-export {
-  createInitialState,
-  evidenceSentence,
-  gamepadToActions,
-  mapGamepadInput,
-  readGamepadInput,
-  persistenceSnapshot,
-  reduceGameState,
-};

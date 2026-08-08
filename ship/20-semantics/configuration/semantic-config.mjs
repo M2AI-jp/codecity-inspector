@@ -30,12 +30,6 @@ export const CAPABILITY_NAMES = Object.freeze([
   'externalConnections',
 ]);
 
-export const CONNECTION_DIRECTIONS = Object.freeze([
-  'inbound',
-  'outbound',
-  'internal',
-]);
-
 export const CONNECTION_KINDS = Object.freeze([
   'http',
   'webhook',
@@ -50,9 +44,3 @@ export const EVIDENCE_STATES = Object.freeze([
   'inferred',
   'unknown',
 ]);
-
-export const EMPTY_EVIDENCE = Object.freeze({
-  observed: Object.freeze([]),
-  inferred: Object.freeze([]),
-  unknown: Object.freeze([]),
-});

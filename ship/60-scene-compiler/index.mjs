@@ -9,50 +9,22 @@ import { NPC_ROLE_VOCABULARY, REPOSITORY_INSPECTION_BINDING } from '../30-town-d
 import { validateWorldPlan, WORLD_PLAN_PUBLIC_VOCABULARY } from '../40-worldgen/index.mjs';
 import { resolveAsset, validateAssetManifest } from '../50-art/index.mjs';
 
-export const SCENE_BUNDLE_FORMAT = 'codecity.scene-bundle';
-export const SCENE_BUNDLE_SCHEMA_VERSION = 1;
-export const SCENE_BINDINGS_FORMAT = 'codecity.scene-bindings';
-export const SCENE_BINDINGS_SCHEMA_VERSION = 1;
+const SCENE_BUNDLE_FORMAT = 'codecity.scene-bundle';
+const SCENE_BUNDLE_SCHEMA_VERSION = 1;
+const SCENE_BINDINGS_FORMAT = 'codecity.scene-bindings';
+const SCENE_BINDINGS_SCHEMA_VERSION = 1;
 
-export const GAME_LOGICAL_SIZE = Object.freeze({ width: 384, height: 216 });
-export const GAME_TILE_SIZE = 16;
-export const GAME_WORLD_INTEGER_SCALES = Object.freeze([2, 3, 4, 5]);
-export const GAME_SPEEDS = Object.freeze({ run: 75, walk: 45 });
-export const PRODUCT_SELECTORS = Object.freeze([
+const GAME_LOGICAL_SIZE = Object.freeze({ width: 384, height: 216 });
+const GAME_TILE_SIZE = 16;
+const GAME_SPEEDS = Object.freeze({ run: 75, walk: 45 });
+const PRODUCT_SELECTORS = Object.freeze([
   'player:default',
   'ui:dialogue',
   'ui:choice',
   'ui:guild-roster',
   'ui:inspection-report',
 ]);
-export const GUILD_TAB_LABELS = Object.freeze(['なかま', 'うけつけ', 'いらい', 'もちもの', 'じょうたい']);
-export const QUEST_CHOICES = Object.freeze(['見た', 'そうらしい', 'わからない']);
-export const EVIDENCE_GRAMMAR = Object.freeze({
-  observed: Object.freeze({ choice: '見た', ending: 'です。' }),
-  inferred: Object.freeze({ choice: 'そうらしい', ending: 'のようです。' }),
-  unknown: Object.freeze({ choice: 'わからない', ending: 'まだ、わかりません。' }),
-});
-export const UI_BINDINGS = Object.freeze({
-  dialogueAssetSelector: 'ui:dialogue',
-  choiceAssetSelector: 'ui:choice',
-  guildRosterAssetSelector: 'ui:guild-roster',
-  inspectionReportAssetSelector: 'ui:inspection-report',
-});
-export const CONTROLS = Object.freeze({
-  move: Object.freeze({
-    up: Object.freeze(['ArrowUp', 'KeyW']),
-    down: Object.freeze(['ArrowDown', 'KeyS']),
-    left: Object.freeze(['ArrowLeft', 'KeyA']),
-    right: Object.freeze(['ArrowRight', 'KeyD']),
-  }),
-  interact: Object.freeze(['Enter', 'Space', 'KeyE', 'KeyZ']),
-  cancel: Object.freeze(['Escape', 'KeyX']),
-  overview: Object.freeze(['KeyM', 'Tab']),
-  save: Object.freeze(['KeyP']),
-  walkModifier: Object.freeze(['ShiftLeft', 'ShiftRight']),
-  zoomIn: Object.freeze(['Equal', 'NumpadAdd']),
-  zoomOut: Object.freeze(['Minus', 'NumpadSubtract']),
-});
+const GUILD_TAB_LABELS = Object.freeze(['なかま', 'うけつけ', 'いらい', 'もちもの', 'じょうたい']);
 
 const HASH_RE = /^[a-f0-9]{64}$/iu;
 const EVIDENCE_STATES = Object.freeze(['observed', 'inferred', 'unknown']);
@@ -93,7 +65,7 @@ const USAGE_COMPATIBILITY = Object.freeze({
   effect: Object.freeze({ kind: 'effect', layer: 'effect' }),
 });
 
-export class SceneCompilerError extends Error {
+class SceneCompilerError extends Error {
   constructor(code, message, issues = []) {
     super(message);
     this.name = 'SceneCompilerError';
@@ -284,7 +256,7 @@ function selectedQuestSites(plan) {
 }
 
 function observedRewardTransition(plan) {
-  const transition = (plan.townState?.rewards?.transitions ?? []).find((entry) => entry?.state === 'observed' || entry?.evidence?.state === 'observed') ?? null;
+  const transition = (plan.townState?.rewards?.transitions ?? []).find((entry) => entry?.state === 'observed') ?? null;
   if (!transition) return null;
   const keys = Object.keys(transition).sort();
   if (JSON.stringify(keys) !== JSON.stringify([...REWARD_TRANSITION_KEYS].sort())) fail('REWARD_TRANSITION_INVALID', 'observed report change must be one exact TownModel reward transition', [issue('$.townState.rewards.transitions', 'REWARD_TRANSITION_INVALID', 'transition fields must be exactly id,event,bindingId,facilityKind,effect,state,evidence')]);
@@ -314,11 +286,6 @@ function requiredSelectorsForPlan(plan) {
   return [...selectors].sort();
 }
 
-/** Return the exact semantic selectors a plan requires, without selecting assets. */
-export function requiredAssetSelectors(worldPlan) {
-  return Object.freeze(requiredSelectorsForPlan(validatedWorldPlan(worldPlan)).slice());
-}
-
 function assetRef(selector, resolved) {
   return {
     selector,
@@ -341,7 +308,7 @@ function resolveBindings(plan, manifest, assetRoot, bindings) {
   const catalog = new Map();
   for (const [selector, assetId] of Object.entries(bindings.selectors).sort(([left], [right]) => left.localeCompare(right))) {
     try {
-      const resolvedAsset = resolveAsset(manifest, assetId, { assetRoot });
+      const resolvedAsset = resolveAsset(manifest, assetId, assetRoot);
       const reference = assetRef(selector, resolvedAsset);
       issues.push(...usageIssues(reference.usage, selector, `$.selectors.${selector}`, reference.dimensions));
       catalog.set(selector, reference);
@@ -774,8 +741,8 @@ function compileQuests(plan, assets) {
     if (!candidateRecord) fail('QUEST_CANDIDATE_MISSING', `quest site ${site.id} is not backed by a townState investigation candidate`, [issue(`$.questSites[${index}].candidateId`, 'QUEST_CANDIDATE_MISSING', 'candidateId must resolve in townState.investigations.candidates')]);
     const asset = clone(assets.get(`quest:${site.action}`));
     const evidence = candidateEvidence(candidateRecord.candidate, candidateRecord.index);
-    const statement = candidateRecord.candidate.statement ?? candidateRecord.candidate.text ?? candidateRecord.candidate.prompt ?? '';
-    const subject = candidateRecord.candidate.subject ?? candidateRecord.candidate.capability ?? candidateRecord.candidate.role ?? site.action;
+    const statement = candidateRecord.candidate.statement;
+    const subject = candidateRecord.candidate.subject;
     if (!nonEmpty(statement)) fail('QUEST_STATEMENT_MISSING', `quest candidate ${site.candidateId} has no statement`, [issue(`$.townState.investigations.candidates[${candidateRecord.index}].statement`, 'QUEST_STATEMENT_MISSING', 'candidate statement is required; compiler will not invent dialogue')]);
     const plot = plan.plots.find((entry) => entry.id === site.plotId);
     const position = plot ? anchorForPlot(plot, asset) : { x: 0, y: 0 };
@@ -957,7 +924,7 @@ export function compileScene({ worldPlan, assetManifest, assetRoot, bindings } =
   if (typeof assetRoot !== 'string' || assetRoot.trim() === '') fail('ASSET_ROOT_REQUIRED', 'assetRoot is required to prove every shipping file exists', [issue('assetRoot', 'ASSET_ROOT_REQUIRED', 'must be a non-empty directory path')]);
   let manifest;
   try {
-    manifest = validateAssetManifest(assetManifest, { assetRoot, verifyFiles: true });
+    manifest = validateAssetManifest(assetManifest, assetRoot);
   } catch (error) {
     fail('ASSET_MANIFEST_INVALID', error.message, error.issues ?? [issue('$', 'ASSET_MANIFEST_INVALID', 'asset manifest validation failed')]);
   }
@@ -1171,7 +1138,7 @@ function validateNavigation(bundle, issues) {
 }
 
 /** Validate SceneBundle shape and exact asset bindings without touching disk. */
-export function validateSceneBundle(bundle) {
+function validateSceneBundle(bundle) {
   const issues = [];
   if (!isRecord(bundle)) return Object.freeze({ ok: false, issues: Object.freeze([issue('$', 'INVALID_BUNDLE', 'SceneBundle must be an object')]) });
   if (bundle.format !== SCENE_BUNDLE_FORMAT) issues.push(issue('$.format', 'INVALID_FORMAT', `must be ${SCENE_BUNDLE_FORMAT}`));

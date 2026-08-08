@@ -24,19 +24,11 @@ export function inferFileRole(file) {
   }
 
   const kind = typeof file?.kind === 'string' ? file.kind.toLowerCase() : '';
-  const kindRole = kind === 'config' || kind === 'configuration'
+  const kindRole = kind === 'configuration'
     ? 'configuration'
-    : kind === 'test' || kind === 'specification'
+    : kind === 'test'
       ? 'test'
-      : kind === 'data' || kind === 'dataset'
-        ? 'data'
-        : kind === 'tool' || kind === 'tooling'
-          ? 'tooling'
-          : kind === 'interface' || kind === 'api'
-            ? 'interface'
-            : kind === 'service'
-              ? 'service'
-              : null;
+      : null;
   if (kindRole !== null) {
     addSignal(scores, kindRole, kindRole === 'test' ? 5 : 2, `role.signal.kind.${kindRole}`);
   }

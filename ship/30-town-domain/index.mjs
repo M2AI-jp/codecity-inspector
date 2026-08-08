@@ -4,7 +4,7 @@
 
 const TOWN_SCHEMA_VERSION = 1;
 const EVIDENCE_STATES = Object.freeze(['observed', 'inferred', 'unknown']);
-export const CONNECTION_KINDS = Object.freeze([
+const CONNECTION_KINDS = Object.freeze([
   'http', 'webhook', 'external-api', 'llm', 'storage', 'unknown',
 ]);
 export const NPC_ROLE_VOCABULARY = Object.freeze([...CONNECTION_KINDS, 'townsperson']);
@@ -371,79 +371,6 @@ function makeRewards(semanticModel) {
   return { bindings: REWARD_BINDINGS.map((binding) => ({ ...binding })), transitions };
 }
 
-export function validateTownModel(model) {
-  const issues = [];
-  if (!isRecord(model) || model.schemaVersion !== TOWN_SCHEMA_VERSION) issues.push(issue('SCHEMA_VERSION', 'schemaVersion', 'TownModel v1 required'));
-  if (typeof model?.inspectionDigest !== 'string' || !/^[0-9a-f]{64}$/u.test(model.inspectionDigest)) issues.push(issue('INSPECTION_DIGEST', 'inspectionDigest', 'lowercase SHA-256 required'));
-  if (!isRecord(model?.repository) || typeof model.repository.name !== 'string' || !model.repository.name || typeof model.repository.identity !== 'string' || !model.repository.identity) issues.push(issue('REPOSITORY', 'repository', 'name and identity required'));
-  if (!isStrictEvidence(model?.evidence)) issues.push(issue('EVIDENCE', 'evidence', 'top-level strict tri-state evidence bag required'));
-  const facilities = Array.isArray(model?.facilities) ? model.facilities : [];
-  const kinds = facilities.map((facility) => facility?.kind);
-  if (facilities.length !== FACILITY_KINDS.length || new Set(kinds).size !== FACILITY_KINDS.length || FACILITY_KINDS.some((kind) => !kinds.includes(kind))) issues.push(issue('FACILITIES_CANONICAL', 'facilities', 'exactly one entry for each canonical facility kind required'));
-  for (const facility of facilities) {
-    if (!facility || !FACILITY_KINDS.includes(facility.kind)) continue;
-    if (!isEvidence(facility.evidence)) issues.push(issue('EVIDENCE_BAG', `facilities.${facility.kind}.evidence`, 'tri-bag required'));
-    if (facility.kind === 'shop' && (facility.variant !== 'repair' || facility.role !== 'repair')) issues.push(issue('REPAIR_VARIANT', 'facilities.shop', 'repair must be shop role variant'));
-    if (facility.kind === 'ruin' && (facility.condition !== 'dirt' || facility.blocksProgress !== false) && facility.presence === 'present') issues.push(issue('DIRT_NOT_MISSING', 'facilities.ruin', 'dirt is present and walkable'));
-  }
-  if (!Array.isArray(model?.facts)) issues.push(issue('FACTS_ARRAY', 'facts', 'facts array required'));
-  if (!Array.isArray(model?.guild?.tabs) || model.guild.tabs.length !== 5 || model.guild.tabs.some((tab, index) => tab?.label !== GUILD_TABS[index])) issues.push(issue('GUILD_TABS', 'guild.tabs', 'five canonical guild tabs required'));
-  if (!Array.isArray(model?.guild?.representativeConnections) || model.guild.representativeConnections.length > 3) issues.push(issue('REPRESENTATIVES', 'guild.representativeConnections', 'at most three representative connections'));
-  for (const [index, representative] of (Array.isArray(model?.guild?.representativeConnections) ? model.guild.representativeConnections : []).entries()) {
-    const kind = representative?.kind;
-    if (!CONNECTION_KINDS.includes(kind)) issues.push(issue('REPRESENTATIVE_KIND', `guild.representativeConnections[${index}].kind`, 'representative kind must use the finite connection vocabulary'));
-  }
-  if (JSON.stringify(model?.investigations?.priority) !== JSON.stringify(INVESTIGATION_PRIORITY)) issues.push(issue('INVESTIGATION_PRIORITY', 'investigations.priority', 'priority order is fixed'));
-  if (!Array.isArray(model?.investigations?.candidates) || model.investigations.candidates.length !== 3) {
-    issues.push(issue('INVESTIGATION_CANDIDATES', 'investigations.candidates', 'exactly three evidence-grounded candidates required'));
-  } else {
-    const expectedKeys = ['capability', 'evidence', 'facilityKind', 'id', 'role', 'state', 'statement', 'subject', 'variant'];
-    const ids = new Set();
-    const facilitiesSeen = new Set();
-    const questionsSeen = new Set();
-    for (const [index, candidate] of model.investigations.candidates.entries()) {
-      const path = `investigations.candidates[${index}]`;
-      if (!isRecord(candidate) || JSON.stringify(Object.keys(candidate).sort()) !== JSON.stringify(expectedKeys)) {
-        issues.push(issue('INVESTIGATION_CANDIDATE', path, 'candidate fields must be exact'));
-        continue;
-      }
-      if (![candidate.id, candidate.facilityKind, candidate.role, candidate.subject, candidate.statement].every((value) => typeof value === 'string' && value.length > 0)) issues.push(issue('INVESTIGATION_CANDIDATE', path, 'candidate identity and domain copy are required'));
-      if (!FACILITY_KINDS.includes(candidate.facilityKind)) issues.push(issue('INVESTIGATION_CANDIDATE', path, 'candidate facility must use the finite facility vocabulary'));
-      if (!EVIDENCE_STATES.includes(candidate.state) || !isEvidence(candidate.evidence)) issues.push(issue('INVESTIGATION_CANDIDATE', path, 'candidate state and tri-state evidence are required'));
-      if (ids.has(candidate.id)) issues.push(issue('INVESTIGATION_CANDIDATE', path, 'candidate IDs must be distinct'));
-      if (facilitiesSeen.has(candidate.facilityKind)) issues.push(issue('INVESTIGATION_CANDIDATE', path, 'investigation sites must use distinct facility kinds'));
-      if (questionsSeen.has(`${candidate.subject}\u0000${candidate.statement}`)) issues.push(issue('INVESTIGATION_CANDIDATE', path, 'investigation questions must be distinct'));
-      ids.add(candidate.id);
-      facilitiesSeen.add(candidate.facilityKind);
-      questionsSeen.add(`${candidate.subject}\u0000${candidate.statement}`);
-      if (isEvidence(candidate.evidence)) {
-        if (!candidate.evidence.observed.includes(INSPECTION_COMPLETION_EVIDENCE_ID)) issues.push(issue('INVESTIGATION_EVIDENCE', path, 'each question must retain observed inspection completion evidence'));
-        if (candidate.evidence.unknown.length === 0) issues.push(issue('INVESTIGATION_EVIDENCE', path, 'each question must retain unknown evidence'));
-      }
-    }
-  }
-  if (!Number.isInteger(model?.habitability?.level) || model.habitability.level < 0 || model.habitability.level > 5) issues.push(issue('LEVEL', 'habitability.level', 'Lv must be 0..5'));
-  if (!Array.isArray(model?.rewards?.bindings) || model.rewards.bindings.length !== REWARD_BINDINGS.length || model.rewards.bindings.some((binding, index) => JSON.stringify(binding) !== JSON.stringify(REWARD_BINDINGS[index]))) {
-    issues.push(issue('REWARD_BINDINGS', 'rewards.bindings', 'exactly one canonical repository_inspected binding required'));
-  }
-  for (const transition of Array.isArray(model?.rewards?.transitions) ? model.rewards.transitions : []) {
-    if (transition?.state !== 'observed'
-      || transition?.event !== REPOSITORY_INSPECTION_BINDING.event
-      || transition?.bindingId !== REPOSITORY_INSPECTION_BINDING.id
-      || transition?.facilityKind !== REPOSITORY_INSPECTION_BINDING.facilityKind
-      || transition?.effect !== REPOSITORY_INSPECTION_BINDING.effect
-      || !isEvidence(transition?.evidence)
-      || JSON.stringify(transition.evidence.observed) !== JSON.stringify([INSPECTION_COMPLETION_EVIDENCE_ID])) {
-      issues.push(issue('REWARD_TRANSITION', 'rewards.transitions', 'only the observed repository_inspected transition may activate the town-hall lantern'));
-    }
-  }
-  const completionObserved = isStrictEvidence(model?.evidence) && model.evidence.observed.includes(INSPECTION_COMPLETION_EVIDENCE_ID);
-  if (!Array.isArray(model?.rewards?.transitions) || model.rewards.transitions.length !== (completionObserved ? 1 : 0)) {
-    issues.push(issue('REWARD_TRANSITIONS', 'rewards.transitions', 'transition count must match observed inspection completion'));
-  }
-  return { ok: issues.length === 0, issues };
-}
-function issue(code, path, message) { return { code, path, message }; }
 function isRecord(value) { return value !== null && typeof value === 'object' && !Array.isArray(value); }
 function stringOrNull(value) { return typeof value === 'string' && value.length ? value : null; }
 function validRole(value) { return ['service', 'interface', 'data', 'configuration', 'test', 'tooling', 'module'].includes(value) ? value : 'module'; }
@@ -477,12 +404,6 @@ function evidenceForState(value, state, fallback) {
   return result;
 }
 function evidenceState(evidence) { return evidence.observed.length ? 'observed' : evidence.inferred.length ? 'inferred' : 'unknown'; }
-function isEvidence(value) { return isRecord(value) && EVIDENCE_STATES.every((state) => Array.isArray(value[state]) && value[state].every((entry) => typeof entry === 'string')); }
-function isStrictEvidence(value) {
-  if (!isEvidence(value)) return false;
-  const keys = Object.keys(value).sort();
-  return JSON.stringify(keys) === JSON.stringify([...EVIDENCE_STATES].sort());
-}
 function finiteCount(raw) { for (const key of ['invocationCount', 'count', 'calls', 'requestCount', 'usageCount', 'frequency']) if (Number.isFinite(raw?.[key]) && raw[key] >= 0) return raw[key]; return 0; }
 function isDirtPath(path) { return /(^|[/\\])(legacy|deprecated|unused|archive|old|todo|backup)([/\\]|$)/i.test(path) || /(?:legacy|deprecated|unused|todo|old[-_.])/i.test(path); }
 

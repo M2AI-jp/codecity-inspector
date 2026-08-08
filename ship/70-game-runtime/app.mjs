@@ -9,18 +9,16 @@ const REQUIRED_ELEMENTS = Object.freeze(['game-canvas', 'game-ui', 'game-status'
 const EXTERNAL_URL_RE = /^(?:[a-z][a-z\d+.-]*:|\/\/)/iu;
 const UNSAFE_PATH_RE = /(?:^|[\\/])\.\.(?:[\\/]|$)/u;
 
-export class BrowserEntryError extends Error {
-  constructor(code, message, cause = null) {
+class BrowserEntryError extends Error {
+  constructor(message) {
     super(message);
-    this.name = 'BrowserEntryError';
-    this.code = code;
-    this.cause = cause;
   }
 }
 
-function browserWindow(value = globalThis.window) {
+function browserWindow() {
+  const value = globalThis.window;
   if (!value || !value.location || typeof value.location.href !== 'string' || typeof value.location.origin !== 'string') {
-    throw new BrowserEntryError('WINDOW_REQUIRED', 'ブラウザの場所を確認できません。');
+    throw new BrowserEntryError('ブラウザの場所を確認できません。');
   }
   return value;
 }
@@ -29,11 +27,11 @@ function sameOriginUrl(raw, windowObject, kind) {
   let resolved;
   try {
     resolved = new URL(raw, windowObject.location.href);
-  } catch (error) {
-    throw new BrowserEntryError('URL_INVALID', `${kind}の場所を確認できません。`, error);
+  } catch {
+    throw new BrowserEntryError(`${kind}の場所を確認できません。`);
   }
   if (resolved.origin !== windowObject.location.origin) {
-    throw new BrowserEntryError('CROSS_ORIGIN_FORBIDDEN', `${kind}が同じ街の配布物ではありません。`);
+    throw new BrowserEntryError(`${kind}が同じ街の配布物ではありません。`);
   }
   return resolved;
 }
@@ -85,95 +83,92 @@ function errorText(error) {
   return '街を開始できません。配布物を確認してから再試行してください。';
 }
 
-function requiredElements(documentObject) {
+function requiredElements() {
+  const documentObject = globalThis.document;
   if (!documentObject || typeof documentObject.getElementById !== 'function') {
-    throw new BrowserEntryError('DOCUMENT_REQUIRED', '画面を準備できません。');
+    throw new BrowserEntryError('画面を準備できません。');
   }
   const elements = Object.fromEntries(REQUIRED_ELEMENTS.map((id) => {
     const element = documentObject.getElementById(id);
-    if (!element) throw new BrowserEntryError('DOM_REQUIRED', `画面要素「${id}」がありません。`);
+    if (!element) throw new BrowserEntryError(`画面要素「${id}」がありません。`);
     return [id, element];
   }));
-  if (typeof elements['game-canvas'].getContext !== 'function') throw new BrowserEntryError('CANVAS_REQUIRED', '描画画面を準備できません。');
+  if (typeof elements['game-canvas'].getContext !== 'function') throw new BrowserEntryError('描画画面を準備できません。');
   return elements;
 }
 
-function localStorageFor(windowObject) {
+function localStorageFor() {
   try {
-    const storage = windowObject.localStorage;
+    const storage = globalThis.window.localStorage;
     if (!storage || typeof storage.getItem !== 'function' || typeof storage.setItem !== 'function') throw new Error('localStorage unavailable');
     return storage;
-  } catch (error) {
-    throw new BrowserEntryError('STORAGE_REQUIRED', 'このブラウザの保存領域を利用できません。', error);
+  } catch {
+    throw new BrowserEntryError('このブラウザの保存領域を利用できません。');
   }
 }
 
 /** Fetch the generated SceneBundle without accepting redirects or other origins. */
-export async function fetchSceneBundle({ windowObject = globalThis.window, fetchImpl = null } = {}) {
-  const activeWindow = browserWindow(windowObject);
+async function fetchSceneBundle() {
+  const activeWindow = browserWindow();
   const sceneUrl = sameOriginUrl(SCENE_PATH, activeWindow, 'scene.json');
-  if (fetchImpl !== null && typeof fetchImpl !== 'function') throw new BrowserEntryError('FETCH_REQUIRED', 'scene.json を読み込む機能がありません。');
-  if (fetchImpl === null && typeof activeWindow.fetch !== 'function') throw new BrowserEntryError('FETCH_REQUIRED', 'scene.json を読み込む機能がありません。');
-  const request = typeof fetchImpl === 'function'
-    ? fetchImpl
-    : (...args) => activeWindow.fetch(...args);
+  if (typeof activeWindow.fetch !== 'function') throw new BrowserEntryError('scene.json を読み込む機能がありません。');
 
   let response;
   try {
-    response = await request(sceneUrl.href, {
+    response = await activeWindow.fetch(sceneUrl.href, {
       cache: 'no-store',
       credentials: 'same-origin',
       headers: { Accept: 'application/json' },
       redirect: 'error',
     });
-  } catch (error) {
-    throw new BrowserEntryError('SCENE_FETCH_FAILED', 'scene.json を読み込めません。同じ配布元で再試行してください。', error);
+  } catch {
+    throw new BrowserEntryError('scene.json を読み込めません。同じ配布元で再試行してください。');
   }
   if (!response || response.ok !== true) {
     const status = Number.isInteger(response?.status) ? `（HTTP ${response.status}）` : '';
-    throw new BrowserEntryError('SCENE_FETCH_FAILED', `scene.json を読み込めません${status}。`);
+    throw new BrowserEntryError(`scene.json を読み込めません${status}。`);
   }
   if (typeof response.url === 'string' && response.url !== '') {
     const responseUrl = sameOriginUrl(response.url, activeWindow, 'scene.json');
-    if (responseUrl.pathname !== sceneUrl.pathname) throw new BrowserEntryError('SCENE_REDIRECT_FORBIDDEN', 'scene.json が別の配布物へ移動しました。');
+    if (responseUrl.pathname !== sceneUrl.pathname) throw new BrowserEntryError('scene.json が別の配布物へ移動しました。');
   }
   let bundle;
   try {
     bundle = await response.json();
-  } catch (error) {
-    throw new BrowserEntryError('SCENE_JSON_INVALID', 'scene.json の JSON を読み取れません。', error);
+  } catch {
+    throw new BrowserEntryError('scene.json の JSON を読み取れません。');
   }
   const validation = validateSceneBundle(bundle);
-  if (!validation.ok) throw new BrowserEntryError('SCENE_BUNDLE_INVALID', sceneError(validation.issues));
+  if (!validation.ok) throw new BrowserEntryError(sceneError(validation.issues));
   return bundle;
 }
 
 /** Build the only asset loader used by the browser entry: same-origin Image decode. */
-export function createSameOriginAssetLoader(windowObject = globalThis.window) {
-  const activeWindow = browserWindow(windowObject);
+function createSameOriginAssetLoader() {
+  const activeWindow = browserWindow();
   return async function loadApprovedAsset(asset) {
     if (!asset || typeof asset.url !== 'string' || asset.url.trim() === '') {
-      throw new BrowserEntryError('ASSET_URL_INVALID', imageError(asset, 'URL がありません'));
+      throw new BrowserEntryError(imageError(asset, 'URL がありません'));
     }
     const rawUrl = asset.url.trim();
     if (EXTERNAL_URL_RE.test(rawUrl) || UNSAFE_PATH_RE.test(rawUrl) || /[\u0000-\u001f\u007f]/u.test(rawUrl) || rawUrl.includes('\\') || rawUrl.includes('?') || rawUrl.includes('#') || rawUrl.includes('%')) {
-      throw new BrowserEntryError('ASSET_URL_INVALID', imageError(asset, '同じ配布元の相対 URL ではありません'));
+      throw new BrowserEntryError(imageError(asset, '同じ配布元の相対 URL ではありません'));
     }
     const resolved = sameOriginUrl(rawUrl, activeWindow, 'アセット');
-    if (typeof activeWindow.Image !== 'function') throw new BrowserEntryError('IMAGE_REQUIRED', imageError(asset, '画像デコーダーがありません'));
+    if (typeof activeWindow.Image !== 'function') throw new BrowserEntryError(imageError(asset, '画像デコーダーがありません'));
     const image = new activeWindow.Image();
     image.decoding = 'async';
     image.src = resolved.href;
-    if (typeof image.decode !== 'function') throw new BrowserEntryError('IMAGE_DECODE_REQUIRED', imageError(asset, '画像の decode がありません'));
+    if (typeof image.decode !== 'function') throw new BrowserEntryError(imageError(asset, '画像の decode がありません'));
     try {
       await image.decode();
-    } catch (error) {
-      throw new BrowserEntryError('ASSET_DECODE_FAILED', imageError(asset, '画像を decode できません'), error);
+    } catch {
+      throw new BrowserEntryError(imageError(asset, '画像を decode できません'));
     }
     const expectedWidth = asset.dimensions?.width;
     const expectedHeight = asset.dimensions?.height;
     if (image.naturalWidth !== expectedWidth || image.naturalHeight !== expectedHeight) {
-      throw new BrowserEntryError('ASSET_DIMENSIONS_MISMATCH', imageError(asset, '宣言された画像サイズと一致しません'));
+      throw new BrowserEntryError(imageError(asset, '宣言された画像サイズと一致しません'));
     }
     return image;
   };
@@ -189,29 +184,26 @@ function showError(elements, error) {
   showStatus(elements, '街を開始できません');
 }
 
-export async function boot({ documentObject = globalThis.document, windowObject = globalThis.window, storage, assetLoader, fetchImpl, inputTarget } = {}) {
-  const activeWindow = browserWindow(windowObject);
-  const elements = requiredElements(documentObject);
+async function boot() {
+  const activeWindow = browserWindow();
+  const elements = requiredElements();
   elements['game-error'].hidden = true;
   elements['game-error'].textContent = '';
   showStatus(elements, '街の設計図を読み込んでいます…');
   try {
-    const bundle = await fetchSceneBundle({ windowObject: activeWindow, fetchImpl });
+    const bundle = await fetchSceneBundle();
     showStatus(elements, '承認済み素材を読み込んでいます…');
     const runtime = await startGameRuntime({
       bundle,
       canvas: elements['game-canvas'],
       uiRoot: elements['game-ui'],
-      storage: storage ?? localStorageFor(activeWindow),
-      assetLoader: assetLoader ?? createSameOriginAssetLoader(activeWindow),
-      inputTarget: inputTarget ?? activeWindow,
+      storage: localStorageFor(),
+      assetLoader: createSameOriginAssetLoader(),
     });
     showStatus(elements, '遊べます。調査を終えたら Escape で終了できます。');
-    activeWindow.addEventListener?.('pagehide', () => runtime.stop(), { once: true });
-    return runtime;
+    activeWindow.addEventListener('pagehide', () => runtime.stop(), { once: true });
   } catch (error) {
     showError(elements, error);
-    return null;
   }
 }
 

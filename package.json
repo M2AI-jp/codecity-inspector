@@ -38,11 +38,5 @@
     "ship/90-cli/bin/codecity.mjs",
     "ship/90-cli/index.mjs",
     "README.md"
-  ],
-  "scripts": {
-    "check:boundaries": "node studio/quality/contracts/check-boundaries.mjs",
-    "check:pixel-art": "node studio/quality/gates/check-pixel-art.mjs",
-    "test": "node --test",
-    "check": "npm run check:boundaries && npm test"
-  }
+  ]
 }

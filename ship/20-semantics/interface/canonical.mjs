@@ -1,18 +1,8 @@
 import { createHash } from 'node:crypto';
 
 import {
-  EMPTY_EVIDENCE,
   EVIDENCE_STATES,
 } from '../configuration/semantic-config.mjs';
-
-const EVIDENCE_KEY_FIELDS = Object.freeze([
-  'key',
-  'id',
-  'code',
-  'reason',
-  'rationale',
-  'source',
-]);
 
 export function isRecord(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -49,16 +39,7 @@ export function evidenceKey(value) {
   if (typeof value === 'string') {
     return value.length > 0 ? value : null;
   }
-  if (!isRecord(value)) {
-    return null;
-  }
-  for (const field of EVIDENCE_KEY_FIELDS) {
-    const candidate = value[field];
-    if (typeof candidate === 'string' && candidate.length > 0) {
-      return candidate;
-    }
-  }
-  return null;
+  return isRecord(value) && typeof value.id === 'string' && value.id.length > 0 ? value.id : null;
 }
 
 export function emptyEvidence() {
@@ -70,7 +51,7 @@ export function emptyEvidence() {
 }
 
 export function normalizeEvidenceBag(value) {
-  const source = isRecord(value) ? value : EMPTY_EVIDENCE;
+  const source = isRecord(value) ? value : {};
   return {
     observed: sortedUniqueStrings(evidenceValues(source.observed)),
     inferred: sortedUniqueStrings(evidenceValues(source.inferred)),
@@ -102,7 +83,7 @@ export function mergeEvidence(...bags) {
  * report assembled in a different traversal order yields the same digest.
  * The input is never modified.
  */
-export function canonicalize(value) {
+function canonicalize(value) {
   if (value === null || typeof value === 'string' || typeof value === 'boolean') {
     return value;
   }
@@ -134,11 +115,11 @@ export function canonicalize(value) {
   return String(value);
 }
 
-export function canonicalJSON(value) {
+function canonicalJSON(value) {
   return JSON.stringify(canonicalize(value));
 }
 
-export function sha256(value) {
+function sha256(value) {
   return createHash('sha256').update(value, 'utf8').digest('hex');
 }
 
@@ -146,7 +127,7 @@ export function canonicalDigest(value) {
   return sha256(canonicalJSON(value));
 }
 
-export function compareStrings(left, right) {
+function compareStrings(left, right) {
   return left < right ? -1 : left > right ? 1 : 0;
 }
 

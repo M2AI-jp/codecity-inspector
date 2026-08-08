@@ -11,10 +11,9 @@ import zlib from 'node:zlib';
  * is either fully accepted and resolvable or it is an error; there is no
  * placeholder/fallback path in this contract.
  */
-export const ASSET_CONTRACT_VERSION = '1.0.0';
-export const ASSET_MANIFEST_SCHEMA_VERSION = 1;
-export const ASSET_MANIFEST_FORMAT = 'codecity.asset-manifest';
-export const FALLBACK_POLICY = 'none';
+const ASSET_MANIFEST_SCHEMA_VERSION = 1;
+const ASSET_MANIFEST_FORMAT = 'codecity.asset-manifest';
+const FALLBACK_POLICY = 'none';
 
 const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 const SHA256_RE = /^[a-f0-9]{64}$/i;
@@ -37,7 +36,7 @@ const MAX_STRUCTURE_STRINGS = 8 * 1024 * 1024;
 const MAX_ANIMATION_STATES = 16;
 const MAX_ANIMATION_FRAMES = 64;
 
-export class AssetContractError extends Error {
+class AssetContractError extends Error {
   constructor(message, { code = 'ASSET_CONTRACT_INVALID', issues = [] } = {}) {
     super(message);
     this.name = 'AssetContractError';
@@ -615,10 +614,6 @@ export function readPngMetadata(assetRoot, relativePath) {
   return parsePngBytes(readRootedRegularFile(assetRoot, relativePath), relativePath);
 }
 
-export function sha256File(assetRoot, relativePath) {
-  return crypto.createHash('sha256').update(readRootedRegularFile(assetRoot, relativePath)).digest('hex');
-}
-
 function resolveInsideRoot(assetRoot, relativePath) {
   const root = path.resolve(assetRoot);
   const absolute = path.resolve(root, relativePath);
@@ -701,77 +696,55 @@ function verifyAssetFile(asset, assetRoot) {
   }
 }
 
-/**
- * Validate a versioned manifest. When assetRoot is provided, every referenced
- * file is opened and checked for PNG signature, IHDR dimensions, and SHA-256.
- * Set verifyFiles:false only for metadata-only tooling; the resolver always
- * rechecks files when an assetRoot is supplied.
- */
-export function validateAssetManifest(manifest, options = {}) {
-  if (!isObject(options)) fail('Asset validation options must be a plain object', { code: 'INVALID_OPTIONS', issues: [issue('options', 'must be a plain object', 'INVALID_OPTIONS')] });
-  for (const key of Object.keys(options)) if (!['assetRoot', 'verifyFiles'].includes(key)) fail('Unknown asset validation option', { code: 'INVALID_OPTIONS', issues: [issue(`options.${key}`, 'unknown validation option', 'INVALID_OPTIONS')] });
-  const { assetRoot, verifyFiles = assetRoot !== undefined } = options;
+/** Validate a versioned manifest and every referenced file. */
+export function validateAssetManifest(manifest, assetRoot) {
+  if (typeof assetRoot !== 'string' || assetRoot.trim() === '') {
+    fail('assetRoot is required', {
+      code: 'ASSET_ROOT_REQUIRED',
+      issues: [issue('assetRoot', 'must be a non-empty directory path', 'ASSET_ROOT_REQUIRED')]
+    });
+  }
   const normalized = normalizeManifestInput(manifest);
-  if (verifyFiles) {
-    if (typeof assetRoot !== 'string' || assetRoot.trim() === '') {
-      fail('assetRoot is required when verifyFiles is enabled', {
-        code: 'ASSET_ROOT_REQUIRED',
-        issues: [issue('assetRoot', 'must be a non-empty directory path', 'ASSET_ROOT_REQUIRED')]
-      });
+  let totalBytes = 0;
+  const countedPaths = new Set();
+  for (const asset of normalized.assets) {
+    const file = verifyAssetFile(asset, assetRoot);
+    if (!countedPaths.has(asset.path)) {
+      totalBytes += file.byteLength;
+      countedPaths.add(asset.path);
     }
-    let totalBytes = 0;
-    const countedPaths = new Set();
-    for (const asset of normalized.assets) {
-      const file = verifyAssetFile(asset, assetRoot);
-      if (!countedPaths.has(asset.path)) {
-        totalBytes += file.byteLength;
-        countedPaths.add(asset.path);
-      }
-      if (totalBytes > MAX_ASSET_TOTAL_BYTES) fail('Approved assets exceed the shipping budget', { code: 'ASSET_TOTAL_TOO_LARGE', issues: [issue('$.assets', `unique files must total at most ${MAX_ASSET_TOTAL_BYTES} bytes`, 'ASSET_TOTAL_TOO_LARGE')] });
-    }
+    if (totalBytes > MAX_ASSET_TOTAL_BYTES) fail('Approved assets exceed the shipping budget', { code: 'ASSET_TOTAL_TOO_LARGE', issues: [issue('$.assets', `unique files must total at most ${MAX_ASSET_TOTAL_BYTES} bytes`, 'ASSET_TOTAL_TOO_LARGE')] });
   }
   const validated = cloneAndFreeze(normalized);
   VALIDATED_MANIFESTS.add(validated);
   return validated;
 }
 
-export const validateManifest = validateAssetManifest;
-
 /** Validate a manifest JSON file from disk. */
-export function loadAssetManifest(manifestPath, options = {}) {
+export function loadAssetManifest(manifestPath, assetRoot) {
   try {
     const parsed = JSON.parse(readRegularFile(manifestPath, MAX_MANIFEST_FILE_BYTES).toString('utf8'));
-    return validateAssetManifest(parsed, options);
+    return validateAssetManifest(parsed, assetRoot);
   } catch (error) {
     if (error instanceof AssetContractError) throw error;
     fail('Asset manifest JSON is invalid', { code: 'INVALID_MANIFEST_JSON', issues: [issue('manifestPath', 'must contain bounded valid JSON', 'INVALID_MANIFEST_JSON')] });
   }
 }
 
-export const loadAndValidateAssetManifest = loadAssetManifest;
-
-function assertNoResolverFallback(options) {
-  if (!isObject(options)) fail('Resolver options must be a plain object', { code: 'INVALID_OPTIONS', issues: [issue('options', 'must be a plain object', 'INVALID_OPTIONS')] });
-  for (const key of ['fallback', 'fallbackAsset', 'fallbackAssetId', 'default', 'defaultAssetId', 'placeholder', 'placeholderAssetId']) {
-    if (Object.prototype.hasOwnProperty.call(options, key)) {
-      fail('Asset resolution does not support fallbacks', {
-        code: 'FALLBACK_FORBIDDEN',
-        issues: [issue(`options.${key}`, 'fallbacks are forbidden', 'FALLBACK_FORBIDDEN')]
-      });
-    }
-  }
-  for (const key of Object.keys(options)) if (!['assetRoot', 'verifyFiles'].includes(key)) fail('Unknown resolver option', { code: 'INVALID_OPTIONS', issues: [issue(`options.${key}`, 'unknown resolver option', 'INVALID_OPTIONS')] });
-}
-
 /**
  * Resolve exactly one accepted asset. Missing IDs are hard errors; no fallback
  * or placeholder is ever selected.
  */
-export function resolveAsset(manifest, assetId, options = {}) {
-  assertNoResolverFallback(options);
+export function resolveAsset(manifest, assetId, assetRoot) {
+  if (typeof assetRoot !== 'string' || assetRoot.trim() === '') {
+    fail('assetRoot is required', {
+      code: 'ASSET_ROOT_REQUIRED',
+      issues: [issue('assetRoot', 'must be a non-empty directory path', 'ASSET_ROOT_REQUIRED')]
+    });
+  }
   const validated = isObject(manifest) && VALIDATED_MANIFESTS.has(manifest)
     ? manifest
-    : validateAssetManifest(manifest, { assetRoot: options.assetRoot, verifyFiles: options.verifyFiles });
+    : validateAssetManifest(manifest, assetRoot);
   if (typeof assetId !== 'string' || assetId.trim() === '') {
     fail('An asset ID is required', {
       code: 'ASSET_ID_REQUIRED',
@@ -785,9 +758,7 @@ export function resolveAsset(manifest, assetId, options = {}) {
       issues: [issue(`assets.${assetId}`, 'no fallback is permitted', 'ASSET_NOT_FOUND')]
     });
   }
-  const file = options.assetRoot === undefined
-    ? undefined
-    : verifyAssetFile(asset, options.assetRoot);
+  verifyAssetFile(asset, assetRoot);
   return cloneAndFreeze({
     id: asset.id,
     version: asset.version,
@@ -801,10 +772,4 @@ export function resolveAsset(manifest, assetId, options = {}) {
     provenance: { ...asset.provenance },
     approval: { ...asset.approval }
   });
-}
-
-export const resolveAssetBinding = resolveAsset;
-
-export function isValidatedAssetManifest(value) {
-  return isObject(value) && VALIDATED_MANIFESTS.has(value);
 }

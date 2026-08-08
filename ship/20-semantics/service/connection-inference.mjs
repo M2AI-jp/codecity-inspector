@@ -1,5 +1,4 @@
 import {
-  CONNECTION_DIRECTIONS,
   CONNECTION_KINDS,
 } from '../configuration/semantic-config.mjs';
 import {
@@ -11,32 +10,23 @@ import {
 } from '../data/inspection-access.mjs';
 import {
   emptyEvidence,
-  evidenceKey,
-  isRecord,
   mergeEvidence,
   sortByStrings,
   sortedUniqueStrings,
 } from '../interface/canonical.mjs';
 
-const DIRECTION_SET = new Set(CONNECTION_DIRECTIONS);
 const KIND_SET = new Set(CONNECTION_KINDS);
 
 export function buildConnections(inspection, semanticFiles) {
   const graph = readGraph(inspection);
   const filesById = new Map(semanticFiles.map((file) => [file.fileId, file]));
-  const filesByPath = new Map(semanticFiles.map((file) => [file.path, file]));
-  const nodes = indexNodes(graph.nodes, filesById, filesByPath);
+  const nodes = indexNodes(graph.nodes, filesById);
   const evidenceRecords = readEvidenceRecords(inspection);
   const connections = [];
 
   for (const edge of graph.edges) {
-    const parsed = parseEdge(edge, nodes, filesById, filesByPath);
-    if (parsed === null) {
-      continue;
-    }
-    const edgeKey = parsed.edgeId === null
-      ? `connection.graph.edge.${parsed.direction}.${parsed.kind}.${parsed.target}`
-      : `connection.graph.edge.${parsed.edgeId}`;
+    const parsed = parseEdge(edge, nodes);
+    const edgeKey = `connection.graph.edge.${parsed.edgeId}`;
     const evidence = emptyEvidence();
     evidence.inferred.push(edgeKey);
     for (const record of evidenceRecords) {
@@ -50,7 +40,7 @@ export function buildConnections(inspection, semanticFiles) {
       }
     }
     const normalizedEvidence = mergeEvidence(evidence);
-    const id = parsed.edgeId ?? generatedConnectionId(parsed);
+    const id = parsed.edgeId;
     connections.push({
       id,
       direction: parsed.direction,
@@ -78,50 +68,39 @@ export function buildConnections(inspection, semanticFiles) {
   ]);
 }
 
-function indexNodes(rawNodes, filesById, filesByPath) {
+function indexNodes(rawNodes, filesById) {
   const nodes = new Map();
   for (const raw of rawNodes) {
-    const id = firstString(raw, ['id', 'nodeId', 'fileId']);
-    const path = firstString(raw, ['path', 'relativePath']);
-    if (id === null && path === null) {
+    const id = typeof raw.id === 'string' && raw.id.length > 0 ? raw.id : null;
+    if (id === null) {
       continue;
     }
-    const file = (id !== null ? filesById.get(id) : undefined)
-      ?? (path !== null ? filesByPath.get(path) : undefined);
+    const file = filesById.get(id);
     const node = {
-      id: id ?? path,
-      path: path ?? file?.path ?? null,
-      fileId: file?.fileId ?? (id !== null && filesById.has(id) ? id : null),
-      external: isExternalNode(raw),
-      target: firstString(raw, ['specifier', 'url', 'target', 'name', 'package']),
-      kind: firstString(raw, ['kind', 'type']),
+      id,
+      path: typeof raw.path === 'string' ? raw.path : file?.path ?? null,
+      fileId: file?.fileId ?? null,
+      external: raw.kind === 'external',
+      target: typeof raw.specifier === 'string' ? raw.specifier : null,
+      kind: typeof raw.kind === 'string' ? raw.kind : null,
     };
     nodes.set(node.id, node);
-    if (path !== null && !nodes.has(path)) {
-      nodes.set(path, node);
-    }
   }
   return nodes;
 }
 
-function parseEdge(edge, nodes, filesById, filesByPath) {
-  const edgeId = firstString(edge, ['id', 'edgeId', 'connectionId']);
-  const sourceValue = firstValue(edge, ['from', 'source', 'sourceId', 'sourceFileId']);
-  const targetValue = firstValue(edge, ['to', 'target', 'targetId', 'targetFileId']);
-  const source = resolveEndpoint(sourceValue, nodes, filesById, filesByPath);
-  const targetNode = resolveEndpoint(targetValue, nodes, filesById, filesByPath);
-  const target = endpointTarget(targetNode, targetValue);
-  if (target === null) {
-    return null;
-  }
+function parseEdge(edge, nodes) {
+  const edgeId = edge.id;
+  const source = nodes.get(edge.from);
+  const targetNode = nodes.get(edge.to);
+  const target = endpointTarget(targetNode);
 
   const sourceFileIds = sortedUniqueStrings([
     ...(source?.fileId === null || source?.fileId === undefined ? [] : [source.fileId]),
     ...(targetNode?.fileId === null || targetNode?.fileId === undefined ? [] : [targetNode.fileId]),
-    ...extractFileIds(edge, filesById, filesByPath),
   ]);
   const kind = classifyKind(edge, source, targetNode, target);
-  const direction = classifyDirection(edge, source, targetNode, sourceFileIds, kind);
+  const direction = classifyDirection(source, targetNode, kind);
 
   return {
     edgeId,
@@ -132,56 +111,19 @@ function parseEdge(edge, nodes, filesById, filesByPath) {
   };
 }
 
-function resolveEndpoint(value, nodes, filesById, filesByPath) {
-  if (isRecord(value)) {
-    const id = firstString(value, ['id', 'nodeId', 'fileId']);
-    const path = firstString(value, ['path', 'relativePath']);
-    return resolveEndpoint(id ?? path, nodes, filesById, filesByPath)
-      ?? {
-        id: id ?? path,
-        path,
-        fileId: id !== null && filesById.has(id) ? id : path !== null && filesByPath.has(path)
-          ? filesByPath.get(path).fileId
-          : null,
-        external: isExternalNode(value),
-        target: firstString(value, ['specifier', 'url', 'target', 'name', 'package']),
-        kind: firstString(value, ['kind', 'type']),
-      };
-  }
-  if (typeof value !== 'string' || value.length === 0) {
-    return null;
-  }
-  return nodes.get(value)
-    ?? (filesById.has(value)
-      ? { id: value, path: filesById.get(value).path, fileId: value, external: false, target: null, kind: null }
-      : filesByPath.has(value)
-        ? { id: value, path: value, fileId: filesByPath.get(value).fileId, external: false, target: null, kind: null }
-        : {
-          id: value,
-          path: null,
-          fileId: null,
-          external: looksExternal(value),
-          target: value,
-          kind: null,
-        });
-}
-
-function endpointTarget(endpoint, original) {
+function endpointTarget(endpoint) {
   if (endpoint?.target !== null && endpoint?.target !== undefined) {
     return endpoint.target;
   }
   if (endpoint?.path !== null && endpoint?.path !== undefined) {
     return endpoint.path;
   }
-  if (typeof original === 'string' && original.length > 0) {
-    return original;
-  }
   return endpoint?.id ?? null;
 }
 
 function classifyKind(edge, source, target, targetValue) {
   const candidates = [
-    firstString(edge, ['kind', 'type', 'protocol', 'category']),
+    typeof edge.kind === 'string' ? edge.kind : null,
     source?.kind,
     target?.kind,
     target?.target,
@@ -217,52 +159,14 @@ function classifyKind(edge, source, target, targetValue) {
   return 'unknown';
 }
 
-function classifyDirection(edge, source, target, sourceFileIds, kind) {
-  const explicit = firstString(edge, ['direction', 'flow']);
-  if (explicit !== null) {
-    const normalized = explicit.toLowerCase();
-    if (DIRECTION_SET.has(normalized)) {
-      return normalized;
-    }
-  }
+function classifyDirection(source, target, kind) {
   if (source?.external === true && target?.external !== true) {
     return 'inbound';
   }
   if (target?.external === true || EXTERNAL_EDGE_KINDS.has(kind)) {
     return 'outbound';
   }
-  if (sourceFileIds.length > 0 && target !== null) {
-    return 'internal';
-  }
   return 'internal';
-}
-
-function extractFileIds(edge, filesById, filesByPath) {
-  const values = [];
-  for (const field of ['sourceFileIds', 'fileIds', 'files']) {
-    const value = edge?.[field];
-    if (!Array.isArray(value)) {
-      continue;
-    }
-    for (const entry of value) {
-      const candidate = typeof entry === 'string'
-        ? entry
-        : isRecord(entry) ? firstString(entry, ['fileId', 'id', 'path']) : null;
-      if (candidate === null) {
-        continue;
-      }
-      if (filesById.has(candidate)) {
-        values.push(candidate);
-      } else if (filesByPath.has(candidate)) {
-        values.push(filesByPath.get(candidate).fileId);
-      }
-    }
-  }
-  return values;
-}
-
-function generatedConnectionId(parsed) {
-  return `connection.${parsed.direction}.${parsed.kind}.${parsed.sourceFileIds.join(',')}.${parsed.target}`;
 }
 
 function mergeConnections(left, right) {
@@ -271,45 +175,4 @@ function mergeConnections(left, right) {
     sourceFileIds: sortedUniqueStrings([...left.sourceFileIds, ...right.sourceFileIds]),
     evidence: mergeEvidence(left.evidence, right.evidence),
   };
-}
-
-function firstString(record, fields) {
-  for (const field of fields) {
-    const value = record?.[field];
-    if (typeof value === 'string' && value.length > 0) {
-      return value;
-    }
-  }
-  return null;
-}
-
-function firstValue(record, fields) {
-  for (const field of fields) {
-    if (record !== null && record !== undefined && record[field] !== undefined && record[field] !== null) {
-      return record[field];
-    }
-  }
-  return null;
-}
-
-function stringValue(value) {
-  return typeof value === 'string' && value.length > 0 ? value : null;
-}
-
-function isExternalNode(node) {
-  const kind = firstString(node, ['kind', 'type', 'category']);
-  if (kind !== null && /(external|package|dependency|remote)/iu.test(kind)) {
-    return true;
-  }
-  const specifier = firstString(node, ['specifier', 'url', 'package']);
-  return specifier !== null && looksExternal(specifier);
-}
-
-function looksExternal(value) {
-  return typeof value === 'string' && (
-    /^https?:\/\//iu.test(value)
-    || /^wss?:\/\//iu.test(value)
-    || value.startsWith('@')
-    || value.includes('://')
-  );
 }

@@ -9,7 +9,7 @@ import { inspectRepository } from '../10-inspect/index.mjs';
 import { inferSemanticModel } from '../20-semantics/index.mjs';
 import { buildTownModel } from '../30-town-domain/index.mjs';
 import { generateWorldPlan } from '../40-worldgen/index.mjs';
-import { loadAssetManifest, validateAssetManifest } from '../50-art/index.mjs';
+import { loadAssetManifest } from '../50-art/index.mjs';
 import { compileScene } from '../60-scene-compiler/index.mjs';
 import { startLocalServer } from '../80-local-server/index.mjs';
 
@@ -21,7 +21,6 @@ const DEFAULT_MAX_ASSET_TOTAL_BYTES = 10 * 1024 * 1024;
 const DEFAULT_MAX_SCENE_BYTES = 4 * 1024 * 1024;
 const DEFAULT_MAX_DISTRIBUTION_BYTES = 20 * 1024 * 1024;
 const MAX_BINDINGS_BYTES = 1024 * 1024;
-const MAX_RUNTIME_ARTIFACTS = 4_096;
 const CLI_MODULE_ROOT = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_SHIPPING_ART_ROOT = path.resolve(CLI_MODULE_ROOT, '../50-art');
 const DEFAULT_ASSET_ROOT = path.join(DEFAULT_SHIPPING_ART_ROOT, 'assets');
@@ -30,33 +29,22 @@ const DEFAULT_SCENE_BINDINGS = path.join(DEFAULT_SHIPPING_ART_ROOT, 'scene-bindi
 const DEFAULT_RUNTIME_ARTIFACT_ROOT = path.resolve(CLI_MODULE_ROOT, '../70-game-runtime');
 const DEFAULT_RUNTIME_ARTIFACT_ALLOWLIST = Object.freeze(['app.mjs', 'index.html', 'index.mjs', 'state.mjs', 'styles.css']);
 
-export class CliError extends Error {
-  constructor(code, message, details = {}) {
+class CliError extends Error {
+  constructor(code, message) {
     super(message);
-    this.name = 'CliError';
     this.code = code;
-    Object.assign(this, details);
   }
 }
 
-function fail(code, message, details = {}) {
-  throw new CliError(code, message, details);
+function fail(code, message) {
+  throw new CliError(code, message);
 }
 
-function isRecord(value) {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
-
-function writeLine(line, writer = console.log) {
-  writer(String(line));
-}
-
-function progressWriter(options) {
-  return typeof options?.write === 'function' ? options.write : console.log;
+function writeLine(line) {
+  console.log(String(line));
 }
 
 function normalizePort(value) {
-  if (value === undefined) return 4173;
   const port = Number(value);
   if (!Number.isInteger(port) || port < 0 || port > 65535) fail('INVALID_PORT', 'ポートは0から65535までの整数です。');
   return port;
@@ -75,10 +63,10 @@ function parsePortFlag(argv, index) {
   return { port: normalizePort(raw), next: index + 1 };
 }
 
-/** Parse the six supported flags. There are no subcommands. */
-export function parseCliArgs(argv = []) {
+/** Parse the supported flags. There are no subcommands. */
+function parseCliArgs(argv = []) {
   if (!Array.isArray(argv)) fail('INVALID_ARGS', '街の指示を読み取れません。');
-  const result = { repositoryPath: undefined, noOpen: false, port: 4173, shot: false, text: false, help: false };
+  const result = { repositoryPath: undefined, noOpen: false, port: 4173, help: false };
   let portSeen = false;
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
@@ -87,12 +75,6 @@ export function parseCliArgs(argv = []) {
     } else if (argument === '--no-open') {
       if (result.noOpen) fail('INVALID_ARGS', '--no-open が重複しています。');
       result.noOpen = true;
-    } else if (argument === '--shot') {
-      if (result.shot) fail('INVALID_ARGS', '--shot が重複しています。');
-      result.shot = true;
-    } else if (argument === '--text') {
-      if (result.text) fail('INVALID_ARGS', '--text が重複しています。');
-      result.text = true;
     } else if (argument === '--port') {
       if (portSeen) fail('INVALID_ARGS', '--port が重複しています。');
       portSeen = true;
@@ -110,18 +92,16 @@ export function parseCliArgs(argv = []) {
   if (result.help && argv.some((argument) => argument !== '--help' && argument !== '-h')) {
     fail('INVALID_ARGS', '--help と他の指示は一緒に使いません。');
   }
-  return Object.freeze(result);
+  return result;
 }
 
 function helpText() {
   return [
     'あなたのリポジトリを街にします。',
     '',
-    '使い方: npx codecity [repositoryPath] [--no-open] [--port N] [--shot] [--text]',
+    '使い方: npx codecity [repositoryPath] [--no-open] [--port N]',
     '  --no-open  ブラウザを開かず、127.0.0.1 の場所だけ表示します。',
     '  --port N    127.0.0.1 の待ち受けポートを指定します。',
-    '  --shot      描画器が承認済みでないため、現在は正直に停止します。',
-    '  --text      観測事実・推定・未確認を分けた報告書を表示します。',
     '',
     '次の一歩: npx codecity ./あなたのリポジトリ --no-open',
   ].join('\n');
@@ -190,11 +170,11 @@ function readApprovedArtifact(sourceRoot, relative, maxBytes, { expectedSha256 =
   }
 }
 
-function collectSceneAssets({ sceneBundle, assetRoot, occupiedEntries, maxAssetFileBytes = DEFAULT_MAX_ARTIFACT_FILE_BYTES, maxAssetTotalBytes = DEFAULT_MAX_ASSET_TOTAL_BYTES }) {
+function collectSceneAssets({ sceneBundle, assetRoot, occupiedEntries }) {
+  const maxAssetFileBytes = DEFAULT_MAX_ARTIFACT_FILE_BYTES;
+  const maxAssetTotalBytes = DEFAULT_MAX_ASSET_TOTAL_BYTES;
   const sourceRoot = path.resolve(assetRoot);
   assertRegularDirectory(sourceRoot, '承認済みアセットディレクトリ');
-  if (!Number.isInteger(maxAssetFileBytes) || maxAssetFileBytes <= 0 || maxAssetFileBytes > 1024 * 1024 * 1024) fail('INVALID_ASSET_LIMIT', 'アセット1件の上限が不正です。');
-  if (!Number.isInteger(maxAssetTotalBytes) || maxAssetTotalBytes <= 0 || maxAssetTotalBytes > 1024 * 1024 * 1024 || maxAssetTotalBytes < maxAssetFileBytes) fail('INVALID_ASSET_LIMIT', 'アセット全体の上限が不正です。');
   const occupied = new Set(occupiedEntries);
   const byDestination = new Map();
   for (const asset of sceneBundle.assets) {
@@ -218,20 +198,15 @@ function collectSceneAssets({ sceneBundle, assetRoot, occupiedEntries, maxAssetF
     snapshots[destinationRelative] = loaded.bytes;
     if (total > maxAssetTotalBytes) fail('ASSET_TOTAL_TOO_LARGE', '出荷アセットの合計が10MB予算を超えています。');
   }
-  return { entries, sha256ByFile, snapshots, totalBytes: total };
+  return { sha256ByFile, snapshots };
 }
 
-async function collectRuntimeArtifacts({ runtimeArtifactRoot, runtimeArtifactAllowlist, maxArtifactFileBytes = DEFAULT_MAX_ARTIFACT_FILE_BYTES, maxArtifactTotalBytes = DEFAULT_MAX_ARTIFACT_TOTAL_BYTES }) {
-  if (typeof runtimeArtifactRoot !== 'string' || runtimeArtifactRoot.trim() === '') fail('RUNTIME_ARTIFACT_REQUIRED', '承認済みの実行成果物ディレクトリが必要です。');
-  const sourceRoot = path.resolve(runtimeArtifactRoot);
+function collectRuntimeArtifacts() {
+  const maxArtifactFileBytes = DEFAULT_MAX_ARTIFACT_FILE_BYTES;
+  const maxArtifactTotalBytes = DEFAULT_MAX_ARTIFACT_TOTAL_BYTES;
+  const sourceRoot = DEFAULT_RUNTIME_ARTIFACT_ROOT;
   assertRegularDirectory(sourceRoot, '実行成果物ディレクトリ');
-  if (!Number.isInteger(maxArtifactFileBytes) || maxArtifactFileBytes <= 0 || maxArtifactFileBytes > 1024 * 1024 * 1024) fail('INVALID_ARTIFACT_LIMIT', '実行成果物1件の上限が不正です。');
-  if (!Number.isInteger(maxArtifactTotalBytes) || maxArtifactTotalBytes <= 0 || maxArtifactTotalBytes > 1024 * 1024 * 1024 || maxArtifactTotalBytes < maxArtifactFileBytes) fail('INVALID_ARTIFACT_LIMIT', '実行成果物全体の上限が不正です。');
-  if (!Array.isArray(runtimeArtifactAllowlist) || runtimeArtifactAllowlist.length === 0) fail('RUNTIME_ARTIFACT_ALLOWLIST_REQUIRED', '実行成果物の許可リストが必要です。');
-  if (runtimeArtifactAllowlist.length > MAX_RUNTIME_ARTIFACTS) fail('RUNTIME_ARTIFACT_ALLOWLIST_TOO_LARGE', '実行成果物の許可リストが大きすぎます。');
-  const entries = [...new Set(runtimeArtifactAllowlist.map(normalizeArtifactPath))].sort();
-  if (entries.length !== runtimeArtifactAllowlist.length) fail('INVALID_ARTIFACT_ALLOWLIST', '実行成果物の許可リストに重複があります。');
-  if (!entries.includes('index.html')) fail('RUNTIME_ENTRY_REQUIRED', '実行成果物の許可リストに index.html が必要です。');
+  const entries = DEFAULT_RUNTIME_ARTIFACT_ALLOWLIST.map(normalizeArtifactPath).sort();
   let total = 0;
   const sha256ByFile = {};
   const snapshots = {};
@@ -242,27 +217,7 @@ async function collectRuntimeArtifacts({ runtimeArtifactRoot, runtimeArtifactAll
     snapshots[relative] = loaded.bytes;
     if (total > maxArtifactTotalBytes) fail('ARTIFACT_TOTAL_TOO_LARGE', '実行成果物の合計が大きすぎます。');
   }
-  return { entries, sha256ByFile, snapshots, totalBytes: total };
-}
-
-function reportText(report, town, worldPlan) {
-  const evidence = report.evidence ?? { observed: [], inferred: [], unknown: [] };
-  const line = (label, value) => `${label}: ${value}`;
-  return [
-    `街 ${town.repository.name}`,
-    line('観測', evidence.observed.length),
-    line('推定', evidence.inferred.length),
-    line('未確認', evidence.unknown.length),
-    line('施設', worldPlan.occupancy.filter((entry) => entry.state === 'occupied').flatMap((entry) => entry.occupants).length),
-    line('区画', worldPlan.plots.length),
-    '',
-    '観測事実',
-    ...evidence.observed.map((entry) => `  ✓ ${typeof entry === 'string' ? entry : JSON.stringify(entry)}`),
-    '推定',
-    ...evidence.inferred.map((entry) => `  △ ${typeof entry === 'string' ? entry : JSON.stringify(entry)}`),
-    '未確認',
-    ...evidence.unknown.map((entry) => `  ○ ${typeof entry === 'string' ? entry : JSON.stringify(entry)}`),
-  ].join('\n');
+  return { entries, sha256ByFile, snapshots };
 }
 
 function defaultBrowserOpener(url) {
@@ -281,32 +236,12 @@ function assertBrowserUrl(url, origin) {
   }
 }
 
-function normalizeManifestInput(options) {
-  const load = (manifestPath, loadOptions) => {
-    try {
-      return loadAssetManifest(manifestPath, loadOptions);
-    } catch (error) {
-      fail(error?.code ?? 'ASSET_MANIFEST_INVALID', '承認済みアセット台帳を読めません。', { issues: error?.issues ?? [], cause: error?.code });
-    }
-  };
-  const assetRoot = options.assetRoot === undefined ? DEFAULT_ASSET_ROOT : options.assetRoot;
-  if (typeof assetRoot !== 'string' || assetRoot.trim() === '') fail('ASSET_ROOT_REQUIRED', '承認済みアセットのルートが必要です。');
-  const manifestPath = options.assetManifestPath === undefined && options.assetManifest === undefined
-    ? DEFAULT_ASSET_MANIFEST
-    : options.assetManifestPath;
-  if (manifestPath !== undefined) {
-    if (typeof manifestPath !== 'string' || manifestPath.trim() === '') fail('ASSET_MANIFEST_REQUIRED', '承認済みアセット台帳の場所がありません。');
-    if (!fs.existsSync(path.resolve(manifestPath))) fail('ASSET_MANIFEST_REQUIRED', '承認済みアセット台帳がありません。デモ素材は使いません。');
-    return { manifest: load(path.resolve(manifestPath), { assetRoot, verifyFiles: true }), assetRoot };
-  }
-  if (typeof options.assetManifest === 'string') {
-    return { manifest: load(path.resolve(options.assetManifest), { assetRoot, verifyFiles: true }), assetRoot };
-  }
-  if (!isRecord(options.assetManifest)) fail('ASSET_MANIFEST_REQUIRED', '承認済みアセット台帳がありません。デモ素材は使いません。');
+function normalizeManifestInput() {
+  if (!fs.existsSync(DEFAULT_ASSET_MANIFEST)) fail('ASSET_MANIFEST_REQUIRED', '承認済みアセット台帳がありません。デモ素材は使いません。');
   try {
-    return { manifest: validateAssetManifest(options.assetManifest, { assetRoot, verifyFiles: true }), assetRoot };
+    return { manifest: loadAssetManifest(DEFAULT_ASSET_MANIFEST, DEFAULT_ASSET_ROOT), assetRoot: DEFAULT_ASSET_ROOT };
   } catch (error) {
-    fail(error?.code ?? 'ASSET_MANIFEST_INVALID', '承認済みアセット台帳を検証できません。', { issues: error?.issues ?? [], cause: error?.code });
+    fail(error?.code ?? 'ASSET_MANIFEST_INVALID', '承認済みアセット台帳を読めません。');
   }
 }
 
@@ -344,98 +279,51 @@ function readBoundedRootedJson(sourceRoot, source, maxBytes) {
   }
 }
 
-function normalizeBindingsInput(options, assetRoot) {
-  const read = (source, root = assetRoot) => {
-    try {
-      return readBoundedRootedJson(root, source, MAX_BINDINGS_BYTES);
-    } catch (error) {
-      if (error instanceof CliError) throw error;
-      fail('SCENE_BINDINGS_INVALID', '街とアセットを結ぶ許可台帳を読めません。', { cause: error?.code });
-    }
-  };
-  const bindingsPath = options.sceneBindingsPath === undefined && options.sceneBindings === undefined
-    ? DEFAULT_SCENE_BINDINGS
-    : options.sceneBindingsPath;
-  if (bindingsPath !== undefined) {
-    if (typeof bindingsPath !== 'string' || bindingsPath.trim() === '') fail('SCENE_BINDINGS_REQUIRED', '街とアセットを結ぶ許可台帳の場所がありません。');
-    if (!fs.existsSync(path.resolve(bindingsPath))) fail('SCENE_BINDINGS_REQUIRED', '街とアセットを結ぶ許可台帳がありません。');
-    const root = options.sceneBindingsPath === undefined && options.sceneBindings === undefined
-      ? DEFAULT_SHIPPING_ART_ROOT
-      : assetRoot;
-    return read(bindingsPath, root);
+function normalizeBindingsInput() {
+  if (!fs.existsSync(DEFAULT_SCENE_BINDINGS)) fail('SCENE_BINDINGS_REQUIRED', '街とアセットを結ぶ許可台帳がありません。');
+  try {
+    return readBoundedRootedJson(DEFAULT_SHIPPING_ART_ROOT, DEFAULT_SCENE_BINDINGS, MAX_BINDINGS_BYTES);
+  } catch (error) {
+    if (error instanceof CliError) throw error;
+    fail('SCENE_BINDINGS_INVALID', '街とアセットを結ぶ許可台帳を読めません。');
   }
-  if (typeof options.sceneBindings === 'string') return read(options.sceneBindings);
-  if (!isRecord(options.sceneBindings)) fail('SCENE_BINDINGS_REQUIRED', '街とアセットを結ぶ許可台帳がありません。');
-  return options.sceneBindings;
 }
 
 /** Build the read-only inspection/domain/world pipeline. No files are written. */
-export async function buildCodeCity({ repositoryPath, seed, inspectionOptions = {} } = {}) {
+async function buildCodeCity({ repositoryPath } = {}) {
   const root = normalizedRepositoryPath(repositoryPath);
-  const report = await inspectRepository(root, inspectionOptions);
+  const report = await inspectRepository(root);
   const semanticModel = inferSemanticModel(report);
   const townModel = buildTownModel(semanticModel);
-  const worldPlan = generateWorldPlan({ town: townModel, seed });
-  return Object.freeze({ report, semanticModel, townModel, worldPlan, repositoryRoot: root });
+  const worldPlan = generateWorldPlan({ town: townModel });
+  return { report, townModel, worldPlan };
 }
 
 /** Compose the complete pipeline into immutable memory and optionally start 127.0.0.1. */
-export async function runCodeCity(options = {}) {
-  for (const key of ['distributionRoot', 'runtimeArtifactRoot', 'runtimeArtifactAllowlist']) {
-    if (Object.prototype.hasOwnProperty.call(options, key)) {
-      fail('COMPOSITION_INPUT_FORBIDDEN', `${key} は製品の不変なメモリ配布契約では指定できません。`);
-    }
-  }
-  const write = progressWriter(options);
-  const noOpen = options.noOpen === true;
-  const text = options.text === true;
-  const shot = options.shot === true;
-  const port = normalizePort(options.port);
-  if (shot) fail('SHOT_UNAVAILABLE', '絵を書き出す描画器がまだ承認されていないため、--shot は実行できません。');
-  const built = await buildCodeCity(options);
-  const { report, semanticModel, townModel, worldPlan } = built;
-  writeLine(`${townModel.repository.name}を測量しています…`, write);
-  writeLine(`✓ 土地を見た        ${report.summary?.filesInspected ?? report.files?.length ?? 0} ファイル`, write);
-  writeLine(`✓ 水の道を引いた    ${worldPlan.water?.path?.length ?? 0} の道標`, write);
-  writeLine(`✓ 街道を通した      ${worldPlan.plots.length} の区画`, write);
-  writeLine(`✓ 建物を建てた      ${worldPlan.occupancy.filter((entry) => entry.state === 'occupied').flatMap((entry) => entry.occupants).length} 施設`, write);
-  writeLine(`✓ 住民を呼んだ      ${worldPlan.npcs?.length ?? 0} 人`, write);
-  if (text) {
-    writeLine(reportText(report, townModel, worldPlan), write);
-    writeLine(`127.0.0.1 は --text のため起動していません。`, write);
-    writeLine('次の一歩: 承認済みアセットを用意して、もう一度 npx codecity を実行してください。', write);
-    return Object.freeze({ ...built, origin: null, server: null, sceneBundle: null, distributionRoot: null, close: async () => {} });
-  }
+async function runCodeCity({ repositoryPath, noOpen = false, port = 4173 } = {}) {
+  const { report, townModel, worldPlan } = await buildCodeCity({ repositoryPath });
+  writeLine(`${townModel.repository.name}を測量しています…`);
+  writeLine(`✓ 土地を見た        ${report.summary.filesInspected} ファイル`);
+  writeLine(`✓ 水の道を引いた    ${worldPlan.water.path.length} の道標`);
+  writeLine(`✓ 街道を通した      ${worldPlan.plots.length} の区画`);
+  writeLine(`✓ 建物を建てた      ${worldPlan.occupancy.filter((entry) => entry.state === 'occupied').flatMap((entry) => entry.occupants).length} 施設`);
+  writeLine(`✓ 住民を呼んだ      ${worldPlan.npcs.length} 人`);
 
   if (worldPlan.questSites.length !== 3 || townModel.investigations.candidates.length !== 3) {
     fail('THREE_INVESTIGATIONS_REQUIRED', '根拠のある調査依頼が三件そろわないため、遊べる街としては起動しません。');
   }
 
-  const { manifest: assetManifest, assetRoot } = normalizeManifestInput(options);
-  const sceneBindings = normalizeBindingsInput(options, assetRoot);
+  const { manifest: assetManifest, assetRoot } = normalizeManifestInput();
+  const sceneBindings = normalizeBindingsInput();
   const sceneBundle = compileScene({ worldPlan, assetManifest, assetRoot, bindings: sceneBindings });
   let running = null;
-  let artifactEntries;
-  let assetEntries;
-  let close;
   try {
-    // Runtime code is a fixed package-owned input. Public callers cannot turn
-    // a customer repository or arbitrary local directory into served files.
-    const runtimeCopy = await collectRuntimeArtifacts({
-      runtimeArtifactRoot: DEFAULT_RUNTIME_ARTIFACT_ROOT,
-      runtimeArtifactAllowlist: DEFAULT_RUNTIME_ARTIFACT_ALLOWLIST,
-      maxArtifactFileBytes: options.maxArtifactFileBytes,
-      maxArtifactTotalBytes: options.maxArtifactTotalBytes,
-    });
-    artifactEntries = runtimeCopy.entries;
+    const runtimeCopy = collectRuntimeArtifacts();
     const assetCopy = collectSceneAssets({
       sceneBundle,
       assetRoot,
-      occupiedEntries: artifactEntries,
-      maxAssetFileBytes: options.maxAssetFileBytes,
-      maxAssetTotalBytes: options.maxAssetTotalBytes,
+      occupiedEntries: runtimeCopy.entries,
     });
-    assetEntries = assetCopy.entries;
     const sceneBytes = Buffer.from(`${JSON.stringify(sceneBundle)}\n`, 'utf8');
     if (sceneBytes.length > DEFAULT_MAX_SCENE_BYTES) fail('SCENE_TOO_LARGE', '街の設計図が配布上限を超えています。');
     const snapshots = {
@@ -455,51 +343,41 @@ export async function runCodeCity(options = {}) {
       maxTotalBytes: DEFAULT_MAX_DISTRIBUTION_BYTES,
       port,
     });
-    let closed = false;
-    close = async () => {
-      if (closed) return;
-      closed = true;
-      await running?.close();
-    };
   } catch (error) {
     await running?.close();
     throw error;
   }
   const browserUrl = `${running.origin}/index.html`;
-  writeLine(`http://${HOST}:${new URL(running.origin).port} でお待ちしています。`, write);
-  writeLine('（このツールはコードを外部に送信しません）', write);
-  writeLine('次の一歩: ブラウザで門をくぐり、掲示板の依頼を受けてください。', write);
+  writeLine(`http://${HOST}:${new URL(running.origin).port} でお待ちしています。`);
+  writeLine('（このツールはコードを外部に送信しません）');
+  writeLine('次の一歩: ブラウザで門をくぐり、掲示板の依頼を受けてください。');
   if (!noOpen) {
     try {
-      const opener = options.openBrowser ?? defaultBrowserOpener;
-      if (typeof opener !== 'function') fail('BROWSER_OPENER_INVALID', 'ブラウザの開き方がありません。');
       assertBrowserUrl(browserUrl, running.origin);
-      await opener(browserUrl);
+      await defaultBrowserOpener(browserUrl);
     } catch (error) {
-      await close();
+      await running.close();
       throw error;
     }
   }
-  return Object.freeze({ ...built, sceneBundle, distributionRoot: null, artifactEntries, assetEntries, origin: running.origin, browserUrl, server: running.server, close });
 }
 
 /** CLI entry point; returns a process-style exit code and never swallows failures. */
-export async function main(argv = process.argv.slice(2), dependencies = {}) {
-  const write = progressWriter(dependencies);
+export async function main(argv = process.argv.slice(2)) {
   try {
     const parsed = parseCliArgs(argv);
     if (parsed.help) {
-      writeLine(helpText(), write);
+      writeLine(helpText());
       return 0;
     }
-    await runCodeCity({ ...dependencies, ...parsed, write });
+    await runCodeCity(parsed);
     return 0;
   } catch (error) {
     const code = error instanceof CliError ? error.code : 'CLI_FAILED';
-    writeLine(`街の門番: ${error instanceof Error ? error.message : String(error)}`, write);
-    writeLine(`（コード: ${code}）`, write);
-    writeLine('127.0.0.1 は起動していません。', write);
-    writeLine('次の一歩: 指示と承認済み素材を確認して、もう一度実行してください。', write);
+    writeLine(`街の門番: ${error instanceof Error ? error.message : String(error)}`);
+    writeLine(`（コード: ${code}）`);
+    writeLine('127.0.0.1 は起動していません。');
+    writeLine('次の一歩: 指示と承認済み素材を確認して、もう一度実行してください。');
     return 1;
   }
 }
