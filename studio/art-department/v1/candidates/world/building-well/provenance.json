@@ -4,7 +4,6 @@
   "selector": "building:well",
   "candidatePath": "building-well/building-well.png",
   "candidateSha256": "c0489c62c36c3383a17f2a8b7bcb56972f978dbdc77b8a673c72e9b9209bc148",
-  "candidateByteLength": 6267,
   "source": {
     "sourceOriginal": "field_stairs_bridges_cliffs_sheet.png",
     "sourceRect": [
@@ -22,7 +21,6 @@
     ],
     "sourceSha256": "24e899bfb25552aa96e453a74e574337fc65481791fa572accdd8758615387bd"
   },
-  "reuse": null,
   "transform": {
     "kind": "deterministic-local",
     "steps": [
@@ -35,16 +33,11 @@
   },
   "dimensions": {
     "width": 192,
-    "height": 192,
-    "opaquePixels": 2638,
-    "transparentPixels": 34226,
-    "semiTransparentPixels": 0,
-    "colors": 24
+    "height": 192
   },
   "alpha": {
     "state": "observed",
-    "mode": "binary",
-    "transparentPixels": 34226
+    "mode": "binary"
   },
   "pivot": {
     "state": "inferred",
@@ -57,22 +50,5 @@
     "height": 192,
     "columns": 1,
     "rows": 1
-  },
-  "mechanical": {
-    "state": "failed",
-    "palette": "observed palette-v2",
-    "dimensions": "observed",
-    "alpha": "observed-binary",
-    "seams": "not_applicable",
-    "humanApproval": "unknown",
-    "failureCodes": [
-      "G8_ISOLATED_PIXELS"
-    ],
-    "unknownCodes": []
-  },
-  "review": {
-    "entryPath": "building-well/review.json",
-    "contactSheetPath": "review/contact-sheet.webp",
-    "ownerDecision": "unknown"
   }
 }

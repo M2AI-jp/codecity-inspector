@@ -5,16 +5,12 @@
   "candidate": {
     "path": "studio/art-department/v1/candidates/actors-ui/ui-inspection-report.png",
     "sha256": "5d191399c5afd59b6a41781e7df637bf9ea2596fb80dc7d06340d5aca01523ca",
-    "byteLength": 34633,
     "dimensions": {
       "width": 384,
       "height": 216
     },
     "pngMode": "RGBA",
-    "frameCount": 1,
-    "opaquePixels": 82944,
-    "transparentPixels": 0,
-    "semiTransparentPixels": 0
+    "frameCount": 1
   },
   "sourceOriginals": [
     {
@@ -210,93 +206,16 @@
   },
   "alpha": {
     "mode": "RGBA",
-    "hasTransparency": false,
-    "opaquePixels": 82944,
-    "transparentPixels": 0,
-    "semiTransparentPixels": 0,
-    "mechanical": "passed"
-  },
-  "contentReview": {
-    "state": "passed",
-    "textObserved": "none in selected frame parts",
-    "dataObserved": "none; empty rails/panels only",
-    "method": "manual visual inspection of immutable source regions and rendered candidate",
-    "limits": "no OCR or semantic classifier; runtime-inserted text/data not represented"
+    "hasTransparency": false
   },
   "purpose": "blank two-column inspection/report chrome with blue title and red decision rails; runtime supplies labels/data",
   "pivot": {
     "status": "unknown",
-    "reason": "runtime sprite pivot contract is not exported in P1"
+    "reason": "runtime sprite pivot is not recorded in this production sidecar"
   },
   "frameMetadata": {
     "status": "unknown",
-    "reason": "runtime frame-grid contract is not exported in P1",
+    "reason": "runtime frame grid is not recorded in this production sidecar",
     "declaredFrameCount": 1
-  },
-  "mechanicalChecks": {
-    "pngReadable": "passed",
-    "dimensions": "passed",
-    "candidateHash": "passed",
-    "sourceCustody": "passed",
-    "alpha": "passed",
-    "textContent": "passed",
-    "dataContent": "passed",
-    "visualFit": "passed",
-    "pivot": "unknown",
-    "frameGrid": "unknown",
-    "ownerApproval": "unknown"
-  },
-  "review": {
-    "state": "unknown",
-    "path": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
-    "approvalState": "unknown",
-    "humanDecision": "unknown",
-    "note": "contact sheet intentionally not regenerated in this worker; direct candidate PNG is the current evidence"
-  },
-  "mechanicalEvidence": {
-    "pngReadable": {
-      "state": "passed",
-      "originalValue": "passed"
-    },
-    "dimensions": {
-      "state": "passed",
-      "originalValue": "passed (384x216 within <=384x216 budget)"
-    },
-    "candidateHash": {
-      "state": "passed",
-      "originalValue": "passed"
-    },
-    "sourceCustody": {
-      "state": "passed",
-      "originalValue": "passed"
-    },
-    "alpha": {
-      "state": "passed",
-      "originalValue": "passed (binary)"
-    },
-    "textContent": {
-      "state": "passed",
-      "originalValue": "passed (none observed)"
-    },
-    "dataContent": {
-      "state": "passed",
-      "originalValue": "passed (none observed)"
-    },
-    "visualFit": {
-      "state": "passed",
-      "originalValue": "passed (bounded canvas)"
-    },
-    "pivot": {
-      "state": "unknown",
-      "originalValue": "unknown"
-    },
-    "frameGrid": {
-      "state": "unknown",
-      "originalValue": "unknown"
-    },
-    "ownerApproval": {
-      "state": "unknown",
-      "originalValue": "unknown"
-    }
   }
 }

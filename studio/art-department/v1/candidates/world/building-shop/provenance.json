@@ -4,7 +4,6 @@
   "selector": "building:shop",
   "candidatePath": "building-shop/building-shop.png",
   "candidateSha256": "34ae4fce73b91fb14648980de8da5f04b90a544ae0c6765bf26fb27e3adcad27",
-  "candidateByteLength": 27550,
   "source": {
     "sourceOriginal": "building_houses_shops_ruins_sheet.png",
     "sourceRect": [
@@ -22,7 +21,6 @@
     ],
     "sourceSha256": "ec8afeadfe709cc6ae489d3e895a2a290eff79cb598db8c1925f548fd9e14225"
   },
-  "reuse": null,
   "transform": {
     "kind": "deterministic-local",
     "steps": [
@@ -35,16 +33,11 @@
   },
   "dimensions": {
     "width": 192,
-    "height": 192,
-    "opaquePixels": 17210,
-    "transparentPixels": 19654,
-    "semiTransparentPixels": 0,
-    "colors": 24
+    "height": 192
   },
   "alpha": {
     "state": "observed",
-    "mode": "binary",
-    "transparentPixels": 19654
+    "mode": "binary"
   },
   "pivot": {
     "state": "inferred",
@@ -57,23 +50,5 @@
     "height": 192,
     "columns": 1,
     "rows": 1
-  },
-  "mechanical": {
-    "state": "failed",
-    "palette": "observed palette-v2",
-    "dimensions": "observed",
-    "alpha": "observed-binary",
-    "seams": "not_applicable",
-    "humanApproval": "unknown",
-    "failureCodes": [
-      "G6_LIGHT_DIRECTION",
-      "G8_ISOLATED_PIXELS"
-    ],
-    "unknownCodes": []
-  },
-  "review": {
-    "entryPath": "building-shop/review.json",
-    "contactSheetPath": "review/contact-sheet.webp",
-    "ownerDecision": "unknown"
   }
 }

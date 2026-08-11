@@ -4,7 +4,6 @@
   "selector": "building:guild",
   "candidatePath": "building-guild/building-guild.png",
   "candidateSha256": "8b803a3da57b06b8cc8251e7b8deeaf575e3b778c7de0305e5084a00331ddf44",
-  "candidateByteLength": 25094,
   "source": {
     "sourceOriginal": "building_guild_variant_01_sheet.png",
     "sourceRect": [
@@ -22,7 +21,6 @@
     ],
     "sourceSha256": "e6d0904d6b2ac1af8ebf8d01df1662ccab49489ead967e0e244f4db6135701c9"
   },
-  "reuse": null,
   "transform": {
     "kind": "deterministic-local",
     "steps": [
@@ -35,16 +33,11 @@
   },
   "dimensions": {
     "width": 192,
-    "height": 192,
-    "opaquePixels": 16230,
-    "transparentPixels": 20634,
-    "semiTransparentPixels": 0,
-    "colors": 24
+    "height": 192
   },
   "alpha": {
     "state": "observed",
-    "mode": "binary",
-    "transparentPixels": 20634
+    "mode": "binary"
   },
   "pivot": {
     "state": "inferred",
@@ -57,22 +50,5 @@
     "height": 192,
     "columns": 1,
     "rows": 1
-  },
-  "mechanical": {
-    "state": "failed",
-    "palette": "observed palette-v2",
-    "dimensions": "observed",
-    "alpha": "observed-binary",
-    "seams": "not_applicable",
-    "humanApproval": "unknown",
-    "failureCodes": [
-      "G8_ISOLATED_PIXELS"
-    ],
-    "unknownCodes": []
-  },
-  "review": {
-    "entryPath": "building-guild/review.json",
-    "contactSheetPath": "review/contact-sheet.webp",
-    "ownerDecision": "unknown"
   }
 }

@@ -4,7 +4,6 @@
   "selector": "building:gate",
   "candidatePath": "building-gate/building-gate.png",
   "candidateSha256": "476883224c8e12fc57a99cce7aa9a4f68787db1bd514a49330dd25a3ffd511bd",
-  "candidateByteLength": 5462,
   "source": {
     "sourceOriginal": "field_stairs_bridges_cliffs_sheet.png",
     "sourceRect": [
@@ -22,7 +21,6 @@
     ],
     "sourceSha256": "24e899bfb25552aa96e453a74e574337fc65481791fa572accdd8758615387bd"
   },
-  "reuse": null,
   "transform": {
     "kind": "deterministic-local",
     "steps": [
@@ -37,16 +35,11 @@
   },
   "dimensions": {
     "width": 192,
-    "height": 192,
-    "opaquePixels": 5924,
-    "transparentPixels": 30940,
-    "semiTransparentPixels": 0,
-    "colors": 24
+    "height": 192
   },
   "alpha": {
     "state": "observed",
-    "mode": "binary",
-    "transparentPixels": 30940
+    "mode": "binary"
   },
   "pivot": {
     "state": "inferred",
@@ -59,28 +52,5 @@
     "height": 192,
     "columns": 1,
     "rows": 1
-  },
-  "mechanical": {
-    "state": "passed",
-    "palette": "passed palette-v2 (24 colors)",
-    "dimensions": "passed",
-    "alpha": "passed-binary",
-    "seams": "not_applicable",
-    "humanApproval": "unknown",
-    "failureCodes": [],
-    "unknownCodes": [],
-    "gateInvocation": "isolated candidate gate with spec asset path normalized; full-world aggregate remains a separate release gate"
-  },
-  "isolation": {
-    "state": "passed",
-    "looseParts": "none observed",
-    "neighboringWalls": "excluded by crop and edge flood-fill",
-    "limit": "visual fit and owner approval remain unknown"
-  },
-  "review": {
-    "entryPath": "building-gate/review.json",
-    "contactSheetPath": "review/contact-sheet.webp",
-    "ownerDecision": "unknown",
-    "note": "contact sheet intentionally not regenerated in this worker"
   }
 }

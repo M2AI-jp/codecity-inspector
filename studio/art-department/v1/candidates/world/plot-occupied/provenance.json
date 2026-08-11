@@ -4,7 +4,6 @@
   "selector": "plot:occupied",
   "candidatePath": "plot-occupied/plot-occupied.png",
   "candidateSha256": "50482bab7968467b13ae06929b8879bfaeda11c20c39730f1cebb572c7b672e8",
-  "candidateByteLength": 5652,
   "source": {
     "sourceOriginal": "world_visual_master.png",
     "sourceRect": [
@@ -22,7 +21,6 @@
     ],
     "sourceSha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d"
   },
-  "reuse": null,
   "transform": {
     "kind": "deterministic-local",
     "steps": [
@@ -35,16 +33,11 @@
   },
   "dimensions": {
     "width": 64,
-    "height": 64,
-    "opaquePixels": 4096,
-    "transparentPixels": 0,
-    "semiTransparentPixels": 0,
-    "colors": 16
+    "height": 64
   },
   "alpha": {
     "state": "observed",
-    "mode": "binary",
-    "transparentPixels": 0
+    "mode": "binary"
   },
   "pivot": {
     "state": "inferred",
@@ -58,22 +51,24 @@
     "columns": 1,
     "rows": 1
   },
-  "mechanical": {
-    "state": "failed",
-    "palette": "observed palette-v2",
-    "dimensions": "observed",
-    "alpha": "observed-binary",
-    "seams": "passed",
-    "humanApproval": "unknown",
-    "failureCodes": [
-      "G6_LIGHT_DIRECTION",
-      "G8_ISOLATED_PIXELS"
-    ],
-    "unknownCodes": []
-  },
-  "review": {
-    "entryPath": "plot-occupied/review.json",
-    "contactSheetPath": "review/contact-sheet.webp",
-    "ownerDecision": "unknown"
+  "tile": {
+    "neighbors": [
+      {
+        "side": "left",
+        "path": "terrain-meadow/terrain-meadow.png"
+      },
+      {
+        "side": "right",
+        "path": "terrain-meadow/terrain-meadow.png"
+      },
+      {
+        "side": "top",
+        "path": "terrain-meadow/terrain-meadow.png"
+      },
+      {
+        "side": "bottom",
+        "path": "terrain-meadow/terrain-meadow.png"
+      }
+    ]
   }
 }

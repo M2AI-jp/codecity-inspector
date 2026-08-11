@@ -1,8 +1,0 @@
-node_modules/
-.DS_Store
-*.log
-coverage/
-dist/
-studio/art-department/candidates/**
-studio/art-department/reports/**
-studio/quality/evidence/**

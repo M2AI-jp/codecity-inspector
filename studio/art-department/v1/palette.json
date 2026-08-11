@@ -52,28 +52,9 @@
     "#0c0c10"
   ],
   "derivation": {
-    "state": "observed",
     "source": "art/references/user-provided/world_visual_master.png",
     "sourceSha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
     "algorithm": "Pillow Image.quantize(colors=48, method=MEDIANCUT, dither=NONE)",
-    "requestedColors": 48,
-    "emittedColors": 48,
-    "deterministic": true,
-    "meaning": "measured representative colors only; not an approval or a candidate constraint"
-  },
-  "evidence": {
-    "observed": [
-      "palette colors are six-digit RGB hex values",
-      "all 48 entries are unique",
-      "source byte hash matches the immutable original registry"
-    ],
-    "inferred": [
-      "the quantized source is a useful style reference for v1 preparation"
-    ],
-    "unknown": [
-      "whether every future candidate should use every listed color",
-      "whether a selector needs a smaller per-asset palette",
-      "owner approval of any candidate bytes"
-    ]
+    "deterministic": true
   }
 }

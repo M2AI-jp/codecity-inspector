@@ -1,5 +1,4 @@
 import {
-  asFiniteNonNegativeInteger,
   asNonEmptyString,
   evidenceKey,
   isRecord,
@@ -24,7 +23,6 @@ export function readInspectionFiles(inspection) {
       path,
       kind: asNonEmptyString(entry.kind),
       extension: asNonEmptyString(entry.extension)?.toLowerCase() ?? null,
-      sizeBytes: asFiniteNonNegativeInteger(entry.sizeBytes),
       isTest: entry.isTest === true,
     });
   }
@@ -56,7 +54,6 @@ export function readEvidenceRecords(inspection) {
       records.push({
         state,
         key,
-        raw: entry,
         subjects: evidenceSubjects(entry),
       });
     }

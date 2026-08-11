@@ -4,7 +4,6 @@
   "selector": "building:workshop",
   "candidatePath": "building-workshop/building-workshop.png",
   "candidateSha256": "36847ad53b8a19afb4762fede0435a5386250d4ac8a95f8a30d7280ea9824d56",
-  "candidateByteLength": 35942,
   "source": {
     "sourceOriginal": "building_workshop_sheet.png",
     "sourceRect": [
@@ -22,7 +21,6 @@
     ],
     "sourceSha256": "a28070edeec7d93df772ffe856bcaa49a11ba8ec55e60ddd5af15eab56f23ac7"
   },
-  "reuse": null,
   "transform": {
     "kind": "deterministic-local",
     "steps": [
@@ -35,16 +33,11 @@
   },
   "dimensions": {
     "width": 192,
-    "height": 192,
-    "opaquePixels": 21005,
-    "transparentPixels": 15859,
-    "semiTransparentPixels": 0,
-    "colors": 24
+    "height": 192
   },
   "alpha": {
     "state": "observed",
-    "mode": "binary",
-    "transparentPixels": 15859
+    "mode": "binary"
   },
   "pivot": {
     "state": "inferred",
@@ -57,23 +50,5 @@
     "height": 192,
     "columns": 1,
     "rows": 1
-  },
-  "mechanical": {
-    "state": "failed",
-    "palette": "observed palette-v2",
-    "dimensions": "observed",
-    "alpha": "observed-binary",
-    "seams": "not_applicable",
-    "humanApproval": "unknown",
-    "failureCodes": [
-      "G6_LIGHT_DIRECTION",
-      "G8_ISOLATED_PIXELS"
-    ],
-    "unknownCodes": []
-  },
-  "review": {
-    "entryPath": "building-workshop/review.json",
-    "contactSheetPath": "review/contact-sheet.webp",
-    "ownerDecision": "unknown"
   }
 }

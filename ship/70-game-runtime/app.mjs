@@ -5,7 +5,11 @@ import {
 } from './index.mjs';
 
 const SCENE_PATH = './scene.json';
-const REQUIRED_ELEMENTS = Object.freeze(['game-canvas', 'game-ui', 'game-status', 'game-error']);
+const SHUTDOWN_PATH = './__codecity/shutdown';
+const EXIT_PENDING_MESSAGE = '街を閉じています…';
+const EXIT_CLOSED_MESSAGE = '街を閉じました。端末からもう一度起動すると、同じ街へ戻れます。';
+const EXIT_ACTIVE_MESSAGE = '街を閉じられませんでした。ローカルのプロセスは動作中です。端末で停止してください。';
+const REQUIRED_ELEMENTS = Object.freeze(['game-canvas', 'game-ui', 'game-error']);
 const EXTERNAL_URL_RE = /^(?:[a-z][a-z\d+.-]*:|\/\/)/iu;
 const UNSAFE_PATH_RE = /(?:^|[\\/])\.\.(?:[\\/]|$)/u;
 
@@ -44,8 +48,7 @@ function sceneError(issues = []) {
     FORMAT_INVALID: '形式が違います',
     SCHEMA_UNSUPPORTED: '対応していない版です',
     SCENE_FIELD_REQUIRED: '必要な項目がありません',
-    BINDINGS_UNSUPPORTED: 'アセット結合の版が違います',
-    ASSETS_REQUIRED: '承認済み素材がありません',
+    ASSETS_REQUIRED: '出荷素材がありません',
     GAME_REQUIRED: 'ゲーム設定がありません',
     UNKNOWN_FIELD: '許可されていない項目があります',
   };
@@ -54,8 +57,8 @@ function sceneError(issues = []) {
 }
 
 function imageError(asset, suffix) {
-  const selector = typeof asset?.selector === 'string' && asset.selector.trim() !== '' ? asset.selector : '不明なアセット';
-  return `承認済み素材「${selector}」を読み込めません${suffix ? `（${suffix}）` : ''}。`;
+  const id = typeof asset?.id === 'string' && asset.id.trim() !== '' ? asset.id : '不明なアセット';
+  return `出荷素材「${id}」を読み込めません${suffix ? `（${suffix}）` : ''}。`;
 }
 
 function errorText(error) {
@@ -64,14 +67,14 @@ function errorText(error) {
     if (error.code === 'SCENE_BUNDLE_INVALID') return `街を開始できません。${sceneError(error.issues)}`;
     if (error.code === 'ASSET_LOAD_FAILED') {
       const detail = error.issues?.[0]?.message;
-      return `街を開始できません。承認済み素材を読み込めません${detail ? `（${detail}）` : '。'}`;
+      return `街を開始できません。出荷素材を読み込めません${detail ? `（${detail}）` : '。'}`;
     }
     if (error.code === 'STORAGE_REQUIRED' || error.code === 'PERSISTENCE_WRITE_FAILED') return 'このブラウザでは街の記録を保存できません。保存機能を有効にしてから再試行してください。';
     const runtimeLabels = {
       CANVAS_REQUIRED: '描画画面を準備できません',
       CANVAS_CONTEXT_REQUIRED: '描画機能を準備できません',
       UI_ROOT_REQUIRED: '操作表示を準備できません',
-      ASSET_LOADER_REQUIRED: '承認済み素材の読み込み機能がありません',
+      ASSET_LOADER_REQUIRED: '出荷素材の読み込み機能がありません',
       INPUT_TARGET_REQUIRED: '入力を受け取る画面がありません',
       CLOCK_REQUIRED: 'アニメーション時計を準備できません',
       PERSISTENCE_LIMIT: '保存データが大きすぎます',
@@ -143,10 +146,29 @@ async function fetchSceneBundle() {
   return bundle;
 }
 
+/** Ask the same loopback origin to close the CLI-owned server after Exit. */
+async function requestServerShutdown() {
+  const activeWindow = browserWindow();
+  const shutdownUrl = sameOriginUrl(SHUTDOWN_PATH, activeWindow, '終了処理');
+  if (typeof activeWindow.fetch !== 'function') return false;
+  const response = await activeWindow.fetch(shutdownUrl.href, {
+    method: 'POST',
+    cache: 'no-store',
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/json',
+      'X-CodeCity-Exit': '1',
+    },
+    redirect: 'error',
+    keepalive: true,
+  });
+  return response?.status === 204;
+}
+
 /** Build the only asset loader used by the browser entry: same-origin Image decode. */
 function createSameOriginAssetLoader() {
   const activeWindow = browserWindow();
-  return async function loadApprovedAsset(asset) {
+  return async function loadShippingAsset(asset) {
     if (!asset || typeof asset.url !== 'string' || asset.url.trim() === '') {
       throw new BrowserEntryError(imageError(asset, 'URL がありません'));
     }
@@ -175,13 +197,32 @@ function createSameOriginAssetLoader() {
 }
 
 function showStatus(elements, text) {
-  elements['game-status'].textContent = text;
+  // Loading and exit feedback share the game-ui root so the browser never
+  // exposes a second permanent status panel outside the authored frame.
+  elements['game-ui'].textContent = text;
+  elements['game-ui'].hidden = text === '';
+  elements['game-ui'].dataset.kind = text === '' ? '' : 'loading';
 }
 
 function showError(elements, error) {
   elements['game-error'].textContent = errorText(error);
   elements['game-error'].hidden = false;
   showStatus(elements, '街を開始できません');
+}
+
+function setFramedMessage(uiRoot, text, kind) {
+  uiRoot.hidden = false;
+  uiRoot.dataset.kind = kind;
+  const body = typeof uiRoot.querySelector === 'function' ? uiRoot.querySelector('.game-ui-body') : null;
+  const prompt = typeof uiRoot.querySelector === 'function' ? uiRoot.querySelector('.game-ui-prompt') : null;
+  const footer = typeof uiRoot.querySelector === 'function' ? uiRoot.querySelector('.game-ui-footer') : null;
+  if (body) {
+    body.textContent = text;
+    if (prompt) prompt.textContent = '街を出る';
+    if (footer) footer.textContent = '';
+    return;
+  }
+  uiRoot.textContent = text;
 }
 
 async function boot() {
@@ -192,15 +233,25 @@ async function boot() {
   showStatus(elements, '街の設計図を読み込んでいます…');
   try {
     const bundle = await fetchSceneBundle();
-    showStatus(elements, '承認済み素材を読み込んでいます…');
-    const runtime = await startGameRuntime({
+    showStatus(elements, '出荷素材を読み込んでいます…');
+    let runtime = null;
+    runtime = await startGameRuntime({
       bundle,
       canvas: elements['game-canvas'],
       uiRoot: elements['game-ui'],
       storage: localStorageFor(),
       assetLoader: createSameOriginAssetLoader(),
+      onExit: () => {
+        setFramedMessage(elements['game-ui'], EXIT_PENDING_MESSAGE, 'exit-pending');
+        runtime?.stop();
+        void requestServerShutdown().then((closed) => {
+          setFramedMessage(elements['game-ui'], closed ? EXIT_CLOSED_MESSAGE : EXIT_ACTIVE_MESSAGE, closed ? 'exit-closed' : 'exit-active');
+        }).catch(() => {
+          setFramedMessage(elements['game-ui'], EXIT_ACTIVE_MESSAGE, 'exit-active');
+        });
+      },
     });
-    showStatus(elements, '遊べます。調査を終えたら Escape で終了できます。');
+    showStatus(elements, '');
     activeWindow.addEventListener('pagehide', () => runtime.stop(), { once: true });
   } catch (error) {
     showError(elements, error);

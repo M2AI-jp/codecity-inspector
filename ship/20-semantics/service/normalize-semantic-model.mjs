@@ -2,9 +2,6 @@ import {
   SEMANTIC_SCHEMA_VERSION,
 } from '../configuration/semantic-config.mjs';
 import {
-  canonicalDigest,
-} from '../interface/canonical.mjs';
-import {
   readEvidence,
   readRepository,
 } from '../data/inspection-access.mjs';
@@ -29,7 +26,6 @@ export function normalizeSemanticModel(source) {
   const evidence = readEvidence(source);
   return {
     schemaVersion: SEMANTIC_SCHEMA_VERSION,
-    inspectionDigest: canonicalDigest(source),
     repository: readRepository(source),
     files,
     connections,

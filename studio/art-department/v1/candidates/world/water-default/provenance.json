@@ -4,7 +4,6 @@
   "selector": "water:default",
   "candidatePath": "water-default/water-default.png",
   "candidateSha256": "2b960207c8f16679370edcc961f1932f205d6019451e83ecfbb62f99d3163813",
-  "candidateByteLength": 1714,
   "source": {
     "sourceOriginal": "field_harbor_docks_tiles_sheet.png",
     "sourceRect": [
@@ -22,7 +21,6 @@
     ],
     "sourceSha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580"
   },
-  "reuse": null,
   "transform": {
     "kind": "deterministic-local",
     "steps": [
@@ -35,16 +33,11 @@
   },
   "dimensions": {
     "width": 64,
-    "height": 64,
-    "opaquePixels": 4096,
-    "transparentPixels": 0,
-    "semiTransparentPixels": 0,
-    "colors": 4
+    "height": 64
   },
   "alpha": {
     "state": "observed",
-    "mode": "binary",
-    "transparentPixels": 0
+    "mode": "binary"
   },
   "pivot": {
     "state": "inferred",
@@ -58,22 +51,24 @@
     "columns": 1,
     "rows": 1
   },
-  "mechanical": {
-    "state": "failed",
-    "palette": "observed palette-v2",
-    "dimensions": "observed",
-    "alpha": "observed-binary",
-    "seams": "self seams passed; declared-neighbor G10 failed",
-    "humanApproval": "unknown",
-    "failureCodes": [
-      "G8_ISOLATED_PIXELS",
-      "G10_SEAM_MISMATCH"
-    ],
-    "unknownCodes": []
-  },
-  "review": {
-    "entryPath": "water-default/review.json",
-    "contactSheetPath": "review/contact-sheet.webp",
-    "ownerDecision": "unknown"
+  "tile": {
+    "neighbors": [
+      {
+        "side": "left",
+        "path": "terrain-meadow/terrain-meadow.png"
+      },
+      {
+        "side": "right",
+        "path": "terrain-meadow/terrain-meadow.png"
+      },
+      {
+        "side": "top",
+        "path": "terrain-meadow/terrain-meadow.png"
+      },
+      {
+        "side": "bottom",
+        "path": "terrain-meadow/terrain-meadow.png"
+      }
+    ]
   }
 }

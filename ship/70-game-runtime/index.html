@@ -4,33 +4,17 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="color-scheme" content="dark">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; connect-src 'self'; font-src 'none'; form-action 'none'; frame-ancestors 'none'; img-src 'self'; object-src 'none'; script-src 'self'; script-src-attr 'none'; style-src 'self'; style-src-attr 'none'; worker-src 'none'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; connect-src 'self'; font-src 'none'; form-action 'none'; frame-ancestors 'none'; img-src 'self'; object-src 'none'; script-src 'self'; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; style-src-attr 'unsafe-inline'; worker-src 'none'">
     <title>CodeCity — 調査の街</title>
     <link rel="stylesheet" href="./styles.css">
   </head>
   <body>
     <main id="game-app" class="game-app">
-      <header class="game-header">
-        <p class="eyebrow">CODECITY</p>
-        <h1>調査の街</h1>
-        <p id="game-status" class="game-status" role="status" aria-live="polite">街の設計図を読み込んでいます…</p>
-      </header>
-
       <section class="game-shell" aria-label="CodeCity のゲーム画面">
-        <div class="canvas-frame">
-          <canvas id="game-canvas" width="384" height="216" tabindex="0" aria-label="調査の街。矢印キーまたは WASD で移動します"></canvas>
-        </div>
+        <canvas id="game-canvas" width="640" height="360" tabindex="0" aria-label="調査の街。矢印キーまたは WASD で移動し、Enter で調べます"></canvas>
         <div id="game-ui" class="game-ui" role="status" aria-live="polite" aria-atomic="false"></div>
         <p id="game-error" class="game-error" role="alert" hidden></p>
       </section>
-
-      <aside id="game-help" class="game-help" aria-label="操作説明">
-        <h2>操作</h2>
-        <p>矢印キー / WASD: 移動　Shift: ゆっくり歩く</p>
-        <p>Enter / Space / E / Z: 調べる　Escape / X: 戻る</p>
-        <p>M / Tab: 街を見渡す　+ / −: 表示倍率</p>
-        <p>調査を終えたら Escape で終了。終了後は Enter で同じ街へ再訪できます。</p>
-      </aside>
     </main>
     <noscript>この街を遊ぶには JavaScript を有効にしてください。</noscript>
     <script type="module" src="./app.mjs"></script>

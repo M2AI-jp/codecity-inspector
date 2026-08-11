@@ -4,21 +4,20 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 
 /**
- * Public contract for human-approved shipping art.
+ * Public contract for shipping art.
  *
  * This module deliberately has no dependency on the production workspace. A release manifest
- * is the only thing the shipping side needs to know about an asset.  An asset
- * is either fully accepted and resolvable or it is an error; there is no
+ * is the only thing the shipping side needs to know about an asset. An asset
+ * is either fully described and resolvable or it is an error; there is no
  * placeholder/fallback path in this contract.
  */
-const ASSET_MANIFEST_SCHEMA_VERSION = 1;
+const ASSET_MANIFEST_SCHEMA_VERSION = 2;
 const ASSET_MANIFEST_FORMAT = 'codecity.asset-manifest';
 const FALLBACK_POLICY = 'none';
 
 const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 const SHA256_RE = /^[a-f0-9]{64}$/i;
 const SEMVER_RE = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;
-const EVIDENCE_STATES = new Set(['observed', 'inferred', 'unknown']);
 const USAGE_KINDS = new Set(['terrain', 'water', 'road', 'building', 'room', 'character', 'prop', 'light', 'quest', 'ui', 'effect']);
 const USAGE_LAYERS = new Set(['ground', 'object', 'actor', 'foreground', 'ui', 'effect']);
 const DIRECTIONS = new Set(['north', 'south', 'east', 'west']);
@@ -168,8 +167,10 @@ function assertUsage(usage, dimensions, field, issues) {
     return;
   }
   assertNoFallback(usage, field, issues);
-  assertExactKeys(usage, ['kind', 'layer', 'frame', 'collision', 'animations', 'entrance'].filter((key) =>
-    usage.kind === 'character' ? key !== 'entrance' : usage.kind === 'building' ? key !== 'animations' : ['kind', 'layer', 'frame', 'collision'].includes(key)), field, issues, 'INVALID_USAGE_FIELDS');
+  const usageKeys = usage.kind === 'character'
+    ? ['kind', 'layer', 'frame', 'collision', 'animations']
+    : ['kind', 'layer', 'frame', 'collision'];
+  assertExactKeys(usage, usageKeys, field, issues, 'INVALID_USAGE_FIELDS');
   if (!USAGE_KINDS.has(usage.kind)) issues.push(issue(`${field}.kind`, 'unknown runtime usage kind', 'INVALID_USAGE_KIND'));
   if (!USAGE_LAYERS.has(usage.layer)) issues.push(issue(`${field}.layer`, 'unknown runtime usage layer', 'INVALID_USAGE_LAYER'));
   if (!isObject(usage.frame)) {
@@ -186,14 +187,21 @@ function assertUsage(usage, dimensions, field, issues) {
   }
 
   if (!isObject(usage.collision)) {
-    issues.push(issue(`${field}.collision`, 'collision must be a none or rect discriminator', 'INVALID_COLLISION'));
+    issues.push(issue(`${field}.collision`, 'collision must be a none, rect, or rects discriminator', 'INVALID_COLLISION'));
   } else if (usage.collision.kind === 'none') {
     assertExactKeys(usage.collision, ['kind'], `${field}.collision`, issues, 'INVALID_COLLISION');
   } else if (usage.collision.kind === 'rect') {
     const { kind: _kind, ...collisionRect } = usage.collision;
     assertRect(collisionRect, `${field}.collision`, issues, isObject(usage.frame) ? usage.frame : null);
+  } else if (usage.collision.kind === 'rects') {
+    assertExactKeys(usage.collision, ['kind', 'rects'], `${field}.collision`, issues, 'INVALID_COLLISION');
+    if (!Array.isArray(usage.collision.rects) || usage.collision.rects.length === 0) {
+      issues.push(issue(`${field}.collision.rects`, 'must contain one or more authored solid rectangles', 'INVALID_COLLISION'));
+    } else {
+      usage.collision.rects.forEach((rect, index) => assertRect(rect, `${field}.collision.rects[${index}]`, issues, isObject(usage.frame) ? usage.frame : null));
+    }
   } else {
-    issues.push(issue(`${field}.collision.kind`, 'must be exactly none or rect', 'INVALID_COLLISION'));
+    issues.push(issue(`${field}.collision.kind`, 'must be exactly none, rect, or rects', 'INVALID_COLLISION'));
   }
 
   if (usage.kind === 'character') {
@@ -239,15 +247,6 @@ function assertUsage(usage, dimensions, field, issues) {
     issues.push(issue(`${field}.animations`, 'animations are only valid for character assets', 'INVALID_USAGE_FIELDS'));
   }
 
-  if (usage.kind === 'building') {
-    if (!isObject(usage.entrance)) {
-      issues.push(issue(`${field}.entrance`, 'building assets require a bounded entrance rectangle', 'MISSING_ENTRANCE'));
-    } else {
-      assertRect(usage.entrance, `${field}.entrance`, issues, isObject(usage.frame) ? usage.frame : null);
-    }
-  } else if (Object.prototype.hasOwnProperty.call(usage, 'entrance')) {
-    issues.push(issue(`${field}.entrance`, 'entrance is only valid for building assets', 'INVALID_USAGE_FIELDS'));
-  }
 }
 
 function assertRelativeAssetPath(value, field, issues) {
@@ -290,72 +289,6 @@ function assertLocalAssetUrl(value, assetPath, field, issues) {
   }
 }
 
-function assertApproval(approval, asset, field, issues) {
-  if (!isObject(approval)) {
-    issues.push(issue(field, 'a human approval record is required', 'MISSING_APPROVAL'));
-    return;
-  }
-  assertExactKeys(approval, ['recordId', 'actorType', 'authority', 'approvedBy', 'approvedAt', 'decision', 'assetId', 'assetSha256', 'sourceSha256'], field, issues, 'INVALID_APPROVAL');
-  assertNonEmptyString(approval.recordId, `${field}.recordId`, issues);
-  if (approval.actorType !== 'human') {
-    issues.push(issue(`${field}.actorType`, 'must be exactly human', 'NON_HUMAN_APPROVAL'));
-  }
-  if (approval.authority !== 'owner') issues.push(issue(`${field}.authority`, 'must be exactly owner', 'INVALID_APPROVAL'));
-  assertNonEmptyString(approval.approvedBy, `${field}.approvedBy`, issues);
-  if (typeof approval.approvedAt !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u.test(approval.approvedAt) || Number.isNaN(Date.parse(approval.approvedAt))) {
-    issues.push(issue(`${field}.approvedAt`, 'must be an ISO-parseable timestamp', 'INVALID_APPROVAL_DATE'));
-  }
-  if (approval.decision !== 'accepted') {
-    issues.push(issue(`${field}.decision`, 'must be exactly accepted', 'APPROVAL_NOT_ACCEPTED'));
-  }
-  if (approval.assetId !== asset.id) issues.push(issue(`${field}.assetId`, 'must bind this exact asset ID', 'APPROVAL_BINDING_MISMATCH'));
-  if (typeof approval.assetSha256 !== 'string' || approval.assetSha256.toLowerCase() !== String(asset.sha256 ?? '').toLowerCase()) issues.push(issue(`${field}.assetSha256`, 'must bind the accepted asset bytes', 'APPROVAL_BINDING_MISMATCH'));
-  if (typeof approval.sourceSha256 !== 'string' || approval.sourceSha256.toLowerCase() !== String(asset.provenance?.sourceSha256 ?? '').toLowerCase()) issues.push(issue(`${field}.sourceSha256`, 'must bind the source provenance bytes', 'APPROVAL_BINDING_MISMATCH'));
-}
-
-function assertLicense(license, field, issues) {
-  if (typeof license === 'string') {
-    assertNonEmptyString(license, field, issues);
-    return;
-  }
-  if (!isObject(license)) {
-    issues.push(issue(field, 'a license record is required', 'MISSING_LICENSE'));
-    return;
-  }
-  for (const key of Object.keys(license)) if (!['spdx', 'name', 'holder'].includes(key)) issues.push(issue(`${field}.${key}`, 'unknown license field', 'INVALID_LICENSE'));
-  if (typeof license.spdx !== 'string' && typeof license.name !== 'string') {
-    issues.push(issue(field, 'must include spdx or name', 'MISSING_LICENSE'));
-  }
-  if (license.spdx !== undefined && typeof license.spdx !== 'string') {
-    issues.push(issue(`${field}.spdx`, 'must be a string', 'INVALID_LICENSE'));
-  }
-  if (license.holder !== undefined && typeof license.holder !== 'string') {
-    issues.push(issue(`${field}.holder`, 'must be a string when present', 'INVALID_LICENSE'));
-  }
-  for (const key of ['spdx', 'name', 'holder']) if (license[key] !== undefined) assertNonEmptyString(license[key], `${field}.${key}`, issues);
-}
-
-function assertProvenance(provenance, field, issues) {
-  if (!isObject(provenance)) {
-    issues.push(issue(field, 'a provenance record is required', 'MISSING_PROVENANCE'));
-    return;
-  }
-  const allowed = ['source', 'sourceSha256', 'kind', 'custody', 'evidence'];
-  for (const key of Object.keys(provenance)) if (!allowed.includes(key)) issues.push(issue(`${field}.${key}`, 'unknown provenance field', 'INVALID_PROVENANCE'));
-  assertNonEmptyString(provenance.source, `${field}.source`, issues);
-  if (provenance.kind !== undefined && typeof provenance.kind !== 'string') {
-    issues.push(issue(`${field}.kind`, 'must be a string when present', 'INVALID_PROVENANCE'));
-  }
-  if (provenance.custody !== undefined && typeof provenance.custody !== 'string') issues.push(issue(`${field}.custody`, 'must be a string when present', 'INVALID_PROVENANCE'));
-  for (const key of ['kind', 'custody']) if (provenance[key] !== undefined) assertNonEmptyString(provenance[key], `${field}.${key}`, issues);
-  if (typeof provenance.sourceSha256 !== 'string' || !SHA256_RE.test(provenance.sourceSha256)) {
-    issues.push(issue(`${field}.sourceSha256`, 'must be a 64-character SHA-256', 'INVALID_HASH'));
-  }
-  if (provenance.evidence !== undefined && !EVIDENCE_STATES.has(provenance.evidence)) {
-    issues.push(issue(`${field}.evidence`, 'must be observed, inferred, or unknown', 'INVALID_EVIDENCE_STATE'));
-  }
-}
-
 function assertNoFallback(value, field, issues) {
   if (!isObject(value)) return;
   for (const key of ['fallback', 'fallbackAsset', 'fallbackAssetId', 'fallbackPath', 'default', 'defaultAssetId', 'placeholder', 'placeholderAssetId']) {
@@ -372,17 +305,11 @@ function validateAssetShape(asset, index) {
     issues.push(issue(field, 'must be an object', 'INVALID_ASSET'));
     return issues;
   }
-  const allowedAssetKeys = ['id', 'version', 'status', 'accepted', 'path', 'url', 'sha256', 'dimensions', 'pivot', 'usage', 'license', 'provenance', 'approval'];
+  const allowedAssetKeys = ['id', 'version', 'path', 'url', 'sha256', 'dimensions', 'pivot', 'usage'];
   for (const key of Object.keys(asset)) if (!allowedAssetKeys.includes(key)) issues.push(issue(`${field}.${key}`, 'unknown asset field', 'INVALID_ASSET_FIELD'));
   assertNoFallback(asset, field, issues);
   assertNonEmptyString(asset.id, `${field}.id`, issues);
   assertSemver(asset.version, `${field}.version`, issues);
-  if (asset.status !== 'accepted') {
-    issues.push(issue(`${field}.status`, 'must be exactly accepted', 'ASSET_NOT_ACCEPTED'));
-  }
-  if (asset.accepted !== true) {
-    issues.push(issue(`${field}.accepted`, 'must be true', 'ASSET_NOT_ACCEPTED'));
-  }
   assertRelativeAssetPath(asset.path, `${field}.path`, issues);
   if (asset.url !== undefined) assertLocalAssetUrl(asset.url, asset.path, `${field}.url`, issues);
   if (typeof asset.sha256 !== 'string' || !SHA256_RE.test(asset.sha256)) {
@@ -414,10 +341,15 @@ function validateAssetShape(asset, index) {
         (asset.pivot.y < 0 || asset.pivot.y >= asset.dimensions.height)) {
       issues.push(issue(`${field}.pivot.y`, 'must lie inside the declared height', 'INVALID_PIVOT'));
     }
+    if (isObject(asset.usage?.frame) && Number.isInteger(asset.usage.frame.width)
+      && Number.isInteger(asset.pivot.x) && asset.pivot.x >= asset.usage.frame.width) {
+      issues.push(issue(`${field}.pivot.x`, 'must lie inside one authored frame', 'INVALID_FRAME_PIVOT'));
+    }
+    if (isObject(asset.usage?.frame) && Number.isInteger(asset.usage.frame.height)
+      && Number.isInteger(asset.pivot.y) && asset.pivot.y >= asset.usage.frame.height) {
+      issues.push(issue(`${field}.pivot.y`, 'must lie inside one authored frame', 'INVALID_FRAME_PIVOT'));
+    }
   }
-  assertLicense(asset.license, `${field}.license`, issues);
-  assertProvenance(asset.provenance, `${field}.provenance`, issues);
-  assertApproval(asset.approval, asset, `${field}.approval`, issues);
   return issues;
 }
 
@@ -458,7 +390,7 @@ function normalizeManifestInput(manifest) {
     }
   }
   if (issues.length > 0) {
-    fail('Asset manifest failed the acceptance contract', {
+    fail('Asset manifest failed the shipping contract', {
       code: 'ASSET_MANIFEST_INVALID',
       issues
     });
@@ -587,33 +519,6 @@ function readRegularFile(filePath, maxBytes = MAX_ASSET_FILE_BYTES) {
   }
 }
 
-function readRootedRegularFile(assetRoot, relativePath, maxBytes = MAX_ASSET_FILE_BYTES) {
-  const asset = { id: 'direct-read', path: relativePath };
-  const absolute = resolveInsideRoot(assetRoot, relativePath);
-  const root = path.resolve(assetRoot);
-  rejectSymlinkComponents(root, absolute, asset);
-  let descriptor;
-  try {
-    descriptor = fs.openSync(absolute, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW ?? 0));
-    const openedStat = fs.fstatSync(descriptor);
-    const realRoot = fs.realpathSync(root);
-    const realAsset = fs.realpathSync(absolute);
-    const canonicalStat = fs.lstatSync(realAsset);
-    if (realAsset !== realRoot && !realAsset.startsWith(`${realRoot}${path.sep}`)) fail('Asset resolves outside its root', { code: 'UNSAFE_ASSET_PATH', issues: [issue(relativePath, 'opened file resolves outside the asset root', 'UNSAFE_PATH')] });
-    if (!canonicalStat.isFile() || canonicalStat.dev !== openedStat.dev || canonicalStat.ino !== openedStat.ino) fail('Asset changed during validation', { code: 'ASSET_FILE_CHANGED', issues: [issue(relativePath, 'opened descriptor no longer matches the canonical path', 'ASSET_FILE_CHANGED')] });
-    return readOpenedBytes(descriptor, openedStat, relativePath, maxBytes);
-  } catch (error) {
-    if (error instanceof AssetContractError) throw error;
-    fail('Asset cannot be opened safely inside its root', { code: 'ASSET_FILE_INVALID', issues: [issue(relativePath, 'file cannot be opened without following a symlink', 'ASSET_FILE_INVALID')] });
-  } finally {
-    if (descriptor !== undefined) fs.closeSync(descriptor);
-  }
-}
-
-export function readPngMetadata(assetRoot, relativePath) {
-  return parsePngBytes(readRootedRegularFile(assetRoot, relativePath), relativePath);
-}
-
 function resolveInsideRoot(assetRoot, relativePath) {
   const root = path.resolve(assetRoot);
   const absolute = path.resolve(root, relativePath);
@@ -653,9 +558,9 @@ function rejectSymlinkComponents(root, absolute, asset) {
       return;
     }
     if (stat.isSymbolicLink()) {
-      fail(`Approved asset path must not contain symlinks: ${asset.path}`, {
+      fail(`Shipping asset path must not contain symlinks: ${asset.path}`, {
         code: 'ASSET_FILE_INVALID',
-        issues: [issue(`assets.${asset.id}.path`, 'symlink path components are forbidden for approved assets', 'ASSET_SYMLINK_FORBIDDEN')]
+        issues: [issue(`assets.${asset.id}.path`, 'symlink path components are forbidden for shipping assets', 'ASSET_SYMLINK_FORBIDDEN')]
       });
     }
   }
@@ -668,7 +573,7 @@ function verifyAssetFile(asset, assetRoot) {
   try {
     descriptor = fs.openSync(absolute, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW ?? 0));
   } catch (error) {
-    fail(`Approved asset file is missing: ${asset.path}`, {
+    fail(`Shipping asset file is missing: ${asset.path}`, {
       code: 'ASSET_FILE_MISSING',
       issues: [issue(`assets.${asset.id}.path`, error.code === 'ENOENT' ? 'file does not exist' : 'file cannot be opened without following a symlink', 'ASSET_FILE_MISSING')]
     });
@@ -678,19 +583,19 @@ function verifyAssetFile(asset, assetRoot) {
     const realRoot = fs.realpathSync(path.resolve(assetRoot));
     const realAsset = fs.realpathSync(absolute);
     const canonicalStat = fs.lstatSync(realAsset);
-    if (realAsset !== realRoot && !realAsset.startsWith(`${realRoot}${path.sep}`)) fail(`Approved asset resolves outside the asset root: ${asset.path}`, { code: 'UNSAFE_ASSET_PATH', issues: [issue(`assets.${asset.id}.path`, 'opened file resolves outside the asset root', 'UNSAFE_PATH')] });
-    if (!canonicalStat.isFile() || canonicalStat.dev !== openedStat.dev || canonicalStat.ino !== openedStat.ino) fail(`Approved asset changed during validation: ${asset.path}`, { code: 'ASSET_FILE_CHANGED', issues: [issue(`assets.${asset.id}.path`, 'opened descriptor no longer matches the canonical path', 'ASSET_FILE_CHANGED')] });
+    if (realAsset !== realRoot && !realAsset.startsWith(`${realRoot}${path.sep}`)) fail(`Shipping asset resolves outside the asset root: ${asset.path}`, { code: 'UNSAFE_ASSET_PATH', issues: [issue(`assets.${asset.id}.path`, 'opened file resolves outside the asset root', 'UNSAFE_PATH')] });
+    if (!canonicalStat.isFile() || canonicalStat.dev !== openedStat.dev || canonicalStat.ino !== openedStat.ino) fail(`Shipping asset changed during validation: ${asset.path}`, { code: 'ASSET_FILE_CHANGED', issues: [issue(`assets.${asset.id}.path`, 'opened descriptor no longer matches the canonical path', 'ASSET_FILE_CHANGED')] });
     const bytes = readOpenedBytes(descriptor, openedStat, `assets.${asset.id}.path`);
     const dimensions = parsePngBytes(bytes, `assets.${asset.id}.path`);
     const actualSha256 = crypto.createHash('sha256').update(bytes).digest('hex');
     const issues = [];
     if (actualSha256.toLowerCase() !== asset.sha256.toLowerCase()) issues.push(issue(`assets.${asset.id}.sha256`, `expected ${asset.sha256}, got ${actualSha256}`, 'SHA256_MISMATCH'));
     if (dimensions.width !== asset.dimensions.width || dimensions.height !== asset.dimensions.height) issues.push(issue(`assets.${asset.id}.dimensions`, `expected ${asset.dimensions.width}x${asset.dimensions.height}, got ${dimensions.width}x${dimensions.height}`, 'DIMENSIONS_MISMATCH'));
-    if (issues.length > 0) fail(`Approved asset bytes do not match the manifest: ${asset.id}`, { code: 'ASSET_FILE_MISMATCH', issues });
+    if (issues.length > 0) fail(`Shipping asset bytes do not match the manifest: ${asset.id}`, { code: 'ASSET_FILE_MISMATCH', issues });
     return Object.freeze({ dimensions, sha256: actualSha256, byteLength: bytes.length });
   } catch (error) {
     if (error instanceof AssetContractError) throw error;
-    fail(`Approved asset path cannot be resolved safely: ${asset.path}`, { code: 'ASSET_FILE_INVALID', issues: [issue(`assets.${asset.id}.path`, 'asset path changed or cannot be resolved safely', 'ASSET_REALPATH_INVALID')] });
+    fail(`Shipping asset path cannot be resolved safely: ${asset.path}`, { code: 'ASSET_FILE_INVALID', issues: [issue(`assets.${asset.id}.path`, 'asset path changed or cannot be resolved safely', 'ASSET_REALPATH_INVALID')] });
   } finally {
     if (descriptor !== undefined) fs.closeSync(descriptor);
   }
@@ -713,7 +618,7 @@ export function validateAssetManifest(manifest, assetRoot) {
       totalBytes += file.byteLength;
       countedPaths.add(asset.path);
     }
-    if (totalBytes > MAX_ASSET_TOTAL_BYTES) fail('Approved assets exceed the shipping budget', { code: 'ASSET_TOTAL_TOO_LARGE', issues: [issue('$.assets', `unique files must total at most ${MAX_ASSET_TOTAL_BYTES} bytes`, 'ASSET_TOTAL_TOO_LARGE')] });
+    if (totalBytes > MAX_ASSET_TOTAL_BYTES) fail('Shipping assets exceed the shipping budget', { code: 'ASSET_TOTAL_TOO_LARGE', issues: [issue('$.assets', `unique files must total at most ${MAX_ASSET_TOTAL_BYTES} bytes`, 'ASSET_TOTAL_TOO_LARGE')] });
   }
   const validated = cloneAndFreeze(normalized);
   VALIDATED_MANIFESTS.add(validated);
@@ -732,7 +637,7 @@ export function loadAssetManifest(manifestPath, assetRoot) {
 }
 
 /**
- * Resolve exactly one accepted asset. Missing IDs are hard errors; no fallback
+ * Resolve exactly one shipping asset. Missing IDs are hard errors; no fallback
  * or placeholder is ever selected.
  */
 export function resolveAsset(manifest, assetId, assetRoot) {
@@ -753,7 +658,7 @@ export function resolveAsset(manifest, assetId, assetRoot) {
   }
   const asset = validated.assets.find((candidate) => candidate.id === assetId);
   if (!asset) {
-    fail(`Approved asset is not present in the manifest: ${assetId}`, {
+    fail(`Shipping asset is not present in the manifest: ${assetId}`, {
       code: 'ASSET_NOT_FOUND',
       issues: [issue(`assets.${assetId}`, 'no fallback is permitted', 'ASSET_NOT_FOUND')]
     });
@@ -767,9 +672,6 @@ export function resolveAsset(manifest, assetId, assetRoot) {
     sha256: asset.sha256.toLowerCase(),
     dimensions: { ...asset.dimensions },
     pivot: { ...asset.pivot },
-    usage: structuredClone(asset.usage),
-    license: typeof asset.license === 'string' ? asset.license : { ...asset.license },
-    provenance: { ...asset.provenance },
-    approval: { ...asset.approval }
+    usage: structuredClone(asset.usage)
   });
 }

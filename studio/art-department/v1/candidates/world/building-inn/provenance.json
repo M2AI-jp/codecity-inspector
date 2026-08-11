@@ -4,7 +4,6 @@
   "selector": "building:inn",
   "candidatePath": "building-inn/building-inn.png",
   "candidateSha256": "168b4e301a044f02296b0f8f6dff4fc6af7f76053f16a6e102c625a7113cc895",
-  "candidateByteLength": 24695,
   "source": {
     "sourceOriginal": "building_inn_sheet.png",
     "sourceRect": [
@@ -22,7 +21,6 @@
     ],
     "sourceSha256": "78b18d8ee84c8bd57444babe6923cdb3b16fcfcf592ebbf3411df74bd16c069a"
   },
-  "reuse": null,
   "transform": {
     "kind": "deterministic-local",
     "steps": [
@@ -35,16 +33,11 @@
   },
   "dimensions": {
     "width": 192,
-    "height": 192,
-    "opaquePixels": 12058,
-    "transparentPixels": 24806,
-    "semiTransparentPixels": 0,
-    "colors": 24
+    "height": 192
   },
   "alpha": {
     "state": "observed",
-    "mode": "binary",
-    "transparentPixels": 24806
+    "mode": "binary"
   },
   "pivot": {
     "state": "inferred",
@@ -57,23 +50,5 @@
     "height": 192,
     "columns": 1,
     "rows": 1
-  },
-  "mechanical": {
-    "state": "failed",
-    "palette": "observed palette-v2",
-    "dimensions": "observed",
-    "alpha": "observed-binary",
-    "seams": "not_applicable",
-    "humanApproval": "unknown",
-    "failureCodes": [
-      "G6_LIGHT_DIRECTION",
-      "G8_ISOLATED_PIXELS"
-    ],
-    "unknownCodes": []
-  },
-  "review": {
-    "entryPath": "building-inn/review.json",
-    "contactSheetPath": "review/contact-sheet.webp",
-    "ownerDecision": "unknown"
   }
 }

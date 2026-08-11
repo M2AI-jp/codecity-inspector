@@ -3,6 +3,5 @@
   "schemaVersion": 1,
   "name": "Owner-authorized CodeCity v1 product use",
   "holder": "CodeCity owner",
-  "appliesToManifestVersion": "1.0.0",
-  "assetCount": 60
+  "appliesToManifestVersion": "2.0.0"
 }

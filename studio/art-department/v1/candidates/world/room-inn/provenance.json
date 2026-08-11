@@ -4,7 +4,6 @@
   "selector": "room:inn",
   "candidatePath": "room-inn/room-inn.png",
   "candidateSha256": "b9ffc8402b74cfb7d18eef573e86232123e18d4f993e6efca2e2a8838cf7e75c",
-  "candidateByteLength": 17973,
   "source": {
     "sourceOriginal": "target-town.png",
     "sourceRect": [
@@ -22,7 +21,6 @@
     ],
     "sourceSha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607"
   },
-  "reuse": null,
   "transform": {
     "kind": "deterministic-local",
     "steps": [
@@ -35,16 +33,11 @@
   },
   "dimensions": {
     "width": 192,
-    "height": 192,
-    "opaquePixels": 36864,
-    "transparentPixels": 0,
-    "semiTransparentPixels": 0,
-    "colors": 24
+    "height": 192
   },
   "alpha": {
     "state": "observed",
-    "mode": "binary",
-    "transparentPixels": 0
+    "mode": "binary"
   },
   "pivot": {
     "state": "inferred",
@@ -57,19 +50,5 @@
     "height": 192,
     "columns": 1,
     "rows": 1
-  },
-  "mechanical": {
-    "state": "passed",
-    "palette": "passed: palette-v2 (24 colors)",
-    "dimensions": "passed: 192x192",
-    "alpha": "passed: binary RGBA",
-    "seams": "not_applicable",
-    "humanApproval": "unknown",
-    "visualRoleDifferentiation": "unknown"
-  },
-  "review": {
-    "entryPath": "room-inn/review.json",
-    "contactSheetPath": "review/contact-sheet.webp",
-    "ownerDecision": "unknown"
   }
 }

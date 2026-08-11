@@ -9,17 +9,23 @@
 - It is the only product specification and remaining-work list.
 - Do not restore requirements, assets, or implementations from Git history.
 - Do not create another roadmap, SSOT, product diagram, backlog, or historical
-  report. Update the checkbox and evidence of the assigned PRODUCT.md item.
+  report. Do not create an evidence record for an incomplete product. Keep the
+  PRODUCT.md item unchecked until the exact packed game supplies the defined
+  qualitative experience.
+- While the game is incomplete, do not delete a file only because it lacks an
+  inbound reference, a count or hash, or a test status. Judge its qualitative
+  causal role, unique production knowledge, safety role, or custody role in
+  the final game, as required by PRODUCT.md.
 
-## Product KGI
+## Product completion
 
 The product is complete only when an end user can point `npx codecity` at their
 own repository and play the generated town through request, three
 investigations, report, observed town change, exit, and revisit in a real
 browser. A folder, contract, test, backend, asset, approval, or partial demo is
-never the product KGI by itself.
+never the product completion by itself.
 
-## Safety and evidence
+## Safety
 
 - Keep every inspected repository read-only. Never execute its source, tests,
   hooks, binaries, or package manager.
@@ -27,7 +33,8 @@ never the product KGI by itself.
 - Preserve `observed`, `inferred`, and `unknown` as different states at every
   contract, UI, and dialogue boundary. Untested is not broken.
 - The 22 files under `art/references/user-provided/` are immutable originals.
-- Only the human owner may promote an asset from candidate to approved master.
+- Only the human owner may authorize new exact bytes under
+  `ship/50-art/assets/`.
 
 ## Module boundaries
 
@@ -38,7 +45,7 @@ never the product KGI by itself.
 - `40-worldgen` produces logical world data and never imports images, Canvas,
   DOM, server, or CLI code.
 - `60-scene-compiler` is the only shipping module that may join a WorldPlan to
-  an approved Asset Manifest.
+  the shipping Asset Manifest.
 - `70-game-runtime` consumes a serialized SceneBundle. It never inspects a
   repository.
 - Shipping code never imports from `studio/`.

@@ -1,5 +1,3 @@
-import { createHash } from 'node:crypto';
-
 import {
   EVIDENCE_STATES,
 } from '../configuration/semantic-config.mjs';
@@ -10,10 +8,6 @@ export function isRecord(value) {
 
 export function asNonEmptyString(value) {
   return typeof value === 'string' && value.length > 0 ? value : null;
-}
-
-export function asFiniteNonNegativeInteger(value) {
-  return Number.isSafeInteger(value) && value >= 0 ? value : null;
 }
 
 export function sortedUniqueStrings(values) {
@@ -76,55 +70,6 @@ export function mergeEvidence(...bags) {
     result[state] = sortedUniqueStrings(result[state]);
   }
   return result;
-}
-
-/**
- * A canonical JSON representation. Object keys and arrays are sorted so a
- * report assembled in a different traversal order yields the same digest.
- * The input is never modified.
- */
-function canonicalize(value) {
-  if (value === null || typeof value === 'string' || typeof value === 'boolean') {
-    return value;
-  }
-  if (typeof value === 'number') {
-    return Number.isFinite(value) ? value : null;
-  }
-  if (typeof value === 'bigint') {
-    return value.toString();
-  }
-  if (typeof value === 'undefined') {
-    return null;
-  }
-  if (Array.isArray(value)) {
-    const values = value.map(canonicalize);
-    values.sort((left, right) => {
-      const leftJSON = JSON.stringify(left);
-      const rightJSON = JSON.stringify(right);
-      return leftJSON < rightJSON ? -1 : leftJSON > rightJSON ? 1 : 0;
-    });
-    return values;
-  }
-  if (isRecord(value)) {
-    const result = {};
-    for (const key of Object.keys(value).sort()) {
-      result[key] = canonicalize(value[key]);
-    }
-    return result;
-  }
-  return String(value);
-}
-
-function canonicalJSON(value) {
-  return JSON.stringify(canonicalize(value));
-}
-
-function sha256(value) {
-  return createHash('sha256').update(value, 'utf8').digest('hex');
-}
-
-export function canonicalDigest(value) {
-  return sha256(canonicalJSON(value));
 }
 
 function compareStrings(left, right) {

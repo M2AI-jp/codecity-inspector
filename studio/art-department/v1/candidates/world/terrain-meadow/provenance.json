@@ -4,7 +4,6 @@
   "selector": "terrain:meadow",
   "candidatePath": "terrain-meadow/terrain-meadow.png",
   "candidateSha256": "c599763f8577563797f598f82610350fcb5049badfff5ebf22d68065d3c6a4b6",
-  "candidateByteLength": 831,
   "source": {
     "sourceOriginal": "target-town.png",
     "sourceRect": [
@@ -22,7 +21,6 @@
     ],
     "sourceSha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607"
   },
-  "reuse": null,
   "transform": {
     "kind": "deterministic-local",
     "steps": [
@@ -34,16 +32,11 @@
   },
   "dimensions": {
     "width": 64,
-    "height": 64,
-    "opaquePixels": 4096,
-    "transparentPixels": 0,
-    "semiTransparentPixels": 0,
-    "colors": 14
+    "height": 64
   },
   "alpha": {
     "state": "observed",
-    "mode": "binary",
-    "transparentPixels": 0
+    "mode": "binary"
   },
   "pivot": {
     "state": "inferred",
@@ -57,23 +50,24 @@
     "columns": 1,
     "rows": 1
   },
-  "mechanical": {
-    "state": "failed",
-    "palette": "observed palette-v2",
-    "dimensions": "observed",
-    "alpha": "observed-binary",
-    "seams": "self seams passed; declared-neighbor G10 failed",
-    "humanApproval": "unknown",
-    "failureCodes": [
-      "G6_LIGHT_DIRECTION",
-      "G8_ISOLATED_PIXELS",
-      "G10_SEAM_MISMATCH"
-    ],
-    "unknownCodes": []
-  },
-  "review": {
-    "entryPath": "terrain-meadow/review.json",
-    "contactSheetPath": "review/contact-sheet.webp",
-    "ownerDecision": "unknown"
+  "tile": {
+    "neighbors": [
+      {
+        "side": "left",
+        "path": "terrain-plain/terrain-plain.png"
+      },
+      {
+        "side": "right",
+        "path": "terrain-plain/terrain-plain.png"
+      },
+      {
+        "side": "top",
+        "path": "terrain-plain/terrain-plain.png"
+      },
+      {
+        "side": "bottom",
+        "path": "terrain-plain/terrain-plain.png"
+      }
+    ]
   }
 }

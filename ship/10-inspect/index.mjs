@@ -73,6 +73,7 @@ const LANGUAGE_BY_EXTENSION = new Map([
   ['.cc', 'cpp'],
   ['.cpp', 'cpp'],
   ['.cs', 'csharp'],
+  ['.cts', 'typescript'],
   ['.css', 'css'],
   ['.go', 'go'],
   ['.h', 'c'],
@@ -81,6 +82,7 @@ const LANGUAGE_BY_EXTENSION = new Map([
   ['.java', 'java'],
   ['.js', 'javascript'],
   ['.jsx', 'javascript'],
+  ['.cjs', 'javascript'],
   ['.json', 'json'],
   ['.kt', 'kotlin'],
   ['.mjs', 'javascript'],
@@ -134,6 +136,8 @@ const TEXT_SOURCE_EXTENSIONS = new Set([
   '.cc',
   '.cpp',
   '.cs',
+  '.cts',
+  '.cjs',
   '.go',
   '.h',
   '.hpp',
@@ -154,11 +158,16 @@ const TEXT_SOURCE_EXTENSIONS = new Set([
   '.vue',
 ]);
 
-const IMPORT_PATTERNS = [
-  /\bimport\s+(?:[\s\S]*?\s+from\s+)?["']([^"']+)["']/g,
-  /\bexport\s+[\s\S]*?\s+from\s+["']([^"']+)["']/g,
-  /\b(?:require|import)\s*\(\s*["']([^"']+)["']\s*\)/g,
-];
+// Basename test/spec markers are meaningful for implementation files only.
+// JSON/YAML/TOML documents such as openapi.spec.json are descriptions or
+// metadata unless they sit under an actual test directory.
+const TEST_MARKER_EXTENSIONS = new Set([
+  ...TEXT_SOURCE_EXTENSIONS,
+  '.css', '.html', '.kt', '.xml',
+]);
+const IMPORT_SYNTAX_EXTENSIONS = new Set([
+  '.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx', '.mts', '.cts',
+]);
 
 const SOURCE_FILE_EXTENSIONS = [
   '',
@@ -167,6 +176,7 @@ const SOURCE_FILE_EXTENSIONS = [
   '.cjs',
   '.ts',
   '.mts',
+  '.cts',
   '.tsx',
   '.jsx',
   '.json',
@@ -205,10 +215,39 @@ function extensionOf(relativePathValue) {
 function isTestPath(relativePathValue) {
   const segments = relativePathValue.toLowerCase().split('/');
   const basename = segments.at(-1) ?? '';
-  return segments.includes('test')
-    || segments.includes('tests')
-    || segments.includes('__tests__')
-    || /(?:^|[._-])(test|spec)(?:[._-]|$)/.test(basename);
+  const extension = extensionOf(relativePathValue);
+  const directories = segments.slice(0, -1);
+  const documentationDirectory = directories.includes('doc')
+    || directories.includes('docs')
+    || directories.includes('documentation');
+  const sourceTestDirectory = directories.includes('test')
+    || directories.includes('tests')
+    || directories.includes('__tests__')
+    || directories.includes('__test__')
+    || directories.includes('spec')
+    || directories.includes('specs')
+    || directories.includes('__snapshots__')
+    || directories.includes('fixtures')
+    || directories.includes('__fixtures__')
+    || (!documentationDirectory && directories.some((directory) => directory
+      .split(/[^a-z0-9]+/u)
+      .filter(Boolean)
+      .some((token) => ['test', 'tests', 'spec', 'specs'].includes(token))));
+  if (sourceTestDirectory) return true;
+  // Documentation extensions/kinds win over basename test/spec markers. A
+  // documentation fixture under an actual test directory remains a test
+  // artifact via the branch above.
+  if (DOCUMENTATION_EXTENSIONS.has(extension)
+      || basename === 'readme'
+      || basename.startsWith('readme.')) return false;
+  // Documentation trees can contain filenames such as `test-plan`; their prose
+  // title is not a test implementation. Explicit markers in a source path
+  // remain test evidence.
+  if (documentationDirectory) {
+    return false;
+  }
+  if (!TEST_MARKER_EXTENSIONS.has(extension)) return false;
+  return /(?:^|[._-])(test|spec)(?:[._-]|$)/.test(basename);
 }
 
 function manifestInfo(relativePathValue) {
@@ -336,20 +375,172 @@ function packageDependencyEntries(manifest) {
 }
 
 function extractImportSpecifiers(text) {
+  const tokens = lexicalImportTokens(text);
   const result = new Set();
-  for (const pattern of IMPORT_PATTERNS) {
-    pattern.lastIndex = 0;
-    let match;
-    while ((match = pattern.exec(text)) !== null) {
-      if (typeof match[1] === 'string' && match[1].length > 0 && match[1].length <= 512) {
-        result.add(match[1]);
+  for (let index = 0; index < tokens.length; index += 1) {
+    const token = tokens[index];
+    if (token.type !== 'identifier') continue;
+    if ((token.value === 'require' || token.value === 'import')
+        && isCallExpressionStart(tokens, index)) {
+      const openIndex = nextCodeTokenIndex(tokens, index + 1);
+      const open = tokens[openIndex];
+      if (open?.value === '(') {
+        const argument = tokens[nextCodeTokenIndex(tokens, openIndex + 1)];
+        if (argument?.type === 'string') addImportSpecifier(result, argument.value);
+        continue;
       }
-      // A zero-width match would otherwise loop forever if a future pattern is
-      // changed.  Current patterns are non-empty, but this is cheap insurance.
-      if (match.index === pattern.lastIndex) pattern.lastIndex += 1;
+    }
+    if ((token.value === 'import' || token.value === 'export')
+        && isStatementBoundary(tokens, index)) {
+      const next = tokens[nextCodeTokenIndex(tokens, index + 1)];
+      if (token.value === 'import' && next?.type === 'string') {
+        addImportSpecifier(result, next.value);
+        continue;
+      }
+      if (token.value === 'export' && ['function', 'class', 'const', 'let', 'var', 'default'].includes(next?.value)) {
+        continue;
+      }
+      for (let cursor = index + 1; cursor < tokens.length; cursor += 1) {
+        const current = tokens[cursor];
+        if (current.value === ';') break;
+        if (current.type === 'identifier' && current.value === 'from') {
+          const source = tokens[cursor + 1];
+          if (source?.type === 'string') addImportSpecifier(result, source.value);
+          break;
+        }
+      }
     }
   }
   return sortStrings(result);
+}
+
+function isCallExpressionStart(tokens, index) {
+  const previous = tokens[index - 1];
+  if (!previous || previous.type === 'newline') return true;
+  if (previous.type === 'identifier') {
+    return new Set(['return', 'throw', 'await', 'yield', 'case', 'else', 'do']).has(previous.value);
+  }
+  return new Set(['=', '(', '[', '{', ',', ';']).has(previous.value);
+}
+
+function isStatementBoundary(tokens, index) {
+  const previous = tokens[index - 1];
+  if (!previous || previous.type === 'newline') return true;
+  return previous.type === 'punctuation' && new Set([';', '}', ')', ']']).has(previous.value);
+}
+
+function nextCodeTokenIndex(tokens, start) {
+  let index = start;
+  while (tokens[index]?.type === 'newline') index += 1;
+  return index;
+}
+
+function addImportSpecifier(result, value) {
+  if (typeof value === 'string' && value.length > 0 && value.length <= 512) result.add(value);
+}
+
+function lexicalImportTokens(text) {
+  const tokens = [];
+  let index = 0;
+  while (index < text.length) {
+    const character = text[index];
+    if (/\s/u.test(character)) {
+      if (character === '\n') tokens.push({ type: 'newline', value: '\n' });
+      index += 1;
+      continue;
+    }
+    if (character === '/' && text[index + 1] === '/') {
+      index += 2;
+      while (index < text.length && text[index] !== '\n') index += 1;
+      continue;
+    }
+    if (character === '/' && text[index + 1] === '*') {
+      index += 2;
+      while (index < text.length) {
+        if (text[index] === '*' && text[index + 1] === '/') {
+          index += 2;
+          break;
+        }
+        if (text[index] === '\n') tokens.push({ type: 'newline', value: '\n' });
+        index += 1;
+      }
+      continue;
+    }
+    if (character === '/' && isRegexLiteralStart(tokens)) {
+      index = skipRegexLiteral(text, index);
+      continue;
+    }
+    if (character === '\'' || character === '"' || character === '`') {
+      const quote = character;
+      let value = '';
+      index += 1;
+      while (index < text.length) {
+        const current = text[index];
+        if (current === '\\' && index + 1 < text.length) {
+          value += text[index + 1];
+          index += 2;
+          continue;
+        }
+        if (current === quote) {
+          index += 1;
+          break;
+        }
+        value += current;
+        index += 1;
+      }
+      tokens.push({ type: 'string', value });
+      continue;
+    }
+    if (/[A-Za-z_$]/u.test(character)) {
+      const start = index;
+      index += 1;
+      while (index < text.length && /[A-Za-z0-9_$]/u.test(text[index])) index += 1;
+      tokens.push({ type: 'identifier', value: text.slice(start, index) });
+      continue;
+    }
+    tokens.push({ type: 'punctuation', value: character });
+    index += 1;
+  }
+  return tokens;
+}
+
+function isRegexLiteralStart(tokens) {
+  const previous = tokens.at(-1);
+  if (!previous || previous.type === 'newline') return true;
+  if (previous.type === 'identifier') {
+    return new Set(['return', 'case', 'throw', 'delete', 'void', 'typeof', 'instanceof', 'in', 'of', 'yield', 'await', 'else', 'do']).has(previous.value);
+  }
+  return new Set(['=', '(', '[', '{', ',', ':', ';', '!', '&', '|', '?', '+', '-', '%', '*', '^', '~', '<']).has(previous.value);
+}
+
+function skipRegexLiteral(text, start) {
+  let index = start + 1;
+  let inCharacterClass = false;
+  while (index < text.length) {
+    const character = text[index];
+    if (character === '\\') {
+      index += 2;
+      continue;
+    }
+    if (character === '[') {
+      inCharacterClass = true;
+      index += 1;
+      continue;
+    }
+    if (character === ']') {
+      inCharacterClass = false;
+      index += 1;
+      continue;
+    }
+    if (character === '/' && !inCharacterClass) {
+      index += 1;
+      while (/[A-Za-z]/u.test(text[index] ?? '')) index += 1;
+      return index;
+    }
+    if (character === '\n' || character === '\r') return start + 1;
+    index += 1;
+  }
+  return index;
 }
 
 function resolveLocalImport(fromPath, specifier, fileByPath) {
@@ -487,7 +678,7 @@ async function readBoundedFile(filePath, maxBytes, canonicalRoot) {
     handle = await fs.open(filePath, fsConstants.O_RDONLY | NOFOLLOW);
     const openedStat = await handle.stat();
     if (!openedStat.isFile()) return { ok: false, reason: 'not-a-regular-file' };
-    if (openedStat.size > maxBytes) return { ok: false, reason: 'file-byte-limit', sizeBytes: openedStat.size };
+    if (openedStat.size > maxBytes) return { ok: false, reason: 'file-byte-limit' };
     const verified = await verifiedStatInsideRoot(filePath, canonicalRoot);
     if (!verified.ok) return verified;
     if (verified.stat.dev !== openedStat.dev || verified.stat.ino !== openedStat.ino) return { ok: false, reason: 'path-changed' };
@@ -508,7 +699,7 @@ async function readBoundedFile(filePath, maxBytes, canonicalRoot) {
     if (finalStat.dev !== openedStat.dev || finalStat.ino !== openedStat.ino || finalStat.size !== openedStat.size || finalStat.mtimeMs !== openedStat.mtimeMs) {
       return { ok: false, reason: 'file-changed' };
     }
-    return { ok: true, bytes: Buffer.concat(chunks), sizeBytes: openedStat.size };
+    return { ok: true, bytes: Buffer.concat(chunks) };
   } catch (error) {
     return { ok: false, reason: error?.code || 'read-failed' };
   } finally {
@@ -554,7 +745,6 @@ function emptyReport(name, identity, unknown = []) {
   return {
     schemaVersion: INSPECTION_REPORT_SCHEMA_VERSION,
     repository: { name, identity },
-    summary: { filesDiscovered: 0, filesInspected: 0, truncated: false },
     files: [],
     graph: { nodes: [], edges: [], entrypoints: [] },
     manifests: [],
@@ -624,7 +814,6 @@ export async function inspectRepository(root) {
   const contentByPath = new Map();
   let filesDiscovered = 0;
   let bytesRead = 0;
-  let truncated = false;
   const fileByPath = new Map();
 
   const noteUnknown = (item) => unknown.push(item);
@@ -650,7 +839,6 @@ export async function inspectRepository(root) {
     }
     entries.sort((a, b) => compareStrings(a.name, b.name));
     if (entries.length > limits.maxEntriesPerDirectory) {
-      truncated = true;
       noteUnknown(unknownEntry({
         id: `unknown:entries:${directoryRelativePath || '.'}`,
         claim: 'directory.contents',
@@ -697,7 +885,6 @@ export async function inspectRepository(root) {
           continue;
         }
         if (depth >= limits.maxDepth) {
-          truncated = true;
           noteUnknown(unknownEntry({
             id: `unknown:depth:${entryRelativePath}`,
             claim: 'directory.contents',
@@ -720,7 +907,6 @@ export async function inspectRepository(root) {
         continue;
       }
       if (filesDiscovered >= limits.maxFiles) {
-        truncated = true;
         noteUnknown(unknownEntry({
           id: `unknown:file-limit:${entryRelativePath}`,
           claim: 'repository.contents',
@@ -739,7 +925,6 @@ export async function inspectRepository(root) {
         path: entryRelativePath,
         kind,
         extension,
-        sizeBytes: Number.isSafeInteger(stat.size) ? stat.size : Number.MAX_SAFE_INTEGER,
         isTest: isTestPath(entryRelativePath),
       };
       files.push(file);
@@ -752,15 +937,6 @@ export async function inspectRepository(root) {
         subject: file.id,
         pathValue: entryRelativePath,
         value: true,
-        source: 'lstat',
-      }));
-      observed.push(evidenceEntry({
-        id: `observed:size:${entryRelativePath}`,
-        state: 'observed',
-        claim: 'file.sizeBytes',
-        subject: file.id,
-        pathValue: entryRelativePath,
-        value: file.sizeBytes,
         source: 'lstat',
       }));
       inferred.push(evidenceEntry({
@@ -786,13 +962,11 @@ export async function inspectRepository(root) {
       const shouldRead = stat.size <= limits.maxFileBytes && bytesRead + stat.size <= limits.maxTotalBytes;
       if (!shouldRead) {
         const reason = stat.size > limits.maxFileBytes ? 'file-byte-limit' : 'total-byte-limit';
-        if (reason === 'total-byte-limit') truncated = true;
         noteUnknown(unknownEntry({
           id: `unknown:read:${entryRelativePath}`,
           claim: 'file.contents',
           pathValue: entryRelativePath,
           reason,
-          details: { sizeBytes: file.sizeBytes },
         }));
         continue;
       }
@@ -940,18 +1114,19 @@ export async function inspectRepository(root) {
     if (!graphNodeById.has(id)) graphNodeById.set(id, { id, kind: 'external', specifier });
     return id;
   };
-  const addEdge = (from, to, kind, specifier, status) => {
+  const addEdge = (from, to, kind, specifier) => {
     const id = `edge:${from}->${to}:${kind}:${specifier || ''}`;
     if (!edgeById.has(id)) {
       const edge = { id, from, to, kind };
       if (specifier !== undefined) edge.specifier = specifier;
-      if (status !== undefined) edge.status = status;
       edgeById.set(id, edge);
     }
+    return id;
   };
 
   for (const file of files) {
     if (!TEXT_SOURCE_EXTENSIONS.has(file.extension)) continue;
+    if (!IMPORT_SYNTAX_EXTENSIONS.has(file.extension)) continue;
     const bytes = contentByPath.get(file.path);
     if (!bytes) {
       noteUnknown(unknownEntry({
@@ -967,13 +1142,10 @@ export async function inspectRepository(root) {
       const localTarget = resolveLocalImport(file.path, specifier, fileByPath);
       const isLocal = specifier.startsWith('.') || specifier.startsWith('/');
       let target;
-      let status;
       if (localTarget) {
         target = localTarget;
-        status = 'resolved';
       } else if (isLocal) {
         target = unresolvedNodeId(file.path, specifier);
-        status = 'unresolved';
         if (!graphNodeById.has(target)) {
           graphNodeById.set(target, { id: target, kind: 'unresolved', specifier });
         }
@@ -986,14 +1158,13 @@ export async function inspectRepository(root) {
         }));
       } else {
         target = addExternalNode(specifier);
-        status = 'external';
       }
-      addEdge(file.id, target, 'import', specifier, status);
+      const edgeId = addEdge(file.id, target, 'import', specifier);
       inferred.push(evidenceEntry({
         id: `inferred:edge:${file.id}:${specifier}`,
         state: 'inferred',
         claim: 'graph.import',
-        subject: file.id,
+        subject: edgeId,
         pathValue: file.path,
         value: { specifier, target },
         source: 'static-import-syntax',
@@ -1004,12 +1175,12 @@ export async function inspectRepository(root) {
     for (const dependency of packageDependencyEntries(manifest)) {
       const target = addExternalNode(dependency.name);
       const source = `manifest:${manifest.path}`;
-      addEdge(source, target, 'dependency', dependency.name, 'external');
+      const edgeId = addEdge(source, target, 'dependency', dependency.name);
       inferred.push(evidenceEntry({
         id: `inferred:dependency-edge:${manifest.path}:${dependency.section}:${dependency.name}`,
         state: 'inferred',
         claim: 'graph.dependency',
-        subject: source,
+        subject: edgeId,
         pathValue: manifest.path,
         value: { target, section: dependency.section, version: dependency.version },
         source: 'manifest-dependency-field',
@@ -1042,11 +1213,9 @@ export async function inspectRepository(root) {
     }));
   }
 
-  const languages = new Map();
   for (const file of files) {
     const language = languageForFile(file);
     if (!language) continue;
-    languages.set(language, (languages.get(language) || 0) + 1);
     inferred.push(evidenceEntry({
       id: `inferred:language:${file.path}`,
       state: 'inferred',
@@ -1066,16 +1235,6 @@ export async function inspectRepository(root) {
     value: projectKind,
     source: 'manifest-and-extension-signals',
   }));
-  for (const [language, count] of [...languages.entries()].sort((a, b) => compareStrings(a[0], b[0]))) {
-    inferred.push(evidenceEntry({
-      id: `inferred:language-count:${language}`,
-      state: 'inferred',
-      claim: 'repository.languageCount',
-      subject: 'repository',
-      value: { language, files: count },
-      source: 'extension-count',
-    }));
-  }
 
   // This is the sole observed transition emitted by the inspection boundary:
   // the bounded, read-only inspection completed.  It is intentionally
@@ -1099,11 +1258,6 @@ export async function inspectRepository(root) {
   const report = {
     schemaVersion: INSPECTION_REPORT_SCHEMA_VERSION,
     repository: { name: rootName, identity },
-    summary: {
-      filesDiscovered,
-      filesInspected: files.length,
-      truncated,
-    },
     files,
     graph: {
       nodes: [...graphNodeById.values()].sort((a, b) => compareStrings(a.id, b.id)),

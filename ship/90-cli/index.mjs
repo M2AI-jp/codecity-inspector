@@ -20,12 +20,10 @@ const DEFAULT_MAX_ARTIFACT_TOTAL_BYTES = 6 * 1024 * 1024;
 const DEFAULT_MAX_ASSET_TOTAL_BYTES = 10 * 1024 * 1024;
 const DEFAULT_MAX_SCENE_BYTES = 4 * 1024 * 1024;
 const DEFAULT_MAX_DISTRIBUTION_BYTES = 20 * 1024 * 1024;
-const MAX_BINDINGS_BYTES = 1024 * 1024;
 const CLI_MODULE_ROOT = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_SHIPPING_ART_ROOT = path.resolve(CLI_MODULE_ROOT, '../50-art');
 const DEFAULT_ASSET_ROOT = path.join(DEFAULT_SHIPPING_ART_ROOT, 'assets');
 const DEFAULT_ASSET_MANIFEST = path.join(DEFAULT_SHIPPING_ART_ROOT, 'manifest.json');
-const DEFAULT_SCENE_BINDINGS = path.join(DEFAULT_SHIPPING_ART_ROOT, 'scene-bindings.json');
 const DEFAULT_RUNTIME_ARTIFACT_ROOT = path.resolve(CLI_MODULE_ROOT, '../70-game-runtime');
 const DEFAULT_RUNTIME_ARTIFACT_ALLOWLIST = Object.freeze(['app.mjs', 'index.html', 'index.mjs', 'state.mjs', 'styles.css']);
 
@@ -143,7 +141,7 @@ function assertSafeArtifactComponents(root, relative) {
   return current;
 }
 
-function readApprovedArtifact(sourceRoot, relative, maxBytes, { expectedSha256 = null } = {}) {
+function readShippingArtifact(sourceRoot, relative, maxBytes, { expectedSha256 = null } = {}) {
   const source = assertSafeArtifactComponents(sourceRoot, relative);
   const sourceStat = fs.lstatSync(source);
   if (!sourceStat.isFile()) fail('ARTIFACT_INVALID', `許可された実行成果物が通常のファイルではありません: ${relative}`);
@@ -163,7 +161,7 @@ function readApprovedArtifact(sourceRoot, relative, maxBytes, { expectedSha256 =
     const finalStat = fs.fstatSync(sourceDescriptor);
     if (finalStat.size !== checked.size || finalStat.mtimeMs !== checked.mtimeMs) fail('ARTIFACT_CHANGED', '実行成果物が読み取り中に変化しました。');
     const actualSha256 = crypto.createHash('sha256').update(bytes).digest('hex');
-    if (expectedSha256 !== null && actualSha256 !== expectedSha256.toLowerCase()) fail('ASSET_CHANGED', '承認済みアセットが検証後に変化しました。');
+    if (expectedSha256 !== null && actualSha256 !== expectedSha256.toLowerCase()) fail('ASSET_CHANGED', '出荷アセットが検証後に変化しました。');
     return { bytes, byteLength: bytes.length, sha256: actualSha256 };
   } finally {
     fs.closeSync(sourceDescriptor);
@@ -174,7 +172,7 @@ function collectSceneAssets({ sceneBundle, assetRoot, occupiedEntries }) {
   const maxAssetFileBytes = DEFAULT_MAX_ARTIFACT_FILE_BYTES;
   const maxAssetTotalBytes = DEFAULT_MAX_ASSET_TOTAL_BYTES;
   const sourceRoot = path.resolve(assetRoot);
-  assertRegularDirectory(sourceRoot, '承認済みアセットディレクトリ');
+  assertRegularDirectory(sourceRoot, '出荷アセットディレクトリ');
   const occupied = new Set(occupiedEntries);
   const byDestination = new Map();
   for (const asset of sceneBundle.assets) {
@@ -192,7 +190,7 @@ function collectSceneAssets({ sceneBundle, assetRoot, occupiedEntries }) {
   const snapshots = {};
   for (const destinationRelative of entries) {
     const asset = byDestination.get(destinationRelative);
-    const loaded = readApprovedArtifact(sourceRoot, asset.sourceRelative, maxAssetFileBytes, { expectedSha256: asset.sha256 });
+    const loaded = readShippingArtifact(sourceRoot, asset.sourceRelative, maxAssetFileBytes, { expectedSha256: asset.sha256 });
     total += loaded.byteLength;
     sha256ByFile[destinationRelative] = loaded.sha256;
     snapshots[destinationRelative] = loaded.bytes;
@@ -211,7 +209,7 @@ function collectRuntimeArtifacts() {
   const sha256ByFile = {};
   const snapshots = {};
   for (const relative of entries) {
-    const loaded = readApprovedArtifact(sourceRoot, relative, maxArtifactFileBytes);
+    const loaded = readShippingArtifact(sourceRoot, relative, maxArtifactFileBytes);
     total += loaded.byteLength;
     sha256ByFile[relative] = loaded.sha256;
     snapshots[relative] = loaded.bytes;
@@ -237,55 +235,11 @@ function assertBrowserUrl(url, origin) {
 }
 
 function normalizeManifestInput() {
-  if (!fs.existsSync(DEFAULT_ASSET_MANIFEST)) fail('ASSET_MANIFEST_REQUIRED', '承認済みアセット台帳がありません。デモ素材は使いません。');
+  if (!fs.existsSync(DEFAULT_ASSET_MANIFEST)) fail('ASSET_MANIFEST_REQUIRED', '出荷アセット台帳がありません。デモ素材は使いません。');
   try {
     return { manifest: loadAssetManifest(DEFAULT_ASSET_MANIFEST, DEFAULT_ASSET_ROOT), assetRoot: DEFAULT_ASSET_ROOT };
   } catch (error) {
-    fail(error?.code ?? 'ASSET_MANIFEST_INVALID', '承認済みアセット台帳を読めません。');
-  }
-}
-
-function readBoundedRootedJson(sourceRoot, source, maxBytes) {
-  assertRegularDirectory(sourceRoot, 'アセット台帳ディレクトリ');
-  const canonicalRoot = fs.realpathSync(path.resolve(sourceRoot));
-  const absolute = path.resolve(source);
-  const relative = path.relative(canonicalRoot, absolute).replaceAll(path.sep, '/');
-  if (relative === '' || relative === '..' || relative.startsWith('../') || path.isAbsolute(relative)) {
-    fail('SCENE_BINDINGS_OUTSIDE_ASSET_ROOT', '街とアセットを結ぶ許可台帳は承認済みアセットのルート内に置いてください。');
-  }
-  const normalized = normalizeArtifactPath(relative);
-  const safe = assertSafeArtifactComponents(canonicalRoot, normalized);
-  const descriptor = fs.openSync(safe, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW ?? 0));
-  try {
-    const opened = fs.fstatSync(descriptor);
-    if (!opened.isFile() || opened.size > maxBytes) fail('SCENE_BINDINGS_TOO_LARGE', '街とアセットを結ぶ許可台帳が大きすぎます。');
-    const canonicalFile = fs.realpathSync(safe);
-    const canonicalStat = fs.lstatSync(canonicalFile);
-    if (!canonicalFile.startsWith(`${canonicalRoot}${path.sep}`) || !canonicalStat.isFile() || canonicalStat.dev !== opened.dev || canonicalStat.ino !== opened.ino) {
-      fail('SCENE_BINDINGS_CHANGED', '街とアセットを結ぶ許可台帳が読み取り中に変化しました。');
-    }
-    const bytes = Buffer.alloc(opened.size);
-    let offset = 0;
-    while (offset < bytes.length) {
-      const count = fs.readSync(descriptor, bytes, offset, bytes.length - offset, offset);
-      if (count === 0) fail('SCENE_BINDINGS_CHANGED', '街とアセットを結ぶ許可台帳が読み取り中に変化しました。');
-      offset += count;
-    }
-    const finalStat = fs.fstatSync(descriptor);
-    if (finalStat.size !== opened.size || finalStat.mtimeMs !== opened.mtimeMs) fail('SCENE_BINDINGS_CHANGED', '街とアセットを結ぶ許可台帳が読み取り中に変化しました。');
-    return JSON.parse(bytes.toString('utf8'));
-  } finally {
-    fs.closeSync(descriptor);
-  }
-}
-
-function normalizeBindingsInput() {
-  if (!fs.existsSync(DEFAULT_SCENE_BINDINGS)) fail('SCENE_BINDINGS_REQUIRED', '街とアセットを結ぶ許可台帳がありません。');
-  try {
-    return readBoundedRootedJson(DEFAULT_SHIPPING_ART_ROOT, DEFAULT_SCENE_BINDINGS, MAX_BINDINGS_BYTES);
-  } catch (error) {
-    if (error instanceof CliError) throw error;
-    fail('SCENE_BINDINGS_INVALID', '街とアセットを結ぶ許可台帳を読めません。');
+    fail(error?.code ?? 'ASSET_MANIFEST_INVALID', '出荷アセット台帳を読めません。');
   }
 }
 
@@ -296,26 +250,19 @@ async function buildCodeCity({ repositoryPath } = {}) {
   const semanticModel = inferSemanticModel(report);
   const townModel = buildTownModel(semanticModel);
   const worldPlan = generateWorldPlan({ town: townModel });
-  return { report, townModel, worldPlan };
+  return { townModel, worldPlan };
 }
 
 /** Compose the complete pipeline into immutable memory and optionally start 127.0.0.1. */
 async function runCodeCity({ repositoryPath, noOpen = false, port = 4173 } = {}) {
-  const { report, townModel, worldPlan } = await buildCodeCity({ repositoryPath });
+  const { townModel, worldPlan } = await buildCodeCity({ repositoryPath });
   writeLine(`${townModel.repository.name}を測量しています…`);
-  writeLine(`✓ 土地を見た        ${report.summary.filesInspected} ファイル`);
-  writeLine(`✓ 水の道を引いた    ${worldPlan.water.path.length} の道標`);
-  writeLine(`✓ 街道を通した      ${worldPlan.plots.length} の区画`);
-  writeLine(`✓ 建物を建てた      ${worldPlan.occupancy.filter((entry) => entry.state === 'occupied').flatMap((entry) => entry.occupants).length} 施設`);
-  writeLine(`✓ 住民を呼んだ      ${worldPlan.npcs.length} 人`);
 
-  if (worldPlan.questSites.length !== 3 || townModel.investigations.candidates.length !== 3) {
+  if (worldPlan.investigations.length !== 3 || townModel.investigations.candidates.length !== 3) {
     fail('THREE_INVESTIGATIONS_REQUIRED', '根拠のある調査依頼が三件そろわないため、遊べる街としては起動しません。');
   }
-
   const { manifest: assetManifest, assetRoot } = normalizeManifestInput();
-  const sceneBindings = normalizeBindingsInput();
-  const sceneBundle = compileScene({ worldPlan, assetManifest, assetRoot, bindings: sceneBindings });
+  const sceneBundle = compileScene({ worldPlan, assetManifest, assetRoot });
   let running = null;
   try {
     const runtimeCopy = collectRuntimeArtifacts();
@@ -377,7 +324,7 @@ export async function main(argv = process.argv.slice(2)) {
     writeLine(`街の門番: ${error instanceof Error ? error.message : String(error)}`);
     writeLine(`（コード: ${code}）`);
     writeLine('127.0.0.1 は起動していません。');
-    writeLine('次の一歩: 指示と承認済み素材を確認して、もう一度実行してください。');
+    writeLine('次の一歩: 指示と出荷素材を確認して、もう一度実行してください。');
     return 1;
   }
 }

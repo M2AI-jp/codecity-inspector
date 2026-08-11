@@ -1,907 +1,638 @@
 # CodeCity v1 product authority
 
-## READ FIRST — mandatory record of the failed Codex takeover
+## READ FIRST — mandatory failure record
 
-This section is the first required product reading for every Lead, PM, worker,
-reviewer, and future session. Do not skip it to inspect code, run tests, assign
-work, generate assets, or continue a checkbox.
+Codex previously treated internal production as the product. It optimized asset
+counts, selectors, manifests, hashes, routes, tests, approval states, and review
+records. It did not first make the customer town beautiful, coherent, and
+playable. This consumed owner time and produced a browser game that could pass
+mechanical checks while it showed mixed-scale image crops instead of one town.
 
-After the functional v1 journey had reached commit `c6cb42f`, Codex failed its
-accountable-Lead duty. It replaced 272 tracked files in `e5f21eb`, removed the
-working approved catalog and completed game path, built a new asset factory and
-new acceptance machinery that the product did not need, and then optimized
-isolated assets, hashes, manifests, and passing checks instead of first playing
-and judging the customer's complete game experience. It treated a superficial
-appearance signal as approval, failed to preserve the scale and composition
-language of the owner originals, and presented a visibly incoherent town that
-could not start correctly as if it were approaching delivery quality.
+The root failure was not one image-size defect. Work started from machinery and
+worked outward. It did not start from the composed town that the end user sees.
+Semantic labels were treated as visual variety. Valid files were treated as
+usable game art. A completed scripted journey was treated as a completed game.
 
-The tracked repository was restored to `c6cb42f`, and the rejected untracked
-factory output was removed from the active tree. That restores files, not the
-owner's consumed time, attention, token budget, confidence, or opportunity.
-Those losses are irreversible. They must never be hidden behind a reset,
-passing test, new document, activity count, or claim that the failure was only
-an image-sizing defect. The root failure was substituting production activity
-and machine-verifiable proxies for the KGI: an understandable, coherent and
-worthwhile game experience for the customer.
+Git history records the concrete forms of this failure:
 
-Consequences for all further work are mandatory:
+- `b13d5fd` drew one presentation master as the world and traced its visible
+  roads with a fixed waypoint graph. The image was attractive. The repository
+  did not generate the town.
+- `b225db2` added traced walkable areas, a door, a cutaway, dialogue, clues, and
+  a directional player sheet to one fixed target town. This was the strongest
+  past playable version. The player still slid and changed body shape while
+  walking. Numeric frame checks called the gait acceptable although direct
+  viewing did not.
+- `967acb1` and `40a3cd3` split the fixed master into prefabs and reconstructed
+  it pixel for pixel. This changed the assembly method. It did not create a
+  repository-derived town generator.
+- `67b74c4` removed those customer paths. Use their history only to recognize
+  failure. Do not restore their code or assets.
 
-- Begin from `c6cb42f` plus later commits that only document the recovery; never
-  restore or imitate `e5f21eb` or its replacement-factory direction.
-- Treat P0-P6 as the completed functional baseline and H2 as the only open v1
-  release gate unless observed end-to-end play proves a regression.
-- Before proposing a fix, play the existing packed product through the complete
-  KGI and identify the exact customer-experience failure. Do not begin from an
-  isolated screenshot, selector, test, manifest, or implementation convenience.
-- Create no new factory, generator, framework, gate, test system, roadmap,
-  handoff system, preview system, selector, variant, asset category, or gameplay
-  scope. Use the existing v1 paths and change only an existing selector or
-  composition value that directly blocks the accepted game experience.
-- Mechanical checks may prevent corruption but can never approve aesthetics,
-  usability, coherence, fun, or release. Only the human owner may accept the
-  final playable composition and exact replacement bytes.
-- If work cannot be justified as the shortest direct removal of an observed H2
-  blocker, stop. Resource consumption, breadth, sophistication, and test counts
-  are costs, never progress or completion evidence.
+A beautiful fixed board is not procedural generation. A traced route is not
+world design. A pixel-perfect reconstruction of one board is still one fixed
+board. A numeric animation check cannot overrule visible sliding, morphing, or
+poor game feel.
 
-Status: execution SSOT
+Do not repeat this failure.
 
-This is the only product specification and remaining-work list in the active
-repository. `AGENTS.md` is the operating and safety policy. Public `index.mjs`
-files and their tests define versioned interfaces. No README, test result,
-diagram, issue, chat log, Git history, or generated report may add product
-scope or override this file.
+Start with the end-user experience in one real browser. Work backward from one
+beautiful repository-derived town, ordinary top-down RPG play, the complete
+investigation journey, and a truthful revisit. Keep only code and art that
+causes that experience or protects its safety. A test can find a defect. A test,
+count, status word, asset catalog, screenshot, or approval record cannot decide
+that the game is complete.
 
-Every agent must read this file before acting. If code and this file disagree,
-the agent stops and reports the exact disagreement; only the Lead decides
-whether to fix the code or change this file. No agent creates another roadmap,
-SSOT, design projection, backlog, or historical summary.
+Git history can explain intent and past failure. It is not a source from which
+to restore deleted requirements, systems, assets, or implementations.
 
-## 0. Executive mandate and investment contract
+This file is the only product specification and remaining-work authority.
 
-### Parties and identities
+## Product definition
 
-- **Investor / human owner:** the human user who commissioned this repository,
-  pays for the Codex subscription, supplied the 22 originals and product intent,
-  and owns final product and exact-byte asset-promotion decisions. In this file,
-  `owner` always means that human user; it never means Codex, a PM, or a worker.
-- **End customer:** a person authorized to inspect a local repository who runs
-  `npx codecity <their-repository>`. They may be starting a project, actively
-  building it, or trying to understand work created with an LLM. They may also
-  be the investor, but customer value must still be evaluated separately from
-  investor return.
-- **Accountable executive / Lead:** the root Codex agent in the active session.
-  The Lead allocates the owner's entrusted resources and commands PMs and
-  workers. `Lead` is an operational office, not human ownership or legal title.
-- **Codex / “I”:** the non-human AI system occupying the Lead office in the
-  current session. Codex is not the investor, end customer, human approver, or
-  beneficiary. By declaring an allocation, Codex accepts responsibility for
-  delegating it, stopping deviations, integrating the result, and reporting the
-  promise against evidence.
-- **PM and worker agents:** subordinate Codex agents commissioned by the Lead.
-  A PM plans and audits; a worker implements only the bounded assignment.
+CodeCity v1 is a local, read-only, top-down pixel-art game.
 
-The repository is not a stakeholder. Protecting it from execution, mutation,
-or upload is part of the value promised to its authorized end customer. Never
-collapse the investor, executive, and customer viewpoints even when the same
-human happens to occupy more than one human role.
+A user points CodeCity at a repository. The repository rises as a beautiful,
+recognizable town. The user must want to look at the town, walk through it, take
+a screenshot, and return to it before the user reads a report.
 
-The human owner has appointed the Lead as the accountable executive, not the
-default implementation worker. The Lead owns requirement selection, scope,
-priority, capital allocation, decomposition, assignment, integration,
-acceptance, owner communication, commits, publication, and every completion
-claim. The Lead must use PM agents for decomposition, dependencies, risk, and
-acceptance design when work is multi-step, parallel, or materially risky, and
-uses workers for genuinely independent bounded implementation. A small
-integration fix or evidence correction stays with the Lead when delegation
-would cost more than the work. The Lead must not absorb useful parallel
-production work or allow agents to self-assign scope.
+The town image is product value. It is not decoration around an inspection
+tool. Investigation adds understanding and a caused town change to that value.
+Town generation and free exploration have value before the request begins.
 
-### Investment supplied by the owner
+The immutable `target-town.png` board is the minimum visual-quality reference
+for its late-medieval night worldview. The owner's Romancing SaGa comparison is
+a qualitative standard for craft, character, exploration, responsiveness, and
+game feel. It is not a request to copy that game's content or to add its combat,
+party, statistics, equipment, or economy systems.
 
-For this project, investment means finite resources entrusted to the Lead:
+The generator supports multiple complete worldviews. A worldview is a coherent
+visual and spatial language, not a palette swap or a new label on the same art.
+Repository identity and meaning select and shape the world. One generated town
+does not mix incompatible worldviews.
 
-- execution capacity already included in the owner's Codex subscription;
-- PM and worker agent slots, turns, elapsed time, and attention;
-- asset-generation capability available inside that subscription;
-- the owner's 22 immutable originals and product decisions;
-- the owner's limited attention for batched exact-byte art review cycles.
+The opening experience must say, without a diagnostic panel, “my repository
+became this place.” The town must look intentional even when the repository is
+small or the investigation content is simple.
 
-The plan does **not** assume metered API calls, an API key, a paid external
-generator, a SaaS subscription, outsourced production, or any additional
-monetary spend. Codex-subscription asset generation and local deterministic
-tools are the default production resources. The Lead may not introduce a paid
-or metered external dependency without a separate explicit owner decision that
-states the requirement served, why subscription resources cannot serve it, and
-the stop condition. Local packaging metadata is not authorization to publish
-to a network registry.
+CodeCity is complete only when these qualities exist together:
 
-The one capability exception is visual art direction and aesthetic quality.
-The owner may assign definition of the visual quality bar, art production, and
-aesthetic correction to Claude when that capability is available. This does
-not transfer product management, functional implementation, repository
-inspection, scene composition, runtime behavior, packaging, security, browser
-QA, or KGI acceptance away from Codex. Codex must complete those non-aesthetic
-obligations without making Claude a dependency.
+- The repository becomes one beautiful and repository-specific town.
+- The town belongs to one of multiple complete and coherent worldviews.
+- The town works as an ordinary top-down pixel-art RPG.
+- Generating and freely exploring the town is enjoyable by itself.
+- The player completes the truthful investigation, report, change, exit, and
+  revisit journey.
+- The inspected repository stays unchanged, unexecuted, local, and private.
 
-Subscription capacity has an opportunity cost even when no marginal API bill
-is visible. Repeated audits, duplicated tests, speculative abstractions,
-unbounded variants, unused assets, parallel workers without independent owned
-outputs, and documents that do not remove a KGI blocker are waste. The Lead
-must cancel, narrow, or reallocate them.
+One quality cannot stand in for another. A beautiful still image is not a game.
+A working route through an incoherent scene is not a game. A safe package is
+not a game by itself.
 
-### Return promised to the owner
+## Complete player experience
 
-Return means verified coverage of the owner's requirements in this file. It
-does not mean monetary profit, revenue, or a commercial forecast. Reports state
-each KGI requirement as `covered`, `not covered`, or `blocked` and link the
-acceptance evidence. Time spent, tokens consumed, agents launched, files,
-tests, candidates, approvals, and modules are investment or production
-evidence; none is return by itself.
+An authorized user runs:
 
-The realized return is a 9-of-9 KGI journey from one freshly packed artifact.
-Partial requirement coverage may guide capital allocation, but CodeCity is not
-complete until all nine requirements succeed together in the P6 run.
+    npx codecity <their-repository>
 
-### Operating roles
+CodeCity reads the repository without modifying or executing it. It opens on
+literal 127.0.0.1 in a real browser.
 
-| Role | Accountable output | Forbidden authority |
+The first view establishes the town as one composition. It shows a readable
+ground plane, a way into town, a main route, a civic focal place, distinct
+districts or clusters, and the player. The player can understand where they are
+without reading permanent instructions.
+
+The game owns the browser view. It scales a composed scene to the useful browser
+area. In-world overlays hold the necessary guidance. A small Canvas surrounded
+by a diagnostic page is not the opening experience.
+
+The player can move as soon as the town appears. The request does not lock free
+movement. The player can follow a road, enter a building, meet residents, and
+enjoy the generated place before accepting an investigation.
+
+The player accepts the town request. The player chooses routes through clues in
+the world. The player visits three distinct investigation places. Each place
+uses its own spatial clue, resident, object, or action. The player returns to a
+report place that is distinct from the request place.
+
+The report connects the discoveries. The town-hall lantern responds to the
+completed bounded inspection. The lantern means that CodeCity completed its
+read-only inspection. It does not mean that the repository builds, runs, passes,
+deploys, or works.
+
+The player exits to the terminal and stops CodeCity. A later run for the same
+repository returns to the same recognizable town and preserves the caused town
+change.
+
+The same repository identity and state produce the same recognizable town. A
+meaningful repository change can evolve its districts, routes, buildings,
+population, or visible condition without replacing it with arbitrary noise.
+
+The player can state one concrete true discovery and one remaining uncertainty.
+The player learns these through place, movement, clue, action, dialogue, and
+report. Raw diagnostic output is not required.
+
+## The current visual baseline
+
+The repository already has strong visual source material. The owner-provided
+boards show a dense late-medieval town in a three-quarter top-down view. They
+show slate roofs, detailed masonry, warm windows, stone roads, vegetation,
+water, props, residents, interiors, and game UI. The 22 boards use these source
+canvases: 1086 by 1448, 1448 by 1086, 1491 by 1055, 1536 by 1024, 1586 by 992,
+and 1402 by 1122 pixels. These are presentation masters and source material.
+They are not ready-to-draw game sprites.
+
+The 1586 by 992 target-town board is the owner's visual-quality reference. Its material
+detail, light, density, depth, road hierarchy, buildings, vegetation, residents,
+and readable player set the scene standard. Shipping art can differ in layout
+and worldview. It must not look like a reduced technical substitute.
+
+The shipping catalog has these current dimensions and limits:
+
+| Current role | Current bytes | Product use |
 |---|---|---|
-| Human owner | Product decisions and batched promotion decisions over exact candidate bytes | Manual production, metadata authoring, routine QA, project management |
-| Lead / executive | Scope, investment allocation, assignments, integration, acceptance and truthful reporting | Inventing owner intent, hiding cost, treating activity as return |
-| PM agent | Read-only decomposition, dependency graph, risk/acceptance audit and worker coordination advice | Product scope changes, implementation unless separately assigned as a worker, acceptance or completion claims |
-| Worker agent | One bounded implementation output inside explicit owned paths, with evidence and stop condition | Self-assignment, neighboring-path edits, commits, pushes, publication, approval, roadmap changes |
-| Independent reviewer | Read-only P6 journey, package, privacy, distribution and security evidence | Implementing or repairing the work being reviewed |
-
-Every worker assignment states the customer/KGI effect, owned paths, observable
-acceptance, and stop condition. Add forbidden paths or dependencies only when
-they matter. A worker stops rather than improvises when it needs owner approval,
-external spend, a scope change, or a write outside its owned paths.
-
-### G0 — Minimal binding pre-start declaration
-
-Execution defaults to `STOP` for every fresh Lead. Before `GO`, the Lead and
-read-only PM agents may inspect the repository, identify dependencies, estimate
-subscription resource use, and draft the declaration below. They may not mutate
-the workspace or external state, start implementation workers, generate
-candidate assets, commit, push, publish, approve, or promote anything.
-
-The Lead issues one concise user-visible declaration for one coherent work
-package:
-
-```text
-G0 EXECUTION DECLARATION
-Status: GO | STOP
-
-Return promised:
-Customer behavior changed by this execution:
-Repository harm or failure prevented:
-Smallest implementation and assignments:
-Resource/time envelope:
-Observed acceptance and its limit:
-Stop or owner-decision condition:
-```
-
-`GO` is valid only when owner return, customer experience, repository safety,
-the smallest implementation, a finite resource envelope, and observable
-acceptance are concrete. Tests serving the same customer journey are declared
-as one group; repeating their boilerplate per test is forbidden. A module name,
-implementation detail, coverage percentage, test count, or “more safety”
-without a named customer effect is not a valid investment reason.
-
-The declaration is invalidated only by a changed customer, product scope,
-customer journey, safety boundary, external spend, or unresolved owner choice.
-An ordinary defect, failed acceptance run, harness correction, implementation
-detail, elapsed-time estimate, or rerun of the same acceptance does not require
-a new G0 declaration. The Lead reports a short delta and continues or stops.
-Governance text, repeated audits, and new test infrastructure must be removed
-or narrowed when they consume more time than the customer-facing defect they
-are intended to retire.
-
-At handoff, the Lead gives one compact `met / not met / blocked` reconciliation
-against the declaration, with observed evidence, important deviations, and
-actual resource use. Reproducing the declaration or a chronological work diary
-is forbidden. No completion claim is permitted unless P6 independently
-verifies the customer obligations under the same declaration.
-
-## 1. Product KGI
-
-CodeCity v1 is complete only when the following journey succeeds from a freshly
-packed npm artifact in a real browser:
-
-1. An end user runs `npx codecity <their-repository>`.
-2. CodeCity reads the repository without modifying or executing it.
-3. A repository-derived pixel-art town opens on `127.0.0.1`.
-4. The player accepts one request.
-5. The player walks to three distinct investigation sites.
-6. Each answer remains explicitly `observed`, `inferred`, or `unknown`.
-7. The player reports at a location distinct from the request location.
-8. The report causes one evidence-permitted town change that is visible on
-   screen.
-9. The player exits to the terminal, stops CodeCity, runs the command again,
-   and revisits the same town with the completed journey preserved.
-
-Nothing else is the product KGI. A folder, document, contract, passing test,
-backend, generated candidate, approval, manifest, SceneBundle, server, first
-browser frame, screenshot, or partial demo is enabling work only.
-
-### Dual-track game implementation rule
-
-CodeCity is both a program and a game. Every functional work package moves two
-tracks together:
-
-1. **Processing truth:** repository-derived data, state transitions,
-   persistence, security boundaries, and failure behavior are correct.
-2. **Player experience:** a person in a real browser can understand the goal,
-   act through ordinary controls, perceive the result, recover or exit, and
-   return without hidden operator knowledge.
-
-Neither track is a proxy for the other. Unit or contract tests do not complete
-work whose value is player-visible. Screenshots, movement, or a successful
-scripted path do not complete work whose underlying evidence or safety state is
-wrong. The smallest acceptance loop pairs one processing assertion with its
-corresponding player-observable consequence. LLM PMs, workers, reviewers, and
-the Lead consider both while implementing, not as a late QA handoff.
-
-### Customer value delivered by the KGI
-
-The end customer turns a local repository into a private, persistent town with
-one command. They walk through three repository-derived questions instead of
-reading a technical audit, can distinguish what CodeCity observed from what it
-inferred or could not know, see their completed report change the town, and can
-return to the same place later. CodeCity offers comprehension, truthful
-uncertainty, and ownership without uploading or executing the customer's code;
-it does not pretend to certify that the repository builds or works.
-
-## 2. Non-negotiable truth and safety
-
-- The inspected repository is read-only. CodeCity never runs its source,
-  scripts, tests, hooks, binaries, package manager, or build.
-- Source and analysis remain local. The server binds literal `127.0.0.1` and
-  serves only an immutable allowlisted snapshot.
-- `observed`, `inferred`, and `unknown` never collapse into each other.
-  File presence may be observed; the behavior suggested by a filename or
-  manifest field is inferred; untested behavior is unknown.
-- The 22 PNG files in `art/references/user-provided/` are immutable originals.
-- A machine may extract, plan, generate, measure, hash, package, and publish
-  metadata. Only the human owner may promote exact candidate bytes to an
-  approved master.
-- There are no placeholder, nearest-match, wildcard, or silent fallback assets
-  in the customer path.
-- A report never claims that the inspected project builds, runs, passes tests,
-  reaches a URL, or talks to an API because CodeCity is forbidden to perform
-  those operations.
-
-## 3. v1 scope selected by the Lead
-
-### Included
-
-- Bounded static repository inspection and deterministic town identity.
-- Exactly three evidence-grounded investigations for every accepted repository.
-- Keyboard movement, collision, readable dialogue, distinct request/report
-  locations, three reachable sites, and seamless cutaway interiors where a
-  required NPC is indoors.
-- The three answer states and their Japanese grammar.
-- One truthful v1 reward event:
-  `repository_inspected -> town_hall_lantern_lit`. Its observed evidence is the
-  successful bounded read-only inspection of the selected repository root. It
-  says nothing about whether the repository works.
-- Approved pixel art sufficient for every selector that the v1 WorldPlan
-  grammar can emit, not merely one fixture repository.
-- Local save, explicit exit, process restart, and revisit for the same
-  repository identity and content digest.
-- A fresh-package browser acceptance run, repository before/after hash check,
-  and independent read-only distribution/security review.
-
-### Frozen until after the KGI
-
-- The former 4,654-item asset inventory or any other quantity target.
-- Runtime image generation per customer repository.
-- More climates, town types, facilities, props, animations, or NPC routines
-  than the bounded v1 selector vocabulary requires.
-- Scores, achievements, currency, streaks, or gamified engineering grades.
-- Audio expansion, English localization, screenshot sharing, settings systems,
-  broad gamepad work, cosmetic schedules, and additional verification UIs.
-- New schema layers, framework migrations, dashboards, governance documents,
-  or tests that do not unblock the KGI journey.
-
-Working safe code for a frozen item may remain. It receives no further effort
-before the KGI passes.
-
-## 4. Repository organization and ownership
-
-The first directory below a division is a department or a module boundary.
-Subdirectories inside a module are private implementation details, not sibling
-modules.
-
-```text
-art/
-  references/user-provided/       immutable owner input; never shipped
-
-studio/                            PRE-SHIP ONLY; excluded from npm package
-  governance/                     this SSOT and actual owner decisions
-  art-department/                 originals -> reviewable candidates -> approved handoff
-  quality/                        contract, integration, browser and release evidence
-
-ship/                              SHIPPED PRODUCT ONLY
-  10-inspect/                     repository -> InspectionReport
-  20-semantics/                   InspectionReport -> SemanticModel
-  30-town-domain/                 SemanticModel -> TownModel and journey facts
-  40-worldgen/                    TownModel -> logical WorldPlan
-  50-art/                         approved AssetManifest and exact PNG bytes
-  60-scene-compiler/              WorldPlan + approved catalog -> SceneBundle
-  70-game-runtime/                SceneBundle -> playable browser game
-  80-local-server/                immutable snapshot -> loopback HTTP
-  90-cli/                         composition root for npx codecity
-```
-
-Shipping dependencies flow from lower numbers to higher numbers. `90-cli` is
-the only composition root. A sibling imports only the target module's
-`index.mjs`. `40-worldgen` has no image, Canvas, DOM, server, or CLI dependency.
-Only `60-scene-compiler` joins world data to art. `70-game-runtime` never reads
-a repository. Nothing in `ship/` imports `studio/`.
-
-Tests, fixtures, production tooling, candidate art, reports, approvals, and
-release evidence belong in `studio/`, not `ship/`. A directory that contains
-only a promise or README is not a module and must not be created.
-
-## 5. End-to-end product data flow
-
-```mermaid
-flowchart LR
-  R["Customer repository\nread-only bytes"] --> I["10 InspectionReport"]
-  I --> S["20 SemanticModel"]
-  S --> D["30 TownModel\n3 questions + truthful reward"]
-  D --> W["40 WorldPlan\nlogical town"]
-  W --> C["60 SceneBundle compiler"]
-
-  O["22 immutable originals"] --> F["Art department\ndemand-driven production"]
-  V["Finite v1 selector vocabulary"] --> F
-  F --> H{"Owner promotes\nexact bytes"}
-  H --> A["50 approved catalog\nPNG + manifest + bindings"]
-  A --> C
-
-  C --> G["70 browser game"]
-  G --> L["80 loopback server"]
-  CLI["90 npx composition"] --> I
-  CLI --> C
-  CLI --> L
-  L --> K["KGI journey in a real browser"]
-```
-
-The art department never produces assets to satisfy a count. It compares the
-finite selector vocabulary with approved masters and creates work orders only
-for uncovered selectors. An empty candidate queue is a valid idle state when
-no work order is pending. The machine generates manifest and binding files
-from approved masters; the human does not hand-author hashes, dimensions,
-pivots, provenance, or JSON.
-
-`scene-bindings.json` is the reusable catalog mapping. The compiler selects
-the subset required by the current WorldPlan. Extra valid catalog entries are
-not an error; missing required selectors, wildcards, fallbacks, unknown assets,
-or byte mismatches are errors.
-
-## 6. Current observed baseline
-
-The following is context for the queue, not completion evidence:
-
-- Modules `10` through `90` exist and their public-boundary test suite passes.
-- The current repository produces three investigation sites, but their normal
-  reward-transition list is empty.
-- The shipping manifest, scene bindings, approved product PNGs, and complete
-  art-production line do not exist.
-- Diagnostic browser art is test-only and cannot prove visual acceptance or
-  the KGI.
-- The ordinary browser command therefore remains blocked before server start.
-
-If this baseline changes, update only the checkbox and evidence fields below;
-do not append a diary.
-
-## 7. Remaining action items
-
-No action item may receive an implementation worker, mutation, asset generation,
-or external-state action unless the current Lead has issued a valid `G0: GO`
-declaration. Read-only Lead/PM planning before `GO` does not change item status
-and is not reported as return.
-
-Each item is an investment allocation, not a milestone claim. Before assigning
-work, the Lead states the customer/KGI effect, owned paths, observable
-acceptance, and stop condition; other fields are added only when material. The
-Lead records coverage only as `covered`, `not covered`, or `blocked`; effort
-spent and artifacts produced are not return. Only `P6` verifies the accumulated
-functional return through the product KGI.
-
-### [x] P0 — Lead fixes authority and organizational boundaries
-
-**Subject/action/object:** The Lead replaces the mixed historical MASTER and
-duplicate projections with this SSOT, removes obsolete or empty context, and
-moves non-shipping tests and tools from `ship/` to `studio/quality/`.
-
-**Output:** one product authority; immutable originals; current production
-code under `ship/`; pre-ship work under `studio/`; no active historical
-transcripts, quantity backlog, duplicate product diagram, or empty legacy
-division.
-
-**Acceptance evidence:** outside this SSOT's explicit frozen-scope warning,
-`rg` finds no active reference to the deleted product documents or former
-4,654-item target; `npm run check` passes; `npm pack --dry-run` contains no
-tests, studio files, originals, candidates, or diagnostic art. P0 remains
-closed unless an actual organizational regression is observed.
-
-**Three-view value:** the owner no longer funds contradictory context; the
-Lead has one authority for allocation; the customer package excludes internal
-tests, originals, candidates, and diagnostic art. These checks prove repository
-organization and package exclusion only; they do not prove a playable town.
-
-**Stop condition:** keep P0 closed unless an observed organizational regression
-reintroduces conflicting authority or non-product bytes into the package.
-
-### [x] P1 — Lead obtains the minimum reviewable v1 art candidates
-
-**KGI coverage:** approved art for every selector reachable in the bounded v1
-journey.
-
-**Subject/action/object:** The Lead first assigns a PM to derive the finite
-reachable selector gap and freezes that list. The Lead then assigns independent
-candidate work orders to Codex workers. Workers may extract or transform the
-immutable originals or generate candidate art using capabilities included with
-the Codex subscription. They do not promote assets or write into `ship/`.
-
-**Output:** a style authority and palette derived from the originals; one exact
-reviewable candidate, sidecar, provenance record, hash, and gate report for
-every uncovered required selector. Candidate bytes need not be reproducible;
-their review identity is their exact hash. The approval-to-package publisher,
-not image generation, must be deterministic.
-
-**Acceptance evidence:** the Lead-approved finite selector list is present and
-every item has an exact submitted candidate; each candidate has visible review
-material and reports every mechanical check as passed, failed, or unknown;
-originals are unchanged; no machine promotion command, paid API, external
-service, API key, or separately built image-generation platform is required.
-P1 evidence is `studio/art-department/v1/candidates/index.json`, independently
-audited against `studio/quality/gates/v1-candidate-batch.mjs`: the submitted set
-equals the 60 sorted, unique frozen selectors; every candidate, sidecar or
-provenance record, review record, source trace, exact hash, byte length, and
-dimension resolves; both hash-bound contact sheets and ordered review manifests
-exist; and all 22 immutable originals retain their frozen hashes. Exact-byte
-reuse is explicit and hash-equal with one canonical selector per byte group. All
-14 `room:*` selectors use one source-traced cutaway interior candidate that is
-byte-distinct from every exterior; facility-specific visual differentiation is
-`unknown` for H1 rather than inferred. Release-focused H1 review replaced ten
-known blockers: the player now has the required 192x256, 6x8, 32px animation
-sheet; foreground markers are isolated at no more than 64px; the gate is one
-building; and four UI candidates are text-free, data-free frames within the
-384x216 viewport. The final owner-quality correction also makes lit/unlit
-lantern states share one alpha mask with a visible color-state difference,
-replaces the path-like meadow with a ground-only seamless grass tile, and
-separates shoreless open water from the coast candidate. A hash-bound evidence
-manifest provides 3x3 seam and
-plot/building composition previews for the seven previously undecidable
-tile/plot selectors plus final semantic previews for meadow and water. The full
-world pixel gate truthfully reports 15 candidate passes and 24 candidate
-failures, with G2, G6, G8, and G10 failures preserved per
-selector; every check is recorded as passed, failed, or unknown, and no pending
-state remains. One Codex-included generation call was used for `building:dock`;
-the blocker-correction loop used deterministic extraction and zero additional
-generation calls. No paid API, external service, API key, machine
-promotion, original mutation, or `ship/` write was used. This closes candidate
-production only: owner approval remains unknown, and the evidence does not prove
-H1, P2-P6, scene composition, browser playability, or the product KGI. The
-unchanged scene compiler still rejects the new reward transition with
-`REWARD_TRANSITION_INVALID`, which remains a P4 blocker.
-
-**Owner dependency:** the Lead batches the complete exact candidate set for H1
-and minimizes review cycles. A rejection reopens only that selector's work
-order; it never creates pressure to accept deficient bytes or reopen the full
-inventory.
-
-**Stop condition:** stop candidate production when the frozen selector gap is
-empty. Do not create variants, inventory, production frameworks, or assets for
-frozen scope.
-
-**Three-view value:** the owner funds only art required by the frozen customer
-journey; the Lead can stop at a finite selector gap; the customer receives
-reviewable visual coverage without their repository being written, executed,
-or uploaded. Candidate hashes and gate reports prove custody and measured
-properties only; they do not prove human approval, shipping, or playability.
-
-### [x] H1 — Human owner promotes the complete v1 visual vocabulary
-
-**Subject/action/object:** The human owner accepts or rejects each exact
-candidate byte sequence needed by the bounded v1 selector vocabulary.
-
-**Output:** immutable approved masters and hash-bound approval records.
-
-**Acceptance evidence:** every approval binds owner identity, candidate hash,
-source hash, decision, and time; rejected or changed bytes cannot be published.
-Asset promotion is the only required human art-production action. The Lead
-batches the complete bounded review set to minimize owner attention. Rejected
-required selectors return to P1; only accepted selectors proceed to P2.
-
-H1 evidence is `studio/art-department/v1/approvals/h1-v1.json`: the human owner
-authorized the exact `d75b6d9` batch for the functional v1 path while explicitly
-deferring aesthetic quality. Its 60 unique accepted records bind the candidate
-batch SHA, candidate and source hashes, owner role, decision, and UTC time; the
-document SHA is `472ae2533b2e5e16632f083a45e34476ee689fa8d2fb1ef5d8a4bbd0ac473401`.
-`promote-v1.mjs --check` resolves all 60 immutable approved masters and rejects
-an absent, altered, differently scoped, or non-human approval. This authorizes
-these bytes for functional v1 composition only; it does not assert aesthetic
-quality or prove P2-P6, browser playability, or the product KGI.
-
-**Three-view value:** the owner controls the exact bytes representing the
-product; the Lead cannot counterfeit that authority; the customer is protected
-from unapproved or silently changed visuals. Approval proves byte authorization
-only, not readability, navigation, browser behavior, or the KGI.
-
-**Stop condition:** wait for the human decision; never infer acceptance. A
-rejection reopens only its selector work order.
-
-### [ ] H2 — Claude-assisted visual quality definition and production
-
-**Subject/action/object:** when the owner makes Claude available, Claude defines
-the bounded v1 aesthetic bar from the immutable originals and produces or
-corrects only the assets that fail it; the human owner promotes exact bytes.
-
-**Output:** a concise visual-quality rubric and an owner-approved v1 asset set
-whose character, buildings, map, and objects read as one intentional pixel-art
-game. This does not authorize more asset categories, variants, systems, or
-quantity targets.
-
-**Acceptance evidence:** the rubric is applied to in-game compositions at the
-supported viewports, failures are selector-specific, and the owner accepts the
-final exact bytes. Mechanical hashes, manifests, and pixel gates support
-custody but cannot substitute for aesthetic judgment.
-
-**Capability boundary:** Claude owns only visual-quality definition and art
-production or correction for H2. Codex owns integration, contracts, runtime,
-browser experience, safety, packaging, and all functional acceptance. H2 may
-remain pending while Codex completes the functional KGI, but the Lead reports
-`functional KGI met; visual release gate pending`, never `release-ready`.
-
-The owner started the Claude H2 cycle on 2026-08-03, but the local Claude Code
-worker returned its weekly-limit error before analysis or any file write. No
-rubric, composition audit, correction candidate, or owner-review batch was
-produced. H2 therefore remains not covered and must resume with Claude when
-that capability is available; Codex does not substitute mechanical gates or
-its own aesthetic judgment for the assigned Claude and human decisions.
-
-#### Shortest remaining path (authoritative Todo)
-
-- [x] Restore the repository to Claude's last functional endpoint,
-  `c6cb42f`, and discard the later replacement asset-factory path. P0-P6 remain
-  the completed functional baseline; H2 is the only open release gate.
-- [ ] Claude plays the existing packed product once through the complete KGI
-  journey and judges the composed game against the 22 originals. It records
-  only concrete failures that prevent the town, character, navigation cues,
-  investigation sites, report, and visible reward from reading as one
-  intentional game. It does not start from isolated asset sheets or test
-  counts.
-- [ ] Correct only the existing v1 selectors or existing composition values
-  responsible for those failures. Replacement bytes for an already required
-  selector are allowed; new selectors, variants, asset categories, gameplay
-  scope, generators, factories, frameworks, gates, tests, roadmaps, handoff
-  systems, and preview systems are forbidden. Reuse the existing v1 production,
-  promotion, publisher, runtime, and acceptance paths.
-- [ ] Present one final playable composition and its exact replacement bytes
-  to the human owner in one batch. The owner accepts or rejects the actual game
-  experience and exact bytes; no machine score, screenshot count, manifest, or
-  passing check substitutes for this decision. A rejection reopens only the
-  named selector or composition value.
-- [ ] After owner acceptance, run the existing publisher and the existing P6
-  packed-artifact journey once. Add no new check process. Release only if that
-  single run preserves the already-completed nine-step KGI, repository
-  read-only boundary, loopback-only delivery, persistence, and the accepted
-  composed visuals.
-
-No other work is on the path to v1 completion. In particular, do not rebuild
-the functional product, replace its architecture, manufacture a new production
-process, or broaden review while H2 is open.
-
-**Stop condition:** wait until the owner explicitly starts the Claude art
-cycle; then stop when the bounded selector set passes the rubric and owner
-review. Do not reopen functional scope or build an art-production platform.
-
-### [x] P2 — Art publisher completes the shipping catalog module
-
-**Subject/action/object:** The art publisher consumes only approved masters and
-generates `ship/50-art/manifest.json`, `scene-bindings.json`, approved PNGs,
-license, and provenance records.
-
-**Output:** one immutable, reusable shipping catalog covering every selector
-the v1 WorldPlan grammar can emit.
-
-**Acceptance evidence:** catalog generation is deterministic; all hashes,
-dimensions, pivots, usage records, and selector mappings validate; changing or
-removing one byte fails; no human hand-edits JSON; no candidate, original,
-fixture, wildcard, fallback, or unapproved byte enters `ship/`.
-
-P2 evidence is the approved-only publisher
-`studio/art-department/v1/publisher/publish-v1.mjs` and the generated
-`ship/50-art/` catalog. The publisher has no candidate, original, fixture, or
-selector-demand read path; it requires the pinned H1 approval and approved
-master manifest, then emits 60 exact PNGs, 60 explicit bindings, license, and
-provenance with fallback policy `none`. Its manifest SHA is
-`c59710dbf9970fded8f39fc731d122ef609fd265f69506bab4b0feec7a72dfb7`.
-Repeated generation leaves the approved and shipping output-set hash unchanged;
-the focused asset-contract checks reject altered PNG bytes, missing approval,
-source/hash/path mismatches, symlinks, traversal, fallback, invalid usage, and
-malformed PNG data. Functional representative resolution covers character
-`player:default`, building `building:town_hall`, map `terrain:meadow`,
-`road:main`, and `water:default`, and objects `prop:lamp`, `light:lit`, and
-`quest:inspect`. Independent distribution review confirmed CLI-root alignment,
-package inclusion of license/provenance, 60/60 exact identities, and no shipping
-symlinks or unapproved bytes. This proves catalog integrity and representative
-runtime metadata only, not aesthetics, SceneBundle reachability, browser play,
-or the product KGI.
-
-**Three-view value:** the owner's approved visual investment becomes a bounded
-shipping input; the Lead receives a deterministic integration boundary; the
-customer cannot receive mismatched, placeholder, fallback, or unapproved bytes.
-Catalog validation proves integrity and mapping only, not aesthetics, routes,
-browser play, or the KGI.
-
-**Stop condition:** stop when every frozen v1 selector resolves to an approved
-byte and the generated catalog validates; block on any missing or changed byte.
-
-### [x] P3 — Repository intelligence completes the truthful journey contract
-
-**Subject/action/object:** Modules `10` through `40` convert every accepted
-repository into exactly three distinct evidence-grounded investigations and
-the single `repository_inspected` observed reward event without executing the
-repository.
-
-**Output:** validated InspectionReport, SemanticModel, TownModel, and WorldPlan
-objects containing three reachable questions, separate evidence bags, and the
-town-hall-lantern transition. The other former execution-result rewards are
-removed from the v1 contract.
-
-**Acceptance evidence:** the frozen empty, small, and representative inert
-regular-directory cohort each produces exactly three distinct candidate IDs,
-facility kinds, and WorldPlan plots plus the single canonical
-`repository_inspected` binding and observed transition. The representative
-fixture includes lifecycle/build/test traps, a Git hook, executable shell and
-ELF-like bytes, excluded dependency/build directories, credential-bearing Git
-configuration, and an out-of-root symlink sentinel; before/after byte hashes,
-modes, mtimes, and outside snapshots remain identical and no marker appears.
-Root symlinks are rejected and internal symlinks are not followed. Repeated
-inspection and WorldPlan serialization are byte-identical; malformed evidence,
-arbitrary NPC roles, and zero or duplicate inspection transitions are rejected
-at the public boundaries. This targeted evidence covers backend truth and
-determinism only for that synthetic cohort; it does not prove approved art,
-scene compilation, browser behavior, package acquisition, privacy capture,
-persistence, distribution/security, or the KGI journey.
-
-**Three-view value:** the owner receives the core repository-to-game meaning
-instead of more infrastructure; the Lead obtains a truthful serialized contract;
-the customer receives three understandable repository-derived investigations
-without their repository being executed, modified, uploaded, or falsely
-certified. These tests prove backend truth and determinism for the frozen
-repository cohort only, not browser delivery or customer experience.
-
-**Stop condition:** stop when the frozen accepted-repository cohort produces
-three questions and the one permitted observed event with evidence states
-preserved; stop immediately if implementation would execute customer code or
-add another reward.
-
-### [x] P4 — Scene compiler completes catalog-to-town composition
-
-**Subject/action/object:** `60-scene-compiler` selects the exact required subset
-from the complete approved catalog and compiles a navigable SceneBundle.
-
-**Output:** terrain, roads, buildings, cutaway rooms, player, NPCs, three quest
-sites, distinct request/report interactions, UI bindings, collision/nav data,
-and one conditional town-hall-lantern renderable.
-
-**Acceptance evidence:** every required selector resolves to approved bytes;
-unused valid catalog mappings are accepted; missing selectors and fallbacks
-fail; spawn-to-request, request-to-three-sites, sites-to-report, and interior
-NPC routes are collision-free.
-
-P4 evidence is the canonical compiler and focused real-catalog checks in
-`ship/60-scene-compiler/index.mjs` and
-`studio/quality/unit/60-scene-compiler.test.mjs`. The compiler validates all 60
-frozen catalog mappings, rejects invalid unused mappings, and emits only the 47
-selectors required by the representative plan. Actual approved references cover
-player and NPC characters, buildings, terrain, roads, water, props, lights,
-quests, UI, and the conditional effect. It rasterizes sparse orthogonal roads,
-keeps exterior building walls solid except at entrances, creates room-bounded
-interior collision fields, and emits deterministic player-footbox routes for
-spawn to request, three distinct investigation sites, report, and every indoor
-NPC. The only accepted reward is the public canonical
-`repository_inspected -> town_hall -> town_hall_lantern_lit` transition.
-Focused compiler checks include compilation against the real P2
-manifest, bindings, and PNG root in about 0.26 seconds; malformed routes and
-unknown, missing, wildcard, fallback, unresolved, or usage-incompatible
-bindings fail closed. Browser correction evidence additionally excludes every
-entrance transition from spawn, investigation, and report hotspots; this closes
-the real-keyboard failures where moving from spawn or reaching a hotspot forced
-the player indoors. Twelve focused compiler checks and the shared
-compiler-to-runtime check pass. Independent review found no P4 blocker. P4
-evidence proves deterministic logical
-composition and reachability, not runtime input, persistence, browser play,
-package acquisition, or the product KGI.
-
-**Three-view value:** the owner's backend and art investments become one bounded
-scene; the Lead retires the composition dependency; the customer receives a
-navigable logical route through request, three sites, report, NPCs, and the
-permitted change without exposing their repository to the runtime. Compiler
-tests prove bindings, collisions, and logical reachability only, not browser
-feel, persistence, acquisition, or the KGI.
-
-**Stop condition:** do not start before P2 and P3 are covered; stop once the
-bounded SceneBundle and required routes validate, without adding world variants.
-
-### [x] P5 — Game runtime completes the ordinary RPG loop
-
-**Subject/action/object:** `70-game-runtime` consumes only the serialized
-SceneBundle and presents the complete journey with approved art.
-
-**Output:** readable start, movement, collision, cutaway entry, NPC dialogue,
-request acceptance, three answers, report, visible lantern change, exit, save,
-and revisit. Permanent diagnostic panels and fixture-art paths are absent.
-
-**Acceptance evidence:** a real browser completes the loop by keyboard at the
-default viewport and at the narrow supported viewport; the game remains
-reachable without fractional pixel scaling; the lantern changes only after
-the report; explicit exit persists state; process restart with the same
-identity and content digest restores the completed town; one-minute frame
-measurement stays within the declared runtime budget.
-
-P5 evidence is the self-contained runtime and CDP browser acceptance harness in
-`ship/70-game-runtime/`, `studio/quality/unit/70-game-runtime.test.mjs`, and
-`studio/quality/e2e/70-browser-journey.mjs`. Twenty-four focused runtime and
-browser-contract checks pass. Chrome 150 completed the real CLI-generated town
-with held keyboard input at the default 756x469 viewport and at 320x568: request,
-three distinct `見た` / `そうらしい` / `わからない` answers, report, lantern
-change, workshop entry, readable resident dialogue, exit, process restart, and
-revisit. The actual P2 bytes drawn include `player:default`, nine building
-selectors, terrain/road/water/plot selectors, and prop/quest/light selectors.
-The conditional `effect:town_hall_lantern_lit` was absent before report and drawn
-after it. At the narrow viewport the canvas remained an integer 384x216 CSS and
-backing rectangle with pixelated rendering. The declared visible-tab budget was
-60 seconds with rAF p95 at most 33.4ms and no interval over 100ms; the observed
-60,008ms run produced 7,201 frames, p95 9.1ms, max 9.4ms, and zero intervals over
-100ms. A fresh Chrome process using the same profile restored the explicit exit
-and completed lantern, and Enter revisited the completed town. Independent
-review marked P5 met. This evidence proves the recorded Chrome, machine,
-viewport, approved-byte draw, and identity/content persistence only; it does
-not judge asset aesthetics, prove universal-device performance, package
-acquisition, or the P6 product KGI.
-
-**Three-view value:** the owner first receives an executable customer-value
-slice rather than another internal artifact; the Lead proves that composition
-works as a game; the customer can actually move, understand, report, see change,
-exit, and revisit while their repository remains outside the runtime. Browser
-acceptance proves the frozen runtime environment only, not package acquisition,
-independent review, or final KGI return.
-
-**Stop condition:** stop when the declared browser journey and performance
-envelope pass; do not expand into frozen audio, localization, settings, gamepad,
-or cosmetic work.
-
-### [x] P6 — Delivery and independent QA prove the product KGI
-
-**Subject/action/object:** `90-cli` and `80-local-server` package and serve the
-approved product, then an independent read-only reviewer repeats the whole
-journey from the packed artifact.
-
-**Output:** an installable npm tarball, actual `npx codecity <repo>` browser
-run, KGI evidence, package inventory, license/provenance inventory, and a
-separate distribution/security review.
-
-**Acceptance evidence:** the reviewer accepts the request, reaches three sites,
-reports, sees the lantern, exits to the terminal, stops the process, reruns the
-command, and revisits the preserved town. Repository hashes and mtimes are
-unchanged; network capture shows no upload and only loopback service; the
-package contains only intended `ship/` bytes; first interaction is available
-within 3 seconds on the acceptance machine. Only after this evidence may the
-Lead declare CodeCity v1 complete.
-
-The packed-artifact orchestrator in `studio/quality/e2e/90-packed-kgi.mjs`
-enforces the exact `package.json.files` inventory, all 60 approved PNG hashes,
-exact manifest/license/provenance custody, and fail-closed loopback-only
-network samples. Its first-movement probe attaches the existing page opened by
-the CLI without prelaunching Chrome or navigating a replacement target. It
-sends exactly one CDP-dispatched raw ArrowDown keydown followed by its ordinary
-keyup through the real browser input path, with no preconditioning or redraw-
-probe input. The later
-journey and revisit stages use separate page targets in that same CLI-opened
-Chrome process, as recorded in the evidence limitation. The latest repair only
-stops the server network capture before SIGINT so normal shutdown is not
-misclassified as a missing sample.
-
-The accepted fresh local-tar run is
-`/var/folders/86/xb8typls3sncx8y3_dps4n000000gq/T/codecity-packed-kgi-f4gp8h/evidence.json`.
-Its 1,039,917-byte tarball has SHA-256
-`837fe39aad46ecf8bc3212748081cbfa88fc6e4fc4cebf9bff1875471b3d6dde`.
-The existing CLI-opened target was found at 2,345.64ms, became ready with its
-first normal player draw at 2,418.73ms, received one raw ArrowDown keydown at
-2,418.74ms, and showed real movement at 2,435.74ms; the measured command-to-
-interaction interval was 2,438.68ms. There was no prelaunched browser,
-replacement first target, navigation, probe input, fixture change, or threshold
-change. The verifier now polls the actual movement immediately instead of
-adding a fixed 180ms before its first observation. Network observation retains
-the same process-family cadence and fail-closed rules while running `nettop` at
-lower scheduler priority so the observer does not compete with the measured
-customer startup.
-
-The exact 91-entry inventory matched all trusted workspace bytes; all 60
-approved-master hashes, H1 owner records, and manifest/license/provenance
-cross-records passed. The request, three distinct investigations with
-`observed`, `inferred`, and `unknown` answers, distinct report route, visible
-lantern change, resident room/dialogue, exit, process restart, and restored
-revisit all passed. First-process npx/server captures were 58/58 and 56/56;
-restart captures were 19/19 and 3/3, all observed and loopback-only with no
-violations. The two repository entries retained exact type, mode, size, file
-hash, and mtime; the root directory mtime also happened to remain identical.
-
-This P6 run proves acquisition, packaging, browser delivery, the complete
-journey, persistence, and the observed privacy boundary for this two-entry
-small fixture on the acceptance machine. It does not claim that one fixture
-represents every repository. Repository-input generality is instead covered by
-P3's empty/small/representative inert cohort, then by P4's real-catalog
-composition and P5's real-browser journey. Browser request evidence covers the
-instrumented page targets and does not observe every Chrome background-process
-socket; the browser receives only the bounded SceneBundle and same-origin
-approved assets, extensions/sync are disabled, CSP restricts page connections
-to self, and the inspected repository is available only to the separately
-captured CLI process family. H2 remains the separate pending visual-quality
-gate and is not implied by this functional acceptance.
-
-**Three-view value:** the owner receives the promised requirement coverage from
-the authorized subscription investment; the Lead's declaration is independently
-audited; the end customer obtains and plays the literal product while their
-repository remains unchanged, unexecuted, local, and truthfully represented.
-This is the only action whose evidence can realize the full investment return.
-
-**Stop condition:** any missing KGI step, acquisition failure, repository
-mutation/execution, upload, non-loopback service, package contamination, or
-reviewer conflict returns status to `STOP` and forbids completion or publication.
-
-## 8. Execution order and parallelism
-
-```text
-G0 GO -> P1 -> H1 accepted -> P2 --+
-          ^      |                  +-> P4 -> P5 -> P6
-          +------+ rejected         |
-       -> P3 -----------------------+
-```
-
-`G0` is a continuing execution condition, not a milestone. Any declared stop
-condition suspends P1–P6 until the Lead issues a valid replacement declaration.
-
-The Lead allocates `P1` and `P3` in parallel only while their worker assignments
-are independent and bounded. PM agents own decomposition, dependency tracking,
-acceptance criteria, and read-only risk review; workers own only assigned paths
-and outputs. The Lead retains scope, integration, owner communication, and
-acceptance decisions.
-
-`H1` starts only when P1 has batched the complete exact-byte review set. A
-rejection reopens only its bounded selector work order. `P4` starts only after
-P2 and P3 are covered. The Lead stops or reallocates any work on frozen scope,
-duplicate evidence, or intermediate polish while a critical KGI dependency
-remains uncovered.
-
-H2 is the only Claude-dependent work. It may run after the functional path and
-must not block Codex from completing P2-P6. Functional KGI status and visual
-release status are reported separately until both are met.
-
-## 9. Forbidden completion language
-
-Workers and the Lead must not say “the game is complete,” “release-ready,” or
-equivalent because any of these happened alone:
-
-- tests or boundary checks passed;
-- a test count, coverage percentage, or green suite is reported without the
-  owner requirement and concrete customer failure it evidences;
-- an intermediate module, backend, factory, catalog, asset, or document exists;
-- exactly three fixture or inferred investigations exist;
-- diagnostic art reaches the browser;
-- a candidate or approval exists;
-- manifest validation, server startup, screenshot output, or package dry-run
-  succeeds;
-- a same-process exit/re-entry works.
-
-Reports state only the executable output that was produced and the acceptance
-evidence actually observed.
+| Player | One 192 by 256 sheet with 32 by 32 frames in a 6 by 8 grid | This is the only current player source with a real directional frame layout. It is provisional material, not the final body-scale or quality anchor. Keep, rework, or replace it according to the composed scene and visible gait. |
+| Exterior buildings | Fourteen exterior roles resolve to thirteen 192 by 192 building images | Pub currently aliases inn. Several images contain useful building art. They have mixed framing, scale, background context, and visible role quality. Reframe, layer, or replace each role that appears in the final town. |
+| Interior rooms | Fourteen room roles resolve to one 192 by 192 room image | All roles currently use the same bytes. This is one visible crop, not fourteen interiors. Build only the distinct cutaways that the complete journey uses. |
+| Residents | Seven NPC roles resolve to one 133 by 249 one-frame image | All roles currently use the same bytes. Repeated idle and walk labels do not create animation. These images do not share the player body scale and cannot remain as playable residents. |
+| Terrain, plots, roads, and water | 64 by 64 images | Three road roles currently resolve to one road image. These images can be source material, but they do not yet form continuous surfaces, edges, corners, junctions, banks, or crossings. |
+| Street props | 38 by 145, 71 by 102, 96 by 130, and 76 by 68 images | The source art can be useful. Each prop needs a deliberate world scale, baseline, footprint, shadow, and depth role. |
+| Lights and state effects | 14 by 64 or 45 by 64 images | Use them only where they read as a light or caused state in the composed scene. The lit light and town-hall effect share one lit byte where applicable. |
+| Quest marker | One 48 by 64 image | Keep only if it belongs to the world and helps play. It must not act as a diagnostic icon over unrelated art. |
+| UI frames | Three 384 by 216 images remain | The unused guild roster panel was removed. Their size matches the current logical canvas. They do not yet make one interface with the separate HTML text and controls. Recompose the UI as part of the game. |
+
+These reductions expose missing visual variety. They are qualitative deficiencies
+to repair in the composed game, not targets for asset or role counts.
+
+Selector names are not visual coverage. Byte-identical files with different
+role names are one visible asset. An accepted source file is not a usable game
+asset until it performs its role in the composed town.
+
+The player sheet is the only current role with a real multi-frame structure.
+That fact does not make its scale, style, or movement correct for the target
+scene.
+Recognizable house, town hall, watchtower, dock, warehouse, workshop, shop, inn,
+ruin, well, lamp, sign, and tree art can supply processed scene roles. The
+transparent dialogue and choice frames can supply the UI language. The guild
+image has an opaque crop matte. The dojo image is a complete training-yard crop,
+not an exterior building. Correct these source-context defects before use.
+
+The current browser result is not the intended baseline. It draws 64-pixel
+surface images at 16-pixel cell intervals. It draws 192-pixel buildings on
+plots that are four to six cells wide. It draws 133 by 249 residents next to a
+32 by 32 player frame. Large images overlap, surface stamps repeat, visible
+geometry disagrees with collision, and the overview only recenters the camera.
+The default canvas also reads as a small technical window inside a larger page.
+This result is an asset catalog placed on a map. It is not a town.
+
+## Size and spatial decision
+
+The current code uses a 16 by 16 navigation address and a 32 by 32 player frame.
+These are implementation facts. They are not the product's art scale, camera
+scale, or quality target.
+
+The WorldPlan uses abstract logical geometry. A complete worldview declares a
+coherent pixel density, actor body scale, surface unit, structure envelope,
+camera, and view. The scene compiler maps logical geometry to that worldview's
+world pixels. The runtime does not infer a world footprint from source-image
+dimensions.
+
+Large role envelopes are valid for roofs, trees, gestures, effects, and tall
+residents. Their bodies, feet, building bases, props, steps, furniture, and
+interaction reach must still share one believable scale language. Current 32 by 32 player
+frames and 133 by 249 resident crops do not define that language by themselves.
+
+Grid addresses can support navigation and composition. They must not make the
+renderer stamp one source crop at every cell. Ground, roads, water, banks,
+crossings, and structures form continuous placed surfaces before drawing.
+
+Every placed role has one shared geometry contract:
+
+- visible frame bounds;
+- ground footprint;
+- baseline and pivot;
+- collision and walkable space;
+- building occupancy or interaction region;
+- depth and foreground occlusion;
+- direction, action, and visible state.
+
+World generation, scene compilation, drawing, collision, interaction, camera,
+and cutaway use this same contract. The player can walk to what the player sees.
+
+The browser scales the whole logical scene by a whole-pixel factor. It does not
+blur individual assets or stretch one role to hide a scale mismatch. The final
+page gives the game the screen area that its composition needs. It does not
+freeze the product at the current 384 by 216 technical window. An opening
+overview fits the town. The play camera then gives enough local context for
+movement and interaction.
+
+## Visual direction
+
+The immutable target-town and world-visual-master boards are the visual north
+star for their worldview. They are not runtime backgrounds. The final game must
+reconstruct their world language from game-ready roles.
+
+The town uses one three-quarter top-down projection. Ground, structures,
+residents, props, effects, interiors, and UI share one pixel density, outline
+language, palette, light direction, shadow language, and night atmosphere.
+
+The first frame reads as one authored image. The eye can find the player, the
+way into town, a route choice, a central place, and a landmark. Roads lead to
+accessible places. Buildings sit on the ground. Water has banks and crossings. Trees and
+props support depth and neighborhood character. Quiet space separates focal
+places. No source-sheet border, opaque crop background, black gap, accidental
+overlap, repeated stamp pattern, or unrelated scene can remain visible.
+
+The town has spatial hierarchy. It has a civic core, meaningful district
+clusters, connected routes, smaller local places, and an honest edge. Procedural
+generation chooses within this composition grammar. It does not scatter assets
+and call the result a city.
+
+Each worldview has a complete grammar for terrain, routes, water, architecture,
+interiors, vegetation, props, light, residents, effects, and UI. A worldview can
+change the mood and form of a town. It does not replace completeness with a
+palette, climate name, selector, or background image. Do not mix partial kits to
+claim variety.
+
+Repository facts cause the visible form. Directories shape districts. Files or
+coherent file groups shape buildings. Local relationships shape roads or
+proximity. Unresolved relationships can shape broken crossings or blocked
+routes. Observed verification relationships can shape light. Unknown facts stay
+dark, covered, unreadable, or explicitly unknown.
+
+Safe semantic groups and relationships survive the meaning and town contracts.
+World generation uses them to cause district clusters, routes, landmarks,
+density, boundaries, population, and local character. A hash can make choices
+stable. A hash alone must not decide a generic layout.
+
+The same repository returns to the same recognizable place. A different
+repository changes meaningful districts, buildings, routes, landmarks, density,
+or boundaries. A different label on the same generic layout is not a different
+town. A random seed without repository meaning is not repository identity.
+
+Any generated field must cause a visible, playable, narrative, or safety
+effect. Remove climate, elevation, movement, road width, topology, selector,
+payload, or other data that the product does not use. Do not keep inert data as
+pretend variety or future value.
+
+## Asset production decision
+
+The unit of art quality is the composed town scene.
+
+Start from the visual master and the required playable scene. Identify the
+world role that is missing or wrong. Derive, crop, clean, reframe, resize,
+layer, or replace that role. Give it the geometry and state needed for
+placement. Reassemble the exact result in the real game. Judge it beside the
+player and its neighboring roles.
+
+Do not build isolated assets and hope that they later form a town. Do not grow
+a catalog, selector family, generator, factory, preview system, evidence system,
+or art platform as a substitute for scene work.
+
+The current source material is sufficient to define the exterior visual
+language. It is not sufficient as a ready runtime kit. The required production
+difference is:
+
+- continuous ground, road, water, bank, crossing, stair, and edge treatment for
+  every case that the final town can show;
+- buildings with a truthful footprint, base, roof depth, occupancy boundary,
+  shadow, foreground occlusion, visible state, and matching cutaway where play
+  uses it;
+- residents with readable role silhouettes, facing, movement, and
+  place-specific action at the player body scale;
+- props and vegetation that complete streets and districts without hiding
+  movement or interactions;
+- visible repository states that belong to the place instead of floating as
+  diagnostic symbols;
+- game UI that joins prompts, dialogue, request, report, controls, and exit to
+  the same visual world.
+
+The current boards define the current late-medieval night worldview. Each
+other shipping worldview needs its own complete and coherent set of the same
+scene roles. Build those sets inside the existing art and scene path. Do not
+build a general theme factory, generate filler variants, or count incomplete
+kits as product variety.
+
+These are scene jobs. They do not authorize new asset categories. Reuse an
+existing role when it works. Correct or replace the existing role when it does
+not. Add only the visual piece that a final generated scene actually needs.
+
+Owner-controlled ChatGPT Pro threads can produce new source masters. Parallel
+threads work only on independent roles in the same selected composed scene.
+Every prompt preserves that scene's projection, actor scale, pixel density,
+light, material language, and spatial purpose. A generated image stays candidate
+material until it improves the packed scene beside the player and neighbouring
+art. Thread count, image count, model label, and visual approval outside the
+game do not show progress or completeness.
+
+Do not request a complete PNG for each colour or state permutation. Author a
+new master when silhouette, construction, material form, or scene identity must
+change. Use declared material regions, approved palette ramps, structural
+layers, foreground masks, light layers, and small condition decals for changes
+that preserve the authored form. The scene compiler selects a bounded recipe.
+The runtime can cache the resulting local supplied-pixel composition. Neither
+component generates new art or retrieves remote art.
+
+The factory stops when the exact packed bytes form the required scene. It does
+not stop at a contact sheet or an accepted isolated image.
+
+The 22 files under art/references/user-provided remain immutable. Only the human
+owner may authorize new exact bytes under `ship/50-art/assets/`. This custody
+decision controls source ownership. It does not make the game complete.
+
+## Ordinary RPG experience
+
+The player is easy to find at spawn. Held directional input causes direct,
+predictable, brisk movement. Starts, turns, and stops respond at once. Walking
+speed makes crossing the town enjoyable. Facing, animation, and world motion
+agree. The player does not walk through visible walls, roofs, water, residents,
+or props. Invisible geometry does not block the player.
+
+A natural gait preserves the actor's identity and body volume. The feet
+alternate. A planted foot holds against the ground. Limbs and clothing move
+without melting or changing the character. Root motion and visible steps agree,
+so the actor does not slide.
+
+Road width, surface art, and walkable area agree. A building footprint, visible
+walls, occupancy region, interior floor, and exit space agree. Entry and exit
+preserve spatial orientation.
+
+Moving into a building's visible occupancy region reveals that building
+automatically. The player does not press Enter, Space, E, or another action key
+to enter. The building and player stay at the same world coordinates. Its roof,
+ceiling, upper walls, and foreground layers fade or clear smoothly to reveal
+the interior already placed below them. Leaving the occupancy region restores
+the layers after the player is clear. Entry does not target a door, use a black
+transition, teleport to a detached room, or show a duplicated room crop.
+
+The action key remains available for talk, inspect, choose, and other deliberate
+actions inside or outside a building.
+
+Residents exist as actors in the same world. They face, idle, walk, work, or
+talk as their visible role requires. Their interaction area follows their body,
+facing, and the declared reach. A full image rectangle is not a conversation
+model.
+
+The town has a varied and appealing resident population. Residents differ in
+silhouette, age, clothing, palette, occupation, movement, and place-specific
+behavior. They make districts feel inhabited without blocking routes. Cloned
+static figures with different labels are not a population.
+
+Depth sorting keeps feet grounded and keeps the active player readable.
+Foreground roofs, walls, and vegetation occlude only where the art says they
+do. A cutaway reveals the inside of that building. It does not replace the town
+with an unrelated crop or trap the player in a smaller invisible rectangle.
+
+The camera gives a clear establishing view and a stable walking view. The
+overview fits the town instead of moving to its center at the same zoom.
+
+Prompts, dialogue, request, report, feedback, and exit appear as game UI.
+Permanent help, numeric build status, asset counts, and diagnostic panels do not
+frame the customer experience.
+
+## Generated world and game depth
+
+Generating a town, seeing how the repository became a place, and wandering that
+place are a primary game loop. The player can pause the request and still find
+valuable routes, districts, landmarks, interiors, residents, and views.
+
+Game depth comes from meaningful route choice, strong place identity, seamless
+interiors, resident life, repository-derived discoveries, and a town that
+changes for a truthful reason. It does not come from feature count or from
+unrequested combat and progression systems.
+
+Procedural variation preserves authored composition. It produces towns that are
+surprising but legible, rich but walkable, and different but causally tied to
+their repositories. Small and large repositories both become intentional
+places. Neither becomes an empty grid or an unreadable asset pile.
+
+## Investigation and truth
+
+Walking is investigation. Roads, landmarks, residents, light, and visible
+repository conditions give the player reasons to choose a direction. The game
+does not reveal a complete answer path and does not require hidden operator
+knowledge.
+
+Each of the three investigation places reveals a distinct repository fact. Its
+clue and action belong to that place. The same generic panel in three buildings
+is not three investigations.
+
+Every fact, symbol, state change, and line of dialogue preserves observed,
+inferred, or unknown.
+
+Observed facts are stated directly. Inferences are qualified. Unknown facts
+remain unknown. Presence is not activity. A discovered relationship is not
+execution or success. Unverified is not broken.
+
+Residents speak in plain language about the place where they stand. Technical
+detail can remain available through evidence, but the player does not need raw
+diagnostics to understand the discovery.
+
+## Qualitative decision lenses
+
+These roles are viewpoints on one product. They are not separate approval gates.
+
+The design director asks whether the opening town has value before the report.
+The composition must make the repository feel like a place worth exploring and
+remembering.
+
+The world and level designer asks whether repository structure creates a
+readable town shape. Routes, districts, landmarks, accessible buildings, boundaries, and quiet
+space must support both visual hierarchy and natural walking.
+
+The art director judges the whole frame for coherent craft. An isolated sprite
+cannot prove a coherent town.
+
+The asset production lead keeps only images with a necessary scene job and
+enough data to assemble them. Source context remains until the game uses the
+crop, layer, frame, pivot, footprint, state, and reuse. The work ends in the
+game, not in an asset inventory.
+
+The technical artist and scene compositor ask whether source pixels become one
+world. They own the join between art scale, placement, collision, occlusion,
+animation, lighting, and camera.
+
+The game programmer asks whether the visible promise is true under input.
+Geometry, movement, building occupancy, residents, cutaways, state change, and persistence
+must use one canonical scene path. Duplicate or ignored product paths are
+removed.
+
+The narrative and UX designer asks whether the player understands why to move,
+what changed, and what remains unknown from in-world language. The interface
+must not expose implementation vocabulary as player instruction.
+
+The first-time end user asks, “is this my repository, and do I want to enter
+this town?” The returning user asks, “is this the same place, and did my
+investigation leave a meaningful change?”
+
+The playtester and debugger use an uncoached real-browser play. They describe
+where the image, movement, collision, interaction, understanding, or return
+experience breaks. They do not replace that judgment with a route script or a
+green test.
+
+The browser and release integrator asks whether the exact packed images, scene
+data, Canvas, CSS, and browser display preserve the intended pixel grid, scale,
+input, and composition on the customer path.
+
+The accessibility and performance viewpoint protects readable text, sufficient
+contrast, stable input, and smooth movement in the actual game. It does not add
+a settings platform or reduce the visual direction to a numeric score.
+
+The repository-truth and safety owner asks whether the town remains honest,
+local, private, and read-only. Safety can reject unsafe work. It cannot declare
+the visual game complete.
+
+## Truth, privacy, persistence, and custody
+
+CodeCity keeps every inspected repository read-only.
+
+CodeCity never executes repository source, scripts, tests, hooks, binaries,
+package managers, build commands, or generated commands.
+
+Source, analysis, saves, and assets stay local. The local server binds to
+literal 127.0.0.1 and serves only the immutable allowlisted snapshot for the
+current run.
+
+The completed journey persists locally for the same repository. Persistence
+does not change the inspected repository and does not send data to a remote
+service.
+
+Runtime code uses only the shipping art needed by the final composed game.
+There are no placeholder, nearest-match, wildcard, silent-fallback, or remote
+assets in the customer path. Candidate art and production material do not ship.
+
+## Implementation scope
+
+Build only code that causes the defined player experience or protects truth,
+privacy, local delivery, persistence, asset custody, or safety.
+
+Delete every product-path line, field, selector, asset, file, tool, test,
+record, and dependency that has no causal role in that experience and no
+protective role. Do not archive it. Do not preserve it for possible future
+scope. Do not use old unused code as authority for new implementation.
+
+While the game is incomplete, current non-reference status, a file count, hash
+equality, or test status alone does not prove deletion. Judge each line and file
+by its qualitative role in the final game, its unique source, crop, geometry,
+or style knowledge needed to build that game, or its safety or custody role.
+Merge exact duplicate bytes only after preserving that role and production
+knowledge. Candidate production material can be necessary before runtime
+consumes it. Review, evidence, and catalog machinery cannot substitute for the
+composed game.
+
+Use the current inspection, meaning, town, world, art, scene, runtime, server,
+and CLI module path when it serves the product. Change or remove a path when
+the composed game proves that it blocks the product definition.
+
+Keep the request, three distinct investigations, required cutaway interiors,
+indoor interaction, truth states, report, town-hall lantern response, local
+save, explicit exit, process restart, and revisit.
+
+Do not add achievements, currency, streaks, engineering grades, runtime image
+generation, combat, parties, character statistics, equipment, an economy, more
+facility types, more game modes, audio expansion, localization expansion,
+sharing, broad settings, broad controller work, framework migration, new schema
+layers, dashboards, or verification UI.
+
+Multiple complete worldviews are part of the product. They do not authorize a
+theme platform, a variant-count target, or speculative art. Add only a complete
+world language that the generator can compose into the defined experience.
+
+Do not implement an asset platform, acceptance platform, or governance system.
+Make the smallest cohesive change that produces the whole intended experience.
+Small patches are not a virtue when they preserve an incoherent town. Large
+systems are not a virtue when they do not improve the town.
+
+## Shipping module boundaries
+
+Dependencies flow from lower-numbered ship modules to higher-numbered modules.
+The 90-cli module is the only composition root.
+
+The numbered module structure is sufficient. Do not add a new module, roadmap,
+factory, or parallel customer path. Improve the existing contracts. Remove a
+duplicate or ignored payload instead of preserving it beside the canonical one.
+
+Cross-module imports use only the target module index.
+
+The 10-inspect module reads repository bytes without executing them.
+
+The 20-semantics module derives repository meaning, including safe groups and
+relationships that can cause visible town form.
+
+The 30-town-domain module expresses town facts, investigations, and the
+town-hall lantern response. Its town model retains the safe semantic structure
+that world generation needs.
+
+The 40-worldgen module produces repository-caused logical topology, district
+shape, routes, landmarks, population needs, and worldview intent. It does not
+import images, Canvas, DOM, server, or CLI code.
+
+The 50-art module contains only complete shipping worldview roles and custody
+data for their assets.
+
+The 60-scene-compiler module is the only shipping module that joins world data
+to shipping art. It maps logical geometry to worldview pixels and emits one
+canonical serialized SceneBundle. That bundle carries continuous surfaces,
+structures, exterior bases, interiors, roofs, ceilings, foreground masks,
+occlusion, collision, occupancy regions, residents, state, and camera
+composition from the same placed geometry.
+
+The 70-game-runtime module consumes that SceneBundle and never reads a
+repository. It implements direct movement, automatic building occupancy,
+layered cutaway, residents, interaction, camera, UI, state change, and return.
+It does not invent a second map or room model.
+
+The 80-local-server module serves the immutable loopback snapshot.
+
+The 90-cli module composes inspection, scene compilation, and local delivery.
+
+Shipping code never imports from studio. Non-customer production paths do not
+ship.
+
+## The only remaining product item
+
+- [ ] Replace the current mixed-scale catalog rendering with a beautiful,
+  coherent, repository-derived town from a complete worldview. Make generation
+  and free exploration valuable by themselves. Carry the same placed world
+  through brisk natural movement, automatic seamless building entry, layered
+  roof and ceiling reveal, varied resident life, three distinct investigations,
+  report, visible town change, exit, restart, and revisit in the exact packed
+  browser game. Support multiple complete worldviews without a parallel product
+  path.
+
+This item is one product change. Do not split it into proxy completion gates.
+Its evidence is the direct qualitative experience of the exact packed game.
+Tests can explain a failure cause. Asset custody can authorize bytes. Neither
+can check this item by itself.
+
+## Completion judgment
+
+The game is complete when an uncoached end user receives the defined experience
+as one continuous product.
+
+The user first sees a beautiful and recognizable repository town. The user can
+enjoy its generation and explore it without instruction. The user moves quickly
+and naturally through visible space. Crossing into a building reveals its
+matching interior in place. Varied residents make the town
+feel alive. The user understands a reason to investigate. The user completes
+the three distinct investigations, makes the report, sees the caused town
+change, exits, and later recognizes the same changed town. Other repositories
+can produce coherent towns in other complete worldviews. The repository remains
+safe and the claims remain truthful.
+
+The game is not complete if it draws a fixed master, traces one board's roads,
+reconstructs one board from prefabs, relabels one generic layout, stamps source
+crops across a grid, slides or morphs an actor, requires an action key to enter
+a building, teleports to a detached interior, surrounds a small game view with
+diagnostic page chrome, fills streets with cloned static residents, or calls a
+palette change a worldview.
+
+The word APPROVE does not hold this judgment. A count, score, threshold, route,
+test suite, manifest, hash, generated image, asset review, or audit state cannot
+stand in for the experience. A browser run can expose a defect. It cannot make
+an incoherent town complete by reporting success.
+
+Judge the whole composed town first. Judge the whole play journey second. Fix
+the direct cause of any failure. Stop when the game itself supplies the value
+defined in this file.

@@ -41,12 +41,11 @@
   },
   "alpha": {
     "mode": "RGBA",
-    "hasTransparency": true,
-    "mechanical": "passed"
+    "hasTransparency": true
   },
   "pivot": {
     "status": "unknown",
-    "reason": "runtime sprite pivot contract is not exported in P1"
+    "reason": "runtime sprite pivot is not recorded in this production sidecar"
   },
   "frameMetadata": {
     "status": "observed",
@@ -58,42 +57,83 @@
     },
     "animations": {
       "idle": {
-        "north": [0, 1],
-        "south": [12, 13],
-        "east": [24, 25],
-        "west": [36, 37]
+        "north": [
+          0,
+          1
+        ],
+        "south": [
+          12,
+          13
+        ],
+        "east": [
+          24,
+          25
+        ],
+        "west": [
+          36,
+          37
+        ]
       },
       "walk": {
-        "north": [2, 3, 4, 5],
-        "south": [14, 15, 16, 17],
-        "east": [26, 27, 28, 29],
-        "west": [38, 39, 40, 41]
+        "north": [
+          2,
+          3,
+          4,
+          5
+        ],
+        "south": [
+          14,
+          15,
+          16,
+          17
+        ],
+        "east": [
+          26,
+          27,
+          28,
+          29
+        ],
+        "west": [
+          38,
+          39,
+          40,
+          41
+        ]
       },
       "run": {
-        "north": [6, 7, 8, 9, 10, 11],
-        "south": [18, 19, 20, 21, 22, 23],
-        "east": [30, 31, 32, 33, 34, 35],
-        "west": [42, 43, 44, 45, 46, 47]
+        "north": [
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
+        "south": [
+          18,
+          19,
+          20,
+          21,
+          22,
+          23
+        ],
+        "east": [
+          30,
+          31,
+          32,
+          33,
+          34,
+          35
+        ],
+        "west": [
+          42,
+          43,
+          44,
+          45,
+          46,
+          47
+        ]
       }
     }
-  },
-  "mechanicalChecks": {
-    "pngReadable": "passed",
-    "dimensions": "passed",
-    "candidateHash": "passed",
-    "sourceCustody": "passed",
-    "alpha": "passed",
-    "pivot": "unknown",
-    "frameGrid": "passed",
-    "frameCount": "passed",
-    "animationDiversity": "passed",
-    "visualFit": "unknown",
-    "ownerApproval": "unknown"
-  },
-  "review": {
-    "state": "reviewable",
-    "path": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
-    "approvalState": "unknown",
-    "humanDecision": "unknown"
   }
 }

@@ -7,6 +7,9 @@ const DEFAULT_MAX_FILE_BYTES = 4 * 1024 * 1024;
 const DEFAULT_MAX_TOTAL_BYTES = 16 * 1024 * 1024;
 const MAX_ALLOWED_FILES = 4096;
 const MAX_REQUEST_PATH_BYTES = 8 * 1024;
+const SHUTDOWN_PATH = '__codecity/shutdown';
+const SHUTDOWN_HEADER = 'x-codecity-exit';
+const SHUTDOWN_HEADER_VALUE = '1';
 
 const MIME_TYPES = Object.freeze({
   '.css': 'text/css; charset=utf-8',
@@ -17,7 +20,7 @@ const MIME_TYPES = Object.freeze({
 });
 
 const SECURITY_HEADERS = Object.freeze({
-  'Content-Security-Policy': "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'",
+  'Content-Security-Policy': "default-src 'self'; base-uri 'none'; connect-src 'self'; font-src 'none'; form-action 'none'; frame-ancestors 'none'; img-src 'self'; object-src 'none'; script-src 'self'; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; style-src-attr 'unsafe-inline'; worker-src 'none'",
   'Cross-Origin-Opener-Policy': 'same-origin',
   'Cross-Origin-Resource-Policy': 'same-origin',
   'Referrer-Policy': 'no-referrer',
@@ -141,7 +144,7 @@ function loadSnapshotFiles(snapshots, maxFileBytes, maxTotalBytes, expectedSha25
   return loaded;
 }
 
-function errorResponse(res, error) {
+function errorResponse(res, error, allow = 'GET, HEAD') {
   const statuses = {
     bad_request: 400,
     request_uri_too_long: 414,
@@ -150,24 +153,52 @@ function errorResponse(res, error) {
     method_not_allowed: 405,
   };
   const status = statuses[error] ?? 500;
-  sendJson(res, status, error, error === 'method_not_allowed' ? { Allow: 'GET, HEAD' } : {});
+  sendJson(res, status, error, error === 'method_not_allowed' ? { Allow: allow } : {});
 }
 
-function configureServer(files) {
+function configureServer(files, control = {}) {
   const server = http.createServer(async (req, res) => {
     try {
-      if (req.method !== 'GET' && req.method !== 'HEAD') {
-        res.shouldKeepAlive = false;
-        errorResponse(res, 'method_not_allowed');
-        res.once('finish', () => req.destroy());
-        return;
-      }
       const parsed = requestedPath(req.url);
       if (parsed.error) {
         errorResponse(res, parsed.error);
         return;
       }
       const relative = parsed.decoded.replace(/^\/+/, '');
+      if (relative === SHUTDOWN_PATH) {
+        if (req.method !== 'POST') {
+          res.shouldKeepAlive = false;
+          errorResponse(res, 'method_not_allowed', 'POST');
+          res.once('finish', () => req.destroy());
+          return;
+        }
+        const origin = req.headers.origin;
+        const shutdownHeader = req.headers[SHUTDOWN_HEADER];
+        if (origin !== control.expectedOrigin || shutdownHeader !== SHUTDOWN_HEADER_VALUE) {
+          res.shouldKeepAlive = false;
+          errorResponse(res, 'forbidden_path');
+          res.once('finish', () => req.destroy());
+          return;
+        }
+        res.shouldKeepAlive = false;
+        res.writeHead(204, responseHeaders({
+          'Cache-Control': 'no-store',
+          'Content-Length': 0,
+        }));
+        res.once('finish', () => {
+          if (control.shutdownRequested) return;
+          control.shutdownRequested = true;
+          if (typeof control.onShutdown === 'function') void control.onShutdown();
+        });
+        res.end();
+        return;
+      }
+      if (req.method !== 'GET' && req.method !== 'HEAD') {
+        res.shouldKeepAlive = false;
+        errorResponse(res, 'method_not_allowed');
+        res.once('finish', () => req.destroy());
+        return;
+      }
       const loaded = files.get(relative);
       if (!loaded) {
         errorResponse(res, 'not_found');
@@ -201,18 +232,20 @@ function createLocalServer({
   maxFileBytes = DEFAULT_MAX_FILE_BYTES,
   maxTotalBytes = DEFAULT_MAX_TOTAL_BYTES,
   expectedSha256,
+  control,
 } = {}) {
   assertPort(port);
   assertMaxFileBytes(maxFileBytes);
   assertMaxTotalBytes(maxTotalBytes, maxFileBytes);
   if (snapshots === undefined) throw new TypeError('snapshots are required');
   const files = loadSnapshotFiles(snapshots, maxFileBytes, maxTotalBytes, expectedSha256);
-  return configureServer(files);
+  return configureServer(files, control);
 }
 
 /** Start a loopback-only server and return its origin plus an idempotent close. */
 export async function startLocalServer({ snapshots, expectedSha256, port = 0, maxFileBytes = DEFAULT_MAX_FILE_BYTES, maxTotalBytes = DEFAULT_MAX_TOTAL_BYTES } = {}) {
-  const server = createLocalServer({ snapshots, expectedSha256, port, maxFileBytes, maxTotalBytes });
+  const control = { expectedOrigin: null, onShutdown: null, shutdownRequested: false };
+  const server = createLocalServer({ snapshots, expectedSha256, port, maxFileBytes, maxTotalBytes, control });
   await new Promise((resolve, reject) => {
     const onError = (error) => {
       server.off('listening', resolve);
@@ -227,6 +260,8 @@ export async function startLocalServer({ snapshots, expectedSha256, port = 0, ma
   });
   const address = server.address();
   const actualPort = typeof address === 'object' && address ? address.port : port;
+  const origin = new URL(`http://${HOST}:${actualPort}`).origin;
+  control.expectedOrigin = origin;
   let closed = false;
   const close = async () => {
     if (closed) return;
@@ -234,8 +269,9 @@ export async function startLocalServer({ snapshots, expectedSha256, port = 0, ma
     if (!server.listening) return;
     await new Promise((resolve) => server.close(() => resolve()));
   };
+  control.onShutdown = close;
   return Object.freeze({
     close,
-    origin: `http://${HOST}:${actualPort}`,
+    origin,
   });
 }

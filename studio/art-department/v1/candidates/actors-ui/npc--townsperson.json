@@ -39,33 +39,15 @@
   },
   "alpha": {
     "mode": "RGBA",
-    "hasTransparency": true,
-    "mechanical": "passed"
+    "hasTransparency": true
   },
   "pivot": {
     "status": "unknown",
-    "reason": "runtime sprite pivot contract is not exported in P1"
+    "reason": "runtime sprite pivot is not recorded in this production sidecar"
   },
   "frameMetadata": {
     "status": "unknown",
-    "reason": "runtime frame-grid contract is not exported in P1",
+    "reason": "runtime frame grid is not recorded in this production sidecar",
     "declaredFrameCount": 1
-  },
-  "mechanicalChecks": {
-    "pngReadable": "passed",
-    "dimensions": "passed",
-    "candidateHash": "passed",
-    "sourceCustody": "passed",
-    "alpha": "passed",
-    "pivot": "unknown",
-    "frameGrid": "unknown",
-    "visualFit": "unknown",
-    "ownerApproval": "unknown"
-  },
-  "review": {
-    "state": "reviewable",
-    "path": "studio/art-department/v1/candidates/actors-ui/review/actors-ui-contact-sheet.png",
-    "approvalState": "unknown",
-    "humanDecision": "unknown"
   }
 }
