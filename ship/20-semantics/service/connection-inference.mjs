@@ -43,23 +43,31 @@ export function buildConnections(inspection, semanticFiles) {
   const graph = readGraph(inspection);
   const filesById = new Map(semanticFiles.map((file) => [file.fileId, file]));
   const nodes = indexNodes(graph.nodes, filesById);
-  const evidenceRecords = readExactEvidenceRecords(inspection);
-  const connections = [];
+  const evidenceBySubject = indexExactEvidenceBySubject(inspection);
+  const connectionsById = new Map();
 
   for (const edge of graph.edges) {
     const parsed = parseEdge(edge, nodes);
+    const existing = connectionsById.get(parsed.edgeId);
+    if (existing !== undefined) {
+      existing.sourceFileIds = sortedUniqueStrings([
+        ...existing.sourceFileIds,
+        ...parsed.sourceFileIds,
+      ]);
+      continue;
+    }
     const edgeKey = `connection.graph.edge.${parsed.edgeId}`;
     const evidence = emptyEvidence();
     evidence.inferred.push(edgeKey);
-    const evidenceSubjects = new Set([parsed.edgeId, ...parsed.externalEndpointIds]);
-    for (const record of evidenceRecords) {
-      if (evidenceSubjects.has(record.subject)) {
-        evidence[record.state].push(record.key);
+    const edgeEvidence = evidenceBySubject.get(parsed.edgeId);
+    if (edgeEvidence !== undefined) {
+      for (const state of ['observed', 'inferred', 'unknown']) {
+        evidence[state].push(...edgeEvidence[state]);
       }
     }
     const normalizedEvidence = mergeEvidence(evidence);
     const id = parsed.edgeId;
-    connections.push({
+    connectionsById.set(id, {
       id,
       direction: parsed.direction,
       kind: parsed.kind,
@@ -69,16 +77,7 @@ export function buildConnections(inspection, semanticFiles) {
     });
   }
 
-  const deduplicated = new Map();
-  for (const connection of connections) {
-    const existing = deduplicated.get(connection.id);
-    if (existing === undefined) {
-      deduplicated.set(connection.id, connection);
-      continue;
-    }
-    deduplicated.set(connection.id, mergeConnections(existing, connection));
-  }
-  return sortByStrings([...deduplicated.values()], (connection) => [
+  return sortByStrings([...connectionsById.values()], (connection) => [
     connection.id,
     connection.direction,
     connection.kind,
@@ -86,12 +85,12 @@ export function buildConnections(inspection, semanticFiles) {
   ]);
 }
 
-function readExactEvidenceRecords(inspection) {
+function indexExactEvidenceBySubject(inspection) {
   const source = inspection?.evidence;
   if (source === null || typeof source !== 'object' || Array.isArray(source)) {
-    return [];
+    return new Map();
   }
-  const records = [];
+  const bySubject = new Map();
   for (const state of ['observed', 'inferred', 'unknown']) {
     const entries = Array.isArray(source[state]) ? source[state] : [];
     for (const entry of entries) {
@@ -101,10 +100,17 @@ function readExactEvidenceRecords(inspection) {
         ? entry.subject
         : null;
       if (key === null || subject === null) continue;
-      records.push({ state, key, subject });
+      if (!bySubject.has(subject)) bySubject.set(subject, emptyEvidence());
+      bySubject.get(subject)[state].push(key);
     }
   }
-  return sortByStrings(records, (record) => [record.state, record.key, record.subject]);
+  for (const evidence of bySubject.values()) {
+    const normalized = mergeEvidence(evidence);
+    evidence.observed = normalized.observed;
+    evidence.inferred = normalized.inferred;
+    evidence.unknown = normalized.unknown;
+  }
+  return bySubject;
 }
 
 function indexNodes(rawNodes, filesById) {
@@ -138,10 +144,6 @@ function parseEdge(edge, nodes) {
     : targetNode?.topology === 'external'
       ? targetNode
       : targetNode;
-  const externalEndpointIds = sortedUniqueStrings([source, targetNode]
-    .filter((endpoint) => endpoint?.topology === 'external')
-    .map((endpoint) => endpoint.id));
-
   const sourceFileIds = sortedUniqueStrings([
     ...(source?.fileId === null || source?.fileId === undefined ? [] : [source.fileId]),
     ...(targetNode?.fileId === null || targetNode?.fileId === undefined ? [] : [targetNode.fileId]),
@@ -156,7 +158,6 @@ function parseEdge(edge, nodes) {
     kind,
     target,
     sourceFileIds,
-    externalEndpointIds,
   };
 }
 
@@ -275,12 +276,4 @@ function classifyDirection(source, target) {
     return 'internal';
   }
   return 'unknown';
-}
-
-function mergeConnections(left, right) {
-  return {
-    ...left,
-    sourceFileIds: sortedUniqueStrings([...left.sourceFileIds, ...right.sourceFileIds]),
-    evidence: mergeEvidence(left.evidence, right.evidence),
-  };
 }

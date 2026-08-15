@@ -13,7 +13,10 @@ import {
  */
 const FORMAT = 'codecity.world-plan';
 const SCHEMA_VERSION = 2;
-const WORLDVIEW = Object.freeze({ id: 'late-medieval-night', recipeVersion: 'place-recipe-v1' });
+const WORLDVIEWS = Object.freeze({
+  lateMedieval: Object.freeze({ id: 'late-medieval-night', recipeVersion: 'place-recipe-v1' }),
+  snowHarbor: Object.freeze({ id: 'snow-harbor-night', recipeVersion: 'place-recipe-v1' }),
+});
 const EVIDENCE_STATES = Object.freeze(['observed', 'inferred', 'unknown']);
 const SURFACE_RECIPES = Object.freeze(['ground', 'water', 'bank', 'crossing', 'main_route', 'local_route', 'plaza']);
 const ROUTE_RECIPES = Object.freeze(['main', 'local']);
@@ -22,7 +25,12 @@ const PLACE_RECIPES = Object.freeze([
   'residence', 'facility', 'investigation_site',
 ]);
 const PLACE_CONDITIONS = Object.freeze(['active', 'missing', 'not_applicable', 'unconfirmed', 'dirt']);
-const PROP_RECIPES = Object.freeze(['signboard', 'lamp_post', 'tree_cluster']);
+const PROP_RECIPES = Object.freeze([
+  'signboard', 'lamp_post', 'tree_cluster',
+  'work_clutter', 'civic_planter', 'living_woodpile', 'edge_stone_stair', 'edge_hedge_curb',
+  'snow_evergreen', 'snow_harbor_lamp', 'snow_dock_cargo',
+  'snow_edge_evergreen_yard', 'snow_edge_harbor_shore',
+]);
 const LIGHT_STATES = Object.freeze(['lit', 'unlit', 'unknown']);
 const INVESTIGATION_TARGET_BY_FACILITY = Object.freeze({
   gate: 'threshold',
@@ -33,10 +41,20 @@ const INVESTIGATION_TARGET_BY_FACILITY = Object.freeze({
   shop: 'repair-tools',
 });
 const INVESTIGATION_TARGET_RECIPES = Object.freeze(Object.values(INVESTIGATION_TARGET_BY_FACILITY));
+const ENCLOSED_INVESTIGATION_FACILITIES = Object.freeze(new Set([
+  // The bounded clues for the training yard, watchtower, and shop live in the
+  // visible court, tower threshold, and shopfront. Inventing unrelated rooms
+  // for those source roles would weaken place truth. The ledger belongs inside
+  // the warehouse, which keeps its same-coordinate automatic cutaway.
+  'warehouse',
+]));
 const INVESTIGATION_TARGET_OFFSETS = Object.freeze({
   threshold: Object.freeze({ x: 0, y: 1 }),
   ledger: Object.freeze({ x: -2, y: -1 }),
-  'water-source': Object.freeze({ x: 0, y: 0 }),
+  // Keep the well clue on the front rim.  The matching well entrance is
+  // authored below, so the outdoor scene target and the logical evidence
+  // anchor remain the same reachable point.
+  'water-source': Object.freeze({ x: -3.5, y: 3.5 }),
   'inspection-mark': Object.freeze({ x: 2, y: -1 }),
   'night-log': Object.freeze({ x: 0, y: -2 }),
   'repair-tools': Object.freeze({ x: -1, y: 0 }),
@@ -59,13 +77,34 @@ const FACILITY_APPEARANCES = Object.freeze({
   dock: 'dock',
   ruin: 'ruin',
 });
-const DWELLING_APPEARANCES = Object.freeze(['dwelling-gabled', 'dwelling-stone', 'dwelling-tall']);
+const DWELLING_APPEARANCES = Object.freeze([
+  'dwelling-gabled', 'dwelling-stone', 'dwelling-tall',
+  'dwelling-stone-bay', 'dwelling-tall-narrow',
+]);
 const PLACE_APPEARANCES = Object.freeze([
   ...new Set([...Object.values(FACILITY_APPEARANCES), ...DWELLING_APPEARANCES]),
 ]);
 const RESIDENT_APPEARANCES = Object.freeze(['keeper', 'artisan', 'porter', 'watcher', 'neighbor', 'traveler']);
+const SNOW_PLACE_APPEARANCES = Object.freeze([
+  'gate', 'town-hall', 'warehouse', 'well', 'workshop',
+  'dwelling-gabled', 'dwelling-stone',
+]);
+const SNOW_RESIDENT_APPEARANCES = Object.freeze(['keeper', 'artisan', 'neighbor']);
+const SNOW_FACILITY_APPEARANCES = Object.freeze({
+  gate: 'gate',
+  town_hall: 'town-hall',
+  dock: 'warehouse',
+  warehouse: 'warehouse',
+  well: 'well',
+  workshop: 'workshop',
+});
+const SNOW_INVESTIGATION_TARGET_RECIPES = Object.freeze(['threshold', 'ledger', 'water-source']);
+const SNOW_RESIDENT_TRANSLATIONS = Object.freeze({
+  porter: 'artisan',
+  watcher: 'keeper',
+  traveler: 'neighbor',
+});
 const RESIDENT_BEHAVIORS = Object.freeze(['work', 'talk', 'watch', 'walk']);
-const RESIDENT_MOTION_KINDS = Object.freeze(['still', 'ping-pong']);
 const GROUP_ROLE_FAMILIES = Object.freeze({
   work: Object.freeze(['data', 'configuration', 'test', 'tooling']),
   living: Object.freeze(['service', 'interface', 'module']),
@@ -87,9 +126,20 @@ const FACILITY_SIZE = Object.freeze({
   gate: { width: 8, height: 8 },
   guild: { width: 11, height: 9 }, town_hall: { width: 14, height: 10 }, dock: { width: 12, height: 8 },
   warehouse: { width: 12, height: 8 }, well: { width: 7, height: 7 }, workshop: { width: 11, height: 8 },
-  dojo: { width: 11, height: 9 }, watchtower: { width: 9, height: 12 },
+  dojo: { width: 11, height: 9 }, watchtower: { width: 9, height: 10 },
   shop: { width: 9, height: 7 }, ruin: { width: 10, height: 8 },
 });
+// The civic space is a small forecourt. It supports a readable gathering
+// point without turning half the town into an empty paving card.
+const CIVIC_PLAZA_SIZE = Object.freeze({ width: 8, height: 5 });
+// The approach is a visible street join, not a detached road leading to a
+// building. Two logical units leaves a readable opening at the gate while
+// keeping the authored town inside the native 1280 by 720 view.
+const AUTHORED_APPROACH_LENGTH = 2;
+const STREET_GAP = 1.75;
+// The well's authored clue sits on its left front rim. A small extra gap
+// keeps a waterside dock's approach out of the well footprint.
+const DOCK_WELL_STREET_EXTRA_GAP = 1.25;
 
 class WorldPlanValidationError extends Error {
   constructor(message, issues = [], code = 'WORLD_PLAN_INVALID') {
@@ -394,99 +444,592 @@ function semanticSignature(town) {
   });
 }
 
-function generatedFacilityKinds(town) {
-  return uniqueSortedStrings([
-    'gate',
-    'town_hall',
-    ...town.candidates.map((candidate) => candidate.facilityKind),
-    ...town.facilities
-      .filter((facility) => facility.presence !== 'not_applicable')
-      .map((facility) => facility.kind),
-  ]);
+function groupHomeSize(group) {
+  const appearance = typeof group === 'string' ? group : dwellingAppearance(group);
+  return homeSizeForAppearance(appearance);
 }
 
-function groupHomeSize(group) {
-  const appearance = dwellingAppearance(group);
-  return appearance === 'dwelling-tall'
-    ? { width: 8, height: 11 }
-    : appearance === 'dwelling-stone'
+function homeSizeForAppearance(appearance) {
+  return appearance === 'dwelling-tall' || appearance === 'dwelling-tall-narrow'
+    ? { width: 8, height: 10 }
+    : appearance === 'dwelling-stone' || appearance === 'dwelling-stone-bay'
       ? { width: 10, height: 8 }
       : { width: 9, height: 8 };
-}
-
-// A place consumes more than its visible rectangle.  The authored approach
-// is part of its occupied composition: later buildings must not close the
-// only way into an earlier one.  Keep this requirement in the provisional
-// capacity envelope as well as in collision-aware placement below.
-function placementSiteSize(size, routeWidth = 3) {
-  const separator = 1.5;
-  const approachLength = 6; // entrance offset (1) plus the authored approach (5)
-  const routeRadius = routeWidth / 2;
-  return {
-    width: round(size.width + separator * 2),
-    height: round(size.height + approachLength + routeRadius + separator),
-  };
 }
 
 function placeRouteWidth(facilityKind, recipe = null) {
   return facilityKind === 'gate' || facilityKind === 'town_hall' || recipe === 'civic_plaza' ? 5 : 3;
 }
 
-function authoredStructureSizes(town) {
-  return [
-    ...generatedFacilityKinds(town).map((kind) => placementSiteSize(
-      FACILITY_SIZE[kind] ?? { width: 9, height: 7 },
-      placeRouteWidth(kind),
-    )),
-    ...town.groups.map((group) => placementSiteSize(groupHomeSize(group))),
-    placementSiteSize({ width: 18, height: 12 }, 5),
-  ];
+function placeIdForFacility(kind) {
+  return `place.${String(kind).replaceAll('_', '-')}`;
 }
 
-function roleStructureSizes(town, roles) {
-  const roleIds = new Set(roles);
-  const sizesByRole = new Map(roles.map((role) => [role, []]));
-  const addSize = (role, size) => {
-    if (roleIds.has(role)) sizesByRole.get(role).push(size);
-  };
-  for (const kind of generatedFacilityKinds(town)) {
-    addSize(facilityDistrictRole(kind), placementSiteSize(
-      FACILITY_SIZE[kind] ?? { width: 9, height: 7 },
-      placeRouteWidth(kind),
-    ));
+function placeIdForCompound(compound) {
+  return `place.${compound.id}`;
+}
+
+function facilityRecordByKind(town) {
+  const records = new Map(town.facilities.map((facility) => [facility.kind, facility]));
+  for (const candidate of town.candidates) {
+    if (records.has(candidate.facilityKind)) continue;
+    records.set(candidate.facilityKind, {
+      id: `facility.${candidate.facilityKind}`,
+      kind: candidate.facilityKind,
+      presence: 'unknown',
+      condition: 'unconfirmed',
+      sourceFileIds: [],
+      evidence: candidate.evidence,
+      value: {},
+    });
   }
-  for (const group of town.groups) addSize(groupDistrict(group, roleIds), placementSiteSize(groupHomeSize(group)));
-  addSize('civic', placementSiteSize({ width: 18, height: 12 }, 5));
-  return sizesByRole;
+  for (const kind of ['gate', 'town_hall']) {
+    if (records.has(kind)) continue;
+    records.set(kind, {
+      id: `facility.${kind}`,
+      kind,
+      presence: 'unknown',
+      condition: 'unconfirmed',
+      sourceFileIds: [],
+      evidence: evidenceBag(null, `facility.${kind}.unknown`),
+      value: {},
+    });
+  }
+  return records;
 }
 
-function roleEnvelope(sizes) {
-  if (!sizes.length) return { width: 0, height: 0 };
-  const area = sizes.reduce((total, size) => total + size.width * size.height, 0);
-  const widest = Math.max(...sizes.map((size) => size.width));
-  const tallest = Math.max(...sizes.map((size) => size.height));
+function itemSize(item) {
+  return item.kind === 'civic_plaza'
+    ? CIVIC_PLAZA_SIZE
+    : item.facilityKind
+      ? (FACILITY_SIZE[item.facilityKind] ?? { width: 9, height: 7 })
+      : groupHomeSize(item.appearance);
+}
+
+function itemRouteWidth(item) {
+  return placeRouteWidth(item.facilityKind, item.kind === 'civic_plaza' ? 'civic_plaza' : null);
+}
+
+// The compact late-medieval composition is a bounded recipe for the current
+// small repository shape. It is intentionally exact: a different facility
+// set or a different district population uses the normal authored frontage
+// grammar below instead of inheriting this town's street walls.
+function isCompactLateShape(values) {
+  if (!Array.isArray(values) || values.length !== 12) return false;
+  const facilities = values
+    .filter((value) => value?.facilityKind)
+    .map((value) => value.facilityKind)
+    .sort(compareStrings);
+  if (JSON.stringify(facilities) !== JSON.stringify(['gate', 'town_hall', 'warehouse', 'well', 'workshop'])) return false;
+  const homes = values.filter((value) => value?.kind === 'residence' || value?.recipe === 'residence');
+  if (homes.length !== 6) return false;
+  const familyOf = (value) => value.family ?? value.district;
+  if (homes.filter((value) => familyOf(value) === 'work').length !== 3) return false;
+  if (homes.filter((value) => familyOf(value) === 'living').length !== 3) return false;
+  return values.some((value) => value?.kind === 'civic_plaza' || value?.recipe === 'civic_plaza');
+}
+
+function isSmallLateShape(values) {
+  if (!Array.isArray(values) || values.length !== 5) return false;
+  const facilities = values
+    .filter((value) => value?.facilityKind)
+    .map((value) => value.facilityKind)
+    .sort(compareStrings);
+  return JSON.stringify(facilities) === JSON.stringify(['gate', 'town_hall', 'warehouse', 'well'])
+    && values.every((value) => value?.kind !== 'residence' && value?.recipe !== 'residence')
+    && values.some((value) => value?.kind === 'civic_plaza' || value?.recipe === 'civic_plaza');
+}
+
+const BROAD_LATE_FACILITIES = Object.freeze([
+  'dock', 'dojo', 'gate', 'guild', 'ruin', 'shop', 'town_hall',
+  'warehouse', 'watchtower', 'well', 'workshop',
+]);
+
+// Extended late repositories share one bounded town grammar. Optional
+// facilities occupy authored parcels and absent roles leave useful gardens or
+// work yards in the environment backplate; the repository still determines
+// which live structures, residents and investigations appear. Exact compact
+// and small towns retain their already-reviewed compositions.
+function isBroadLateShape(values) {
+  if (!Array.isArray(values) || isCompactLateShape(values) || isSmallLateShape(values)) return false;
+  const facilities = values.filter((value) => value?.facilityKind);
+  const homes = values.filter((value) => value?.kind === 'residence' || value?.recipe === 'residence');
+  const hasPlaza = values.some((value) => value?.kind === 'civic_plaza' || value?.recipe === 'civic_plaza');
+  const facilityKinds = facilities.map((value) => value.facilityKind);
+  const extended = facilityKinds.some((kind) => !['gate', 'town_hall', 'warehouse', 'well', 'workshop'].includes(kind));
+  return hasPlaza
+    && facilities.some((value) => value.facilityKind === 'gate')
+    && facilities.some((value) => value.facilityKind === 'town_hall')
+    && facilities.every((value) => BROAD_LATE_FACILITIES.includes(value.facilityKind))
+    && homes.length <= 6
+    && (extended || facilities.length >= 5 || homes.length >= 2);
+}
+
+function isCompactSnowShape(values) {
+  if (!Array.isArray(values)) return false;
+  const facilities = values
+    .filter((value) => value?.facilityKind)
+    .map((value) => value.facilityKind)
+    .sort(compareStrings);
+  if (JSON.stringify(facilities) !== JSON.stringify(['dock', 'gate', 'town_hall', 'warehouse', 'well', 'workshop'])) return false;
+  const homes = values.filter((value) => value?.kind === 'residence' || value?.recipe === 'residence');
+  if (homes.length !== 2) return false;
+  const familyOf = (value) => value.family ?? value.district;
+  return homes.filter((value) => familyOf(value) === 'work').length === 1
+    && homes.filter((value) => familyOf(value) === 'living').length === 1
+    && values.some((value) => value?.kind === 'civic_plaza' || value?.recipe === 'civic_plaza');
+}
+
+function authoredStreetGap(left, right) {
+  const dockWellPair = (left.facilityKind === 'dock' && right.facilityKind === 'well')
+    || (left.facilityKind === 'well' && right.facilityKind === 'dock');
+  return STREET_GAP + (dockWellPair ? DOCK_WELL_STREET_EXTRA_GAP : 0);
+}
+
+function rowWidth(items) {
+  return items.reduce((total, item, index) => total
+    + (index > 0 ? authoredStreetGap(items[index - 1], item) : 0)
+    + itemSize(item).width, 0);
+}
+
+function stableCompositionItemOrder(left, right) {
+  const leftFacility = left.facilityKind ? 0 : 1;
+  const rightFacility = right.facilityKind ? 0 : 1;
+  return leftFacility - rightFacility
+    || compareStrings(left.kind ?? '', right.kind ?? '')
+    || compareStrings(left.sortKey, right.sortKey)
+    || compareStrings(left.id, right.id);
+}
+
+/*
+ * The town is an authored set of semantic frontages, not a packing grid. A
+ * frontage is a deterministic street wall: items are ordered by meaning and
+ * laid side-by-side with the declared gap. This gives every facility and home
+ * compound a real place without a fallback search that can move one building
+ * away from the route grammar.
+ *
+ * Late-medieval and snow-harbor keep their established west gate / civic
+ * hinge, upper work-and-heritage quarter, and lower living / waterside edge.
+ * The frontages grow outward when a repository has more compounds; their
+ * exact footprints remain disjoint by construction.
+ */
+function makeAuthoredComposition(town, worldview = WORLDVIEWS.lateMedieval) {
+  const snow = isSnowWorldview(worldview);
+  const sourceCompounds = makeGroupHomeCompounds(town);
+  const facilities = [...facilityRecordByKind(town).values()]
+    .filter((facility) => facility.kind === 'gate'
+      || facility.kind === 'town_hall'
+      || facility.presence !== 'not_applicable'
+      || town.candidates.some((candidate) => candidate.facilityKind === facility.kind))
+    .map((facility) => ({
+      id: placeIdForFacility(facility.kind),
+      kind: 'facility',
+      facilityKind: facility.kind,
+      sortKey: facility.kind,
+      size: FACILITY_SIZE[facility.kind] ?? { width: 9, height: 7 },
+    }));
+  const broadExtendedFacility = facilities.some((facility) => ![
+    'gate', 'town_hall', 'warehouse', 'well', 'workshop',
+  ].includes(facility.facilityKind));
+  const broadParcelShape = !snow
+    && facilities.some((facility) => facility.facilityKind === 'gate')
+    && facilities.some((facility) => facility.facilityKind === 'town_hall')
+    && facilities.every((facility) => BROAD_LATE_FACILITIES.includes(facility.facilityKind))
+    && (broadExtendedFacility || facilities.length > 5 || sourceCompounds.length < 6);
+  const broadHomeDensity = broadParcelShape
+    && sourceCompounds.length < 6
+    && sourceCompounds.some((compound) => compound.groups.length > 1);
+  const compounds = snow
+    ? sourceCompounds
+    : boundedLateHomeCompounds(broadHomeDensity
+      ? splitLateHomeCompounds(sourceCompounds)
+      : sourceCompounds, broadParcelShape ? 5 : 6);
+  const homes = compounds.map((compound) => ({
+    id: placeIdForCompound(compound),
+    kind: 'residence',
+    appearance: dwellingAppearanceForWorldview(compound.appearance, worldview),
+    family: compound.family,
+    parentPath: compound.parentPath,
+    root: compound.groups.some((group) => group.path === '.'),
+    sourceGroupIds: compound.sourceGroupIds,
+    sortKey: `${compound.parentPath}|${compound.family}|${compound.id}`,
+  }));
+  const plaza = { id: 'place.civic-plaza', kind: 'civic_plaza', sortKey: 'civic-plaza' };
+  const allItems = [...facilities, ...homes, plaza];
+  const anchors = new Map();
+  const placeAnchor = (item, value) => {
+    const anchor = point(value.x, value.y);
+    anchors.set(item.id, anchor);
+    return anchor;
+  };
+  const byFacility = new Map(facilities.map((item) => [item.facilityKind, item]));
+  const gate = byFacility.get('gate');
+  const hall = byFacility.get('town_hall');
+
+  const broadLate = !snow && isBroadLateShape(allItems);
+  if (broadLate) {
+    const facilityAnchors = Object.freeze({
+      watchtower: { x: 5.5, y: 8.5 },
+      town_hall: { x: 28, y: 13.5 },
+      ruin: { x: 40.5, y: 9.5 },
+      workshop: { x: 52, y: 13.5 },
+      gate: { x: 5, y: 22.5 },
+      // Keep the low, dark guild facade out of the civic junction.  The
+      // recognizable shop front owns the inner street; the larger guild sits
+      // on the quieter east parcel where its approach still joins the same
+      // civic/work route.
+      guild: { x: 42, y: 23 },
+      shop: { x: 15, y: 22.5 },
+      well: { x: 5.5, y: 37.5 },
+      dojo: { x: 28, y: 32 },
+      warehouse: { x: 41, y: 36.5 },
+      dock: { x: 53.5, y: 37.5 },
+    });
+    for (const facility of facilities) placeAnchor(facility, facilityAnchors[facility.facilityKind]);
+    placeAnchor(plaza, { x: 25, y: 21.5 });
+
+    const slots = Object.freeze({
+      northWest: { x: 15.5, y: 8.5 },
+      northEast: { x: 62.5, y: 8.5 },
+      midEast: { x: 61, y: 22.5 },
+      southWest: { x: 14.5, y: 37.5 },
+      southEast: { x: 64.5, y: 33.5 },
+    });
+    const preference = Object.freeze({
+      heritage: ['northWest', 'northEast', 'midEast', 'southWest', 'southEast'],
+      work: ['midEast', 'northEast', 'southEast', 'northWest', 'southWest'],
+      living: ['southWest', 'southEast', 'midEast', 'northWest', 'northEast'],
+      civic: ['northWest', 'midEast', 'southWest', 'northEast', 'southEast'],
+      arrival: ['northWest', 'southWest', 'midEast', 'northEast', 'southEast'],
+    });
+    const slotAppearances = Object.freeze({
+      northWest: 'dwelling-stone',
+      northEast: 'dwelling-tall',
+      midEast: 'dwelling-stone-bay',
+      southWest: 'dwelling-tall-narrow',
+      southEast: 'dwelling-gabled',
+    });
+    const usedSlots = new Set();
+    const residenceAppearances = new Map();
+    for (const home of homes.slice().sort(stableCompositionItemOrder)) {
+      const order = preference[home.family] ?? preference.civic;
+      const slotId = order.find((candidate) => !usedSlots.has(candidate));
+      if (!slotId) throw new TypeError(`Broad late composition has no authored home slot for ${home.id}`);
+      usedSlots.add(slotId);
+      placeAnchor(home, slots[slotId]);
+      residenceAppearances.set(home.id, slotAppearances[slotId]);
+    }
+    return {
+      layout: 'late-broad',
+      originX: -2,
+      originY: 1.5,
+      width: 73,
+      height: 45.5,
+      items: allItems,
+      rows: [{ items: allItems }],
+      anchors,
+      residenceAppearances,
+      compounds,
+    };
+  }
+
+  // The first street is always recognizable: arrival threshold -> hall ->
+  // small civic apron. These coordinates are deliberately retained from the
+  // established late/snow recipes so the opening view does not drift.
+  if (gate) placeAnchor(gate, snow ? { x: 7, y: 27 } : { x: 7, y: 22 });
+  if (hall) placeAnchor(hall, snow ? { x: 20, y: 21 } : { x: 32, y: 11.5 });
+  // Compact towns share one civic court.  Keep the plaza below the hall and
+  // above the well so the three landmarks read as one walkable hinge rather
+  // than three isolated cards.
+  placeAnchor(plaza, snow ? { x: 31, y: 28.5 } : { x: 31, y: 28 });
+
+  const ordered = (items) => items.slice().sort(stableCompositionItemOrder);
+  const frontage = (items, left, centerY) => {
+    const sorted = ordered(items);
+    let cursor = left;
+    let right = left;
+    for (const item of sorted) {
+      const size = itemSize(item);
+      const anchor = placeAnchor(item, { x: cursor + size.width / 2, y: centerY });
+      cursor = round(cursor + size.width + STREET_GAP);
+      right = round(cursor - STREET_GAP);
+      // Keep the exact point available to callers that need semantic rows.
+      void anchor;
+    }
+    return { items: sorted, right };
+  };
+  const facilitiesOf = (kinds) => facilities.filter((item) => kinds.includes(item.facilityKind));
+
+  // Root compounds remain a visible arrival lane. In snow, work/living roots
+  // belong to their semantic quarters as in the existing harbor grammar.
+  const arrivalHomes = homes.filter((item) => item.root
+    && !['work', 'living'].includes(item.family));
+  const arrivalFront = frontage(arrivalHomes, 6, 11);
+
+  // Heritage and work share the upper street but retain distinct frontages;
+  // their explicit boundary is a quiet gap, not an overlap search.
+  const heritageItems = [
+    ...facilitiesOf(['watchtower', 'ruin']),
+    ...homes.filter((item) => item.family === 'heritage' && !item.root),
+  ];
+  // The upper heritage wall sits beyond the civic apron. Its y band is
+  // intentionally higher than the plaza, so start at the plaza's far edge
+  // plus a quiet frontage gap before adding the tower/ruin sequence. The
+  // hall shares this upper band, so its right wall is also an authoritative
+  // boundary; ignoring it let a watchtower or ruin enter the hall by one
+  // logical unit in broad repositories.
+  const plazaRight = (snow ? 31 : 32) + CIVIC_PLAZA_SIZE.width / 2;
+  const hallRight = hall
+    ? (anchors.get(hall.id)?.x ?? (snow ? 20 : 32)) + itemSize(hall).width / 2
+    : 0;
+  const heritageFront = frontage(
+    heritageItems,
+    round(Math.max(6, arrivalFront.right + 6, plazaRight + 2, hallRight + STREET_GAP)),
+    14,
+  );
+  const workFacilities = facilitiesOf(['warehouse', 'workshop', 'dojo', 'shop']);
+  const workHomes = homes.filter((item) => item.family === 'work');
+  const workItems = [...workFacilities, ...workHomes];
+  // A small repository with a real distribution edge should become one
+  // harbour neighbourhood, not three catalogue rows. Keep this authored
+  // arrangement bounded to the complete nine-place snow recipe: the civic
+  // hinge remains the entrance, work fronts its short upper lane, and the
+  // living shoulder continues directly into the dock cove.
+  const compactSnow = snow
+    && heritageItems.length === 0
+    && arrivalHomes.length === 0
+    && workFacilities.length === 2
+    && workFacilities.every((item) => ['warehouse', 'workshop'].includes(item.facilityKind))
+    && workHomes.length === 1
+    && homes.length === 2
+    && homes.filter((item) => item.family === 'living').length === 1
+    && facilities.every((item) => ['gate', 'town_hall', 'dock', 'warehouse', 'well', 'workshop'].includes(item.facilityKind))
+    && facilitiesOf(['dock', 'well']).length === 2;
+  if (compactSnow) {
+    // The gate, hall door, and civic apron share one south-facing street
+    // line. The hall sits one unit higher than its older catalogue position,
+    // so following the visible main road now reaches the automatic doorway
+    // instead of the hall's side collision.
+    placeAnchor(hall, { x: 20, y: 21 });
+    placeAnchor(plaza, { x: 31, y: 28.5 });
+  }
+  // The common late-medieval repository has one or two work facilities and a
+  // small number of work compounds. Keep that town as one walkable court:
+  // facilities sit immediately behind the civic hinge and homes make a short
+  // lower street wall. The all-role/broad case intentionally keeps the larger
+  // frontage grammar below, so adding a new semantic facility never gets
+  // silently forced into this compact composition.
+  const compactLate = !snow && isCompactLateShape(allItems);
+  // When no heritage frontage exists (the common compact harbor), the work
+  // court can sit directly behind the civic hinge. Avoid reserving the empty
+  // heritage edge as if it were a building row; that pushed one small snow
+  // repository beyond the native overview and made the town feel sparse.
+  const workStart = heritageItems.length > 0
+    ? round(Math.max(6, heritageFront.right + 6))
+    : snow
+      ? 24
+      // The general late grammar shares the hall's upper frontage. Start a
+      // work parcel after the hall's right wall plus one authored street gap;
+      // the old fixed x=35 began a warehouse inside the hall whenever a
+      // small repository had no residence compounds and therefore did not
+      // select the compact-town composition.
+      : round((anchors.get(hall?.id)?.x ?? 32)
+        + (hall ? itemSize(hall).width / 2 : 7)
+        + STREET_GAP);
+  let workFront;
+  // A normal repository has a small work court (two facilities and a few
+  // work compounds). Keep the facilities as the upper street wall and wrap
+  // homes onto its lower court instead of producing one catalogue row. The
+  // larger all-role case retains the longer authored frontage deliberately.
+  if (compactSnow) {
+    const facilityAnchor = {
+      warehouse: { x: 34, y: 13 },
+      workshop: { x: 46.5, y: 14 },
+    };
+    for (const facility of ordered(workFacilities)) {
+      placeAnchor(facility, facilityAnchor[facility.facilityKind]);
+    }
+    const home = ordered(workHomes)[0];
+    // Turn the final frontage down onto the civic street. Its entrance lands
+    // on the same line as the hall and plaza, closing the work lane into an
+    // L-shaped neighbourhood instead of leaving a detached upper row.
+    placeAnchor(home, { x: 47, y: 25 });
+    workFront = {
+      items: [...ordered(workFacilities), home],
+      right: 47 + itemSize(home).width / 2,
+    };
+  } else if (compactLate) {
+    const facilityAnchor = {
+      // Keep the upper work wall close to the civic hinge, but clear the
+      // hall's 14x10 envelope and retain a real half-unit alley between the
+      // warehouse and workshop footprints.
+      warehouse: { x: 19, y: 11.5 },
+      workshop: { x: 45, y: 11.5 },
+    };
+    for (const facility of ordered(workFacilities)) {
+      const anchor = facilityAnchor[facility.facilityKind];
+      if (anchor) placeAnchor(facility, anchor);
+    }
+    // The work wall bends around the civic apron. Unequal baselines keep the
+    // three semantic compounds legible as one close street without turning
+    // their repeated 240px canvases into a ruler-straight catalogue row.
+    const homeAnchors = [
+      { x: 50, y: 22 },
+      // Stagger the middle frontage eastward.  All three sprites face south;
+      // a tight vertical stack put the middle resident under the next roof.
+      // This shallow bend keeps each threshold open to the same east lane.
+      { x: 58, y: 30.5 },
+      // Close the east frontage one unit sooner.  At y=40 this final home
+      // and its resident extended the authored opening just beyond the
+      // native 720px view, forcing the whole town to half scale.  The two
+      // neighbouring footprints now meet at a shared street-wall edge while
+      // the south lane remains clear.
+      { x: 50, y: 39 },
+    ];
+    for (const [index, home] of ordered(workHomes).entries()) {
+      placeAnchor(home, homeAnchors[index]);
+    }
+    workFront = {
+      items: [...ordered(workFacilities), ...ordered(workHomes)],
+      right: Math.max(...ordered(workFacilities).map((item) => {
+        const anchor = facilityAnchor[item.facilityKind];
+        return anchor.x + itemSize(item).width / 2;
+      }), ...ordered(workHomes).map((item, index) => homeAnchors[index].x + itemSize(item).width / 2)),
+    };
+  } else if (!snow && workFacilities.length > 0 && workHomes.length > 0 && workItems.length <= 6) {
+    // Half-unit vertical separation lets tall dwelling envelopes touch the
+    // lower edge of the facility wall without crossing it.
+    const facilityFront = frontage(workFacilities, workStart, 10.5);
+    // Keep a dry walking shoulder below the heritage/work facility row.  A
+    // centre at 21 leaves the three-unit district approach touching a home
+    // footprint at y=17; the lower row must start at y=19 instead.
+    const homeFront = frontage(workHomes, round(workStart + 1), 23);
+    workFront = { items: [...facilityFront.items, ...homeFront.items], right: Math.max(facilityFront.right, homeFront.right) };
+  } else {
+    workFront = frontage(workItems, workStart, snow ? 13 : 12);
+  }
+
+  // Civic extras sit beyond the plaza on the same street hinge. This is where
+  // guild frontage and non-root civic compounds belong; none can intersect
+  // the fixed hall or plaza because the row starts at their right edge.
+  const assignedHomes = new Set([
+    ...arrivalHomes,
+    ...heritageItems.filter((item) => item.kind === 'residence'),
+    ...workItems.filter((item) => item.kind === 'residence'),
+  ].map((item) => item.id));
+  const civicItems = [
+    ...facilitiesOf(['guild']),
+    ...homes.filter((item) => !assignedHomes.has(item.id)),
+    ...facilities.filter((item) => !['gate', 'town_hall', 'warehouse', 'workshop', 'dojo', 'shop', 'watchtower', 'ruin', 'guild', 'well', 'dock'].includes(item.facilityKind)),
+  ];
+  const civicFront = frontage(civicItems, round(plazaRight + STREET_GAP), snow ? 31 : 31);
+
+  // The living lane stays below the civic spine. Waterside frontage follows
+  // it on the lower-right edge, preserving the snow harbor's shore reading.
+  const livingItems = [
+    ...facilitiesOf(['well']),
+    ...homes.filter((item) => item.family === 'living'),
+  ];
+  let livingFront;
+  if (compactSnow) {
+    const livingHome = homes.find((item) => item.family === 'living');
+    const well = facilitiesOf(['well'])[0];
+    // Keep the well on the left shoulder of the civic-to-harbour lane. The
+    // plaza's five-unit main road can then reach its entrance without its
+    // final stroke entering the well body.
+    placeAnchor(well, { x: 24, y: 36 });
+    placeAnchor(livingHome, { x: 37, y: 36.5 });
+    livingFront = {
+      items: [well, livingHome],
+      right: 37 + itemSize(livingHome).width / 2,
+    };
+  } else if (compactLate) {
+    const well = facilitiesOf(['well'])[0];
+    // The well and plaza are one civic court. Keep a quiet passage between
+    // their footprints; the well's left-front door then opens to the south
+    // lane without blocking the court's central view.
+    if (well) placeAnchor(well, { x: 23, y: 31.5 });
+    // Living homes make the lower foreground wall. Unequal widths are
+    // deliberate; the quiet gaps read as yards rather than a house catalog.
+    const homeAnchors = [
+      { x: 11, y: 37.5 },
+      { x: 27, y: 39 },
+      { x: 39, y: 37.5 },
+    ];
+    for (const [index, home] of homes.filter((item) => item.family === 'living').sort(stableCompositionItemOrder).entries()) {
+      placeAnchor(home, homeAnchors[index]);
+    }
+    livingFront = {
+      items: [...(well ? [well] : []), ...homes.filter((item) => item.family === 'living').sort(stableCompositionItemOrder)],
+      right: Math.max(
+        ...(well ? [25 + itemSize(well).width / 2] : []),
+        ...homes.filter((item) => item.family === 'living').sort(stableCompositionItemOrder).map((item, index) => homeAnchors[index].x + itemSize(item).width / 2),
+      ),
+    };
+  } else {
+    livingFront = frontage(livingItems, 6, snow ? 37 : 40);
+  }
+  const watersideItems = facilitiesOf(['dock']);
+  if (compactSnow) {
+    placeAnchor(watersideItems[0], { x: 49, y: 37 });
+  } else {
+    // In the broad role-complete town the civic guild and waterside dock are
+    // both real frontages. Start the shore after both the living and civic
+    // walls, or their authored envelopes overlap before routing begins.
+    frontage(watersideItems, round(Math.max(
+      snow ? 54 : 46,
+      livingFront.right + 8,
+      civicFront.right + 8,
+    )), 34);
+  }
+
+  // Every authored item must have one deterministic frontage. If a future
+  // declared role is added, placing it in the civic frontage is an explicit
+  // semantic choice rather than a hidden nearest-slot fallback.
+  const unplaced = allItems.filter((item) => !anchors.has(item.id));
+  if (unplaced.length > 0) {
+    throw new TypeError(`Authored composition lacks a frontage for ${unplaced.map((item) => item.id).join(', ')}`);
+  }
+  const maxX = Math.max(...allItems.map((item) => {
+    const anchor = anchors.get(item.id);
+    return anchor.x + itemSize(item).width / 2;
+  }));
+  const maxY = Math.max(...allItems.map((item) => {
+    const anchor = anchors.get(item.id);
+    return anchor.y + itemSize(item).height / 2;
+  }));
+  const styleBands = [
+    arrivalHomes,
+    heritageItems,
+    workItems,
+    civicItems,
+    livingItems,
+  ];
+  const residenceAppearances = applyNeighbourDwellingStyles(town, styleBands);
   return {
-    // Site sizes already include the separator and approach corridor.  Keep
-    // the parcel envelope close to the authored packing need; large additive
-    // padding here turns a small town into an empty cross-shaped board.
-    width: round(Math.max(widest + 6, Math.sqrt(area) * 1.35 + 8)),
-    height: round(Math.max(tallest + 6, Math.sqrt(area) * 0.9 + 6)),
+    originX: 0,
+    originY: 0,
+    width: round(Math.max(snow ? 54 : 60, maxX)),
+    height: round(Math.max(42, maxY)),
+    items: allItems,
+    rows: [{ items: allItems }],
+    anchors,
+    residenceAppearances,
+    compounds,
   };
 }
 
-function makeCompositionBounds(town) {
-  // The temporary placement canvas is derived from the authored footprint
-  // envelope.  Final assembly crops it to the actual place/route envelope;
-  // there is no empty district grid or repository-volume padding here.
-  const sizes = authoredStructureSizes(town);
-  const area = sizes.reduce((total, size) => total + size.width * size.height, 0);
-  const widest = Math.max(...sizes.map((size) => size.width));
-  const tallest = Math.max(...sizes.map((size) => size.height));
+function makeCompositionBounds(town, grammar = makeAuthoredComposition(town)) {
+  if (grammar.layout === 'late-broad') {
+    return { minX: -2, maxX: 71, minY: 1.5, maxY: 47 };
+  }
+  // The placement canvas is only a small guard around the authored streets.
+  // The final packed bounds are cropped from actual places and routes below.
   return {
     minX: 0,
-    maxX: round((Math.sqrt(area) + widest) * 2 + 18),
+    maxX: round(grammar.originX + grammar.width + 8),
     minY: 0,
-    maxY: round((Math.sqrt(area) + tallest) * 1.55 + 18),
+    maxY: round(grammar.originY + grammar.height + 8),
   };
 }
 
@@ -502,7 +1045,12 @@ function facilityDistrictRole(kind) {
 function activeDistrictRoles(town) {
   const roles = new Set(['arrival', 'civic']);
   const facilities = new Set([
-    ...town.facilities.map((facility) => facility.kind),
+    ...town.facilities
+      .filter((facility) => facility.kind === 'gate'
+        || facility.kind === 'town_hall'
+        || facility.presence !== 'not_applicable'
+        || town.candidates.some((candidate) => candidate.facilityKind === facility.kind))
+      .map((facility) => facility.kind),
     ...town.candidates.map((candidate) => candidate.facilityKind),
   ]);
   const groups = town.groups;
@@ -522,101 +1070,64 @@ function activeDistrictRoles(town) {
   return [...roles].filter((role) => DISTRICT_ROLES.includes(role));
 }
 
-function makeDistricts(town, bounds) {
-  const roles = activeDistrictRoles(town);
-  const sizesByRole = roleStructureSizes(town, roles);
-  const envelopes = new Map([...sizesByRole.entries()].map(([role, sizes]) => [role, roleEnvelope(sizes)]));
-  const center = point((bounds.minX + bounds.maxX) / 2, (bounds.minY + bounds.maxY) / 2);
-  const centers = new Map([['civic', center]]);
-  const placed = [];
-  const addCenter = (role, anchor) => {
-    const envelope = envelopes.get(role) ?? { width: 0, height: 0 };
-    const placedAnchor = point(anchor.x, anchor.y);
-    centers.set(role, placedAnchor);
-    placed.push({ role, anchor: placedAnchor, envelope });
+function makeDistricts(
+  town,
+  bounds,
+  grammar = makeAuthoredComposition(town),
+  worldview = WORLDVIEWS.lateMedieval,
+) {
+  const candidateRoles = activeDistrictRoles(town);
+  const candidateDistrictIds = new Set(candidateRoles);
+  const placeRole = (item) => {
+    if (item.facilityKind) return facilityDistrictRole(item.facilityKind);
+    if (item.kind === 'civic_plaza') return 'civic';
+    if (item.root && candidateDistrictIds.has('arrival')
+      && !['work', 'living'].includes(item.family)) return 'arrival';
+    if (item.family === 'heritage' && candidateDistrictIds.has('heritage')) return 'heritage';
+    if (candidateDistrictIds.has(item.family)) return item.family;
+    return candidateDistrictIds.has('civic') ? 'civic' : candidateRoles[0];
   };
-  if (roles.includes('civic')) addCenter('civic', center);
-  if (roles.includes('arrival')) {
-    const civicEnvelope = envelopes.get('civic') ?? { width: 0, height: 0 };
-    const arrivalEnvelope = envelopes.get('arrival') ?? { width: 0, height: 0 };
-    addCenter('arrival', point(
-      center.x - (civicEnvelope.width + arrivalEnvelope.width) / 2 - 6,
-      center.y,
-    ));
-  }
-  const remainingRoles = roles.filter((role) => role !== 'arrival' && role !== 'civic')
-    .sort((left, right) => compareStrings(left, right));
-  const directionsForRole = (role) => {
-    // These are composition relationships, not map cells: work branches
-    // naturally above the civic spine, living below it, and waterside/heritage
-    // stay on the nearest open edge.  The actual envelopes decide distance.
-    if (role === 'work') return [
-      { x: 0, y: -1 }, { x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 },
-      { x: 1, y: -1 }, { x: -1, y: -1 }, { x: 1, y: 1 }, { x: -1, y: 1 },
-    ];
-    if (role === 'living') return [
-      { x: 0, y: 1 }, { x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: -1 },
-      { x: 1, y: 1 }, { x: -1, y: 1 }, { x: 1, y: -1 }, { x: -1, y: -1 },
-    ];
-    if (role === 'waterside') return [
-      { x: 1, y: 1 }, { x: 1, y: 0 }, { x: 0, y: 1 }, { x: -1, y: 1 },
-      { x: -1, y: 0 }, { x: 0, y: -1 }, { x: 1, y: -1 }, { x: -1, y: -1 },
-    ];
-    if (role === 'heritage') return [
-      { x: -1, y: -1 }, { x: -1, y: 0 }, { x: 0, y: -1 }, { x: 1, y: -1 },
-      { x: -1, y: 1 }, { x: 1, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 },
-    ];
-    return [
-      { x: 1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }, { x: -1, y: 0 },
-      { x: 1, y: 1 }, { x: 1, y: -1 }, { x: -1, y: 1 }, { x: -1, y: -1 },
-    ];
+  const itemsById = new Map(grammar.rows.flatMap((row) => row.items.map((item) => [item.id, item])));
+  // Semantic evidence can request a district whose facility was explicitly
+  // declared not applicable.  Districts describe the authored town, so keep
+  // only roles that own at least one placed street item; evidence remains on
+  // the nearest truthful compound instead of manufacturing an empty parcel.
+  const roles = candidateRoles.filter((role) => [...itemsById.values()]
+    .some((item) => placeRole(item) === role));
+  const districtIds = new Set(roles);
+  const envelopeForItem = (item) => {
+    const anchor = grammar.anchors.get(item.id);
+    if (!anchor) return null;
+    const size = itemSize(item);
+    const footprint = rectangleAround(anchor, size);
+    const approach = approachReservation(anchor, size, itemRouteWidth(item), item.facilityKind);
+    return {
+      minX: Math.min(footprint.x, approach.rectangle.x),
+      maxX: Math.max(footprint.x + footprint.width, approach.rectangle.x + approach.rectangle.width),
+      minY: Math.min(footprint.y, approach.rectangle.y),
+      maxY: Math.max(footprint.y + footprint.height, approach.rectangle.y + approach.rectangle.height),
+    };
   };
-  for (const role of remainingRoles) {
-    const envelope = envelopes.get(role) ?? { width: 0, height: 0 };
-    const candidates = [];
-    for (const source of placed) {
-      for (const direction of directionsForRole(role)) {
-        const distance = (Math.abs(direction.x) > 0
-          ? (source.envelope.width + envelope.width) / 2
-          : (source.envelope.height + envelope.height) / 2) + 6;
-        candidates.push(point(
-          source.anchor.x + direction.x * distance,
-          source.anchor.y + direction.y * distance,
-        ));
-      }
-    }
-    const candidate = candidates.find((value) => {
-      const rect = rectangleAround(value, envelope);
-      return placed.every((other) => !rectanglesOverlap(expandRectangle(rect, 3), expandRectangle(rectangleAround(other.anchor, other.envelope), 3)));
-    });
-    if (!candidate) {
-      throw new TypeError(`Unable to place the ${role} district parcel without overlap`);
-    }
-    addCenter(role, candidate);
-  }
   const districts = [];
   for (const role of roles) {
-    const anchor = centers.get(role) ?? center;
-    const envelope = envelopes.get(role) ?? { width: 0, height: 0 };
-    // Site envelopes already include the visible separator and approach.  A
-    // small authored quiet margin keeps parcels distinct without recreating a
-    // padded district matrix that makes empty towns sprawl.
-    const edgePadding = 3;
-    const parcel = {
-      minX: round(anchor.x - envelope.width / 2 - edgePadding),
-      maxX: round(anchor.x + envelope.width / 2 + edgePadding),
-      minY: round(anchor.y - envelope.height / 2 - edgePadding),
-      maxY: round(anchor.y + envelope.height / 2 + edgePadding),
-    };
+    const roleItems = [...itemsById.values()].filter((item) => placeRole(item) === role);
+    const envelopes = roleItems.map(envelopeForItem).filter(Boolean);
+    if (envelopes.length === 0) throw new TypeError(`District ${role} has no authored street place`);
+    const margin = 6;
+    const minX = Math.max(bounds.minX, Math.min(...envelopes.map((entry) => entry.minX)) - margin);
+    const maxX = Math.min(bounds.maxX, Math.max(...envelopes.map((entry) => entry.maxX)) + margin);
+    const minY = Math.max(bounds.minY, Math.min(...envelopes.map((entry) => entry.minY)) - margin);
+    const maxY = Math.min(bounds.maxY, Math.max(...envelopes.map((entry) => entry.maxY)) + margin);
+    const parcel = { minX: round(minX), maxX: round(maxX), minY: round(minY), maxY: round(maxY) };
     const evidence = mergeEvidence(
       ...town.facilities.filter((facility) => facilityDistrictRole(facility.kind) === role).map((facility) => facility.evidence),
-      ...town.groups.filter((group) => groupDistrict(group, new Set(roles)) === role).map((group) => group.evidence),
+      ...town.groups.filter((group) => groupDistrict(group, districtIds, worldview) === role).map((group) => group.evidence),
     );
     if (!hasEvidence(evidence)) evidence.unknown.push(`district.${role}.unknown`);
     districts.push({
       id: role,
       role,
-      anchor,
+      anchor: point((parcel.minX + parcel.maxX) / 2, (parcel.minY + parcel.maxY) / 2),
       bounds: parcel,
       evidence,
     });
@@ -681,10 +1192,17 @@ function rectangleContainsPoint(rectangle, value) {
     && value.y >= rectangle.y && value.y <= rectangle.y + rectangle.height;
 }
 
-function approachReservation(anchor, size, routeWidth = 3) {
+function placeEntrancePoint(anchor, footprint, facilityKind = null) {
+  // Keep the well clue on the left front rim so the authored outdoor target
+  // remains separate from the resident and from the neighbouring dock.
+  const x = facilityKind === 'well' ? footprint.x - 2 : anchor.x;
+  return point(x, footprint.y + footprint.height + 1);
+}
+
+function approachReservation(anchor, size, routeWidth = 3, facilityKind = null) {
   const footprint = rectangleAround(anchor, size);
-  const entrance = point(anchor.x, footprint.y + footprint.height + 1);
-  const outer = point(entrance.x, entrance.y + 5);
+  const entrance = placeEntrancePoint(anchor, footprint, facilityKind);
+  const outer = point(entrance.x, entrance.y + AUTHORED_APPROACH_LENGTH);
   return {
     from: outer,
     to: entrance,
@@ -693,27 +1211,10 @@ function approachReservation(anchor, size, routeWidth = 3) {
   };
 }
 
-function rectangleInsideBounds(rectangle, bounds) {
-  return rectangle.x >= bounds.minX
-    && rectangle.y >= bounds.minY
-    && rectangle.x + rectangle.width <= bounds.maxX
-    && rectangle.y + rectangle.height <= bounds.maxY;
-}
-
-function reservationBounds(footprint, approach) {
-  const expanded = expandRectangle(footprint, 1.5);
-  return {
-    minX: Math.min(expanded.x, approach.rectangle.x),
-    maxX: Math.max(expanded.x + expanded.width, approach.rectangle.x + approach.rectangle.width),
-    minY: Math.min(expanded.y, approach.rectangle.y),
-    maxY: Math.max(expanded.y + expanded.height, approach.rectangle.y + approach.rectangle.height),
-  };
-}
-
 function makePlaceGeometry(anchor, footprint, facilityKind, needsCutaway, transition) {
   const entranceWidth = 3;
-  const entrance = point(anchor.x, footprint.y + footprint.height + 1);
-  const approach = [point(entrance.x, entrance.y + 5), entrance];
+  const entrance = placeEntrancePoint(anchor, footprint, facilityKind);
+  const approach = [point(entrance.x, entrance.y + AUTHORED_APPROACH_LENGTH), entrance];
   const interiorFootprint = expandRectangle(footprint, -2);
   const doorway = {
     x: round(entrance.x - entranceWidth / 2),
@@ -732,10 +1233,22 @@ function makePlaceGeometry(anchor, footprint, facilityKind, needsCutaway, transi
   const reportState = facilityKind === 'town_hall'
     ? { transitionId: transition?.id ?? REPOSITORY_INSPECTION_TRANSITION_ID, before: 'unlit', after: 'lit' }
     : null;
+  const accessRegion = needsCutaway
+    ? doorway
+    : facilityKind === 'gate'
+      ? {
+        // The gate is an outdoor threshold. Keep only its narrow opening
+        // clear so the visual gate remains solid on both sides of the route.
+        x: round(entrance.x - entranceWidth / 2),
+        y: round(footprint.y + footprint.height - 2),
+        width: entranceWidth,
+        height: 4,
+      }
+      : expandRectangle(footprint, 2);
   return {
     entrance: { point: entrance, approach, width: entranceWidth, automatic: Boolean(facilityKind) },
     access: {
-      region: needsCutaway ? doorway : expandRectangle(footprint, 2),
+      region: accessRegion,
       reach: 2,
       automaticEntry: needsCutaway,
     },
@@ -745,8 +1258,18 @@ function makePlaceGeometry(anchor, footprint, facilityKind, needsCutaway, transi
   };
 }
 
-function appearanceForFacility(kind) {
+function isSnowWorldview(worldview) {
+  return worldview?.id === WORLDVIEWS.snowHarbor.id;
+}
+
+function appearanceForFacility(kind, worldview = WORLDVIEWS.lateMedieval) {
+  if (isSnowWorldview(worldview)) return SNOW_FACILITY_APPEARANCES[kind] ?? null;
   return FACILITY_APPEARANCES[kind] ?? null;
+}
+
+function dwellingAppearanceForWorldview(appearance, worldview = WORLDVIEWS.lateMedieval) {
+  if (isSnowWorldview(worldview) && appearance === 'dwelling-tall') return 'dwelling-stone';
+  return appearance;
 }
 
 function sourceGroupsForFileIds(town, fileIds) {
@@ -780,8 +1303,9 @@ function groupRoleFamily(group) {
   return 'civic';
 }
 
-function groupDistrict(group, districtIds) {
-  if (group.path === '.' && districtIds.has('arrival')) return 'arrival';
+function groupDistrict(group, districtIds, worldview = WORLDVIEWS.lateMedieval) {
+  if (group.path === '.' && districtIds.has('arrival')
+    && !['work', 'living'].includes(groupRoleFamily(group))) return 'arrival';
   const family = groupRoleFamily(group);
   if (family === 'heritage' && districtIds.has('heritage')) return 'heritage';
   if (districtIds.has(family)) return family;
@@ -806,83 +1330,216 @@ function dwellingAppearance(group) {
   }
 }
 
+function compoundDwellingAppearance(groups) {
+  if (groups.some((group) => groupRoleFamily(group) === 'heritage')) return 'dwelling-stone';
+  const roleMix = new Map();
+  for (const group of groups) {
+    for (const [role, value] of Object.entries(group.roleMix ?? {})) {
+      roleMix.set(role, (roleMix.get(role) ?? 0) + value);
+    }
+  }
+  const dominantRole = [...roleMix.entries()]
+    .sort((left, right) => (right[1] - left[1])
+      || (GROUP_ROLE_ORDER.indexOf(left[0]) - GROUP_ROLE_ORDER.indexOf(right[0]))
+      || compareStrings(left[0], right[0]))[0]?.[0] ?? dominantGroupRole(groups[0]);
+  switch (dominantRole) {
+    case 'configuration':
+    case 'test':
+    case 'interface':
+      return 'dwelling-tall';
+    case 'data':
+    case 'tooling':
+      return 'dwelling-stone';
+    case 'service':
+    case 'module':
+    default:
+      return groupRoleFamily(groups[0]) === 'civic' ? 'dwelling-tall' : 'dwelling-gabled';
+  }
+}
+
 function makeGroupHomeCompounds(town) {
   const groups = [...town.groups].sort((left, right) => {
     return compareStrings(groupParentPath(left.path), groupParentPath(right.path))
       || compareStrings(left.path, right.path)
       || compareStrings(left.id, right.id);
   });
-  return groups.map((group) => ({
-    id: `home.${encodeURIComponent(group.id)}`,
-    parentPath: groupParentPath(group.path),
-    family: groupRoleFamily(group),
-    appearance: dwellingAppearance(group),
+  const compoundsByKey = new Map();
+  for (const group of groups) {
+    const parentPath = groupParentPath(group.path);
+    const family = groupRoleFamily(group);
+    const key = `${parentPath}\u001f${family}`;
+    const compound = compoundsByKey.get(key) ?? {
+      parentPath,
+      family,
+      groups: [],
+    };
+    compound.groups.push(group);
+    compoundsByKey.set(key, compound);
+  }
+  return [...compoundsByKey.values()]
+    .sort((left, right) => compareStrings(left.parentPath, right.parentPath)
+      || compareStrings(left.family, right.family))
+    .map((compound) => {
+      const sourceGroupIds = compound.groups.map((group) => group.id).sort(compareStrings);
+      return {
+        id: `home.${encodeURIComponent(`${compound.parentPath}|${compound.family}`)}`,
+        parentPath: compound.parentPath,
+        family: compound.family,
+        appearance: compoundDwellingAppearance(compound.groups),
+        groups: compound.groups,
+        sourceGroupIds,
+        evidence: mergeEvidence(...compound.groups.map((group) => group.evidence)),
+      };
+    });
+}
+
+function commonCompoundParentPath(left, right) {
+  const leftParts = left === '.' ? [] : String(left).split('/').filter(Boolean);
+  const rightParts = right === '.' ? [] : String(right).split('/').filter(Boolean);
+  const common = [];
+  for (let index = 0; index < Math.min(leftParts.length, rightParts.length); index += 1) {
+    if (leftParts[index] !== rightParts[index]) break;
+    common.push(leftParts[index]);
+  }
+  return common.join('/') || '.';
+}
+
+// A broad repository often has several meaningful groups beneath one common
+// top-level directory.  The compact compound pass correctly treats that
+// directory as one home, but doing so in the six-parcel broad town hides the
+// repository's neighbourhood density.  Split only that broad input into
+// group-caused parcels, then let the existing bounded merge reduce it to the
+// six authored residence slots while preserving every source group.
+function splitLateHomeCompounds(compounds) {
+  return compounds.flatMap((compound) => compound.groups.map((group) => ({
+    id: `home.${encodeURIComponent(`${group.path}|${compound.family}|${group.id}`)}`,
+    parentPath: group.path,
+    family: compound.family,
+    appearance: compoundDwellingAppearance([group]),
     groups: [group],
     sourceGroupIds: [group.id],
     evidence: mergeEvidence(group.evidence),
+  }))).sort((left, right) => compareStrings(left.parentPath, right.parentPath)
+    || compareStrings(left.family, right.family)
+    || compareStrings(left.id, right.id));
+}
+
+// A broad environment has six authored residence parcels. When a large
+// repository has more visual compounds, merge only the closest two compounds
+// in the same semantic family. All source groups and evidence survive; this
+// changes visual aggregation, never repository truth or investigation state.
+function boundedLateHomeCompounds(compounds, limit = 6) {
+  const bounded = compounds.map((compound) => ({
+    ...compound,
+    groups: compound.groups.slice(),
+    sourceGroupIds: compound.sourceGroupIds.slice(),
   }));
-}
-
-function candidateOffsets(size) {
-  const spreadX = Math.max(4, size.width * 0.62);
-  const spreadY = Math.max(3, size.height * 0.62);
-  const slots = [
-    [0, 0], [-spreadX, 0], [spreadX, 0], [0, -spreadY], [0, spreadY],
-    [-spreadX, -spreadY], [spreadX, -spreadY], [-spreadX, spreadY], [spreadX, spreadY],
-  ];
-  // The authored center is always the first choice.  Rotating this list by
-  // placement index made a civic building drift merely because another place
-  // happened to be emitted before it, which is both spatially noisy and a
-  // hidden capacity proxy.
-  return slots;
-}
-
-function firstOpenAnchor(preferred, size, occupied, bounds, districtId, approachReservations, routeWidth = 3) {
-  // Keep a small authored separator at the parcel edge while leaving the
-  // composition enough room for the actual form footprints.  Collision
-  // search still rejects every occupied candidate and throws when none fits.
-  const reservedApproaches = Array.isArray(approachReservations) ? approachReservations : [];
-  const candidates = candidateOffsets(size).map(([x, y]) => point(preferred.x + x, preferred.y + y));
-  const maxRadius = Math.ceil(Math.max(
-    Math.abs(preferred.x - bounds.minX), Math.abs(preferred.x - bounds.maxX),
-    Math.abs(preferred.y - bounds.minY), Math.abs(preferred.y - bounds.maxY),
-  ));
-  // Expand around the intended parcel anchor.  A row-major sweep starts at a
-  // parcel edge and turns a coherent compound into a thin, town-spanning row;
-  // concentric authored slots keep the actual footprint compact while still
-  // letting collision-aware placement fail truthfully when the parcel is full.
-  for (let radius = 1; radius <= maxRadius; radius += 1) {
-    for (let offset = -radius; offset <= radius; offset += 1) {
-      candidates.push(point(preferred.x + offset, preferred.y - radius));
-      candidates.push(point(preferred.x + offset, preferred.y + radius));
-      if (offset !== -radius && offset !== radius) {
-        candidates.push(point(preferred.x - radius, preferred.y + offset));
-        candidates.push(point(preferred.x + radius, preferred.y + offset));
+  while (bounded.length > limit) {
+    const candidates = [];
+    for (let leftIndex = 0; leftIndex < bounded.length; leftIndex += 1) {
+      for (let rightIndex = leftIndex + 1; rightIndex < bounded.length; rightIndex += 1) {
+        const left = bounded[leftIndex];
+        const right = bounded[rightIndex];
+        if (left.family !== right.family) continue;
+        const parentPath = commonCompoundParentPath(left.parentPath, right.parentPath);
+        const depth = parentPath === '.' ? 0 : parentPath.split('/').length;
+        candidates.push({ leftIndex, rightIndex, parentPath, depth, key: `${left.id}\u001f${right.id}` });
       }
     }
+    candidates.sort((left, right) => right.depth - left.depth || compareStrings(left.key, right.key));
+    const selected = candidates[0];
+    if (!selected) throw new TypeError(`Broad late composition cannot truthfully aggregate ${bounded.length} residence compounds into ${limit} parcels`);
+    const left = bounded[selected.leftIndex];
+    const right = bounded[selected.rightIndex];
+    const groups = [...left.groups, ...right.groups]
+      .sort((first, second) => compareStrings(first.path, second.path) || compareStrings(first.id, second.id));
+    const sourceGroupIds = uniqueSortedStrings([...left.sourceGroupIds, ...right.sourceGroupIds]);
+    const family = left.family;
+    const merged = {
+      id: `home.${encodeURIComponent(`${selected.parentPath}|${family}|${sha256(sourceGroupIds.join('\u001f')).slice(0, 12)}`)}`,
+      parentPath: selected.parentPath,
+      family,
+      appearance: compoundDwellingAppearance(groups),
+      groups,
+      sourceGroupIds,
+      evidence: mergeEvidence(left.evidence, right.evidence),
+    };
+    bounded.splice(selected.rightIndex, 1);
+    bounded.splice(selected.leftIndex, 1, merged);
+    bounded.sort((first, second) => compareStrings(first.parentPath, second.parentPath)
+      || compareStrings(first.family, second.family)
+      || compareStrings(first.id, second.id));
   }
-  for (const value of candidates) {
-    const anchor = point(value.x, value.y);
-    const footprint = rectangleAround(anchor, size);
-    const approach = approachReservation(anchor, size, routeWidth);
-    const reserved = reservationBounds(footprint, approach);
-    if (!rectangleInsideBounds({
-      x: reserved.minX,
-      y: reserved.minY,
-      width: reserved.maxX - reserved.minX,
-      height: reserved.maxY - reserved.minY,
-    }, bounds)) continue;
-    if (occupied.some((other) => rectanglesOverlap(expandRectangle(footprint, 1.5), expandRectangle(other, 1.5)))) continue;
-    // An approach is a route reservation.  A later footprint may not close
-    // it, while approaches themselves may merge into one readable junction.
-    if (reservedApproaches.some((other) => rectanglesOverlap(expandRectangle(footprint, 1.5), other.rectangle))) continue;
-    if (occupied.some((other) => rectanglesOverlap(approach.rectangle, other))) continue;
-    return anchor;
-  }
-  throw new TypeError(`No non-overlapping ${size.width}x${size.height} placement remains in district ${districtId}`);
+  return bounded;
 }
 
-function makePlaces(town, districts, identitySeed) {
+function neighbourDwellingAppearance(town, item, previousAppearance) {
+  const base = item.appearance;
+  const pair = base === 'dwelling-stone'
+    ? ['dwelling-stone', 'dwelling-gabled']
+    : base === 'dwelling-gabled'
+      ? ['dwelling-gabled', 'dwelling-stone']
+      : null;
+  if (!pair) return base;
+  // The semantic role remains the preferred form.  A stable identity hash
+  // gives each compound a repeatable first choice, then the neighbour rule
+  // flips only when two adjacent homes would otherwise clone one another.
+  const preferred = unitFromHash(
+    hashParts(town.identity?.key ?? '', 'dwelling-style', item.id, item.parentPath, item.family),
+  ) < 0.68 ? pair[0] : pair[1];
+  if (previousAppearance !== preferred) return preferred;
+  return preferred === pair[0] ? pair[1] : pair[0];
+}
+
+function applyNeighbourDwellingStyles(town, rows) {
+  const residenceAppearances = new Map();
+  for (const row of rows) {
+    let previousAppearance = null;
+    for (const item of row) {
+      if (item.kind !== 'residence') {
+        previousAppearance = null;
+        continue;
+      }
+      item.appearance = neighbourDwellingAppearance(town, item, previousAppearance);
+      previousAppearance = item.appearance;
+      residenceAppearances.set(item.id, item.appearance);
+    }
+  }
+  return residenceAppearances;
+}
+
+function firstOpenAnchor(
+  preferred,
+  size,
+  occupied,
+  bounds,
+  districtId,
+  approachReservations,
+  routeWidth = 3,
+  facilityKind = null,
+) {
+  if (!point(preferred)) throw new TypeError(`No authored anchor exists for ${districtId}${facilityKind ? ` (${facilityKind})` : ''}`);
+  const footprint = rectangleAround(preferred, size);
+  if (occupied.some((other) => rectanglesOverlap(footprint, other))) {
+    throw new TypeError(`Authored ${districtId} frontage overlaps near ${preferred.x},${preferred.y}${facilityKind ? ` (${facilityKind})` : ''}`);
+  }
+  // The neighbourhood grammar owns parcel selection. This stage deliberately
+  // does not search for a free cell: moving one place after composition makes
+  // roads, facades, and repository meaning disagree. Bounds and approaches
+  // are validated against the finished plan below.
+  void bounds;
+  void approachReservations;
+  void routeWidth;
+  return preferred;
+}
+
+function makePlaces(
+  town,
+  districts,
+  identitySeed,
+  grammar = makeAuthoredComposition(town),
+  worldview = WORLDVIEWS.lateMedieval,
+) {
   const districtById = new Map(districts.map((district) => [district.id, district]));
   const candidatesByKind = new Map(town.candidates.map((candidate) => [candidate.facilityKind, candidate]));
   const facilityByKind = new Map(town.facilities.map((facility) => [facility.kind, facility]));
@@ -928,9 +1585,10 @@ function makePlaces(town, districts, identitySeed) {
     const district = districtForPlace(facility.kind);
     const districtRecord = districtById.get(district) ?? districtById.get('civic');
     const size = FACILITY_SIZE[facility.kind] ?? { width: 9, height: 7 };
-    const preferred = facility.kind === 'town_hall'
+    const authoredAnchor = grammar.anchors.get(placeIdForFacility(facility.kind));
+    const preferred = authoredAnchor ?? (facility.kind === 'town_hall'
       ? point(districtRecord.anchor.x - 12, districtRecord.anchor.y)
-      : point(districtRecord.anchor.x, districtRecord.anchor.y);
+      : point(districtRecord.anchor.x, districtRecord.anchor.y));
     const routeWidth = placeRouteWidth(facility.kind);
     const anchor = firstOpenAnchor(
       preferred,
@@ -940,11 +1598,18 @@ function makePlaces(town, districts, identitySeed) {
       district,
       approachReservations,
       routeWidth,
+      facility.kind,
     );
     const footprint = rectangleAround(anchor, size);
     occupied.push(footprint);
-    approachReservations.push(approachReservation(anchor, size, routeWidth));
-    const needsCutaway = facility.kind === 'town_hall' || facility.kind === 'workshop' || candidatesByKind.has(facility.kind);
+    approachReservations.push(approachReservation(anchor, size, routeWidth, facility.kind));
+    // A threshold or a well is an outdoor place-specific discovery. Forcing
+    // those clues into invented rooms made the journey less legible and made
+    // unused interiors into an asset-production target. Enclosed facilities
+    // keep a same-coordinate cutaway; open civic objects stay in the town.
+    const needsCutaway = facility.kind === 'town_hall'
+      || facility.kind === 'workshop'
+      || (candidatesByKind.has(facility.kind) && ENCLOSED_INVESTIGATION_FACILITIES.has(facility.kind));
     records.push({
       id: `place.${facility.kind.replaceAll('_', '-')}`,
       recipe: facilityRecipe(facility.kind),
@@ -952,7 +1617,7 @@ function makePlaces(town, districts, identitySeed) {
       anchor,
       footprint,
       facilityKind: facility.kind,
-      appearance: appearanceForFacility(facility.kind),
+      appearance: appearanceForFacility(facility.kind, worldview),
       sourceGroupIds: sourceGroupsForFileIds(town, facility.sourceFileIds),
       label: facility.label,
       condition: facility.condition,
@@ -970,9 +1635,10 @@ function makePlaces(town, districts, identitySeed) {
   for (const facility of coreFacilities) placeFacility(facility);
 
   const civicDistrict = districtById.get('civic');
-  const plazaSize = { width: 18, height: 12 };
+  const plazaSize = CIVIC_PLAZA_SIZE;
+  const authoredPlazaAnchor = grammar.anchors.get('place.civic-plaza');
   const plazaAnchor = firstOpenAnchor(
-    point(civicDistrict.anchor.x + 12, civicDistrict.anchor.y + 8),
+    authoredPlazaAnchor ?? point(civicDistrict.anchor.x + 12, civicDistrict.anchor.y + 8),
     plazaSize,
     occupied,
     civicDistrict.bounds,
@@ -1000,37 +1666,41 @@ function makePlaces(town, districts, identitySeed) {
   const nonCoreFacilities = facilityRecords.filter((facility) => facility.kind !== 'gate' && facility.kind !== 'town_hall');
   for (const facility of nonCoreFacilities) placeFacility(facility);
 
-  // Each TownModel group is one authored dwelling.  A common parent makes a
-  // spatial cluster of nearby buildings; it does not erase the file-group
-  // boundary or merge unrelated relationships into one home.
+  // A home represents one coherent sibling compound.  The compound keeps all
+  // source groups and evidence, while related files share one visible place
+  // instead of becoming a row of cloned houses.
   const districtIds = new Set(districts.map((district) => district.id));
   const gate = records.find((place) => place.facilityKind === 'gate');
-  const compounds = makeGroupHomeCompounds(town);
+  // Placement must consume the same bounded/split compound set that authored
+  // the neighbourhood anchors. Re-deriving raw compounds here discards the
+  // broad grammar's source-group parcels and sends those homes to unrelated
+  // district centroids.
+  const compounds = grammar.compounds ?? makeGroupHomeCompounds(town);
   const homeIndexByCluster = new Map();
   for (const compound of compounds) {
     const sourceGroupIds = [...compound.sourceGroupIds].sort(compareStrings);
     const sourceGroup = compound.groups[0];
-    const district = groupDistrict(sourceGroup, districtIds);
+    const district = groupDistrict(sourceGroup, districtIds, worldview);
     const districtRecord = districtById.get(district) ?? districtById.get('civic');
-    const size = {
-      width: compound.appearance === 'dwelling-tall' ? 8 : compound.appearance === 'dwelling-stone' ? 10 : 9,
-      height: compound.appearance === 'dwelling-tall' ? 11 : 8,
-    };
-    const clusterKey = `${district}|${compound.parentPath}`;
+    const appearance = grammar.residenceAppearances?.get(placeIdForCompound(compound))
+      ?? dwellingAppearanceForWorldview(compound.appearance, worldview);
+    const size = groupHomeSize(appearance);
+    const clusterKey = `${district}|${compound.parentPath}|${compound.family}`;
     const siblingIndex = homeIndexByCluster.get(clusterKey) ?? 0;
     homeIndexByCluster.set(clusterKey, siblingIndex + 1);
     const clusterSeed = hashParts(identitySeed, 'group-cluster', district, compound.parentPath);
     const clusterBase = point(
-      districtRecord.anchor.x + signedOffset(hashParts(clusterSeed, 'x'), 6),
-      districtRecord.anchor.y + signedOffset(hashParts(clusterSeed, 'y'), 5),
+      districtRecord.anchor.x + signedOffset(hashParts(clusterSeed, 'x'), 2.5),
+      districtRecord.anchor.y + signedOffset(hashParts(clusterSeed, 'y'), 2.5),
     );
     const siblingOffset = [
-      { x: -6, y: -4 }, { x: 6, y: -4 }, { x: -6, y: 5 }, { x: 6, y: 5 },
+      { x: -2.5, y: -2.5 }, { x: 2.5, y: -2.5 }, { x: -2.5, y: 2.5 }, { x: 2.5, y: 2.5 },
     ][siblingIndex % 4];
     const base = sourceGroup.path === '.' && gate
-      ? point(gate.anchor.x + 8, gate.anchor.y + 5)
+      ? point(gate.anchor.x + 6, gate.anchor.y + 5)
       : clusterBase;
-    const preferred = point(base.x + siblingOffset.x, base.y + siblingOffset.y);
+    const authoredHomeAnchor = grammar.anchors.get(placeIdForCompound(compound));
+    const preferred = authoredHomeAnchor ?? point(base.x + siblingOffset.x, base.y + siblingOffset.y);
     const anchor = firstOpenAnchor(
       preferred,
       size,
@@ -1049,9 +1719,9 @@ function makePlaces(town, districts, identitySeed) {
       district,
       anchor,
       footprint,
-      appearance: compound.appearance,
+      appearance,
       sourceGroupIds,
-      label: sourceGroup.path === '.' ? '門前の住まい' : `住居群・${sourceGroup.path}`,
+      label: compound.parentPath === '.' ? '門前の住まい' : `住居群・${compound.parentPath}`,
       condition: 'active',
       evidence: compound.evidence,
       geometry: makePlaceGeometry(anchor, footprint, null, false, town.transition),
@@ -1160,12 +1830,24 @@ function routeCenterline(fromPlace, toPlace, places, width, seed, bounds) {
   const candidates = [
     ...corridorsX.map((x) => simplifiedPath([from, point(x, from.y), point(x, to.y), to])),
     ...corridorsY.map((y) => simplifiedPath([from, point(from.x, y), point(to.x, y), to])),
+    // A single corridor coordinate is not enough when a route must first
+    // pass below one authored row and then turn through the gap before its
+    // destination row. Keep the search orthogonal and bounded by the same
+    // authored clearances, but include both corridor dimensions so the path
+    // can step out, cross, and approach the endpoint from a dry side.
+    ...corridorsX.flatMap((x) => corridorsY.map((y) => simplifiedPath([
+      from,
+      point(from.x, y),
+      point(x, y),
+      point(x, to.y),
+      to,
+    ]))),
   ];
   const endpointIds = new Set([fromPlace.id, toPlace.id]);
   const clear = candidates.filter((candidate) => pathClearsPlaces(candidate, width, places, endpointIds));
   if (clear.length === 0) {
     const fallback = orthogonalClearPath(from, to, width, places, bounds, new Set([fromPlace.id, toPlace.id]));
-    if (fallback) return fallback;
+    if (fallback && pathClearsPlaces(fallback, width, places, endpointIds)) return fallback;
     throw new TypeError(`No clear route corridor connects ${fromPlace.id} to ${toPlace.id}`);
   }
   const length = (points) => points.slice(1).reduce((total, value, index) => total
@@ -1211,7 +1893,233 @@ function orthogonalClearPath(from, to, width, places, bounds, endpointIds) {
   return simplifiedPath(path.reverse());
 }
 
-function makeRoutes(places, identitySeed, bounds, town) {
+function snowAuthoredRoute(fromPlace, toPlace, places) {
+  const byFacility = new Map(places.filter((place) => place.facilityKind).map((place) => [place.facilityKind, place]));
+  const workHome = places.find((place) => place.recipe === 'residence' && place.district === 'work');
+  const livingHome = places.find((place) => place.recipe === 'residence' && place.district === 'living');
+  const gate = byFacility.get('gate');
+  const hall = byFacility.get('town_hall');
+  const plaza = places.find((place) => place.id === 'place.civic-plaza');
+  const warehouse = byFacility.get('warehouse');
+  const workshop = byFacility.get('workshop');
+  const well = byFacility.get('well');
+  const dock = byFacility.get('dock');
+  const key = [fromPlace.id, toPlace.id].sort(compareStrings).join('|');
+  const entrance = (place) => place?.geometry?.entrance?.point ?? place?.anchor;
+  const gateEntry = entrance(gate);
+  const hallEntry = entrance(hall);
+  const plazaEntry = entrance(plaza);
+  const workEntry = entrance(workHome);
+  const livingEntry = entrance(livingHome);
+  const warehouseEntry = entrance(warehouse);
+  const workshopEntry = entrance(workshop);
+  const wellEntry = entrance(well);
+  const coordinate = (value) => value ?? point(0, 0);
+  const dockEntry = entrance(dock);
+  const pair = (left, right, points) => {
+    if (!left || !right || key !== [left.id, right.id].sort(compareStrings).join('|')) return null;
+    return points;
+  };
+  return pair(gate, hall, simplifiedPath([
+    // Turn inward before the living shoulder. A straight horizontal stroke
+    // to the hall would make its wide main-road cap enter the nearby well.
+    coordinate(gateEntry),
+    point(coordinate(gateEntry).x + 6, coordinate(gateEntry).y),
+    point(coordinate(hallEntry).x - 4, coordinate(hallEntry).y),
+    coordinate(hallEntry),
+  ]))
+    ?? pair(hall, plaza, simplifiedPath([
+      coordinate(hallEntry), point(coordinate(plazaEntry).x, coordinate(hallEntry).y), coordinate(plazaEntry),
+    ]))
+    ?? pair(hall, workHome, [
+      coordinate(hallEntry), point(coordinate(hallEntry).x, coordinate(workEntry).y), coordinate(workEntry),
+    ])
+    ?? pair(hall, livingHome, [
+      coordinate(hallEntry), point(coordinate(hallEntry).x, coordinate(livingEntry).y), point(coordinate(livingEntry).x, coordinate(livingEntry).y), coordinate(livingEntry),
+    ])
+    ?? pair(hall, dock, [
+      // Share the living/harbour lane, then meet the dock from its landward
+      // lower edge. The dock porter can visibly walk on this same packed-snow
+      // path instead of following an invisible vertical route behind the
+      // building.
+      coordinate(hallEntry),
+      point(coordinate(plazaEntry).x, coordinate(hallEntry).y),
+      point(coordinate(plazaEntry).x, coordinate(dockEntry).y),
+      coordinate(dockEntry),
+    ])
+    ?? pair(workHome, warehouse, [
+      coordinate(workEntry), point(coordinate(workEntry).x, coordinate(warehouseEntry).y), coordinate(warehouseEntry),
+    ])
+    ?? pair(warehouse, workshop, [
+      coordinate(warehouseEntry), point(coordinate(workshopEntry).x, coordinate(warehouseEntry).y), coordinate(workshopEntry),
+    ])
+    ?? pair(livingHome, well, [
+      coordinate(livingEntry), point(coordinate(wellEntry).x, coordinate(livingEntry).y), coordinate(wellEntry),
+    ]);
+}
+
+function compactLateRoutePoints(fromPlace, toPlace, places) {
+  if (!isCompactLateShape(places)) return null;
+  const byFacility = new Map(places.filter((place) => place.facilityKind).map((place) => [place.facilityKind, place]));
+  const gate = byFacility.get('gate');
+  const hall = byFacility.get('town_hall');
+  const warehouse = byFacility.get('warehouse');
+  const workshop = byFacility.get('workshop');
+  const well = byFacility.get('well');
+  const plaza = places.find((place) => place.recipe === 'civic_plaza');
+  const workHomes = places
+    .filter((place) => place.recipe === 'residence' && place.district === 'work')
+    .sort((left, right) => left.anchor.y - right.anchor.y || left.anchor.x - right.anchor.x || compareStrings(left.id, right.id));
+  const livingHomes = places
+    .filter((place) => place.recipe === 'residence' && place.district === 'living')
+    .sort((left, right) => left.anchor.x - right.anchor.x || left.anchor.y - right.anchor.y || compareStrings(left.id, right.id));
+  const entrance = (place) => place?.geometry?.entrance?.point ?? place?.anchor;
+  const gateEntry = entrance(gate);
+  const hallEntry = entrance(hall);
+  const warehouseEntry = entrance(warehouse);
+  const workshopEntry = entrance(workshop);
+  const wellEntry = entrance(well);
+  const plazaEntry = entrance(plaza);
+  const workEntries = workHomes.map(entrance);
+  const livingEntries = livingHomes.map(entrance);
+  if ([gateEntry, hallEntry, warehouseEntry, workshopEntry, wellEntry, plazaEntry, ...workEntries, ...livingEntries].some((value) => !value)) return null;
+  const pairKey = (left, right) => [left?.id, right?.id].sort(compareStrings).join('|');
+  const requested = pairKey(fromPlace, toPlace);
+  const route = (left, right, points) => pairKey(left, right) === requested ? points.map((value) => point(value.x, value.y)) : null;
+  const northY = round(Math.max(warehouseEntry.y, hallEntry.y, workshopEntry.y) + 4);
+  // The lower lane runs through the deepest authored threshold instead of
+  // dropping below every home.  That keeps the route visibly attached to the
+  // front doors and prevents a decorative empty strip from enlarging the
+  // opening camera.
+  const southY = round(Math.max(...livingEntries.map((value) => value.y)));
+  // Keep the arrival leg west of the well, then turn under the north wall.
+  // The extra corner is intentional: a diagonal bounding corridor must not
+  // cut through the court's well footprint.
+  const mainWest = point(hallEntry.x - 19, hallEntry.y + 4.5);
+  const mainTurn = point(hallEntry.x - 4, hallEntry.y + 4.5);
+  const plazaTurn = point(hallEntry.x, plazaEntry.y - 7);
+  // The well entrance is on its left/front rim.  Keep the local road one
+  // quiet unit above the well's top edge, then descend on the entrance's
+  // narrow left corridor.  This keeps the three-unit road (half-width 1.5)
+  // clear of both the well footprint and the first living home.
+  const wellUpperShoulderY = round(well.footprint.y - 2.5);
+  return route(gate, hall, [
+    gateEntry,
+    point(gateEntry.x + 7, gateEntry.y),
+    mainWest,
+    mainTurn,
+    hallEntry,
+  ])
+    ?? route(hall, plaza, [
+      hallEntry,
+      plazaTurn,
+      plazaEntry,
+    ])
+    ?? route(hall, well, [
+      hallEntry,
+      point(hallEntry.x, wellUpperShoulderY),
+      point(wellEntry.x, wellUpperShoulderY),
+      wellEntry,
+    ])
+    ?? route(hall, warehouse, [
+      hallEntry,
+      point(hallEntry.x, northY),
+      point(warehouseEntry.x, northY),
+      warehouseEntry,
+    ])
+    ?? route(warehouse, workshop, [
+      warehouseEntry,
+      point(warehouseEntry.x, northY),
+      point(workshopEntry.x, northY),
+      workshopEntry,
+    ])
+    ?? route(workshop, workHomes[0], [
+      workshopEntry,
+      point(workshopEntry.x, northY),
+      point(workEntries[0].x, northY),
+      workEntries[0],
+    ])
+    ?? workHomes.slice(0, -1).map((home, index) => {
+      const left = workEntries[index];
+      const right = workEntries[index + 1];
+      // Join neighbouring east-frontage thresholds with one dry shoulder.
+      // The prior fixed `next.y - 8` shelf sat above both doors after the
+      // frontage was staggered, so a walking resident could be logically on
+      // its route while visibly outside the compiled street.
+      // Put the shared walking shoulder one body-height below the shallower
+      // doorway.  A half-unit shelf made the next walking resident cross the
+      // neighbour who is standing at that doorway, although both actors were
+      // individually on valid street pixels.
+      const shoulderY = round(Math.min(left.y, right.y) + 2);
+      return route(home, workHomes[index + 1], [
+        left,
+        point(left.x, shoulderY),
+        point(right.x, shoulderY),
+        right,
+      ]);
+    }).find(Boolean)
+    ?? route(well, livingHomes[0], [
+      wellEntry,
+      point(wellEntry.x, livingEntries[0].y - 7),
+      point(livingEntries[0].x, livingEntries[0].y - 7),
+      livingEntries[0],
+    ])
+    ?? livingHomes.slice(0, -1).map((home, index) => route(home, livingHomes[index + 1], [
+      livingEntries[index],
+      point(livingEntries[index].x, southY),
+      point(livingEntries[index + 1].x, southY),
+      livingEntries[index + 1],
+    ])).find(Boolean)
+    ?? null;
+}
+
+function lateAuthoredRoute(fromPlace, toPlace, places) {
+  const compact = compactLateRoutePoints(fromPlace, toPlace, places);
+  if (compact) return compact;
+  const byId = new Map(places.map((place) => [place.id, place]));
+  const gate = byId.get('place.gate');
+  const hall = byId.get('place.town-hall');
+  const plaza = byId.get('place.civic-plaza');
+  const entrance = (place) => place?.geometry?.entrance?.point ?? place?.anchor;
+  const gateEntry = entrance(gate);
+  const hallEntry = entrance(hall);
+  const plazaEntry = entrance(plaza);
+  const key = [fromPlace?.id, toPlace?.id].sort(compareStrings).join('|');
+  const pair = (left, right, points) => {
+    if (!left || !right || key !== [left.id, right.id].sort(compareStrings).join('|')) return null;
+    return points;
+  };
+  const commonCompactTown = Boolean(gate && hall && plaza)
+    && places.filter((place) => place.recipe === 'residence' && place.district === 'work').length <= 3
+    && places.every((place) => !place.facilityKind
+      || ['gate', 'town_hall', 'warehouse', 'workshop', 'well'].includes(place.facilityKind));
+  return pair(gate, hall, commonCompactTown ? [
+    gateEntry,
+    point(gateEntry.x + 5, gateEntry.y + 1),
+    point(hallEntry.x - 4, hallEntry.y - 1),
+    hallEntry,
+  ] : [
+    gateEntry,
+    point(gateEntry.x, Math.max(gateEntry.y, hallEntry.y) + 2),
+    point(hallEntry.x, Math.max(gateEntry.y, hallEntry.y) + 2),
+    hallEntry,
+  ]) ?? pair(hall, plaza, commonCompactTown ? [
+    // Keep the civic spine on the upper shoulder, then drop straight into
+    // the plaza. This leaves the well's lower footprint outside the route
+    // envelope while preserving a single readable court approach.
+    hallEntry,
+    point(plazaEntry.x - 7, hallEntry.y),
+    point(plazaEntry.x, hallEntry.y),
+    plazaEntry,
+  ] : [
+    hallEntry,
+    point(hallEntry.x + 4, hallEntry.y),
+    point(hallEntry.x + 4, plazaEntry.y),
+    plazaEntry,
+  ]);
+}
+
+function makeRoutes(places, identitySeed, bounds, town, worldview = WORLDVIEWS.lateMedieval) {
   const placeById = new Map(places.map((placeRecord) => [placeRecord.id, placeRecord]));
   const gate = placeById.get('place.gate');
   const hall = placeById.get('place.town-hall');
@@ -1222,7 +2130,26 @@ function makeRoutes(places, identitySeed, bounds, town) {
     if (!fromPlace || !toPlace || fromPlace.id === toPlace.id) return;
     const key = [fromPlace.id, toPlace.id].sort(compareStrings).join('|');
     if (seen.has(key)) return;
-    const centerline = routeCenterline(fromPlace, toPlace, places, recipe === 'main' ? 5 : 3, hashParts(identitySeed, 'route', id), bounds);
+    const authored = isSnowWorldview(worldview)
+      ? snowAuthoredRoute(fromPlace, toPlace, places)
+      : lateAuthoredRoute(fromPlace, toPlace, places);
+    // The compact recipes are complete, fixed street compositions. Keep
+    // their established core-street points so late/snow camera framing does
+    // not drift. Every noncompact authored route, including a main route,
+    // must pass the same footprint clearance check before it is accepted.
+    const routeWidth = recipe === 'main' ? 5 : 3;
+    const endpointIds = new Set([fromPlace.id, toPlace.id]);
+    const authoredClear = authored && pathClearsPlaces(authored, routeWidth, places, endpointIds);
+    const compactCoreStreet = authored && recipe === 'main'
+      && (isCompactLateShape(places) || (isSnowWorldview(worldview) && isCompactSnowShape(places)))
+      // Compact snow's fixed plaza apron meets the authored living shoulder
+      // at the edge of its five-unit road. Keep that exact street only when
+      // its structural footprints remain clear; home overlap is part of the
+      // established packed composition and is not a facility collision.
+      && pathClearsPlaces(authored, routeWidth, places.filter((place) => place.facilityKind), endpointIds);
+    const centerline = authored && (authoredClear || compactCoreStreet)
+      ? authored
+      : routeCenterline(fromPlace, toPlace, places, routeWidth, hashParts(identitySeed, 'route', id), bounds);
     seen.add(key);
     routes.push({
       id,
@@ -1235,6 +2162,33 @@ function makeRoutes(places, identitySeed, bounds, town) {
   };
   connect(gate, hall, 'main', 'route.main.arrival-civic');
   connect(hall, plaza, 'main', 'route.main.civic-plaza');
+  if (!isSnowWorldview(worldview) && isCompactLateShape(places)) {
+    // The compact town has one authored route tree. It is a U-shaped street
+    // system, not a nearest-place graph: north frontage, east work lane,
+    // centre court, and south living lane all keep their door aprons.
+    const warehouse = placeById.get('place.warehouse');
+    const workshop = placeById.get('place.workshop');
+    const well = placeById.get('place.well');
+    const workHomes = places
+      .filter((place) => place.recipe === 'residence' && place.district === 'work')
+      .sort((left, right) => left.anchor.y - right.anchor.y || left.anchor.x - right.anchor.x || compareStrings(left.id, right.id));
+    const livingHomes = places
+      .filter((place) => place.recipe === 'residence' && place.district === 'living')
+      .sort((left, right) => left.anchor.x - right.anchor.x || left.anchor.y - right.anchor.y || compareStrings(left.id, right.id));
+    connect(hall, well, 'local', 'route.local.district.living');
+    connect(hall, warehouse, 'local', 'route.local.district.work');
+    connect(warehouse, workshop, 'local', 'route.local.work.01');
+    connect(workshop, workHomes[0], 'local', 'route.local.work.02');
+    for (let index = 0; index < workHomes.length - 1; index += 1) {
+      connect(workHomes[index], workHomes[index + 1], 'local', `route.local.work.${String(index + 3).padStart(2, '0')}`);
+    }
+    connect(well, livingHomes[0], 'local', 'route.local.living.01');
+    for (let index = 0; index < livingHomes.length - 1; index += 1) {
+      connect(livingHomes[index], livingHomes[index + 1], 'local', `route.local.living.${String(index + 2).padStart(2, '0')}`);
+    }
+    routes.sort((left, right) => compareStrings(left.id, right.id));
+    return routes;
+  }
   // Every group has exactly one home/compound representative.  Routes use
   // those representatives directly; no group is rotated through an unrelated
   // facility merely because it happens to share a district.
@@ -1247,16 +2201,23 @@ function makeRoutes(places, identitySeed, bounds, town) {
   const homes = [...new Set(representativeByGroup.values())].sort((left, right) => compareStrings(left.id, right.id));
   const districtHub = new Map();
   for (const district of [...new Set(places.map((place) => place.district))].sort(compareStrings)) {
-    const localFacilities = places
-      .filter((place) => place.district === district && place.facilityKind)
-      .sort((left, right) => compareStrings(left.id, right.id));
-    const hub = localFacilities[0]
+    const districtPlaces = places
+      .filter((place) => place.district === district && place.appearance)
+      .sort((left, right) => {
+        const leftDistance = Math.hypot(left.anchor.x - (hall ?? plaza ?? gate).anchor.x, left.anchor.y - (hall ?? plaza ?? gate).anchor.y);
+        const rightDistance = Math.hypot(right.anchor.x - (hall ?? plaza ?? gate).anchor.x, right.anchor.y - (hall ?? plaza ?? gate).anchor.y);
+        return leftDistance - rightDistance || compareStrings(left.id, right.id);
+      });
+    const hub = districtPlaces[0]
       ?? (district === 'civic' ? plaza : null)
       ?? hall
       ?? gate;
     if (hub) districtHub.set(district, hub);
   }
-  const coreAnchor = plaza ?? hall ?? gate;
+  // The hall is the civic street hinge.  Short vertical or stepped joins to
+  // the top and bottom rows start here, while the plaza remains the final
+  // main-route apron.
+  const coreAnchor = hall ?? plaza ?? gate;
   if (!coreAnchor) throw new TypeError('The route graph has no civic anchor');
   let localIndex = 1;
   for (const [district, hub] of [...districtHub.entries()].sort(([left], [right]) => compareStrings(left, right))) {
@@ -1269,7 +2230,6 @@ function makeRoutes(places, identitySeed, bounds, town) {
   const homeByGroup = new Map();
   for (const home of homes) for (const groupId of home.sourceGroupIds) homeByGroup.set(groupId, home);
   const relationNeighbors = new Map(homes.map((home) => [home.id, new Set()]));
-  const crossDistrictPairs = new Set();
   for (const connection of town.connections
     .filter((entry) => entry.direction === 'internal')
     .sort((left, right) => compareStrings(left.id, right.id))) {
@@ -1282,10 +2242,6 @@ function makeRoutes(places, identitySeed, bounds, town) {
       for (const right of relatedHomes) {
         if (left.id === right.id) continue;
         relationNeighbors.get(left.id)?.add(right.id);
-        if (left.district !== right.district) {
-          const pair = [left.district, right.district].sort(compareStrings);
-          crossDistrictPairs.add(pair.join('|'));
-        }
       }
     }
   }
@@ -1361,13 +2317,10 @@ function makeRoutes(places, identitySeed, bounds, town) {
       remaining.delete(selected.place.id);
     }
   }
-  for (const pair of [...crossDistrictPairs].sort(compareStrings)) {
-    const [leftDistrict, rightDistrict] = pair.split('|');
-    const leftHub = districtHub.get(leftDistrict);
-    const rightHub = districtHub.get(rightDistrict);
-    if (!leftHub || !rightHub || leftHub.id === rightHub.id) continue;
-    connect(leftHub, rightHub, 'local', `route.local.district-link.${leftDistrict}.${rightDistrict}`);
-  }
+  // District hubs already connect every authored neighbourhood to the civic
+  // hinge. A second cross-district trunk creates long loops across quiet
+  // ground and makes the route surface read like a diagram. Relationships
+  // still choose local neighbours inside their authored district.
   routes.sort((left, right) => compareStrings(left.id, right.id));
   return routes;
 }
@@ -1476,29 +2429,78 @@ function localRoutePieces(points, coveredSegments) {
   return pieces.filter(([from, to]) => Math.hypot(to.x - from.x, to.y - from.y) > 0.05);
 }
 
-function makeSurfaces(bounds, districts, places, routes, identitySeed) {
+function makeSurfaces(bounds, districts, places, routes, identitySeed, worldview = WORLDVIEWS.lateMedieval) {
   const dock = places.find((place) => place.facilityKind === 'dock');
-  const waterPoints = dock ? [
-    point(
-      clamp(dock.geometry.entrance.point.x - 10, bounds.minX + 4, bounds.maxX - 20),
-      clamp(dock.geometry.entrance.point.y, bounds.minY + 7, bounds.maxY - 7),
-    ),
-    point(
-      clamp(dock.geometry.entrance.point.x + 4, bounds.minX + 8, bounds.maxX - 12),
-      clamp(dock.geometry.entrance.point.y, bounds.minY + 7, bounds.maxY - 7)
-        + signedOffset(hashParts(identitySeed, 'water', 'middle'), 0.8),
-    ),
-    point(
-      bounds.maxX - 2,
-      clamp(dock.geometry.entrance.point.y, bounds.minY + 7, bounds.maxY - 7)
-        + signedOffset(hashParts(identitySeed, 'water', 'edge'), 1.1),
-    ),
-  ] : null;
+  const broadLate = !isSnowWorldview(worldview) && isBroadLateShape(places);
+  // Snow harbour water is an edge feature. Keep it beside the dock instead of
+  // turning the whole lower district into an L-shaped water ribbon. The
+  // shoreline is a short, top-facing inlet. Its width stays below the dock
+  // approach so the dock remains on land and the water does not swallow the
+  // route or the neighboring living lane.
+  const snowHarbourWaterWidth = 6;
+  const broadLateWaterWidth = 6;
+  const waterPoints = dock
+    ? isSnowWorldview(worldview)
+      ? (() => {
+        const waterY = clamp(
+          dock.geometry.entrance.point.y + 2,
+          bounds.minY + 8,
+          bounds.maxY - snowHarbourWaterWidth / 2 - 1,
+        );
+        // Start the cove inland of the dock so the water sits under its
+        // shoreline edge and continues out of the scene. This gives the dock
+        // a real harbour edge instead of a detached blue card.
+        const inletX = clamp(dock.geometry.entrance.point.x - 4, bounds.minX + 8, bounds.maxX - 8);
+        return [
+          point(inletX, waterY),
+          // Let the inlet open toward the lower-right world edge. The slight
+          // diagonal carries both water edges out of frame, so the cove no
+          // longer ends as an exposed rectangular card inside the snowfield.
+          point(bounds.maxX - 2, waterY + 1.5),
+        ];
+      })()
+      : broadLate
+        ? [
+          // The broad late town ends at a compact southeast quay. Keep the
+          // blocked water below the dock and optional waterside home instead
+          // of sending a river ribbon beneath the warehouse and civic lane.
+          point(dock.geometry.entrance.point.x, bounds.maxY - broadLateWaterWidth / 2),
+          point(bounds.maxX - 2, bounds.maxY - broadLateWaterWidth / 2),
+        ]
+        : [
+        point(
+          clamp(dock.geometry.entrance.point.x - 10, bounds.minX + 4, bounds.maxX - 20),
+          clamp(dock.geometry.entrance.point.y, bounds.minY + 7, bounds.maxY - 7),
+        ),
+        point(
+          clamp(dock.geometry.entrance.point.x + 4, bounds.minX + 8, bounds.maxX - 12),
+          clamp(dock.geometry.entrance.point.y, bounds.minY + 7, bounds.maxY - 7)
+            + signedOffset(hashParts(identitySeed, 'water', 'middle'), 0.8),
+        ),
+        point(
+          bounds.maxX - 2,
+          clamp(dock.geometry.entrance.point.y, bounds.minY + 7, bounds.maxY - 7)
+            + signedOffset(hashParts(identitySeed, 'water', 'edge'), 1.1),
+        ),
+      ]
+    : null;
   const crossings = [];
   const crossingSegmentsByRoute = new Map();
   if (waterPoints) {
     for (const route of routes) {
-      const sections = routeSectionsInsideSurface(route.centerline, waterPoints, 8);
+      const snowDockRoute = isSnowWorldview(worldview)
+        && (route.fromPlaceId === dock.id || route.toPlaceId === dock.id);
+      // The snow harbour is a short cove with a tapered inland cap. A broad
+      // distance-to-path sample includes the land beside that cap and turns
+      // the dock approach into a long plank slab. Keep the road on land, then
+      // author only the cove edge-to-entrance continuation as the crossing.
+      const sections = snowDockRoute
+        ? [[point(waterPoints[0].x, dock.geometry.entrance.point.y), dock.geometry.entrance.point]]
+        : routeSectionsInsideSurface(
+          route.centerline,
+          waterPoints,
+          isSnowWorldview(worldview) ? snowHarbourWaterWidth : broadLate ? broadLateWaterWidth : 8,
+        );
       const segments = sections.flatMap((section) => section
         .slice(1)
         .map((entry, index) => axisSegment(section[index], entry))
@@ -1562,17 +2564,309 @@ function makeSurfaces(bounds, districts, places, routes, identitySeed) {
     },
   }];
   const civicPlaza = places.find((place) => place.id === 'place.civic-plaza');
+  const civicHall = places.find((place) => place.facilityKind === 'town_hall');
+  const civicWell = places.find((place) => place.facilityKind === 'well');
+  const compactCivicCourt = civicPlaza && civicHall && civicWell
+    && places.every((place) => !place.facilityKind
+      || ['gate', 'town_hall', 'warehouse', 'workshop', 'well', 'dock'].includes(place.facilityKind));
+  const compactTown = Boolean(compactCivicCourt)
+    && places.filter((place) => place.recipe === 'residence').length <= (isSnowWorldview(worldview) ? 2 : 6);
+  const compactStreetBeds = compactTown
+    ? (() => {
+      const gate = places.find((place) => place.facilityKind === 'gate');
+      const warehouse = places.find((place) => place.facilityKind === 'warehouse');
+      const workshop = places.find((place) => place.facilityKind === 'workshop');
+      const workHomes = places
+        .filter((place) => place.recipe === 'residence' && place.district === 'work')
+        // Match compactLateRoutePoints exactly.  The east frontage is a
+        // vertical, staggered street: sorting it left-to-right silently
+        // skipped the middle home's route when the same logical routes were
+        // assembled into the visual backplate.
+        .sort((left, right) => left.anchor.y - right.anchor.y || left.anchor.x - right.anchor.x || compareStrings(left.id, right.id));
+      const livingHomes = places
+        .filter((place) => place.recipe === 'residence' && place.district === 'living')
+        .sort((left, right) => left.anchor.x - right.anchor.x || left.anchor.y - right.anchor.y || compareStrings(left.id, right.id));
+      const dockPlace = places.find((place) => place.facilityKind === 'dock');
+      const pointOf = (place) => place?.geometry?.entrance?.point ?? null;
+      const uniquePoints = (values) => values.filter(Boolean).filter((value, index, all) => (
+        index === 0 || value.x !== all[index - 1].x || value.y !== all[index - 1].y
+      ));
+      const linkValues = (linkedPlaces, routeIds, district) => ({
+        placeIds: uniqueSortedStrings(linkedPlaces.filter(Boolean).map((place) => place.id)),
+        routeIds: uniqueSortedStrings(routeIds),
+        districtIds: uniqueSortedStrings([district, 'civic']),
+      });
+      const makeSpine = (id, recipe, district, values, width, linkedPlaces, routeIds = []) => {
+        const points = uniquePoints(values);
+        // A district with no authored neighbour does not need a decorative
+        // one-point road. Emitting that degenerate path made small, truthful
+        // repositories fail the surface contract before the browser opened.
+        if (points.length < 2) return null;
+        return {
+          id,
+          recipe,
+          district,
+          geometry: { kind: 'path', points, width },
+          links: linkValues(linkedPlaces, routeIds, district),
+        };
+      };
+      const compactLate = !isSnowWorldview(worldview) && isCompactLateShape(places);
+      if (compactLate) {
+        // These roads are the same authored shapes used by makeRoutes. The
+        // world therefore has one canonical north/east/south street grammar,
+        // with short door aprons instead of a second decorative road layer.
+        const compactPointOf = (place) => place?.geometry?.entrance?.point ?? place?.anchor ?? null;
+        const hall = places.find((place) => place.facilityKind === 'town_hall');
+        const well = places.find((place) => place.facilityKind === 'well');
+        const plaza = places.find((place) => place.recipe === 'civic_plaza');
+        const pairRouteIds = (pairs) => routes
+          .filter((route) => pairs.some(([left, right]) => route.fromPlaceId === left?.id && route.toPlaceId === right?.id
+            || route.fromPlaceId === right?.id && route.toPlaceId === left?.id))
+          .map((route) => route.id);
+        const joinPaths = (...paths) => {
+          const joined = [];
+          for (const path of paths) {
+            for (const value of path ?? []) {
+              if (!value) continue;
+              addPoint(joined, value);
+            }
+          }
+          return joined;
+        };
+        const pairPath = (left, right) => compactLateRoutePoints(left, right, places) ?? [];
+        const gateHall = pairPath(gate, hall);
+        const hallPlaza = pairPath(hall, plaza);
+        const hallWell = pairPath(hall, well);
+        const hallWarehouse = pairPath(hall, warehouse);
+        const warehouseWorkshop = pairPath(warehouse, workshop);
+        const workshopHome = pairPath(workshop, workHomes[0]);
+        const workHomePairs = workHomes.slice(0, -1).map((home, index) => [home, workHomes[index + 1]]);
+        const workHomePaths = workHomePairs.map(([left, right]) => pairPath(left, right));
+        const wellHome = pairPath(well, livingHomes[0]);
+        const livingHomePairs = livingHomes.slice(0, -1).map((home, index) => [home, livingHomes[index + 1]]);
+        const livingHomePaths = livingHomePairs.map(([left, right]) => pairPath(left, right));
+        const northY = round(Math.max(
+          compactPointOf(warehouse).y,
+          compactPointOf(hall).y,
+          compactPointOf(workshop).y,
+        ) + 4);
+        const hallApron = [compactPointOf(hall), point(compactPointOf(hall).x, northY)];
+        // Paint the same upper/left detour as the hall->well logical route.
+        // Starting at the plaza's right shoulder keeps the court road clear
+        // of the well and the first living-home footprint before it drops
+        // down the narrow corridor to the authored entrance.
+        const wellUpperShoulderY = round(well.footprint.y - 2.5);
+        const plazaWell = [
+          compactPointOf(plaza),
+          point(compactPointOf(plaza).x, wellUpperShoulderY),
+          point(compactPointOf(well).x, wellUpperShoulderY),
+          compactPointOf(well),
+        ];
+        const northPairs = [[hall, warehouse], [warehouse, workshop]];
+        const eastPairs = [[workshop, workHomes[0]], ...workHomePairs];
+        const southPairs = [[well, livingHomes[0]], ...livingHomePairs];
+        return [
+          makeSpine(
+            'surface.precinct.civic',
+            'main_route',
+            'civic',
+            joinPaths(gateHall, hallPlaza),
+            5,
+            [gate, hall, plaza],
+            pairRouteIds([[gate, hall], [hall, plaza]]),
+          ),
+          makeSpine(
+            'surface.precinct.court',
+            'local_route',
+            'living',
+            plazaWell,
+            3,
+            [plaza, well],
+            pairRouteIds([[hall, well]]),
+          ),
+          makeSpine(
+            'surface.precinct.north',
+            'local_route',
+            'work',
+            warehouseWorkshop,
+            3,
+            [warehouse, workshop],
+            pairRouteIds([[warehouse, workshop]]),
+          ),
+          makeSpine(
+            'surface.precinct.north.apron.hall',
+            'local_route',
+            'civic',
+            hallApron,
+            3,
+            [hall, warehouse],
+            pairRouteIds([[hall, warehouse]]),
+          ),
+          makeSpine(
+            'surface.precinct.east',
+            'local_route',
+            'work',
+            joinPaths(workshopHome, ...workHomePaths),
+            3,
+            [workshop, ...workHomes],
+            pairRouteIds(eastPairs),
+          ),
+          makeSpine(
+            'surface.precinct.south',
+            'local_route',
+            'living',
+            joinPaths(wellHome, ...livingHomePaths),
+            3,
+            [well, ...livingHomes],
+            pairRouteIds(southPairs),
+          ),
+        ].filter(Boolean);
+      }
+      const mainRouteIds = routes.filter((route) => route.recipe === 'main').map((route) => route.id);
+      const workRouteIds = routes.filter((route) => route.districtIds.includes('work')).map((route) => route.id);
+      const livingRouteIds = routes.filter((route) => route.districtIds.includes('living')).map((route) => route.id);
+      const watersideRouteIds = routes.filter((route) => route.districtIds.includes('waterside')).map((route) => route.id);
+      const hallEntry = pointOf(civicHall);
+      const plazaEntry = pointOf(civicPlaza);
+      const gateEntry = pointOf(gate);
+      const warehouseEntry = pointOf(warehouse);
+      const workshopEntry = pointOf(workshop);
+      const wellEntry = pointOf(civicWell);
+      const workHomeEntries = workHomes.map(pointOf);
+      const livingHomeEntries = livingHomes.map(pointOf);
+      const snow = isSnowWorldview(worldview);
+      const surfaces = [
+        // One readable arrival-to-civic spine replaces the old route tubes.
+        makeSpine(
+          'surface.precinct.civic',
+          'main_route',
+          'civic',
+          snow
+            ? [gateEntry, point(13, 32), hallEntry, point(26, 27), plazaEntry]
+            : [gateEntry, point(12, 32), point(17, 28), hallEntry, point(27, 26), plazaEntry],
+          5,
+          [gate, civicHall, civicPlaza],
+          mainRouteIds,
+        ),
+        // Work court/lane: a narrow L-shaped spine touches both facilities
+        // and the work homes without filling their whole district.
+        makeSpine(
+          'surface.precinct.work.north',
+          'local_route',
+          'work',
+          snow
+            ? [
+              plazaEntry,
+              point(40, 32),
+              workHomeEntries[0],
+              point(workHomeEntries[0]?.x ?? 47, 22),
+              workshopEntry,
+              warehouseEntry,
+            ]
+            : [plazaEntry, point(40, 29.5), workshopEntry, warehouseEntry],
+          3,
+          [civicPlaza, warehouse, workshop, ...workHomes],
+          workRouteIds,
+        ),
+        ...((!snow && workHomeEntries.length > 0) ? [makeSpine(
+          'surface.precinct.work.east',
+          'local_route',
+          'work',
+          workHomeEntries.length > 1
+            ? [workHomeEntries[0], point(workHomeEntries[0].x, workHomeEntries[1].y), ...workHomeEntries.slice(1)]
+            : workHomeEntries,
+          3,
+          [workshop, ...workHomes],
+          workRouteIds,
+        )] : []),
+        // Living lane and its well connector stay separate so a branch does
+        // not retrace through the home lane as a giant painted card.
+        makeSpine(
+          'surface.precinct.living.connector',
+          'local_route',
+          'living',
+          snow
+            ? [plazaEntry, point(31, 40), point(wellEntry?.x ?? 27, 40), wellEntry]
+            : [
+              wellEntry,
+              point(wellEntry?.x ?? 25, 40),
+              point(livingHomeEntries[0]?.x ?? wellEntry?.x ?? 25, 40),
+              livingHomeEntries[0],
+            ],
+          3,
+          [civicPlaza, civicWell],
+          livingRouteIds,
+        ),
+        makeSpine(
+          'surface.precinct.living.lane',
+          'local_route',
+          'living',
+          snow
+            ? [wellEntry, point(31, 40.5), pointOf(livingHomes[0])]
+            : livingHomeEntries.length > 0 ? livingHomeEntries : [wellEntry],
+          3,
+          [civicWell, ...livingHomes],
+          livingRouteIds,
+        ),
+      ];
+      // In the snow worldview the living lane ends at the harbour edge. The
+      // water/bank/crossing surfaces remain the authored harbour treatment.
+      if (snow && dockPlace) surfaces.push(makeSpine(
+        'surface.precinct.harbor.edge',
+        'local_route',
+        'waterside',
+        [pointOf(livingHomes[0]), pointOf(dockPlace)],
+        3,
+        [dockPlace, ...livingHomes],
+        watersideRouteIds,
+      ));
+      return surfaces.filter(Boolean);
+    })()
+    : [];
+  const civicCourtBounds = compactCivicCourt
+    ? {
+      minX: round(Math.min(civicHall.footprint.x + civicHall.footprint.width - 2, civicPlaza.footprint.x - 1)),
+      maxX: round(Math.max(civicPlaza.footprint.x + civicPlaza.footprint.width + 2, civicWell.footprint.x + civicWell.footprint.width - 1)),
+      minY: round(Math.min(civicHall.geometry.entrance.point.y - 1, civicPlaza.footprint.y - 1)),
+      maxY: round(Math.max(civicPlaza.footprint.y + civicPlaza.footprint.height + 2, civicWell.footprint.y + 1)),
+    }
+    : null;
   const plaza = civicPlaza ? [{
     id: 'surface.plaza.civic',
     recipe: 'plaza',
     district: 'civic',
-    geometry: { kind: 'area', bounds: rectangleBounds(expandRectangle(civicPlaza.footprint, 2)) },
+    geometry: { kind: 'area', bounds: civicCourtBounds ?? rectangleBounds(expandRectangle(civicPlaza.footprint, 2)) },
     links: { placeIds: [civicPlaza.id], routeIds: routes.filter((route) => route.toPlaceId === civicPlaza.id || route.fromPlaceId === civicPlaza.id).map((route) => route.id).sort(compareStrings), districtIds: ['civic'] },
   }] : [];
-  if (!dock) return [...ground, ...plaza, ...routeSurfaces].sort((left, right) => compareStrings(left.id, right.id));
-  const bankPoints = waterPoints.map((waterPoint, index) => point(waterPoint.x, clamp(waterPoint.y - 2 - (index % 2), bounds.minY + 2, bounds.maxY - 2)));
+  if (!dock) return [
+    ...ground,
+    ...plaza,
+    ...(compactTown ? compactStreetBeds : routeSurfaces),
+  ].sort((left, right) => compareStrings(left.id, right.id));
+  const bankPoints = isSnowWorldview(worldview)
+    ? [
+      // A shallow upper bank follows the opening inlet rather than ending as
+      // a straight underline. Its final point leaves through the same world
+      // edge as the water, while the small middle bend keeps a natural cove
+      // shoulder beneath the dock.
+      point(waterPoints[0].x, waterPoints[0].y - snowHarbourWaterWidth / 2 - 0.75),
+      point(
+        round((waterPoints[0].x + waterPoints.at(-1).x) / 2),
+        round((waterPoints[0].y + waterPoints.at(-1).y) / 2 - snowHarbourWaterWidth / 2 - 1),
+      ),
+      point(waterPoints.at(-1).x, waterPoints.at(-1).y - snowHarbourWaterWidth / 2 - 0.75),
+    ]
+    : broadLate
+      ? [
+        point(waterPoints[0].x, waterPoints[0].y - broadLateWaterWidth / 2 - 0.75),
+        point(round((waterPoints[0].x + waterPoints.at(-1).x) / 2), waterPoints[0].y - broadLateWaterWidth / 2 - 1),
+        point(waterPoints.at(-1).x, waterPoints.at(-1).y - broadLateWaterWidth / 2 - 0.75),
+      ]
+      : waterPoints.map((waterPoint, index) => point(waterPoint.x, clamp(waterPoint.y - 2 - (index % 2), bounds.minY + 2, bounds.maxY - 2)));
   const dockCrossings = crossings.filter(({ route }) => route.fromPlaceId === dock.id || route.toPlaceId === dock.id);
-  if (dockCrossings.length === 0) throw new TypeError('Dock place must connect to a readable route crossing the declared water surface');
+  if (dockCrossings.length === 0 && !isSnowWorldview(worldview)) {
+    throw new TypeError('Dock place must connect to a readable route crossing the declared water surface');
+  }
   // Crossing runs are assembled from the same route/water intersections as
   // the route-surface subtraction above.  Union collinear intervals before
   // emitting a surface so shared or partially overlapping crossings are one
@@ -1640,7 +2934,7 @@ function makeSurfaces(bounds, districts, places, routes, identitySeed) {
       points: surface.axis === 'x'
         ? [point(surface.start, surface.line), point(surface.end, surface.line)]
         : [point(surface.line, surface.start), point(surface.line, surface.end)],
-      width: 4,
+      width: isSnowWorldview(worldview) || broadLate ? 3 : 4,
     },
     links: {
       placeIds: uniqueSortedStrings(surface.placeIds),
@@ -1653,16 +2947,26 @@ function makeSurfaces(bounds, districts, places, routes, identitySeed) {
     id: 'surface.water.waterside',
     recipe: 'water',
     district: 'waterside',
-    geometry: { kind: 'path', points: waterPoints, width: 8 },
+    geometry: { kind: 'path', points: waterPoints, width: isSnowWorldview(worldview) ? snowHarbourWaterWidth : broadLate ? broadLateWaterWidth : 8 },
     links: { placeIds: [dock.id], routeIds: crossingRouteIds, districtIds: ['waterside'] },
   }, {
     id: 'surface.bank.waterside',
     recipe: 'bank',
     district: 'waterside',
-    geometry: { kind: 'path', points: bankPoints, width: 3 },
+    geometry: {
+      kind: 'path',
+      points: bankPoints,
+      width: isSnowWorldview(worldview) || broadLate ? 1.5 : 3,
+    },
     links: { placeIds: [dock.id], routeIds: [], districtIds: ['waterside'] },
   }];
-  return [...ground, ...water, ...plaza, ...routeSurfaces, ...crossingSurfaces].sort((left, right) => compareStrings(left.id, right.id));
+  return [
+    ...ground,
+    ...water,
+    ...plaza,
+    ...(compactTown ? compactStreetBeds : routeSurfaces),
+    ...crossingSurfaces,
+  ].sort((left, right) => compareStrings(left.id, right.id));
 }
 
 function placesForConnection(connection, places) {
@@ -1733,14 +3037,20 @@ function connectionResidentName(connection) {
   return '外との連絡役';
 }
 
-function connectionResidentAppearance(connection) {
-  if (connection.role === 'storage') return 'porter';
-  if (connection.direction === 'inbound' || connection.direction === 'outbound') return 'traveler';
-  return 'keeper';
+function connectionResidentAppearance(connection, worldview = WORLDVIEWS.lateMedieval) {
+  const appearance = connection.role === 'storage' ? 'porter'
+    : connection.direction === 'inbound' || connection.direction === 'outbound' ? 'traveler'
+      : 'keeper';
+  return isSnowWorldview(worldview) ? SNOW_RESIDENT_TRANSLATIONS[appearance] ?? appearance : appearance;
 }
 
 function connectionResidentBehavior(connection, placeRecord = null) {
   if (placeRecord?.requirements?.distinctInterior === true) return connection.role === 'storage' ? 'work' : 'talk';
+  // The gate entrance is also the player's authored spawn. An inbound visitor
+  // waits on the gate shoulder instead of walking the same first route point;
+  // this keeps the arrival open while still making the external relationship
+  // visible as a traveler at the threshold.
+  if (connection.direction === 'inbound' && placeRecord?.facilityKind === 'gate') return 'talk';
   if (connection.role === 'storage' || connection.direction === 'inbound' || connection.direction === 'outbound') return 'walk';
   return 'talk';
 }
@@ -1752,12 +3062,12 @@ function activityForBehavior(behavior) {
         : 'speaking';
 }
 
-function groupResidentAppearance(group) {
+function groupResidentAppearance(group, worldview = WORLDVIEWS.lateMedieval) {
   const family = groupRoleFamily(group);
-  if (family === 'heritage') return 'watcher';
+  if (family === 'heritage') return isSnowWorldview(worldview) ? 'keeper' : 'watcher';
   const dominant = dominantGroupRole(group);
   if (dominant === 'tooling') return 'artisan';
-  if (dominant === 'test') return 'watcher';
+  if (dominant === 'test') return isSnowWorldview(worldview) ? 'keeper' : 'watcher';
   if (dominant === 'data' || dominant === 'configuration') return 'keeper';
   return family === 'living' ? 'neighbor' : 'keeper';
 }
@@ -1794,11 +3104,12 @@ const FACILITY_RESIDENT_COPY = Object.freeze({
   ruin: Object.freeze({ name: '廃屋の見張り', activity: '跡を見守る', behavior: 'watch' }),
 });
 
-function facilityResidentSpec(facilityKind, placeRecord) {
+function facilityResidentSpec(facilityKind, placeRecord, worldview = WORLDVIEWS.lateMedieval) {
   const copy = FACILITY_RESIDENT_COPY[facilityKind] ?? { name: '町の係', activity: '町を見守る', behavior: 'talk' };
   const behavior = placeRecord.requirements?.distinctInterior === true && copy.behavior === 'walk' ? 'work' : copy.behavior;
+  const appearance = FACILITY_RESIDENT_APPEARANCE[facilityKind] ?? 'neighbor';
   return {
-    appearance: FACILITY_RESIDENT_APPEARANCE[facilityKind] ?? 'neighbor',
+    appearance: isSnowWorldview(worldview) ? SNOW_RESIDENT_TRANSLATIONS[appearance] ?? appearance : appearance,
     behavior,
     name: copy.name,
     activity: copy.activity,
@@ -1816,26 +3127,96 @@ function facilityResidentState(town, facilityKind) {
   return 'unknown';
 }
 
-const RESIDENT_MOTION_LENGTH = 3.5;
+// Keep walking residents on the local route before its next authored turn.
+// A longer prefix can carry the body into the neighbouring home at a tight
+// route junction, even though the route endpoint itself is valid.
+const RESIDENT_MOTION_LENGTH = 2.5;
 
-function shortMotionPrefix(line) {
-  const points = [point(line[0].x, line[0].y)];
-  let remaining = RESIDENT_MOTION_LENGTH;
-  for (let index = 1; index < line.length && points.length < 3 && remaining > 0; index += 1) {
-    const from = line[index - 1];
-    const to = line[index];
-    const distance = Math.hypot(to.x - from.x, to.y - from.y);
-    if (distance <= 0) continue;
-    if (distance <= remaining) {
-      addPoint(points, to);
-      remaining -= distance;
+const LOGICAL_RESIDENT_BODY = Object.freeze({ x: -0.375, y: -0.6875, width: 0.75, height: 0.75 });
+
+function residentBodyAt(anchor) {
+  return {
+    x: anchor.x + LOGICAL_RESIDENT_BODY.x,
+    y: anchor.y + LOGICAL_RESIDENT_BODY.y,
+    width: LOGICAL_RESIDENT_BODY.width,
+    height: LOGICAL_RESIDENT_BODY.height,
+  };
+}
+
+function residentPathClearsPlaces(anchor, places) {
+  const body = residentBodyAt(anchor);
+  return places.every((place) => place.recipe === 'civic_plaza'
+    || !place.appearance
+    || !rectanglesOverlap(body, place.footprint));
+}
+
+function clearStandingResidentAnchor(placeRecord, places) {
+  const entrance = placeRecord.geometry?.entrance?.point;
+  const approach = placeRecord.geometry?.entrance?.approach?.[0];
+  const base = standingResidentAnchor(placeRecord);
+  const footprint = placeRecord.footprint;
+  const candidates = [
+    footprint && entrance ? point(entrance.x, footprint.y + footprint.height + 0.75) : null,
+    footprint && entrance ? point(footprint.x - 0.75, entrance.y) : null,
+    footprint && entrance ? point(footprint.x + footprint.width + 0.75, entrance.y) : null,
+    approach,
+    approach ? point(approach.x - 2, approach.y) : null,
+    approach ? point(approach.x + 2, approach.y) : null,
+    approach ? point(approach.x, approach.y + 1.5) : null,
+    base,
+    entrance && approach ? point(base.x - 2, base.y) : null,
+    entrance && approach ? point(base.x + 2, base.y) : null,
+    entrance && approach ? point(base.x, base.y + 1.5) : null,
+    entrance && approach ? point(base.x - 3, base.y + 1.5) : null,
+    entrance && approach ? point(base.x + 3, base.y + 1.5) : null,
+    entrance && approach ? point(base.x - 4, base.y - 1.5) : null,
+    entrance && approach ? point(base.x + 4, base.y - 1.5) : null,
+  ].filter(Boolean);
+  return candidates.find((anchor) => residentPathClearsPlaces(anchor, places))
+    ?? placeRecord.geometry?.entrance?.approach?.[0]
+    ?? base;
+}
+
+function clearRouteMotion(line, placeRecord, places) {
+  const samples = sampledPath(line, 0.25);
+  const safe = samples.map((value) => residentPathClearsPlaces(value, places));
+  let best = null;
+  let runStart = -1;
+  for (let index = 0; index <= samples.length; index += 1) {
+    if (index < samples.length && safe[index]) {
+      if (runStart < 0) runStart = index;
       continue;
     }
-    const progress = remaining / distance;
-    addPoint(points, point(from.x + (to.x - from.x) * progress, from.y + (to.y - from.y) * progress));
-    remaining = 0;
+    if (runStart >= 0) {
+      const runEnd = index - 1;
+      if (runEnd > runStart) {
+        const run = samples.slice(runStart, runEnd + 1);
+        const distance = Math.hypot(run.at(-1).x - run[0].x, run.at(-1).y - run[0].y);
+        if (distance >= RESIDENT_MOTION_LENGTH) {
+          const proximity = Math.hypot(run[0].x - placeRecord.anchor.x, run[0].y - placeRecord.anchor.y);
+          if (!best || proximity < best.proximity) best = { run, proximity };
+        }
+      }
+      runStart = -1;
+    }
   }
-  return points;
+  if (!best) return null;
+  const start = best.run[0];
+  let travelled = 0;
+  for (let index = 1; index < best.run.length; index += 1) {
+    const from = best.run[index - 1];
+    const to = best.run[index];
+    const segment = Math.hypot(to.x - from.x, to.y - from.y);
+    if (travelled + segment >= RESIDENT_MOTION_LENGTH) {
+      const progress = (RESIDENT_MOTION_LENGTH - travelled) / segment;
+      return [point(start.x, start.y), point(
+        from.x + (to.x - from.x) * progress,
+        from.y + (to.y - from.y) * progress,
+      )];
+    }
+    travelled += segment;
+  }
+  return null;
 }
 
 function incidentRouteForResident(placeRecord, routes) {
@@ -1844,26 +3225,42 @@ function incidentRouteForResident(placeRecord, routes) {
     .sort((left, right) => compareStrings(left.id, right.id))[0] ?? null;
 }
 
-function residentMotion(placeRecord, behavior, routes) {
+function residentMotion(placeRecord, behavior, routes, places) {
   if (behavior !== 'walk' || placeRecord.requirements?.distinctInterior === true) return { kind: 'still' };
   const incident = incidentRouteForResident(placeRecord, routes);
   if (!incident || !Array.isArray(incident.centerline) || incident.centerline.length < 2) return { kind: 'still' };
   const line = incident.fromPlaceId === placeRecord.id ? incident.centerline : [...incident.centerline].reverse();
-  const points = shortMotionPrefix(line);
+  const clearPoints = clearRouteMotion(line, placeRecord, places);
+  // A tight authored street has no obligation to turn every resident into a
+  // walker. If this place has no clear stretch, the resident works or idles at
+  // its doorway instead of clipping a neighbouring façade.
+  if (!clearPoints) return { kind: 'still' };
+  const points = clearPoints;
   if (points.length < 2) return { kind: 'still' };
+  if (clearPoints) return { kind: 'ping-pong', points };
   const entrance = placeRecord.geometry?.entrance?.point;
   const approach = placeRecord.geometry?.entrance?.approach?.[0];
   if (!entrance || !approach) return { kind: 'ping-pong', points };
   const approachLength = Math.hypot(approach.x - entrance.x, approach.y - entrance.y);
   if (approachLength <= 0) return { kind: 'ping-pong', points };
   const routeWidth = incident.recipe === 'main' ? 5 : 3;
-  const shoulderDistance = Math.min(routeWidth / 2 + 0.75, approachLength * 0.55);
+  // Keep the resident just outside the entrance while its authored body still
+  // overlaps the visible route strip. A wider shoulder put the compiled
+  // 12-by-12 body one pixel beyond a three-unit local road.
+  const shoulderDistance = Math.min(routeWidth / 2 + 0.5, approachLength * 0.45);
   const offset = {
     x: (approach.x - entrance.x) / approachLength * shoulderDistance,
     y: (approach.y - entrance.y) / approachLength * shoulderDistance,
   };
   const shoulderPoints = points.map((entry) => point(entry.x + offset.x, entry.y + offset.y));
   return { kind: 'ping-pong', points: shoulderPoints };
+}
+
+function standingResidentAnchor(placeRecord) {
+  const entrance = placeRecord.geometry?.entrance?.point;
+  const approach = placeRecord.geometry?.entrance?.approach?.[0];
+  if (!entrance || !approach) return placeRecord.anchor;
+  return point((entrance.x + approach.x) / 2, (entrance.y + approach.y) / 2);
 }
 
 function investigationTargetAnchor(placeRecord, candidate) {
@@ -1880,13 +3277,46 @@ function investigationTargetAnchor(placeRecord, candidate) {
     : rawAnchor;
 }
 
-function makeResidents(town, places, routes) {
+function makeResidents(town, places, routes, worldview = WORLDVIEWS.lateMedieval) {
   const residents = [];
   const movingPlaceRoutes = new Set();
   const usedSlots = new Map();
   const outdoorSlots = [
     { x: 0, y: 0 }, { x: -2, y: 0 }, { x: 2, y: 0 }, { x: -4, y: 0 }, { x: 4, y: 0 },
+    // A compact work court can put a home directly across from an open yard.
+    // These outer shoulders keep the yard keeper beside that place without
+    // embedding the actor in the facing home or widening the whole town.
+    { x: -6, y: 0 }, { x: 6, y: 0 },
     { x: -3, y: 2 }, { x: -1, y: 2 }, { x: 1, y: 2 }, { x: 3, y: 2 },
+  ];
+  const gateShoulderSlots = [
+    // Keep the straight spawn-to-gate route open.  The first keeper stands
+    // on its left cobbled shoulder, close enough to address from the road
+    // without sharing the player's spawn body. A second slot remains on the
+    // right if a future truthful role also belongs at the threshold.
+    { x: -1.5, y: 0 }, { x: 3.5, y: 0 }, { x: -4, y: 1.5 }, { x: 4, y: 1.5 },
+  ];
+  const wellShoulderSlots = isSnowWorldview(worldview)
+    // Snow keeps the resident left of the well, away from the dock inlet.
+    ? [{ x: -3, y: -6 }, { x: -4, y: -5 }, { x: -2, y: -7 }]
+    // Late-medieval keeps the resident on the left shoulder. The well entrance
+    // is itself authored on the left front rim, so a right-side slot would
+    // fall into the neighbouring living compound at dense frontages.
+    : [{ x: -1, y: -3 }, { x: -2, y: -2 }, { x: 0, y: -4 }];
+  // A guild can host several distinct external relationships. Keep its
+  // messengers along the dry frontage above the approach; the lower shoulder
+  // can coincide with an authored late-harbor bank in a repository that also
+  // exposes distribution roles.
+  const guildShoulderSlots = [
+    // External arrivals line the dry left shoulder. The dock and water can
+    // occupy the guild's right/lower frontage in distribution-heavy towns.
+    { x: -6, y: -2 }, { x: -7, y: -1 }, { x: -8, y: -3 },
+    { x: -9, y: -1 }, { x: -10, y: -3 },
+    // A broad all-role frontage can place a living home immediately below
+    // this shoulder. Keep reserve messengers above that home's top edge and
+    // left of the guild footprint; these anchors also stay above the late
+    // waterside bank, so they remain dry in the dock-bearing composition.
+    { x: -6, y: -4 }, { x: -8, y: -4 }, { x: -10, y: -4 },
   ];
   const interiorSlots = [
     { x: 0, y: 0 }, { x: -2, y: 0 }, { x: 2, y: 0 },
@@ -1902,11 +3332,22 @@ function makeResidents(town, places, routes) {
     if (placeRecord && target) targetByPlaceId.set(placeRecord.id, target);
   }
   const claimAnchor = (placeRecord) => {
-    const publicAnchor = placeRecord.requirements.distinctInterior
-      ? placeRecord.anchor
-      : placeRecord.geometry.entrance.approach[0] ?? placeRecord.geometry.entrance.point;
-    const sourceSlots = placeRecord.requirements.distinctInterior ? interiorSlots : outdoorSlots;
     const interiorFootprint = placeRecord.geometry.interior?.footprint;
+    const publicAnchor = placeRecord.requirements.distinctInterior && interiorFootprint
+      ? point(
+        placeRecord.geometry.interior.entrance?.x ?? (interiorFootprint.x + interiorFootprint.width / 2),
+        interiorFootprint.y + interiorFootprint.height - 0.5,
+      )
+      : placeRecord.geometry.entrance.approach[0] ?? placeRecord.geometry.entrance.point;
+    const sourceSlots = placeRecord.requirements.distinctInterior
+      ? interiorSlots
+      : placeRecord.facilityKind === 'gate'
+        ? gateShoulderSlots
+        : placeRecord.facilityKind === 'well'
+          ? wellShoulderSlots
+          : placeRecord.facilityKind === 'guild'
+            ? guildShoulderSlots
+          : outdoorSlots;
     const available = placeRecord.requirements.distinctInterior
       ? sourceSlots.filter((offset) => rectangleContainsPoint(interiorFootprint, point(publicAnchor.x + offset.x, publicAnchor.y + offset.y)))
       : sourceSlots;
@@ -1916,6 +3357,11 @@ function makeResidents(town, places, routes) {
       const slot = available[slotIndex];
       slotIndex += 1;
       const anchor = point(publicAnchor.x + slot.x, publicAnchor.y + slot.y);
+      // Outdoor slots share a street frontage with neighbouring places. A
+      // slot is usable only when the actor's actual body clears every visible
+      // footprint; otherwise a dojo/shop resident can appear embedded in the
+      // home immediately across the lane.
+      if (!placeRecord.requirements.distinctInterior && !residentPathClearsPlaces(anchor, places)) continue;
       if (target && Math.hypot(anchor.x - target.x, anchor.y - target.y) <= 2) continue;
       usedSlots.set(placeRecord.id, slotIndex);
       return anchor;
@@ -1931,17 +3377,37 @@ function makeResidents(town, places, routes) {
     return null;
   };
   const residentIntent = (placeRecord, desiredBehavior, fallbackBehavior = 'talk') => {
-    if (desiredBehavior !== 'walk') return { behavior: desiredBehavior, motion: { kind: 'still' } };
+    if (desiredBehavior !== 'walk') {
+      const standingAnchor = isSnowWorldview(worldview)
+        && !placeRecord.facilityKind
+        && placeRecord.district === 'living'
+        ? point(placeRecord.geometry.entrance.point.x + 1, placeRecord.geometry.entrance.point.y)
+        : standingResidentAnchor(placeRecord);
+      return {
+        behavior: desiredBehavior,
+        motion: { kind: 'still' },
+        ...(placeRecord.requirements.distinctInterior || placeRecord.facilityKind
+          ? {}
+          : { anchor: standingAnchor }),
+      };
+    }
     const incident = incidentRouteForResident(placeRecord, routes);
     const motionKey = incident ? `${placeRecord.id}|${incident.id}` : null;
     if (!motionKey || movingPlaceRoutes.has(motionKey)) {
       return { behavior: fallbackBehavior, motion: { kind: 'still' } };
     }
-    const motion = residentMotion(placeRecord, desiredBehavior, routes);
-    if (motion.kind !== 'ping-pong') return { behavior: fallbackBehavior, motion: { kind: 'still' } };
+    const motion = residentMotion(placeRecord, desiredBehavior, routes, places);
+    if (motion.kind !== 'ping-pong') return { behavior: fallbackBehavior, motion: { kind: 'still' }, anchor: standingResidentAnchor(placeRecord) };
     movingPlaceRoutes.add(motionKey);
     return { behavior: desiredBehavior, motion };
   };
+  const stationaryAnchor = (placeRecord, preferred) => (
+    placeRecord.requirements.distinctInterior
+      ? preferred
+      : preferred && residentPathClearsPlaces(preferred, places)
+        ? preferred
+        : clearStandingResidentAnchor(placeRecord, places)
+  );
   const clusterByGroup = new Map(town.groups.map((group) => [group.id, groupResidentClusterKey(group)]));
   const groupWalksIncidentRoute = (group, placeRecord) => town.connections.some((connection) => {
     if (connection.direction !== 'internal' || !connection.groupIds.includes(group.id)) return false;
@@ -1952,7 +3418,7 @@ function makeResidents(town, places, routes) {
     const claimed = claimPlace(placesForConnection(connection, places));
     if (!claimed) continue;
     const { placeRecord, anchor: claimedAnchor } = claimed;
-    const appearance = connectionResidentAppearance(connection);
+    const appearance = connectionResidentAppearance(connection, worldview);
     const desiredBehavior = connectionResidentBehavior(connection, placeRecord);
     const fallbackBehavior = connection.role === 'storage' ? 'work' : 'talk';
     const intent = residentIntent(placeRecord, desiredBehavior, fallbackBehavior);
@@ -1961,7 +3427,9 @@ function makeResidents(town, places, routes) {
     residents.push({
       id: `resident.connection.${connection.id}`,
       placeId: placeRecord.id,
-      anchor: motion.kind === 'ping-pong' ? motion.points[0] : claimedAnchor,
+      anchor: motion.kind === 'ping-pong'
+        ? motion.points[0]
+        : stationaryAnchor(placeRecord, intent.anchor ?? claimedAnchor),
       role: connection.role,
       name: connectionResidentName(connection),
       activity: activityForBehavior(behavior),
@@ -2008,13 +3476,15 @@ function makeResidents(town, places, routes) {
     residents.push({
       id: `resident.cluster.${encodeURIComponent(clusterKey)}`,
       placeId: claimedPlace.id,
-      anchor: motion.kind === 'ping-pong' ? motion.points[0] : claimedAnchor,
+      anchor: motion.kind === 'ping-pong'
+        ? motion.points[0]
+        : stationaryAnchor(claimedPlace, intent.anchor ?? claimedAnchor),
       role: 'townsperson',
       name: group.path === '.' ? '町の住人' : '街区の住人',
       activity: activityForBehavior(behavior),
       state,
       evidence,
-      appearance: groupResidentAppearance(group),
+      appearance: groupResidentAppearance(group, worldview),
       behavior,
       motion,
       ...(claimedPlace.requirements.distinctInterior ? { interiorPlaceId: claimedPlace.id } : {}),
@@ -2046,14 +3516,16 @@ function makeResidents(town, places, routes) {
       continue;
     }
     const { placeRecord: claimedPlace, anchor: claimedAnchor } = claimed;
-    const spec = facilityResidentSpec(facilityKind, claimedPlace);
+    const spec = facilityResidentSpec(facilityKind, claimedPlace, worldview);
     const intent = residentIntent(claimedPlace, spec.behavior, 'talk');
     const behavior = intent.behavior;
     const motion = intent.motion;
     residents.push({
       id: `resident.place.${claimedPlace.id}`,
       placeId: claimedPlace.id,
-      anchor: motion.kind === 'ping-pong' ? motion.points[0] : claimedAnchor,
+      anchor: motion.kind === 'ping-pong'
+        ? motion.points[0]
+        : stationaryAnchor(claimedPlace, intent.anchor ?? claimedAnchor),
       role: 'townsperson',
       name: spec.name,
       activity: behavior === spec.behavior ? spec.activity : activityForBehavior(behavior),
@@ -2073,11 +3545,71 @@ function placeEvidence(place) {
   return evidenceBag(place.evidence, `${place.id}.unknown`);
 }
 
-function makeProps(places, identitySeed) {
+function makeProps(places, identitySeed, worldview = WORLDVIEWS.lateMedieval) {
+  if (isSnowWorldview(worldview)) {
+    const compactSnow = places.length <= 9
+      && places.some((place) => place.facilityKind === 'dock')
+      && places.some((place) => place.facilityKind === 'well')
+      && places.filter((place) => place.recipe === 'residence').length <= 2
+      && places.every((place) => !place.facilityKind
+        || ['gate', 'town_hall', 'dock', 'warehouse', 'well', 'workshop'].includes(place.facilityKind));
+    // The compact snow environment already carries its continuous forest,
+    // yard boundary, quay, shore and working clutter in the repository-
+    // selected terrain image. Repeating those same jobs as large foreground
+    // cut-outs made the live buildings look pasted onto a second asset sheet.
+    // Keep functional residents, clues and causal lights live, but do not
+    // duplicate the supplied environment with freestanding decoration.
+    if (compactSnow) return [];
+    const specs = [
+      // A single evergreen marks the quiet outer edge. It is not a repeated
+      // filler tree and it stays outside the arrival and dock approaches.
+      ['prop.snow-evergreen-edge', null, 'snow_evergreen', 'anchor', { x: 5, y: 1 }],
+      // Cargo sits on the dry right-front working shoulder. Its authored
+      // collision remains above the cove and clear of the approach, while
+      // its lower baseline keeps it beside the dock instead of above its roof.
+      ['prop.snow-dock-cargo', 'place.dock', 'snow_dock_cargo', 'anchor', { x: 4, y: 2 }],
+    ];
+    const props = [];
+    for (const [id, desiredPlaceId, recipe, anchorRole, offset] of specs) {
+      const placeRecord = desiredPlaceId
+        ? places.find((place) => place.id === desiredPlaceId)
+        : places.find((place) => place.id.startsWith('place.home.') && place.id.includes('%7Cliving'));
+      if (!placeRecord) continue;
+      const state = evidenceState(placeRecord.evidence);
+      const baseAnchor = anchorRole === 'entrance'
+        ? placeRecord.geometry.entrance.point
+        : anchorRole === 'approach'
+          ? placeRecord.geometry.entrance.approach[0]
+          : placeRecord.anchor;
+      props.push({
+        id,
+        placeId: placeRecord.id,
+        recipe,
+        anchor: point(baseAnchor.x + offset.x + signedOffset(hashParts(identitySeed, id), 0.35), baseAnchor.y + offset.y),
+        state,
+        evidence: placeEvidence(placeRecord),
+      });
+    }
+    return props.sort((left, right) => compareStrings(left.id, right.id));
+  }
+  const broadLate = !isSnowWorldview(worldview) && isBroadLateShape(places);
+  if (broadLate) return [];
+  const compactLate = !isSnowWorldview(worldview) && isCompactLateShape(places);
   const specs = [
-    ['prop.gate-sign', 'place.gate', 'signboard', 'entrance', { x: 3, y: 0 }],
-    ['prop.civic-lamp', 'place.civic-plaza', 'lamp_post', 'anchor', { x: -5, y: -3 }],
-    ['prop.heritage-tree', 'place.ruin', 'tree_cluster', 'approach', { x: 4, y: -2 }],
+    // Keep the request board beside the open arch. It must not occupy the
+    // player's arrival opening or merge with the gate silhouette.
+    ['prop.gate-sign', 'place.gate', 'signboard', 'entrance', { x: 5, y: 1 }],
+    // The well is a living-district edge in small repositories. A single
+    // tree gives that quiet boundary depth when no heritage ruin exists.
+    ...(!compactLate ? [['prop.heritage-tree', 'place.well', 'tree_cluster', 'anchor', { x: 7, y: -2 }]] : []),
+    // Small material clusters join the authored places into lived-in
+    // neighbourhoods. They sit at the side of an entrance or civic pocket,
+    // never in the route centreline or the player's doorway.
+    ['prop.work-clutter', 'place.workshop', 'work_clutter', 'entrance', { x: 6, y: -1 }],
+    ...(!compactLate ? [['prop.civic-planter', 'place.civic-plaza', 'civic_planter', 'entrance', { x: 7, y: 4 }]] : []),
+    // The well resident uses the left shoulder; lower the woodpile one more
+    // unit so its authored collision does not meet that actor's body.
+    ['prop.living-woodpile', 'place.well', 'living_woodpile', 'anchor', { x: -11, y: 3 }],
   ];
   const props = [];
   for (const [id, desiredPlaceId, recipe, anchorRole, offset] of specs) {
@@ -2098,10 +3630,13 @@ function makeProps(places, identitySeed) {
       evidence: placeEvidence(placeRecord),
     });
   }
+  // Compact late towns keep only the causal sign, work clutter, and woodpile
+  // above. Detached stair, hedge, tree, and planter props had no spatial
+  // cause in this flat court and made the scene read as a prop catalog.
   return props.sort((left, right) => compareStrings(left.id, right.id));
 }
 
-function makeLights(town, places, identitySeed) {
+function makeLights(town, places, identitySeed, worldview) {
   const lights = [];
   const add = (id, desiredPlaceId, state, evidence, offset = { x: 0, y: 0 }) => {
     const placeRecord = places.find((place) => place.id === desiredPlaceId);
@@ -2115,16 +3650,23 @@ function makeLights(town, places, identitySeed) {
       evidence: evidenceBag(evidence, `${id}.unknown`),
     });
   };
-  add('light.arrival-gate', 'place.gate', 'lit', places.find((place) => place.id === 'place.gate')?.evidence, { x: 2, y: 1 });
-  add('light.civic-plaza', 'place.civic-plaza', 'lit', places.find((place) => place.id === 'place.civic-plaza')?.evidence, { x: -5, y: -3 });
-  add('light.waterside', 'place.dock', 'unknown', places.find((place) => place.facilityKind === 'dock')?.evidence, { x: -2, y: 1 });
+  add('light.arrival-gate', 'place.gate', 'lit', places.find((place) => place.id === 'place.gate')?.evidence, { x: -3, y: 1 });
+  // Keep the civic lantern on a building-side shoulder instead of leaving a
+  // freestanding pole at the visual center of the plaza.  Snow's hall sits on
+  // the west side of its apron; the late hall sits north of the court.
+  const civicLightOffset = isSnowWorldview(worldview) ? { x: -7, y: 0.5 } : { x: 5, y: -9 };
+  const broadLate = !isSnowWorldview(worldview) && isBroadLateShape(places);
+  if (!broadLate) {
+    add('light.civic-plaza', 'place.civic-plaza', 'lit', places.find((place) => place.id === 'place.civic-plaza')?.evidence, civicLightOffset);
+  }
+  add('light.waterside', 'place.dock', 'unknown', places.find((place) => place.facilityKind === 'dock')?.evidence, { x: -7, y: -1 });
   const townHall = places.find((place) => place.facilityKind === 'town_hall');
   if (townHall) {
     lights.push({
       id: 'light.town-hall-lantern',
       placeId: townHall.id,
       recipe: 'town_hall_lantern',
-      anchor: point(townHall.anchor.x, townHall.anchor.y - 4),
+      anchor: point(townHall.anchor.x, townHall.anchor.y + (broadLate ? -1 : -4)),
       state: 'unlit',
       evidence: mergeEvidence(townHall.evidence, town.transition?.evidence),
       reportState: { transitionId: town.transition?.id ?? REPOSITORY_INSPECTION_TRANSITION_ID, before: 'unlit', after: 'lit' },
@@ -2133,7 +3675,10 @@ function makeLights(town, places, identitySeed) {
   return lights.sort((left, right) => compareStrings(left.id, right.id));
 }
 
-function makeInvestigations(town, places) {
+function makeInvestigations(town, places, worldview = WORLDVIEWS.lateMedieval) {
+  if (isSnowWorldview(worldview) && !town.candidates.every((candidate) => snowInvestigationSupported(candidate))) {
+    throw new TypeError('Snow-harbor worldview needs threshold, ledger, and water-source investigations');
+  }
   const placeByFacility = new Map(places.filter((place) => place.facilityKind).map((place) => [place.facilityKind, place]));
   return town.candidates.map((candidate) => {
     const placeRecord = placeByFacility.get(candidate.facilityKind);
@@ -2174,11 +3719,30 @@ function makeJourney(town, places, investigations) {
   };
 }
 
-function packedCompositionBounds(initialBounds, composition, districts, places, routes, residents, props, lights, investigations) {
-  let minX = initialBounds.minX;
-  let minY = initialBounds.minY;
-  let maxX = initialBounds.minX;
-  let maxY = initialBounds.minY;
+function packedCompositionBounds(
+  initialBounds,
+  composition,
+  districts,
+  places,
+  routes,
+  residents,
+  props,
+  lights,
+  investigations,
+  worldview = WORLDVIEWS.lateMedieval,
+) {
+  if (!isSnowWorldview(worldview) && isBroadLateShape(places)) {
+    return { minX: -2, maxX: 71, minY: 1.5, maxY: 47 };
+  }
+  // The provisional canvas only gives placement search room. Keeping its
+  // origin in the packed scene leaves a large empty moat above and beside the
+  // actual town, making the overview shrink the authored buildings and actors
+  // into a tiny island. Pack around the placed world instead, with one quiet
+  // edge margin for arrival and camera breathing room.
+  let minX = Number.POSITIVE_INFINITY;
+  let minY = Number.POSITIVE_INFINITY;
+  let maxX = Number.NEGATIVE_INFINITY;
+  let maxY = Number.NEGATIVE_INFINITY;
   const includePoint = (value) => {
     if (!isRecord(value) || !Number.isFinite(value.x) || !Number.isFinite(value.y)) return;
     minX = Math.min(minX, value.x);
@@ -2218,12 +3782,36 @@ function packedCompositionBounds(initialBounds, composition, districts, places, 
   for (const prop of props) includePoint(prop.anchor);
   for (const light of lights) includePoint(light.anchor);
   for (const investigation of investigations) includePoint(investigation.target?.anchor);
-  const quietMargin = 6;
+  // Two logical units leave a visible breathing edge at the packed camera
+  // without shrinking the authored streets back to a half-size overview.
+  const quietMargin = 2;
+  if (!Number.isFinite(minX) || !Number.isFinite(minY)
+    || !Number.isFinite(maxX) || !Number.isFinite(maxY)) {
+    return { ...initialBounds };
+  }
+  const authoredEnvelope = isSnowWorldview(worldview) ? initialBounds : null;
+  const snowDock = isSnowWorldview(worldview)
+    ? places.find((place) => place.facilityKind === 'dock')
+    : null;
+  // The snow inlet is authored after packing. Reserve its full lower half
+  // here so makeSurfaces never has to clamp the water back through the dock
+  // footprint. The dock entrance sits at the crossing on the upper edge;
+  // six units carry the water centre, half-width, and one quiet edge unit.
+  const snowCoveMaxY = snowDock?.geometry?.entrance?.point
+    ? snowDock.geometry.entrance.point.y + 6
+    : Number.NEGATIVE_INFINITY;
   return {
-    minX: round(minX < initialBounds.minX ? minX - quietMargin : initialBounds.minX),
-    maxX: round(Math.max(initialBounds.minX + 24, maxX + quietMargin)),
-    minY: round(minY < initialBounds.minY ? minY - quietMargin : initialBounds.minY),
-    maxY: round(Math.max(initialBounds.minY + 24, maxY + quietMargin)),
+    // Snow harbour rows use the complete authored street envelope. This keeps
+    // a small but valid harbour composition inside the native useful view;
+    // late-medieval towns remain tightly packed around their placed geometry.
+    minX: round(Math.min(minX - quietMargin, authoredEnvelope?.minX ?? minX - quietMargin)),
+    // The packed world must leave enough horizontal breathing room for the
+    // native 1280px view at the compiler's 112px edge margin. This is a quiet
+    // ground edge, not another place or route, and prevents the game view from
+    // becoming wider than its own world when a repository has a compact town.
+    maxX: round(Math.max(minX + 66, maxX + quietMargin, authoredEnvelope?.maxX ?? Number.NEGATIVE_INFINITY)),
+    minY: round(minY - quietMargin),
+    maxY: round(Math.max(minY + 24, maxY + quietMargin, snowCoveMaxY)),
   };
 }
 
@@ -2268,13 +3856,76 @@ function routingBounds(initialBounds, districts, places) {
   };
 }
 
+function directDistributionSignalTokens(evidence) {
+  return uniqueSortedStrings([
+    ...(evidence?.inferred ?? []),
+    ...(evidence?.observed ?? []),
+  ]
+    .filter((entry) => typeof entry === 'string' && entry.startsWith('capability.distribution.path.'))
+    .map((entry) => entry.slice('capability.distribution.path.'.length).toLowerCase())
+    .filter((entry) => entry.length > 0));
+}
+
+function hasDirectDockEvidence(town, dock) {
+  if (!dock || dock.kind !== 'dock' || dock.presence !== 'present') return false;
+  const dockEvidence = dock.evidence;
+  const hasDockEvidence = dockEvidence?.observed?.length > 0 || dockEvidence?.inferred?.length > 0;
+  if (!hasDockEvidence) return false;
+  if (Array.isArray(dock.sourceFileIds) && dock.sourceFileIds.length > 0) return true;
+
+  // Town-domain currently carries distribution evidence on the dock but does
+  // not attach the source file IDs for that capability.  Recover only a
+  // bounded direct file signal already present in TownModel: the same
+  // distribution path token must occur in a repository file path and that
+  // file must retain observed or inferred evidence.  A bare capability label,
+  // unknown file, or global repository evidence stays late-medieval.
+  const tokens = directDistributionSignalTokens(dockEvidence);
+  if (tokens.length === 0 || !Array.isArray(town?.files)) return false;
+  return town.files.some((file) => {
+    if (!file || typeof file.path !== 'string') return false;
+    const fileEvidence = file.evidence;
+    if (!(fileEvidence?.observed?.length > 0 || fileEvidence?.inferred?.length > 0)) return false;
+    const pathTokens = file.path.toLowerCase().split(/[^a-z0-9]+/u).filter(Boolean);
+    return tokens.some((token) => pathTokens.includes(token));
+  });
+}
+
+function snowFacilityRoleSupported(kind) {
+  return typeof SNOW_FACILITY_APPEARANCES[kind] === 'string';
+}
+
+function snowInvestigationSupported(candidate) {
+  const recipe = INVESTIGATION_TARGET_BY_FACILITY[candidate.facilityKind];
+  return snowFacilityRoleSupported(candidate.facilityKind)
+    && SNOW_INVESTIGATION_TARGET_RECIPES.includes(recipe);
+}
+
+function selectedWorldview(town) {
+  // A repository with direct distribution structure becomes a frontier
+  // harbor. The snow harbor is caused by repository meaning (a real dock and
+  // deployment frontier), not by a random seed or a palette selector.
+  const dock = town.facilities.find((facility) => facility.kind === 'dock');
+  if (!hasDirectDockEvidence(town, dock)) return WORLDVIEWS.lateMedieval;
+  const facilityKinds = [
+    ...town.facilities
+      .filter((facility) => facility.presence !== 'not_applicable')
+      .map((facility) => facility.kind),
+    ...town.candidates.map((candidate) => candidate.facilityKind),
+  ];
+  if (!facilityKinds.every((kind) => snowFacilityRoleSupported(kind))) return WORLDVIEWS.lateMedieval;
+  if (!town.candidates.every((candidate) => snowInvestigationSupported(candidate))) return WORLDVIEWS.lateMedieval;
+  return WORLDVIEWS.snowHarbor;
+}
+
 function buildPlan(town) {
   const identitySeed = sha256(town.identity.key);
   const semanticHash = sha256(semanticSignature(town));
   const contentSeed = hashParts(identitySeed, 'content', semanticHash);
-  const bounds = makeCompositionBounds(town);
-  const provisionalDistricts = makeDistricts(town, bounds);
-  const places = makePlaces(town, provisionalDistricts, identitySeed);
+  const worldview = selectedWorldview(town);
+  const grammar = makeAuthoredComposition(town, worldview);
+  const bounds = makeCompositionBounds(town, grammar);
+  const provisionalDistricts = makeDistricts(town, bounds, grammar, worldview);
+  const places = makePlaces(town, provisionalDistricts, identitySeed, grammar, worldview);
   const districts = deriveDistrictsFromPlaces(provisionalDistricts, places);
   const gate = places.find((place) => place.facilityKind === 'gate');
   const civicPlace = places.find((place) => place.id === 'place.civic-plaza')
@@ -2283,14 +3934,26 @@ function buildPlan(town) {
   const composition = {
     bounds,
     entry: gate.geometry.entrance.approach[0],
-    spawn: gate.geometry.entrance.point,
+    // The smallest town has only one gate keeper at the opening. Stage the
+    // player one short step into the same main-road segment so both actors are
+    // immediately readable while the request rectangle still overlaps the
+    // player's footbox. Larger
+    // towns retain the gate threshold as their authored spawn.
+    spawn: !isSnowWorldview(worldview) && isSmallLateShape(places)
+      ? point(gate.geometry.entrance.point.x + 1.5, gate.geometry.entrance.point.y + 1)
+      : grammar.layout === 'late-broad'
+        // The broad gate has a resident on its west shoulder.  One logical
+        // step east keeps the player inside the request reach and on the same
+        // authored road while separating the two silhouettes at first view.
+        ? point(gate.geometry.entrance.point.x + 1, gate.geometry.entrance.point.y)
+        : gate.geometry.entrance.point,
     civic: civicPlace.anchor,
   };
-  const routes = makeRoutes(places, identitySeed, routingBounds(bounds, districts, places), town);
-  const residents = makeResidents(town, places, routes);
-  const props = makeProps(places, identitySeed);
-  const lights = makeLights(town, places, identitySeed);
-  const investigations = makeInvestigations(town, places);
+  const routes = makeRoutes(places, identitySeed, routingBounds(bounds, districts, places), town, worldview);
+  const residents = makeResidents(town, places, routes, worldview);
+  const props = makeProps(places, identitySeed, worldview);
+  const lights = makeLights(town, places, identitySeed, worldview);
+  const investigations = makeInvestigations(town, places, worldview);
   const journey = makeJourney(town, places, investigations);
   const packedBounds = packedCompositionBounds(
     bounds,
@@ -2302,16 +3965,17 @@ function buildPlan(town) {
     props,
     lights,
     investigations,
+    worldview,
   );
   composition.bounds = packedBounds;
   const packedDistricts = clipDistrictsToBounds(districts, packedBounds);
-  const surfaces = makeSurfaces(packedBounds, packedDistricts, places, routes, identitySeed);
+  const surfaces = makeSurfaces(packedBounds, packedDistricts, places, routes, identitySeed, worldview);
   return deepFreeze({
     format: FORMAT,
     schemaVersion: SCHEMA_VERSION,
     identity: { key: town.identity.key, name: town.identity.name },
     contentSeed,
-    worldview: { ...WORLDVIEW },
+    worldview: { ...worldview },
     composition,
     districts: packedDistricts,
     surfaces,
@@ -2481,12 +4145,13 @@ function validatePlanShape(plan) {
     assertNonEmptyString(plan.identity.name, '$.identity.name', issues);
   }
   if (typeof plan.contentSeed !== 'string' || !HASH_RE.test(plan.contentSeed)) issues.push(issue('$.contentSeed', 'must be a lowercase SHA-256', 'INVALID_HASH'));
+  const planWorldview = Object.values(WORLDVIEWS).find((candidate) => candidate.id === plan.worldview?.id);
   if (!assertRecord(plan.worldview, '$.worldview', issues)) {
     // Continue to collect shape issues.
   } else {
     assertExactKeys(plan.worldview, ['id', 'recipeVersion'], '$.worldview', issues);
-    if (plan.worldview.id !== WORLDVIEW.id) issues.push(issue('$.worldview.id', 'must use the complete late-medieval-night worldview', 'INVALID_WORLDVIEW'));
-    if (plan.worldview.recipeVersion !== WORLDVIEW.recipeVersion) issues.push(issue('$.worldview.recipeVersion', 'must use the bounded place recipe', 'INVALID_RECIPE_VERSION'));
+    if (!planWorldview) issues.push(issue('$.worldview.id', 'must use one complete shipping worldview', 'INVALID_WORLDVIEW'));
+    if (planWorldview && plan.worldview.recipeVersion !== planWorldview.recipeVersion) issues.push(issue('$.worldview.recipeVersion', 'must use the bounded place recipe', 'INVALID_RECIPE_VERSION'));
   }
   if (!assertRecord(plan.composition, '$.composition', issues)) {
     // Continue to collect shape issues.
@@ -2530,13 +4195,17 @@ function validatePlanShape(plan) {
       assertPoint(place.anchor, `${path}.anchor`, issues, bounds);
       assertRectangle(place.footprint, `${path}.footprint`, issues, bounds);
       assertNonEmptyString(place.label, `${path}.label`, issues);
-      if (place.appearance !== null && !PLACE_APPEARANCES.includes(place.appearance)) issues.push(issue(`${path}.appearance`, 'must use a closed authored place appearance or null for the civic plaza', 'INVALID_APPEARANCE'));
+      const allowedPlaceAppearances = planWorldview?.id === WORLDVIEWS.snowHarbor.id
+        ? SNOW_PLACE_APPEARANCES
+        : PLACE_APPEARANCES;
+      if (place.appearance !== null && !allowedPlaceAppearances.includes(place.appearance)) issues.push(issue(`${path}.appearance`, 'must use a closed authored place appearance for the selected worldview or null for the civic plaza', 'INVALID_APPEARANCE'));
       if (place.recipe === 'civic_plaza' && place.appearance !== null) issues.push(issue(`${path}.appearance`, 'the civic plaza has no authored structure appearance', 'INVALID_APPEARANCE'));
       assertStringArray(place.sourceGroupIds, `${path}.sourceGroupIds`, issues);
       if (!PLACE_CONDITIONS.includes(place.condition)) issues.push(issue(`${path}.condition`, 'must preserve the place condition', 'INVALID_CONDITION'));
       if (OWN_KEYS.call(place, 'facilityKind')) {
         if (!FACILITY_KINDS.includes(place.facilityKind)) issues.push(issue(`${path}.facilityKind`, 'must use a known facility kind', 'INVALID_FACILITY_KIND'));
-        if (place.appearance !== FACILITY_APPEARANCES[place.facilityKind]) issues.push(issue(`${path}.appearance`, 'must match the authored appearance for its facility kind', 'APPEARANCE_MISMATCH'));
+        const expectedAppearance = appearanceForFacility(place.facilityKind, planWorldview ?? WORLDVIEWS.lateMedieval);
+        if (place.appearance !== expectedAppearance) issues.push(issue(`${path}.appearance`, 'must match the selected worldview appearance for its facility kind', 'APPEARANCE_MISMATCH'));
       } else if (DWELLING_APPEARANCES.includes(place.appearance)) {
         if (place.recipe !== 'residence') issues.push(issue(`${path}.recipe`, 'group homes must use the residence recipe', 'INVALID_HOME_RECIPE'));
         if (place.sourceGroupIds.length === 0) issues.push(issue(`${path}.sourceGroupIds`, 'group homes must retain their source groups', 'MISSING_SOURCE_GROUPS'));
@@ -2585,7 +4254,7 @@ function validatePlanShape(plan) {
         const routeWidth = route.recipe === 'main' ? 5 : 3;
         for (let pointIndex = 1; pointIndex < route.centerline.length; pointIndex += 1) {
           for (const place of plan.places) {
-            if (!isRecord(place) || !place.facilityKind) continue;
+            if (!isRecord(place) || !place.facilityKind || endpointIds.has(place.id)) continue;
             const testedWidth = endpointIds.has(place.id) ? 0 : routeWidth;
             if (!rectanglesOverlap(routeSegmentRect(route.centerline[pointIndex - 1], route.centerline[pointIndex], testedWidth), place.footprint)) continue;
             issues.push(issue(`${path}.centerline[${pointIndex}]`, `must not pass through ${place.id}`, 'ROUTE_BLOCKED_BY_PLACE'));
@@ -2644,7 +4313,10 @@ function validatePlanShape(plan) {
     }
     assertPoint(resident.anchor, `${path}.anchor`, issues, bounds);
     if (!NPC_ROLE_VOCABULARY.includes(resident.role)) issues.push(issue(`${path}.role`, 'must use a known resident role', 'INVALID_RESIDENT_ROLE'));
-    if (!RESIDENT_APPEARANCES.includes(resident.appearance)) issues.push(issue(`${path}.appearance`, 'must use a known authored resident appearance', 'INVALID_RESIDENT_APPEARANCE'));
+    const allowedResidentAppearances = planWorldview?.id === WORLDVIEWS.snowHarbor.id
+      ? SNOW_RESIDENT_APPEARANCES
+      : RESIDENT_APPEARANCES;
+    if (!allowedResidentAppearances.includes(resident.appearance)) issues.push(issue(`${path}.appearance`, 'must use a known authored resident appearance for the selected worldview', 'INVALID_RESIDENT_APPEARANCE'));
     if (!RESIDENT_BEHAVIORS.includes(resident.behavior)) issues.push(issue(`${path}.behavior`, 'must use a known resident behavior', 'INVALID_RESIDENT_BEHAVIOR'));
     if (!assertRecord(resident.motion, `${path}.motion`, issues)) {
       // Continue collecting the state and evidence issues.
@@ -2725,9 +4397,11 @@ function validatePlanShape(plan) {
         assertFiniteNumber(candidate.target.reach, `${path}.target.reach`, issues);
         if (Number.isFinite(candidate.target.reach) && candidate.target.reach <= 0) issues.push(issue(`${path}.target.reach`, 'must be positive', 'INVALID_NUMBER'));
         const targetPlace = plan.places.find((place) => place.id === candidate.placeId);
-        if (targetPlace?.geometry?.interior?.kind !== 'cutaway'
-          || !rectangleContainsPoint(targetPlace.geometry.interior.footprint, candidate.target.anchor)) {
-          issues.push(issue(`${path}.target.anchor`, 'must remain inside the investigation place cutaway', 'TARGET_OUTSIDE_INTERIOR'));
+        const targetRegion = targetPlace?.geometry?.interior?.kind === 'cutaway'
+          ? targetPlace.geometry.interior.footprint
+          : targetPlace?.footprint;
+        if (!targetRegion || !rectangleContainsPoint(targetRegion, candidate.target.anchor)) {
+          issues.push(issue(`${path}.target.anchor`, 'must remain inside the investigation place', 'TARGET_OUTSIDE_PLACE'));
         }
       }
     }
@@ -2792,3 +4466,5 @@ export function validateWorldPlan(plan) {
   assertReachable(plan);
   return deepFreeze(stableClone(plan));
 }
+
+export { compactLateRoutePoints, pathClearsPlaces };

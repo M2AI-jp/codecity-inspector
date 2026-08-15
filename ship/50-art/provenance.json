@@ -3,67 +3,1205 @@
   "schemaVersion": 1,
   "assets": [
     {
-      "assetSha256": "8fc4cddf7ec81f6b849bc8469b906aec314c8a753f64933d858f2f2dc2202115",
+      "assetSha256": "f158abbc38e89953a05e5d16a519d0b180362110723c91666b8f1539d3222fb0",
       "source": "art/references/user-provided/object_street_props_sheet.png",
-      "kind": "derived",
+      "kind": "generated-candidate-derived",
       "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
-      "custody": "owner-supplied-original"
+      "custody": "owner-authorized-current-request",
+      "role": "civic lantern lit state"
     },
     {
-      "assetSha256": "068d6a13943d06dffb87a8a5d991aeb33a457c2d3f222aa8558f89b4e615da1f",
-      "source": "art/references/user-provided/object_status_markers_sheet.png",
-      "kind": "derived",
-      "sourceSha256": "e3d2f177bf10bc07d1362251d8aa80d490fc6f58999d24b06a66c34a177e1d1b",
-      "custody": "owner-supplied-original"
-    },
-    {
-      "assetSha256": "3253600a175b474fd1687d7e29e929e16b55df7a5fc67e0d884a0f7896f4e42d",
+      "assetSha256": "33022ccca051456d962a4f66b7c57ffe1f67b8d5ed275448b22b8f97c5e3ca55",
       "source": "art/references/user-provided/object_street_props_sheet.png",
-      "kind": "derived",
+      "kind": "generated-candidate-derived",
       "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
-      "custody": "owner-supplied-original"
+      "custody": "owner-authorized-current-request",
+      "role": "civic lantern unknown state"
     },
     {
-      "assetSha256": "d5fbb67c6d26e107b0cec6e78f09715e95be54cf4201de44025ca00477dd658f",
+      "assetSha256": "c4160cef349ec2d7c5d8432c253818829c55054a92f485fb08c957a9f24bd281",
+      "source": "art/references/user-provided/object_street_props_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "custody": "owner-authorized-current-request",
+      "role": "civic lantern unlit state"
+    },
+    {
+      "assetSha256": "aa8e6bbaedde69a67da8fd5c5afd5466c6c7b92703c4dfd9132af2e04b29cf28",
       "source": "art/references/user-provided/character_style_authority_20260722_v1.png",
-      "kind": "derived",
+      "kind": "generated-candidate-derived",
       "sourceSha256": "446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932",
-      "custody": "owner-supplied-original"
+      "method": "owner-authorized deterministic palette-only transformation of the existing 6x8 player sheet, informed by built-in precise-object-edit palette reference exec-9975a852; every pixel coordinate, alpha value, frame silhouette, foot position, and animation registration preserved exactly; deep navy coat, warm chestnut hair, restrained rust accent",
+      "custody": "owner-authorized-current-request",
+      "role": "late-medieval readable player actor"
     },
     {
-      "assetSha256": "e4aca9db5101bd5327d4bc9fddb5a2d009757850a0ce7d48ea5b8d854c6cc9e5",
+      "assetSha256": "55e0439cc0099df6781c2fe3cb7e2eee6e41923908acc13c4e0f518f17645b0f",
       "source": "art/references/user-provided/object_street_props_sheet.png",
-      "kind": "derived",
+      "kind": "owner-authorized-current-request",
       "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
-      "custody": "owner-supplied-original"
+      "custody": "owner-supplied-original",
+      "role": "late-medieval lantern post"
     },
     {
-      "assetSha256": "74919eb419d7283cbdbc10d684a4402a61bde8f9b655567b56f0277123996420",
+      "assetSha256": "00b898e3d8fc0747dbb21038f066603ecc343cddc70d14ef9d0c5fab94bd0b43",
       "source": "art/references/user-provided/object_street_props_sheet.png",
-      "kind": "derived",
+      "kind": "owner-authorized-current-request",
       "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
-      "custody": "owner-supplied-original"
+      "custody": "owner-supplied-original",
+      "role": "late-medieval hanging sign"
     },
     {
-      "assetSha256": "8ce50e8fc64b1f75baf72ba50bc0c9b97e3c191196e55fba187f9a0733588e1d",
+      "assetSha256": "20e83fa3b4806ffd89daa3db348c4231a6eadae08a92b0f8699391eed0ac72ae",
       "source": "art/references/user-provided/object_street_props_sheet.png",
-      "kind": "derived",
+      "kind": "owner-authorized-current-request",
       "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
-      "custody": "owner-supplied-original"
+      "custody": "owner-supplied-original",
+      "role": "late-medieval town tree"
     },
     {
-      "assetSha256": "5a4d3e86817d971a7f3413d26e1c8c85eecc7792459a916585a25432ac9177d2",
+      "assetSha256": "0ad17c199de0d8bf437a0599588b9014cd5bac9ca424eafb28edc8df0d83bf5e",
       "source": "art/references/user-provided/ui_dialogue_frames_sheet.png",
-      "kind": "derived",
+      "kind": "generated-candidate-derived",
       "sourceSha256": "60a2255fe72e2e96c91f00caa93fa7f4906f57fc1f8f0332bdbe91648b9ba29d",
-      "custody": "owner-supplied-original"
+      "custody": "owner-authorized-generated-candidate",
+      "role": "dialogue frame"
     },
     {
-      "assetSha256": "5d191399c5afd59b6a41781e7df637bf9ea2596fb80dc7d06340d5aca01523ca",
+      "assetSha256": "c980e11eefffb4c7c805eebb919c6761a123aff5a6987c15bd66e8c17ebcebd2",
       "source": "art/references/user-provided/ui_inspection_report_sheet.png",
-      "kind": "derived",
+      "kind": "generated-candidate-derived",
       "sourceSha256": "c4c14e83e5f4e5fec8f7eaea537e6befa5f2762aaed11d07a5a86c05b6294892",
-      "custody": "owner-supplied-original"
+      "custody": "owner-authorized-generated-candidate",
+      "role": "inspection report frame"
+    },
+    {
+      "assetSha256": "741cbfaa466050597cb645492e4ac3c94fc66b7442c44eae43d2940b01512ead",
+      "source": "art/references/user-provided/ui_dialogue_frames_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "60a2255fe72e2e96c91f00caa93fa7f4906f57fc1f8f0332bdbe91648b9ba29d",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "exit frame"
+    },
+    {
+      "assetSha256": "c060057c34385fbf8036c17fe8e19976f71910aaabb12affb9fe3b255cbd15a0",
+      "source": "art/references/user-provided/world_visual_master.png",
+      "kind": "owner-authorized-current-request",
+      "sourceSha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+      "custody": "owner-authorized-current-request",
+      "role": "continuous quiet ground surface"
+    },
+    {
+      "assetSha256": "d01f9629b3914afa2af7c5bedba191bbaa315f2a16dcd6642f0bcb8726105335",
+      "source": "art/references/user-provided/field_cobblestone_roads_sheet.png",
+      "kind": "owner-authorized-current-request",
+      "sourceSha256": "f732a849dd88138e3acccc24970bef9e923302fec1aa01ffac195b8195cfff3d",
+      "custody": "owner-authorized-current-request",
+      "method": "deterministic periodic luminance flattening and material-alpha remap from the existing authorized shipping surface; no generated pixels",
+      "role": "quiet civic plaza surface v4"
+    },
+    {
+      "assetSha256": "941238dbd933e0ed23e0ac0f0e5894d8d901e23f150a7944983a893db7597e3f",
+      "source": "art/references/user-provided/field_cobblestone_roads_sheet.png",
+      "kind": "owner-authorized-current-request",
+      "sourceSha256": "f732a849dd88138e3acccc24970bef9e923302fec1aa01ffac195b8195cfff3d",
+      "custody": "owner-authorized-current-request",
+      "method": "deterministic periodic luminance flattening and material-alpha remap from the existing authorized shipping surface; no generated pixels",
+      "role": "subdued local route surface v4"
+    },
+    {
+      "assetSha256": "0a3ac86724204e64296a8869a9e624f8545cc28a4d11e3eef5054510cd4e353e",
+      "source": "art/references/user-provided/field_cobblestone_roads_sheet.png",
+      "kind": "owner-authorized-current-request",
+      "sourceSha256": "f732a849dd88138e3acccc24970bef9e923302fec1aa01ffac195b8195cfff3d",
+      "custody": "owner-authorized-current-request",
+      "method": "deterministic periodic luminance flattening and material-alpha remap from the existing authorized shipping surface; no generated pixels",
+      "role": "readable main route surface v4"
+    },
+    {
+      "assetSha256": "8ecc43bd7969d9fa50c176cff18847aa603dbd9d0a4ac8e37a4425fbc935d799",
+      "source": "art/references/user-provided/character_style_authority_20260722_v1.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932",
+      "custody": "owner-authorized-generated-candidate",
+      "sourceAsset": "player--default-v1",
+      "role": "artisan resident actor"
+    },
+    {
+      "assetSha256": "e742677139648db1322fd278f47d85d33cd99a08905c51a97e200b9d04169e5c",
+      "source": "art/references/user-provided/character_style_authority_20260722_v1.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932",
+      "custody": "owner-authorized-generated-candidate",
+      "sourceAsset": "player--default-v1",
+      "role": "keeper resident actor"
+    },
+    {
+      "assetSha256": "1a2d05edf1a3a995f89c30cf73fcdfb559aa91da75881d02ea244b2f4e6a1ea5",
+      "source": "art/references/user-provided/character_style_authority_20260722_v1.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932",
+      "custody": "owner-authorized-generated-candidate",
+      "sourceAsset": "player--default-v1",
+      "role": "neighbor resident actor"
+    },
+    {
+      "assetSha256": "99859861b5e651ce2af88255219431e7f25041c4dd0722acef48e34f1a4a0267",
+      "source": "art/references/user-provided/object_status_markers_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "e3d2f177bf10bc07d1362251d8aa80d490fc6f58999d24b06a66c34a177e1d1b",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "threshold investigation clue"
+    },
+    {
+      "assetSha256": "d51dfa341d9d61690f2484c775fae3887ee630b1710502c8b2d07432d0673de2",
+      "source": "art/references/user-provided/object_street_props_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "water-source investigation clue"
+    },
+    {
+      "assetSha256": "69bf792671e1e04ad636d68b2b5afd9592408f4d14fdd7e126818940853b7dbe",
+      "source": "art/references/user-provided/object_street_props_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "ledger investigation clue"
+    },
+    {
+      "assetSha256": "3b3f24e599851f2fc3e2c2d0f6d485b33cfe04804555f41b63b826b9ad35e4c8",
+      "source": "art/references/user-provided/building_workshop_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "a28070edeec7d93df772ffe856bcaa49a11ba8ec55e60ddd5af15eab56f23ac7",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "workshop exterior base"
+    },
+    {
+      "assetSha256": "f2a426ae1df11ed1d1e76cfc34d2475efd0ec2246a4f409dafc42b91786f8f4f",
+      "source": "art/references/user-provided/building_workshop_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "a28070edeec7d93df772ffe856bcaa49a11ba8ec55e60ddd5af15eab56f23ac7",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "workshop roof and upper wall"
+    },
+    {
+      "assetSha256": "8dc8272ae9a7a84d5e963705669ef21e49810200d01cc40cf2fe6c4255c1ac65",
+      "source": "art/references/user-provided/building_workshop_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "a28070edeec7d93df772ffe856bcaa49a11ba8ec55e60ddd5af15eab56f23ac7",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "workshop exterior foreground"
+    },
+    {
+      "assetSha256": "c1b492774478801f44bcfabb789053bd632c3039682602ccc8cbfb9c10633c44",
+      "source": "art/references/user-provided/building_workshop_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "a28070edeec7d93df772ffe856bcaa49a11ba8ec55e60ddd5af15eab56f23ac7",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "workshop interior floor and fixtures"
+    },
+    {
+      "assetSha256": "5359b97b591feab0ee6d42e16ca8e827e7ff2787baeb8f3cac7bd6fe8c50f5b6",
+      "source": "art/references/user-provided/building_workshop_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "a28070edeec7d93df772ffe856bcaa49a11ba8ec55e60ddd5af15eab56f23ac7",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "workshop interior foreground"
+    },
+    {
+      "assetSha256": "7f42978ae8e101d90584afbdef435df657c35a8dbf3560ed5e7773eda168db3a",
+      "source": "art/references/user-provided/building_town_hall_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "af560250efd3d45fb00c7ba4a486e6245db5318c564bc72a8a11ba84bbbfb1c9",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "town hall exterior base"
+    },
+    {
+      "assetSha256": "179bff8a846becd3584a3e99da7b984da31b6eab880dc06c49dbba1972ffd262",
+      "source": "art/references/user-provided/building_town_hall_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "af560250efd3d45fb00c7ba4a486e6245db5318c564bc72a8a11ba84bbbfb1c9",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "town hall roof and upper wall"
+    },
+    {
+      "assetSha256": "64094de8b97627bcc93536f56e623468d91ea19bc81612c89f03444a823edda1",
+      "source": "art/references/user-provided/building_town_hall_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "af560250efd3d45fb00c7ba4a486e6245db5318c564bc72a8a11ba84bbbfb1c9",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "town hall exterior foreground"
+    },
+    {
+      "assetSha256": "2287cabc8e2fee9f85e07c9e606d8e2865cee7bde04e39b40f539fd9a80e44e6",
+      "source": "art/references/user-provided/building_town_hall_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "af560250efd3d45fb00c7ba4a486e6245db5318c564bc72a8a11ba84bbbfb1c9",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "town hall interior floor and fixtures"
+    },
+    {
+      "assetSha256": "0773418d3ba1cb396aaf10831f950b2ec0959b7d261ffeddf2da26b4d915bcbb",
+      "source": "art/references/user-provided/building_town_hall_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "af560250efd3d45fb00c7ba4a486e6245db5318c564bc72a8a11ba84bbbfb1c9",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "town hall interior foreground"
+    },
+    {
+      "assetSha256": "9b9622191a9a64d9278e6d051a83cd656c49dcff5e4b520dd393e6bf9639bba9",
+      "source": "art/references/user-provided/building_warehouse_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "36b9a4f7dc5c9d7693fd1346a559735a36062aadeac8483beb2992e0ca3be4bc",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "warehouse exterior base"
+    },
+    {
+      "assetSha256": "3cbb148eade895856bd38d7d791af9c24de0cf745140050a5dc38d8d5b7dc1c2",
+      "source": "art/references/user-provided/building_warehouse_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "36b9a4f7dc5c9d7693fd1346a559735a36062aadeac8483beb2992e0ca3be4bc",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "warehouse roof and upper wall"
+    },
+    {
+      "assetSha256": "01a6bf317c9412af6720e11b5a31955fc949792a320ef9bdeaee2fdd628987c9",
+      "source": "art/references/user-provided/building_warehouse_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "36b9a4f7dc5c9d7693fd1346a559735a36062aadeac8483beb2992e0ca3be4bc",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "warehouse exterior foreground"
+    },
+    {
+      "assetSha256": "b08a212f173257c6f5ccc9efb9aa5a1d537b7081c5c443419f36f39322ae55f5",
+      "source": "art/references/user-provided/building_warehouse_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "36b9a4f7dc5c9d7693fd1346a559735a36062aadeac8483beb2992e0ca3be4bc",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "warehouse interior floor and fixtures"
+    },
+    {
+      "assetSha256": "d363eee47929f43874b4471b131176452017c25b1f867dcccb4ff9728cbbd998",
+      "source": "art/references/user-provided/building_warehouse_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "36b9a4f7dc5c9d7693fd1346a559735a36062aadeac8483beb2992e0ca3be4bc",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "warehouse interior foreground"
+    },
+    {
+      "assetSha256": "88f840eb88c74e929954ecaa03bc3f5371955a720a99f379c5ba5f84adebcfb0",
+      "source": "art/references/user-provided/building_houses_shops_ruins_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "ec8afeadfe709cc6ae489d3e895a2a290eff79cb598db8c1925f548fd9e14225",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "gabled dwelling exterior base"
+    },
+    {
+      "assetSha256": "2981f15597e889351d96e6259292297ae1ebb3de960ad2a020e6b10f197f066f",
+      "source": "art/references/user-provided/building_houses_shops_ruins_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "ec8afeadfe709cc6ae489d3e895a2a290eff79cb598db8c1925f548fd9e14225",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "gabled dwelling roof and upper wall"
+    },
+    {
+      "assetSha256": "9365d9fa00ac0cc0d3f8c05bdfb083a7b973b3063d19b101897c4cc8263e4968",
+      "source": "art/references/user-provided/building_houses_shops_ruins_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "ec8afeadfe709cc6ae489d3e895a2a290eff79cb598db8c1925f548fd9e14225",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "gabled dwelling foreground"
+    },
+    {
+      "assetSha256": "0e8a769858f77a64c74f424d004053f7c0d22ad1c1273e3af128785d1a7d7bb6",
+      "source": "art/references/user-provided/building_houses_shops_ruins_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "ec8afeadfe709cc6ae489d3e895a2a290eff79cb598db8c1925f548fd9e14225",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "stone dwelling exterior base"
+    },
+    {
+      "assetSha256": "5f6257b06385475d06ac59109008086b8b7c912813101c8c0bcab44ed34ab9cf",
+      "source": "art/references/user-provided/building_houses_shops_ruins_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "ec8afeadfe709cc6ae489d3e895a2a290eff79cb598db8c1925f548fd9e14225",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "stone dwelling roof and upper wall"
+    },
+    {
+      "assetSha256": "8d208b74c52d48d7615ae2dcedd8b9bbf2bab4cc0ddaa6d5e30907d4f11240b6",
+      "source": "art/references/user-provided/building_houses_shops_ruins_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "ec8afeadfe709cc6ae489d3e895a2a290eff79cb598db8c1925f548fd9e14225",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "stone dwelling foreground"
+    },
+    {
+      "assetSha256": "1716caf3864900d8113d33b9cc4c895e7f8ed07aaff195141ecc8b5138e6e358",
+      "source": "codex-generated://01a00071-267f-7b32-a9ef-85a61e3dbd8d/exec-e634d3d7-481c-4fbf-a9ed-9aa9ff1518ef.png",
+      "kind": "generated-source",
+      "sourceSha256": "dc6f1a4420d8e92d3b8a05977a3cca88cc9e540710ac5747fb7f187bb8ccfd40",
+      "method": "built-in imagegen generation on flat magenta for a three-quarter late-medieval stone dwelling; installed chroma removal with soft matte and despill; deterministic alpha-bounds crop, nearest-neighbor resize to 148x148, transparent 240x160 pad at pivot 120,150, and semantic base band y80-130",
+      "custody": "owner-authorized-current-request",
+      "role": "dwelling-stone-bay exterior base layer"
+    },
+    {
+      "assetSha256": "dba1c78a34de68445315799361f732b32dbf080bed394dba6762cbb500d94bb6",
+      "source": "codex-generated://01a00071-267f-7b32-a9ef-85a61e3dbd8d/exec-e634d3d7-481c-4fbf-a9ed-9aa9ff1518ef.png",
+      "kind": "generated-source",
+      "sourceSha256": "dc6f1a4420d8e92d3b8a05977a3cca88cc9e540710ac5747fb7f187bb8ccfd40",
+      "method": "built-in imagegen generation on flat magenta for a three-quarter late-medieval stone dwelling; installed chroma removal with soft matte and despill; deterministic alpha-bounds crop, nearest-neighbor resize to 148x148, transparent 240x160 pad at pivot 120,150, and semantic upper band y0-79",
+      "custody": "owner-authorized-current-request",
+      "role": "dwelling-stone-bay exterior upper layer"
+    },
+    {
+      "assetSha256": "08d69b51f95c4611d779b91249d64f3d7295f8645953ecdeeeae93db730328c3",
+      "source": "codex-generated://01a00071-267f-7b32-a9ef-85a61e3dbd8d/exec-e634d3d7-481c-4fbf-a9ed-9aa9ff1518ef.png",
+      "kind": "generated-source",
+      "sourceSha256": "dc6f1a4420d8e92d3b8a05977a3cca88cc9e540710ac5747fb7f187bb8ccfd40",
+      "method": "built-in imagegen generation on flat magenta for a three-quarter late-medieval stone dwelling; installed chroma removal with soft matte and despill; deterministic alpha-bounds crop, nearest-neighbor resize to 148x148, transparent 240x160 pad at pivot 120,150, and semantic foreground band y131-150",
+      "custody": "owner-authorized-current-request",
+      "role": "dwelling-stone-bay exterior foreground layer"
+    },
+    {
+      "assetSha256": "013f9f912a0d649dfed7dc53f7c56d9658abe5401298a27df211f98643f4912c",
+      "source": "art/references/user-provided/target-town.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "gate exterior base"
+    },
+    {
+      "assetSha256": "5ec8f7cc69577f6c9c9ab4e3f7010747156ddf280a57dac877e050302d1f2ff5",
+      "source": "art/references/user-provided/target-town.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "gate roof and upper wall"
+    },
+    {
+      "assetSha256": "a4035771d2fd4bd404e37e8f04914c79d18ece47de52666e64bb2ad84f7efbec",
+      "source": "art/references/user-provided/target-town.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "gate exterior foreground"
+    },
+    {
+      "assetSha256": "11e068095d3af6972cdc2ef0b8a211a464ffe45983f56cb0d954087d88682f85",
+      "source": "art/references/user-provided/target-town.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "well exterior base"
+    },
+    {
+      "assetSha256": "e3700527f3a86f686953f7736a1dffc057793509c037ac7de38bf3a9183758e3",
+      "source": "art/references/user-provided/target-town.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "well roof and upper wall"
+    },
+    {
+      "assetSha256": "7d45de3076da5f3b4abff4383609eba093c519e3439bede8a50c84366a87c9b0",
+      "source": "art/references/user-provided/target-town.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "39102cbaed6745d658b8449cc7197f8454fb8492b4679f288de16c204e82d607",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "well exterior foreground"
+    },
+    {
+      "assetSha256": "69bf792671e1e04ad636d68b2b5afd9592408f4d14fdd7e126818940853b7dbe",
+      "source": "art/references/user-provided/object_street_props_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor ledger investigation clue"
+    },
+    {
+      "assetSha256": "99859861b5e651ce2af88255219431e7f25041c4dd0722acef48e34f1a4a0267",
+      "source": "art/references/user-provided/object_status_markers_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "e3d2f177bf10bc07d1362251d8aa80d490fc6f58999d24b06a66c34a177e1d1b",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor threshold investigation clue"
+    },
+    {
+      "assetSha256": "d51dfa341d9d61690f2484c775fae3887ee630b1710502c8b2d07432d0673de2",
+      "source": "art/references/user-provided/object_street_props_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor water-source investigation clue"
+    },
+    {
+      "assetSha256": "a7806bb6ad4e791c4206bd08a351db609e0d767632121ba4f2206de56b5c6a8e",
+      "source": "art/references/user-provided/object_street_props_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor lantern lit state"
+    },
+    {
+      "assetSha256": "7ec58bfe5a478f0abecd1e5a5e92ada213c5deb556c60e8498ea6ddad3013404",
+      "source": "art/references/user-provided/object_street_props_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor lantern unknown state"
+    },
+    {
+      "assetSha256": "15c7e863d244c074d3ac597664b00ce5d800706213235c7445cc0acb9a3489e8",
+      "source": "art/references/user-provided/object_street_props_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor lantern unlit state"
+    },
+    {
+      "assetSha256": "03a771789668e492d405105150021392a7390b1c118830f4827fcfd4193aa788",
+      "source": "art/references/user-provided/character_style_authority_20260722_v1.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932",
+      "custody": "owner-authorized-current-request",
+      "sourceAsset": "player--default-v1",
+      "role": "snow-harbor artisan resident actor"
+    },
+    {
+      "assetSha256": "32618d0e30278abaae83015cecc36490075f645b32e20ba919f41d39fdd64666",
+      "source": "art/references/user-provided/character_style_authority_20260722_v1.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932",
+      "custody": "owner-authorized-current-request",
+      "sourceAsset": "player--default-v1",
+      "role": "snow-harbor keeper resident actor"
+    },
+    {
+      "assetSha256": "14f7496aafead587b1ce0c7a53b66d8aac9911d1f98ac7acc0d35c7594bf281c",
+      "source": "art/references/user-provided/character_style_authority_20260722_v1.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932",
+      "custody": "owner-authorized-current-request",
+      "sourceAsset": "player--default-v1",
+      "role": "snow-harbor neighbor resident actor"
+    },
+    {
+      "assetSha256": "bfacca1df5fee0a7c229bd8fce3080c740bb6b22962711b1fc4d8a24115bce5b",
+      "source": "art/references/user-provided/world_visual_master.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor dwelling-gabled base layer"
+    },
+    {
+      "assetSha256": "b8b46903c6d9e95b82643a6668cd4e550e7f0931b762d8f5e3d719efa0792cc2",
+      "source": "art/references/user-provided/world_visual_master.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor dwelling-gabled foreground layer"
+    },
+    {
+      "assetSha256": "80a184cb7f9b55d58a221155536cd3402e72fa80c0033f7ba55de2abbd773761",
+      "source": "art/references/user-provided/world_visual_master.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor dwelling-gabled upper layer"
+    },
+    {
+      "assetSha256": "1d2c373c8b367fb5148e78314de7f8b9729699a1df65f2d71c84a7cdda61f5f5",
+      "source": "art/references/user-provided/world_visual_master.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor dwelling-stone base layer"
+    },
+    {
+      "assetSha256": "f3304a4997b28a8494f629fdff5f20e3f00fbb43018c8702e5d28931fa595d91",
+      "source": "art/references/user-provided/world_visual_master.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor dwelling-stone foreground layer"
+    },
+    {
+      "assetSha256": "d45557867c634af2b360c2eed06471cc7693a365d1319311dcfe5889d30382fc",
+      "source": "art/references/user-provided/world_visual_master.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor dwelling-stone upper layer"
+    },
+    {
+      "assetSha256": "87c25b737184a3fc48fd3a8fa9b36c86dda6692f5e7a2bfdba462a47243b2d56",
+      "source": "art/references/user-provided/field_harbor_docks_tiles_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor gate base layer"
+    },
+    {
+      "assetSha256": "31b942d7358130dde3d6287dd99f3c4386844d833abaf672d342959fa11645d1",
+      "source": "art/references/user-provided/field_harbor_docks_tiles_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor gate foreground layer"
+    },
+    {
+      "assetSha256": "aab38d73ae21fe9587d37fcfbb3028f0020d5b6882035dff0ff742bb5dde6ca6",
+      "source": "art/references/user-provided/field_harbor_docks_tiles_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor gate upper layer"
+    },
+    {
+      "assetSha256": "578e328f75a75043349d6ebc52ff0920e64531fa2fa34210b1492fcb568bb245",
+      "source": "art/references/user-provided/world_visual_master.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor town-hall base layer"
+    },
+    {
+      "assetSha256": "ce5c861c928ce14a02b10852e957c0ea85861d485993256735cffaeebf137833",
+      "source": "art/references/user-provided/world_visual_master.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor town-hall foreground layer"
+    },
+    {
+      "assetSha256": "f3866d5ff1dd82cc8faa35e07f4e8faf46757114a31d5645b696f1ef1acfde1f",
+      "source": "art/references/user-provided/world_visual_master.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor town-hall interior-foreground layer"
+    },
+    {
+      "assetSha256": "8165b49f685e0c73ba368deea7340a72ab8f0a153466edec2aa6b0a0e5ee758a",
+      "source": "art/references/user-provided/world_visual_master.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor town-hall interior layer"
+    },
+    {
+      "assetSha256": "94622f2166bebae9a6e2c46a5f034b828093b6239c2c9a6ac254908781101837",
+      "source": "art/references/user-provided/world_visual_master.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor town-hall upper layer"
+    },
+    {
+      "assetSha256": "469fc3bebcb3aafc10ad8169e9d75e92e92264ea9507a8bd1331a7758b1d0e96",
+      "source": "art/references/user-provided/field_harbor_docks_tiles_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor warehouse base layer"
+    },
+    {
+      "assetSha256": "d60f19837df15bfdb3f2cc239c7230304788ce231413de9f07d7576bc291b0eb",
+      "source": "art/references/user-provided/field_harbor_docks_tiles_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor warehouse foreground layer"
+    },
+    {
+      "assetSha256": "4419247b5f474c0edc10617aee177d372e4803a7ee6fd64bec36cfc7d503a475",
+      "source": "art/references/user-provided/field_harbor_docks_tiles_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor warehouse interior-foreground layer"
+    },
+    {
+      "assetSha256": "f2892cafe37b70ec3e5d244136049254f6aad8c2073752857d65dc81eead1a56",
+      "source": "art/references/user-provided/field_harbor_docks_tiles_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor warehouse interior layer"
+    },
+    {
+      "assetSha256": "64ea8bee3b665af0d9926a0a7246a7e0fd86b10065dad389145691bb2ce1b11c",
+      "source": "art/references/user-provided/field_harbor_docks_tiles_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor warehouse upper layer"
+    },
+    {
+      "assetSha256": "39a66e9a764be1f5d8968a397952d08fd0b4d2a8d3ea455a0a95bf4561478998",
+      "source": "art/references/user-provided/field_stairs_bridges_cliffs_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "24e899bfb25552aa96e453a74e574337fc65481791fa572accdd8758615387bd",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor well base layer"
+    },
+    {
+      "assetSha256": "7db7a39dee39667c8710b6c0bac982d6f17e66793cee8e26b19d05c3d2691db9",
+      "source": "art/references/user-provided/field_stairs_bridges_cliffs_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "24e899bfb25552aa96e453a74e574337fc65481791fa572accdd8758615387bd",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor well foreground layer"
+    },
+    {
+      "assetSha256": "4014416588f7c35adff5df18cc37833787f73c4f03785c42735b210375ae1ece",
+      "source": "art/references/user-provided/field_stairs_bridges_cliffs_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "24e899bfb25552aa96e453a74e574337fc65481791fa572accdd8758615387bd",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor well upper layer"
+    },
+    {
+      "assetSha256": "5b0cec4c97ce48173cc1c45ad9d0695680150d9eff2f86614f90f277fbb7e8c5",
+      "source": "art/references/user-provided/world_visual_master.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor workshop base layer"
+    },
+    {
+      "assetSha256": "1c4e019ab22f24643a1e2404e1da362778eb7e4f3df76bccefd9f22405c472a5",
+      "source": "art/references/user-provided/world_visual_master.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor workshop foreground layer"
+    },
+    {
+      "assetSha256": "5d0055e30ad26734b61dbbef42f95a9cdf9d366b735f36a0498f7c863e613b98",
+      "source": "art/references/user-provided/world_visual_master.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor workshop interior-foreground layer"
+    },
+    {
+      "assetSha256": "9a7fc02c855e8a7707b431aac4ecde8587be6b248a044afc94bfce2b23a4fca8",
+      "source": "art/references/user-provided/world_visual_master.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor workshop interior layer"
+    },
+    {
+      "assetSha256": "d616ca1f7c33e79f60ad5c271abe72df78694b1c6d064228486f76ba39c19039",
+      "source": "art/references/user-provided/world_visual_master.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor workshop upper layer"
+    },
+    {
+      "assetSha256": "f8a6931c48c979e8b6292cee922bebdd94cfc2db9498e6ab93f575662230d6c7",
+      "source": "art/references/user-provided/character_style_authority_20260722_v1.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932",
+      "method": "owner-authorized deterministic palette-only transformation of the existing snow player sheet, informed by built-in precise-object-edit palette reference exec-9975a852; every pixel coordinate, alpha value, frame silhouette, foot position, and animation registration preserved exactly; deep navy coat, warm chestnut hair, restrained rust accent",
+      "custody": "owner-authorized-current-request",
+      "sourceAsset": "player--default-v1",
+      "role": "snow-harbor player actor"
+    },
+    {
+      "assetSha256": "7cdcc4980f8b5af2a2376bc758724d5a37354efb39e4d57e56e8362409ffd4d6",
+      "source": "art/references/user-provided/field_stairs_bridges_cliffs_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "24e899bfb25552aa96e453a74e574337fc65481791fa572accdd8758615387bd",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor bank surface"
+    },
+    {
+      "assetSha256": "c88b6bbe082afa1299b2da9cdef3329eae339a1bd3261a4955c5417dd1995806",
+      "source": "art/references/user-provided/field_stairs_bridges_cliffs_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "24e899bfb25552aa96e453a74e574337fc65481791fa572accdd8758615387bd",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor crossing surface"
+    },
+    {
+      "assetSha256": "58b9bf730a067fcf88095f8ed704c8dd21bde56cf01db124065dd0d18b62806b",
+      "source": "art/references/user-provided/world_visual_master.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor ground surface"
+    },
+    {
+      "assetSha256": "2610fa4cf4070bfc31d0a4760d3de759bdb0eeabd0596eb32612bd3d2b7d6f6b",
+      "source": "art/references/user-provided/world_visual_master.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "cc2e822092b0a1cff798b540c8898057841def7b4a0d7b6c954da6feb7ae7e5d",
+      "custody": "owner-authorized-current-request",
+      "method": "deterministic finite-palette alpha remap of the existing authorized shipping surface; no generated pixels",
+      "role": "snow-harbor civic pocket surface"
+    },
+    {
+      "assetSha256": "1c8cfabd60811e40a7a8f1d8ae28442bf33bfa9ff47ba4d2a6dc19b88a40c4a4",
+      "source": "art/references/user-provided/field_harbor_docks_tiles_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580",
+      "custody": "owner-authorized-current-request",
+      "method": "deterministic finite-palette alpha remap of the existing authorized shipping surface; no generated pixels",
+      "role": "snow-harbor soft local packed route surface"
+    },
+    {
+      "assetSha256": "081866a49b8bc6d301ea25d9739e2a971934cef609cf1ba96bb2a96ca1318027",
+      "source": "art/references/user-provided/field_harbor_docks_tiles_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580",
+      "custody": "owner-authorized-current-request",
+      "method": "deterministic finite-palette alpha remap of the existing authorized shipping surface; no generated pixels",
+      "role": "snow-harbor readable packed main route surface"
+    },
+    {
+      "assetSha256": "36c8a05adf1cb7923bdb3e448fcc68afe04a44855b0a4cc54a873f28bd157dd1",
+      "source": "art/references/user-provided/field_harbor_docks_tiles_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor water surface"
+    },
+    {
+      "assetSha256": "1c7f93b092f68dd71bfe561e7d194ea9cb142cce90c7d844cff913479f8df9b0",
+      "source": "art/references/user-provided/ui_dialogue_frames_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "60a2255fe72e2e96c91f00caa93fa7f4906f57fc1f8f0332bdbe91648b9ba29d",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor dialogue frame"
+    },
+    {
+      "assetSha256": "94703fb325575cfcc1d4dc163d59bb0470f828f9072fbe9132f353382dc82ec8",
+      "source": "art/references/user-provided/ui_dialogue_frames_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "60a2255fe72e2e96c91f00caa93fa7f4906f57fc1f8f0332bdbe91648b9ba29d",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor exit frame"
+    },
+    {
+      "assetSha256": "6086a0b98495f2e259b2427fb1411d3f95212887f141e7f1b8019a9b33fbf25d",
+      "source": "art/references/user-provided/ui_inspection_report_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "c4c14e83e5f4e5fec8f7eaea537e6befa5f2762aaed11d07a5a86c05b6294892",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor inspection report frame"
+    },
+    {
+      "assetSha256": "1df53b87fa91387cff5b6ea5a06efc151d41997e14585c28448b6a6111fcfcc3",
+      "source": "art/references/user-provided/field_harbor_docks_tiles_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor dock cargo and net cluster"
+    },
+    {
+      "assetSha256": "40f32d281ca78596307492ef94f71c83c755d426b71c68b6eee20e387f121302",
+      "source": "art/references/user-provided/field_harbor_docks_tiles_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor snow-laden evergreen edge"
+    },
+    {
+      "assetSha256": "bc2b3d511563c7459c595af9a171804b43ab20ff02bbef6869c7de14bf2450e3",
+      "source": "art/references/user-provided/object_street_props_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor warm dock lamp marker"
+    },
+    {
+      "assetSha256": "a1adb62a1c16e1b486eb568665417c78c67ee7a2cfddf3d6069e42d0d7bce438",
+      "source": "art/references/user-provided/object_street_props_sheet.png",
+      "kind": "owner-authorized-current-request",
+      "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "late-medieval workshop and market work clutter cluster"
+    },
+    {
+      "assetSha256": "87be04df5542deefc104a4a18cf6e38dd88206a34bca161c65fdcbd62ae06992",
+      "source": "art/references/user-provided/object_street_props_sheet.png",
+      "kind": "owner-authorized-current-request",
+      "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "late-medieval civic planter cluster"
+    },
+    {
+      "assetSha256": "c0bf0e042db0c94f143a8a9601125c891b2cb7fad6fd79da932745be838813fb",
+      "source": "art/references/user-provided/object_street_props_sheet.png",
+      "kind": "owner-authorized-current-request",
+      "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "custody": "owner-authorized-generated-candidate",
+      "role": "late-medieval living-district firewood pile cluster"
+    },
+    {
+      "assetSha256": "f791d71760bc787f74a91b12b1c74e4521bac044fa687fcea63fa4b01a560a10",
+      "source": "art/references/user-provided/character_style_authority_20260722_v1.png",
+      "kind": "owner-authorized-current-request",
+      "sourceSha256": "446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932",
+      "custody": "owner-authorized-current-request",
+      "role": "porter resident actor"
+    },
+    {
+      "assetSha256": "b3c261a7841532ae13449bf2a7fea9be91ab82bc6c86308579b8402b1256d9c2",
+      "source": "art/references/user-provided/character_style_authority_20260722_v1.png",
+      "kind": "owner-authorized-current-request",
+      "sourceSha256": "446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932",
+      "custody": "owner-authorized-current-request",
+      "role": "watcher resident actor"
+    },
+    {
+      "assetSha256": "e6c11ce162d2ddfdcbfb36a37221cea564401bcea01e57f88c17612f8d012a15",
+      "source": "art/references/user-provided/character_style_authority_20260722_v1.png",
+      "kind": "owner-authorized-current-request",
+      "sourceSha256": "446080b87192f13acd67f7410cfbfeb152830d93571edd5a9198406cef0b6932",
+      "custody": "owner-authorized-current-request",
+      "role": "traveler resident actor"
+    },
+    {
+      "assetSha256": "d115504544e6fc60b22d3feda0d0c47ccc503dc39fc022e084dc6704007c8631",
+      "source": "art/references/user-provided/object_status_markers_sheet.png",
+      "kind": "owner-authorized-current-request",
+      "sourceSha256": "e3d2f177bf10bc07d1362251d8aa80d490fc6f58999d24b06a66c34a177e1d1b",
+      "custody": "owner-authorized-current-request",
+      "role": "inspection-mark investigation clue"
+    },
+    {
+      "assetSha256": "01242392c7f44b0f8b7d1b8ad29ad4b406269e42be61d52c6ae74789e152af6e",
+      "source": "art/references/user-provided/object_street_props_sheet.png",
+      "kind": "owner-authorized-current-request",
+      "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "custody": "owner-authorized-current-request",
+      "role": "night-log investigation clue"
+    },
+    {
+      "assetSha256": "bb39768e2958bdb65a196ad6411df2699fca677fc463637eb03adcef5aff8cf8",
+      "source": "art/references/user-provided/object_street_props_sheet.png",
+      "kind": "owner-authorized-current-request",
+      "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "custody": "owner-authorized-current-request",
+      "role": "repair-tools investigation clue"
+    },
+    {
+      "assetSha256": "f2357c200cb217ce4b00659c13b368f727ce91b107aaecf5563a06012c17fa7d",
+      "source": "art/references/user-provided/field_harbor_docks_tiles_sheet.png",
+      "kind": "owner-authorized-current-request",
+      "sourceSha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580",
+      "custody": "owner-authorized-current-request",
+      "role": "water surface"
+    },
+    {
+      "assetSha256": "95188c32d771dc5567dfd17efce58ecd1fd53fb28b2833fcbbd8841334012f15",
+      "source": "art/references/user-provided/field_stairs_bridges_cliffs_sheet.png",
+      "kind": "owner-authorized-current-request",
+      "sourceSha256": "24e899bfb25552aa96e453a74e574337fc65481791fa572accdd8758615387bd",
+      "custody": "owner-authorized-current-request",
+      "role": "bank surface"
+    },
+    {
+      "assetSha256": "ac7244e34621e50d8131e8bb9f12c6ea30e34c1174e7bc0e4defce56c1a730f3",
+      "source": "art/references/user-provided/field_stairs_bridges_cliffs_sheet.png",
+      "kind": "owner-authorized-current-request",
+      "sourceSha256": "24e899bfb25552aa96e453a74e574337fc65481791fa572accdd8758615387bd",
+      "custody": "owner-authorized-current-request",
+      "role": "crossing surface"
+    },
+    {
+      "assetSha256": "866358fb165bb60a15be0036f667277b535f6307a190730e5b9129c938b4ac1a",
+      "source": "codex-generated://01a0003c-058f-7cf1-bcad-4d2c7257ccda/exec-8328ffc2-f3b8-4998-97ed-0207781c1cef.png",
+      "kind": "generated-source",
+      "sourceSha256": "1d52e02463603215743cc61aa2980dd0caab3faf7a715e092bbcc13748ad5166",
+      "method": "built-in ImageGen, flat magenta chroma, installed soft-matte/despill removal, alpha crop, nearest-neighbor fit to 240×160, row-semantic layer split",
+      "custody": "owner-authorized-current-request",
+      "role": "guild exterior base layer"
+    },
+    {
+      "assetSha256": "743a81c3fd71a558c509200ca7f4401bd04c136796875e1a9c6be5a55b091fc0",
+      "source": "codex-generated://01a0003c-058f-7cf1-bcad-4d2c7257ccda/exec-8328ffc2-f3b8-4998-97ed-0207781c1cef.png",
+      "kind": "generated-source",
+      "sourceSha256": "1d52e02463603215743cc61aa2980dd0caab3faf7a715e092bbcc13748ad5166",
+      "method": "built-in ImageGen, flat magenta chroma, installed soft-matte/despill removal, alpha crop, nearest-neighbor fit to 240×160, row-semantic layer split",
+      "custody": "owner-authorized-current-request",
+      "role": "guild exterior upper layer"
+    },
+    {
+      "assetSha256": "442dc26a280ebae758f8f3526499c2f57ae206b441a39c09d48cb6e9dd0d98b1",
+      "source": "codex-generated://01a0003c-058f-7cf1-bcad-4d2c7257ccda/exec-8328ffc2-f3b8-4998-97ed-0207781c1cef.png",
+      "kind": "generated-source",
+      "sourceSha256": "1d52e02463603215743cc61aa2980dd0caab3faf7a715e092bbcc13748ad5166",
+      "method": "built-in ImageGen, flat magenta chroma, installed soft-matte/despill removal, alpha crop, nearest-neighbor fit to 240×160, row-semantic layer split",
+      "custody": "owner-authorized-current-request",
+      "role": "guild exterior foreground layer"
+    },
+    {
+      "assetSha256": "a0a3e694db228a0e4712551ffc28848177ee5a74622cfc33de3238fee840fee5",
+      "source": "studio/art-department/v1/candidates/world/building-dock/building-dock.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "83821786b2d6146a5a75e11d11636015f6c9cd98a085df9dcbc162751019e2f0",
+      "method": "deterministic semantic alpha extraction from existing accepted candidate; edge-card removal only for guild; nearest-neighbor fit to 240x160; no generated pixels",
+      "custody": "owner-authorized-current-request",
+      "role": "dock exterior base layer"
+    },
+    {
+      "assetSha256": "875bffa734349b54c56281a07bb72cba7881a5b6be3da01532713eb2a0429404",
+      "source": "studio/art-department/v1/candidates/world/building-dock/building-dock.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "83821786b2d6146a5a75e11d11636015f6c9cd98a085df9dcbc162751019e2f0",
+      "method": "deterministic semantic alpha extraction from existing accepted candidate; edge-card removal only for guild; nearest-neighbor fit to 240x160; no generated pixels",
+      "custody": "owner-authorized-current-request",
+      "role": "dock exterior upper layer"
+    },
+    {
+      "assetSha256": "ab228458b84c792fb83d2fe662581ff68b1028a017e89a0462f673a8eecbd57c",
+      "source": "studio/art-department/v1/candidates/world/building-dock/building-dock.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "83821786b2d6146a5a75e11d11636015f6c9cd98a085df9dcbc162751019e2f0",
+      "method": "deterministic semantic alpha extraction from existing accepted candidate; edge-card removal only for guild; nearest-neighbor fit to 240x160; no generated pixels",
+      "custody": "owner-authorized-current-request",
+      "role": "dock exterior foreground layer"
+    },
+    {
+      "assetSha256": "419a2f2ab625522fc58938cd2d496b84acc748cf9ac74978e1eef35275136bf9",
+      "source": "codex-generated://019fe2cf-f923-77b2-a873-4698d995b82a/exec-9be10508-7ec0-42ec-a183-e516a9de607d.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "54339b122d58c1ef2cdf359a70b3cc3b96da5d247a3f6199c38664d7edc4cc79",
+      "method": "built-in imagegen background-extraction on flat magenta, installed chroma removal, deterministic tight crop nearest resize and transparent 240x160 pad at pivot baseline",
+      "custody": "owner-authorized-current-request",
+      "role": "ruin exterior base layer"
+    },
+    {
+      "assetSha256": "419a2f2ab625522fc58938cd2d496b84acc748cf9ac74978e1eef35275136bf9",
+      "source": "codex-generated://019fe2cf-f923-77b2-a873-4698d995b82a/exec-9be10508-7ec0-42ec-a183-e516a9de607d.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "54339b122d58c1ef2cdf359a70b3cc3b96da5d247a3f6199c38664d7edc4cc79",
+      "method": "built-in imagegen background-extraction on flat magenta, installed chroma removal, deterministic tight crop nearest resize and transparent 240x160 pad at pivot baseline",
+      "custody": "owner-authorized-current-request",
+      "role": "ruin exterior upper layer"
+    },
+    {
+      "assetSha256": "419a2f2ab625522fc58938cd2d496b84acc748cf9ac74978e1eef35275136bf9",
+      "source": "codex-generated://019fe2cf-f923-77b2-a873-4698d995b82a/exec-9be10508-7ec0-42ec-a183-e516a9de607d.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "54339b122d58c1ef2cdf359a70b3cc3b96da5d247a3f6199c38664d7edc4cc79",
+      "method": "built-in imagegen background-extraction on flat magenta, installed chroma removal, deterministic tight crop nearest resize and transparent 240x160 pad at pivot baseline",
+      "custody": "owner-authorized-current-request",
+      "role": "ruin exterior foreground layer"
+    },
+    {
+      "assetSha256": "8c25cd6e36db9363253b94b6019909ee580b065b4e096518ae550ce50e9d6ae1",
+      "source": "studio/art-department/v1/candidates/world/building-watchtower/building-watchtower.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "4a396a12ef2d95f7ce033fabc7e3865a9d0723da2aac1f52a10c0eb311407269",
+      "method": "deterministic semantic alpha extraction from existing accepted candidate; edge-card removal only for guild; nearest-neighbor fit to 240x160; no generated pixels",
+      "custody": "owner-authorized-current-request",
+      "role": "watchtower exterior base layer"
+    },
+    {
+      "assetSha256": "81568d29dabc588d9337dde97634971fb652d3f675e5c9093300169d6bc852ba",
+      "source": "studio/art-department/v1/candidates/world/building-watchtower/building-watchtower.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "4a396a12ef2d95f7ce033fabc7e3865a9d0723da2aac1f52a10c0eb311407269",
+      "method": "deterministic semantic alpha extraction from existing accepted candidate; edge-card removal only for guild; nearest-neighbor fit to 240x160; no generated pixels",
+      "custody": "owner-authorized-current-request",
+      "role": "watchtower exterior upper layer"
+    },
+    {
+      "assetSha256": "504f2fe5524b325b9b71e98a2b994725923a71453a71d143c4932c06e237f1fd",
+      "source": "studio/art-department/v1/candidates/world/building-watchtower/building-watchtower.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "4a396a12ef2d95f7ce033fabc7e3865a9d0723da2aac1f52a10c0eb311407269",
+      "method": "deterministic semantic alpha extraction from existing accepted candidate; edge-card removal only for guild; nearest-neighbor fit to 240x160; no generated pixels",
+      "custody": "owner-authorized-current-request",
+      "role": "watchtower exterior foreground layer"
+    },
+    {
+      "assetSha256": "044a2c5a844a3b32b1d8a401178a3f73d148786ab3a5b9827e8219a499baa2bf",
+      "source": "codex-generated://01a00047-a46c-7000-89c1-6f87c173cb10/exec-cf3850a1-2d1e-4b22-870f-39b9d94afd48.png",
+      "kind": "generated-source",
+      "sourceSha256": "a9e50a10f67c686a3232369c09786c9411fdd0310eafec5061b963cfae5a2136",
+      "method": "built-in imagegen generation on flat magenta using the exact packed town for scale and target-town for projection/style; installed chroma removal with soft matte and despill; deterministic alpha-bounds crop, nearest-neighbor resize to 148x148, transparent 240x160 pad at pivot 120,150, and semantic base band y80-130",
+      "custody": "owner-authorized-current-request",
+      "role": "shop exterior base layer"
+    },
+    {
+      "assetSha256": "9e9b75088c4ff60f74b1c66db503babbcdbf9676040d9686a071d3779cf23843",
+      "source": "codex-generated://01a00047-a46c-7000-89c1-6f87c173cb10/exec-cf3850a1-2d1e-4b22-870f-39b9d94afd48.png",
+      "kind": "generated-source",
+      "sourceSha256": "a9e50a10f67c686a3232369c09786c9411fdd0310eafec5061b963cfae5a2136",
+      "method": "built-in imagegen generation on flat magenta using the exact packed town for scale and target-town for projection/style; installed chroma removal with soft matte and despill; deterministic alpha-bounds crop, nearest-neighbor resize to 148x148, transparent 240x160 pad at pivot 120,150, and semantic upper band y0-79",
+      "custody": "owner-authorized-current-request",
+      "role": "shop exterior upper layer"
+    },
+    {
+      "assetSha256": "4d313b136e1c1757ecb73ed421c4b117040a7ff15072b32a8ca5ab4625e7d547",
+      "source": "codex-generated://01a00047-a46c-7000-89c1-6f87c173cb10/exec-cf3850a1-2d1e-4b22-870f-39b9d94afd48.png",
+      "kind": "generated-source",
+      "sourceSha256": "a9e50a10f67c686a3232369c09786c9411fdd0310eafec5061b963cfae5a2136",
+      "method": "built-in imagegen generation on flat magenta using the exact packed town for scale and target-town for projection/style; installed chroma removal with soft matte and despill; deterministic alpha-bounds crop, nearest-neighbor resize to 148x148, transparent 240x160 pad at pivot 120,150, and semantic foreground band y131-150",
+      "custody": "owner-authorized-current-request",
+      "role": "shop exterior foreground layer"
+    },
+    {
+      "assetSha256": "369e75b6e1c81cbcf004dde4d542a11f554fc0cdb9197c63c6a689f466fbaaa5",
+      "source": "studio/art-department/v1/candidates/world/building-house/building-house.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "ff918f1ad85ca1539ec880813817a9d2aeb6059b215b9f862b4546959930073e",
+      "method": "owner-authorized deterministic RGBA grounding edit: upper pixel-identical; base pale outer footing/fringe narrowed; foreground pale apron replaced with irregular dark moss/cobble seam; silhouette and semantic layers preserved",
+      "custody": "owner-authorized-current-request",
+      "role": "dwelling-tall exterior base layer"
+    },
+    {
+      "assetSha256": "d8ee4a8ec8df3d3826ef299a9c7c824942ad963d2a8e24606a98ebf57cd7dfb1",
+      "source": "studio/art-department/v1/candidates/world/building-house/building-house.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "ff918f1ad85ca1539ec880813817a9d2aeb6059b215b9f862b4546959930073e",
+      "method": "owner-authorized deterministic RGBA grounding edit: upper pixel-identical; base pale outer footing/fringe narrowed; foreground pale apron replaced with irregular dark moss/cobble seam; silhouette and semantic layers preserved",
+      "custody": "owner-authorized-current-request",
+      "role": "dwelling-tall exterior upper layer"
+    },
+    {
+      "assetSha256": "86883fb21cc09160cf9c35e194b8d7b54ce22dd4f47653b2de1c613599708438",
+      "source": "studio/art-department/v1/candidates/world/building-house/building-house.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "ff918f1ad85ca1539ec880813817a9d2aeb6059b215b9f862b4546959930073e",
+      "method": "owner-authorized deterministic RGBA grounding edit: upper pixel-identical; base pale outer footing/fringe narrowed; foreground pale apron replaced with irregular dark moss/cobble seam; silhouette and semantic layers preserved",
+      "custody": "owner-authorized-current-request",
+      "role": "dwelling-tall exterior foreground layer"
+    },
+    {
+      "assetSha256": "711ccfd7a78828fb6cf953db33de8f93ed53ad89f37b55bd187e54e596923253",
+      "source": "codex-generated://01a00073-a5c8-7d42-a3d2-d9f20e3d3e04/exec-a7dff525-7702-479f-a4dc-9ed01e44fa39.png",
+      "kind": "generated-source",
+      "sourceSha256": "186ec5c01392d54c673dbd03156782c86bb8f4e0f1c091457bf13e64e38bbe46",
+      "method": "built-in imagegen generation on flat magenta for a three-quarter late-medieval tall narrow dwelling; installed chroma removal with soft matte and despill; deterministic alpha-bounds crop, nearest-neighbor resize to 148x148, transparent 240x160 pad at pivot 120,150, and semantic base band y80-130",
+      "custody": "owner-authorized-current-request",
+      "role": "dwelling-tall-narrow exterior base layer"
+    },
+    {
+      "assetSha256": "f45245cb6bb58abef100e5bb8162ac9536521edfffdcc0e90a082f66ed8ddb73",
+      "source": "codex-generated://01a00073-a5c8-7d42-a3d2-d9f20e3d3e04/exec-a7dff525-7702-479f-a4dc-9ed01e44fa39.png",
+      "kind": "generated-source",
+      "sourceSha256": "186ec5c01392d54c673dbd03156782c86bb8f4e0f1c091457bf13e64e38bbe46",
+      "method": "built-in imagegen generation on flat magenta for a three-quarter late-medieval tall narrow dwelling; installed chroma removal with soft matte and despill; deterministic alpha-bounds crop, nearest-neighbor resize to 148x148, transparent 240x160 pad at pivot 120,150, and semantic upper band y0-79",
+      "custody": "owner-authorized-current-request",
+      "role": "dwelling-tall-narrow exterior upper layer"
+    },
+    {
+      "assetSha256": "456fb00ab1c8b8806f50e4e70cc21aaf8733c68adead191b02a696f9384167ed",
+      "source": "codex-generated://01a00073-a5c8-7d42-a3d2-d9f20e3d3e04/exec-a7dff525-7702-479f-a4dc-9ed01e44fa39.png",
+      "kind": "generated-source",
+      "sourceSha256": "186ec5c01392d54c673dbd03156782c86bb8f4e0f1c091457bf13e64e38bbe46",
+      "method": "built-in imagegen generation on flat magenta for a three-quarter late-medieval tall narrow dwelling; installed chroma removal with soft matte and despill; deterministic alpha-bounds crop, nearest-neighbor resize to 148x148, transparent 240x160 pad at pivot 120,150, and semantic foreground band y131-150",
+      "custody": "owner-authorized-current-request",
+      "role": "dwelling-tall-narrow exterior foreground layer"
+    },
+    {
+      "assetSha256": "ebdb2a075554a53fcba5430c5494b943e6c71f7752c3229b4225a2e5e272bafc",
+      "source": "codex-generated://01a00092-58ef-70a2-894b-3b35fe3416bc/exec-66cd4d1e-b16b-495e-919c-571f7bba4771.png",
+      "kind": "generated-source",
+      "sourceSha256": "9730e9e05cecbfc6abe793b99dbe213ee2c5edd907e658f030d1b4ee232cdca5",
+      "method": "precise object edit removing all ground/apron/rails and retaining transparent irregular training dummies/rack/shield/bench/chest/basket/bucket/roll, chroma removal, deterministic crop/resize/pad/semantic bands",
+      "custody": "owner-authorized-current-request",
+      "role": "dojo exterior base layer"
+    },
+    {
+      "assetSha256": "933529b3d3377f579fc92c15dd89320eb4bf63a3f094c8ebee065b7c9980c1d5",
+      "source": "codex-generated://01a00092-58ef-70a2-894b-3b35fe3416bc/exec-66cd4d1e-b16b-495e-919c-571f7bba4771.png",
+      "kind": "generated-source",
+      "sourceSha256": "9730e9e05cecbfc6abe793b99dbe213ee2c5edd907e658f030d1b4ee232cdca5",
+      "method": "precise object edit removing all ground/apron/rails and retaining transparent irregular training dummies/rack/shield/bench/chest/basket/bucket/roll, chroma removal, deterministic crop/resize/pad/semantic bands",
+      "custody": "owner-authorized-current-request",
+      "role": "dojo exterior upper layer"
+    },
+    {
+      "assetSha256": "8a65ce170145aed369b5f4fc07241ea4f52d1a109a6dd472cea31209acc748e2",
+      "source": "codex-generated://01a00092-58ef-70a2-894b-3b35fe3416bc/exec-66cd4d1e-b16b-495e-919c-571f7bba4771.png",
+      "kind": "generated-source",
+      "sourceSha256": "9730e9e05cecbfc6abe793b99dbe213ee2c5edd907e658f030d1b4ee232cdca5",
+      "method": "precise object edit removing all ground/apron/rails and retaining transparent irregular training dummies/rack/shield/bench/chest/basket/bucket/roll, chroma removal, deterministic crop/resize/pad/semantic bands",
+      "custody": "owner-authorized-current-request",
+      "role": "dojo exterior foreground layer"
+    },
+    {
+      "assetSha256": "93867734584165ee48791d5fcf783b20a0d53d5c28f29595831e3d45e5414a74",
+      "source": "art/references/user-provided/field_stairs_bridges_cliffs_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "24e899bfb25552aa96e453a74e574337fc65481791fa572accdd8758615387bd",
+      "method": "owner-authorized current-request candidate integrated byte-for-byte; geometry and collision preserved from candidate-contracts.json",
+      "custody": "owner-authorized-current-request",
+      "role": "late-medieval retaining walls flanking a traversable civic stair"
+    },
+    {
+      "assetSha256": "3cddc7ba64b3b1301d542e8af14c5b0c72cd1508616aa48fea3cec9cee536762",
+      "source": "art/references/user-provided/object_street_props_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "b8f5879728932dce2b56428b65e4531cc66029f39848d1ef831d402ca17d4d85",
+      "method": "owner-authorized current-request candidate integrated byte-for-byte; geometry and collision preserved from candidate-contracts.json",
+      "custody": "owner-authorized-current-request",
+      "role": "late-medieval planted street edge with a visible walking opening"
+    },
+    {
+      "assetSha256": "8ee946fd6236bce11fd409f96a00d82ec66b7115c4b0aa667324bfeaa956a11d",
+      "source": "art/references/user-provided/field_harbor_docks_tiles_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580",
+      "method": "owner-authorized current-request candidate integrated byte-for-byte; geometry and collision preserved from candidate-contracts.json",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor inhabited evergreen yard boundary with a visible walking opening"
+    },
+    {
+      "assetSha256": "30d2c0f09f2c5b97bffa83ff17899e4ed2b67567870c36c2de47ca1e3946d75f",
+      "source": "art/references/user-provided/field_harbor_docks_tiles_sheet.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "44f07d8922eb87d131645b5f68c8a9f6ee06f0dd78f9e2d59b854a74a0740580",
+      "method": "owner-authorized current-request candidate integrated byte-for-byte; geometry and collision preserved from candidate-contracts.json",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor snow-capped bank that leaves the existing water visible"
+    },
+    {
+      "assetSha256": "6140de3148118b828599e28e8630921200ba698660a4f2b87a17fb7710eea923",
+      "source": "codex-generated://019fe2cf-f923-77b2-a873-4698d995b82a/exec-abd91c1f-a15c-481b-9ad0-9efc3d779ab8.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "db94dbd2fa35450755533e12c847abadab4174e1f0adaa13cbf2f8b50c4073a9",
+      "method": "deterministic 256-color palette quantization of the already owner-authorized source",
+      "custody": "owner-authorized-current-request",
+      "role": "late-medieval environment ground surface"
+    },
+    {
+      "assetSha256": "d556c58b0ab78dd389a1516d428456eb8c2ca0802c14f23b6474b13ef6c1deca",
+      "source": "codex-generated://019fe2cf-f923-77b2-a873-4698d995b82a/exec-c42f1cb7-ab82-40d0-9c9c-71bc7ff2b911.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "1a988a5903fdd6980ea9ba1701fa9d2e33371aed6acad1ee1015ea84db58a292",
+      "method": "owner-authorized built-in precise-object-edit preserving the single-well plots, forest, harbor objects, and shoreline while strengthening only flush packed-snow route bands and extending the connected dry quay under the authored waterside route; no central stair, platform, new prop, actor, or building; deterministic exact-world resize and 256-color palette quantization",
+      "custody": "owner-authorized-current-request",
+      "role": "snow-harbor environment ground surface"
+    },
+    {
+      "assetSha256": "b0efb332fc04b6bb8aec28ffda2b400bee4ccfd1647a0dc2b3bcce3e5d1352b5",
+      "source": "codex-generated://019fe2cf-f923-77b2-a873-4698d995b82a/exec-b4c678c7-1243-4845-983b-2950f8efe8a6.png",
+      "kind": "generated-candidate-derived",
+      "sourceSha256": "ec5e535d1f7a04312d3b03a8ef69a4fc6965a2021ebc8803a5ba82f8c6e3fd66",
+      "method": "owner-authorized two-step built-in precise-object-edit: compose a dense small late-medieval environment around the exact live gate, town hall, warehouse, and well plots, then remove those four baked objects while preserving their open plots, connected roads, gardens, walls, and forest; no central stair, platform, monument, actor, or live building; deterministic resize to 1312x920, bottom pad to 1312x928, and 256-color palette quantization",
+      "custody": "owner-authorized-current-request",
+      "role": "late-medieval small-repository environment ground surface"
+    },
+    {
+      "assetSha256": "d8ab7119acb56e294612fd640f05be7db4e5a09391f9f94223980d93f0a7622c",
+      "source": "codex-generated://019fe2cf-f923-77b2-a873-4698d995b82a/exec-2c270057-8a54-45f5-86be-ed38bb4d819c.png",
+      "kind": "generated-source",
+      "sourceSha256": "5b27a2e98c3303e49b2598309be8149339322f843cee630eea77d6f3b7c18622",
+      "method": "built-in precise-object-edit extending only the broad environment's upper-right harbor bank into a connected dry cobbled quay aligned with the southeast residence footprint, doorway and logical blocked-water edge; deterministic Lanczos resize to 1392x952, feathered lower-right-region composite over the accepted broad environment, and 256-color palette quantization",
+      "custody": "owner-authorized-current-request"
     }
   ]
 }

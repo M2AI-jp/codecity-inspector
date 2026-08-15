@@ -1,4 +1,9 @@
-import { constants as fsConstants, promises as fs } from 'node:fs';
+import {
+  constants as fsConstants,
+  lstatSync,
+  promises as fs,
+  realpathSync,
+} from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 
@@ -20,9 +25,19 @@ const DEFAULT_LIMITS = Object.freeze({
   maxFiles: 5_000,
   maxDepth: 32,
   maxEntriesPerDirectory: 2_000,
+  maxVisitedEntries: 12_000,
+  maxVisitedDirectories: 2_500,
   maxFileBytes: 256 * 1024,
   maxTotalBytes: 8 * 1024 * 1024,
   maxTextBytes: 256 * 1024,
+  // Static syntax can expand a small passive file into many graph objects.
+  // These are memory-safety boundaries, not completeness targets. Anything
+  // beyond them remains explicitly unknown in the inspection report.
+  maxImportSpecifiersPerFile: 1_024,
+  maxDerivedGraphNodes: 16_000,
+  maxDerivedGraphEdges: 32_000,
+  maxDerivedGraphEvidence: 32_000,
+  maxDerivedDependencies: 12_000,
 });
 
 // These are policy exclusions, rather than evidence that a directory is
@@ -184,6 +199,9 @@ const SOURCE_FILE_EXTENSIONS = [
 
 const NOFOLLOW = typeof fsConstants.O_NOFOLLOW === 'number'
   ? fsConstants.O_NOFOLLOW
+  : 0;
+const DIRECTORY = typeof fsConstants.O_DIRECTORY === 'number'
+  ? fsConstants.O_DIRECTORY
   : 0;
 
 function compareStrings(a, b) {
@@ -374,9 +392,20 @@ function packageDependencyEntries(manifest) {
   return result.sort((a, b) => compareStrings(`${a.name}\u0000${a.section}`, `${b.name}\u0000${b.section}`));
 }
 
-function extractImportSpecifiers(text) {
+function extractImportSpecifiers(text, maxSpecifiers) {
   const tokens = lexicalImportTokens(text);
   const result = new Set();
+  let truncated = false;
+  const add = (value) => {
+    if (typeof value !== 'string' || value.length === 0 || value.length > 512 || result.has(value)) {
+      return;
+    }
+    if (result.size >= maxSpecifiers) {
+      truncated = true;
+      return;
+    }
+    result.add(value);
+  };
   for (let index = 0; index < tokens.length; index += 1) {
     const token = tokens[index];
     if (token.type !== 'identifier') continue;
@@ -386,7 +415,7 @@ function extractImportSpecifiers(text) {
       const open = tokens[openIndex];
       if (open?.value === '(') {
         const argument = tokens[nextCodeTokenIndex(tokens, openIndex + 1)];
-        if (argument?.type === 'string') addImportSpecifier(result, argument.value);
+        if (argument?.type === 'string') add(argument.value);
         continue;
       }
     }
@@ -394,7 +423,7 @@ function extractImportSpecifiers(text) {
         && isStatementBoundary(tokens, index)) {
       const next = tokens[nextCodeTokenIndex(tokens, index + 1)];
       if (token.value === 'import' && next?.type === 'string') {
-        addImportSpecifier(result, next.value);
+        add(next.value);
         continue;
       }
       if (token.value === 'export' && ['function', 'class', 'const', 'let', 'var', 'default'].includes(next?.value)) {
@@ -405,13 +434,13 @@ function extractImportSpecifiers(text) {
         if (current.value === ';') break;
         if (current.type === 'identifier' && current.value === 'from') {
           const source = tokens[cursor + 1];
-          if (source?.type === 'string') addImportSpecifier(result, source.value);
+          if (source?.type === 'string') add(source.value);
           break;
         }
       }
     }
   }
-  return sortStrings(result);
+  return { specifiers: sortStrings(result), truncated };
 }
 
 function isCallExpressionStart(tokens, index) {
@@ -433,10 +462,6 @@ function nextCodeTokenIndex(tokens, start) {
   let index = start;
   while (tokens[index]?.type === 'newline') index += 1;
   return index;
-}
-
-function addImportSpecifier(result, value) {
-  if (typeof value === 'string' && value.length > 0 && value.length <= 512) result.add(value);
 }
 
 function lexicalImportTokens(text) {
@@ -659,27 +684,94 @@ function pathIsInside(canonicalRoot, candidate) {
   return relative === '' || (!relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative));
 }
 
-async function verifiedStatInsideRoot(filePath, canonicalRoot) {
+function sameFilesystemObject(left, right) {
+  return left?.dev === right?.dev && left?.ino === right?.ino;
+}
+
+function acquireRepositoryRoot(absoluteRoot) {
   try {
+    // Capture the lexical object before yielding to the event loop, then prove
+    // every resolved view is the same directory. A path substituted between
+    // these operations may be resolved for comparison, but is never traversed.
+    const lexicalStat = lstatSync(absoluteRoot);
+    if (lexicalStat.isSymbolicLink()) return { ok: false, reason: 'repository-root-symlink' };
+    if (!lexicalStat.isDirectory()) return { ok: false, reason: 'repository-root-not-directory' };
+
+    const canonicalPath = realpathSync(absoluteRoot);
+    const canonicalStat = lstatSync(canonicalPath);
+    const finalLexicalStat = lstatSync(absoluteRoot);
+    const finalCanonicalPath = realpathSync(absoluteRoot);
+    const finalCanonicalStat = lstatSync(finalCanonicalPath);
+    if (finalLexicalStat.isSymbolicLink()
+        || !canonicalStat.isDirectory()
+        || !finalLexicalStat.isDirectory()
+        || !finalCanonicalStat.isDirectory()
+        || canonicalPath !== finalCanonicalPath
+        || !sameFilesystemObject(lexicalStat, canonicalStat)
+        || !sameFilesystemObject(lexicalStat, finalLexicalStat)
+        || !sameFilesystemObject(lexicalStat, finalCanonicalStat)) {
+      return { ok: false, reason: 'repository-root-changed' };
+    }
+    return {
+      ok: true,
+      requestedPath: absoluteRoot,
+      canonicalPath,
+      dev: lexicalStat.dev,
+      ino: lexicalStat.ino,
+    };
+  } catch (error) {
+    return { ok: false, reason: error?.code || 'repository-root-unreadable' };
+  }
+}
+
+async function verifyRepositoryRoot(acquiredRoot) {
+  try {
+    const lexicalStat = await fs.lstat(acquiredRoot.requestedPath);
+    if (lexicalStat.isSymbolicLink() || !lexicalStat.isDirectory()) {
+      return { ok: false, reason: 'repository-root-changed' };
+    }
+    const canonicalPath = await fs.realpath(acquiredRoot.requestedPath);
+    if (canonicalPath !== acquiredRoot.canonicalPath) {
+      return { ok: false, reason: 'repository-root-changed' };
+    }
+    const canonicalStat = await fs.lstat(canonicalPath);
+    if (!canonicalStat.isDirectory()
+        || lexicalStat.dev !== acquiredRoot.dev
+        || lexicalStat.ino !== acquiredRoot.ino
+        || !sameFilesystemObject(lexicalStat, canonicalStat)) {
+      return { ok: false, reason: 'repository-root-changed' };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, reason: 'repository-root-changed' };
+  }
+}
+
+async function verifiedStatInsideRoot(filePath, acquiredRoot) {
+  try {
+    const rootBefore = await verifyRepositoryRoot(acquiredRoot);
+    if (!rootBefore.ok) return rootBefore;
     const lexicalStat = await fs.lstat(filePath);
     const canonicalPath = await fs.realpath(filePath);
-    if (!pathIsInside(canonicalRoot, canonicalPath)) return { ok: false, reason: 'path-resolved-outside-root' };
+    if (!pathIsInside(acquiredRoot.canonicalPath, canonicalPath)) return { ok: false, reason: 'path-resolved-outside-root' };
     const canonicalStat = await fs.lstat(canonicalPath);
     if (lexicalStat.dev !== canonicalStat.dev || lexicalStat.ino !== canonicalStat.ino) return { ok: false, reason: 'path-changed' };
+    const rootAfter = await verifyRepositoryRoot(acquiredRoot);
+    if (!rootAfter.ok) return rootAfter;
     return { ok: true, stat: lexicalStat, canonicalPath };
   } catch (error) {
     return { ok: false, reason: error?.code || 'path-unreadable' };
   }
 }
 
-async function readBoundedFile(filePath, maxBytes, canonicalRoot) {
+async function readBoundedFile(filePath, maxBytes, acquiredRoot) {
   let handle;
   try {
     handle = await fs.open(filePath, fsConstants.O_RDONLY | NOFOLLOW);
     const openedStat = await handle.stat();
     if (!openedStat.isFile()) return { ok: false, reason: 'not-a-regular-file' };
     if (openedStat.size > maxBytes) return { ok: false, reason: 'file-byte-limit' };
-    const verified = await verifiedStatInsideRoot(filePath, canonicalRoot);
+    const verified = await verifiedStatInsideRoot(filePath, acquiredRoot);
     if (!verified.ok) return verified;
     if (verified.stat.dev !== openedStat.dev || verified.stat.ino !== openedStat.ino) return { ok: false, reason: 'path-changed' };
     const chunks = [];
@@ -714,17 +806,17 @@ async function readBoundedFile(filePath, maxBytes, canonicalRoot) {
   }
 }
 
-async function readGitOrigin(root, limits) {
-  const gitPath = path.join(root, '.git');
+async function readGitOrigin(acquiredRoot, limits) {
+  const gitPath = path.join(acquiredRoot.canonicalPath, '.git');
   try {
-    const git = await verifiedStatInsideRoot(gitPath, root);
+    const git = await verifiedStatInsideRoot(gitPath, acquiredRoot);
     if (!git.ok) return { origin: null, skipped: true, reason: git.reason };
     if (!git.stat.isDirectory()) return { origin: null, skipped: true, reason: 'git-metadata-not-directory' };
     const configPath = path.join(gitPath, 'config');
-    const config = await verifiedStatInsideRoot(configPath, root);
+    const config = await verifiedStatInsideRoot(configPath, acquiredRoot);
     if (!config.ok) return { origin: null, skipped: true, reason: config.reason };
     if (!config.stat.isFile()) return { origin: null, skipped: true, reason: 'git-config-not-regular' };
-    const read = await readBoundedFile(configPath, Math.min(limits.maxTextBytes, 64 * 1024), root);
+    const read = await readBoundedFile(configPath, Math.min(limits.maxTextBytes, 64 * 1024), acquiredRoot);
     if (!read.ok) return { origin: null, skipped: true, reason: read.reason };
     return { origin: inferGitOrigin(read.bytes.toString('utf8')), skipped: false };
   } catch (error) {
@@ -755,7 +847,7 @@ function emptyReport(name, identity, unknown = []) {
 /**
  * Inspect a repository without executing anything in it.
  *
- * The function only uses lstat/readdir/open/read and bounded in-memory
+ * The function only uses filesystem metadata, opendir/open/read, and bounded in-memory
  * parsing.  Symlinks below the root are never followed.  The returned object
  * is JSON serializable and contains no absolute filesystem paths.
  */
@@ -763,49 +855,18 @@ export async function inspectRepository(root) {
   const requestedRoot = asFilePath(root);
   const limits = DEFAULT_LIMITS;
   const absoluteRoot = path.resolve(requestedRoot);
-  let realRoot;
   let rootName = path.basename(absoluteRoot) || 'repository';
-  try {
-    // A symlink supplied as the repository root is not an accepted repository
-    // class.  Check the lexical root before realpath so the root itself is
-    // never silently promoted to its target.  Symlinks below an accepted root
-    // are handled by walkDirectory and remain untracked.
-    const lexicalRoot = await fs.lstat(absoluteRoot);
-    if (lexicalRoot.isSymbolicLink()) {
-      return emptyReport(rootName, rootName, [unknownEntry({
-        id: 'unknown:repository-root',
-        claim: 'repository.root',
-        pathValue: '.',
-        reason: 'repository-root-symlink',
-      })]);
-    }
-    if (!lexicalRoot.isDirectory()) {
-      return emptyReport(rootName, rootName, [unknownEntry({
-        id: 'unknown:repository-root',
-        claim: 'repository.root',
-        pathValue: '.',
-        reason: 'repository-root-not-directory',
-      })]);
-    }
-    realRoot = await fs.realpath(absoluteRoot);
-    const rootStat = await fs.lstat(realRoot);
-    if (!rootStat.isDirectory()) {
-      return emptyReport(rootName, rootName, [unknownEntry({
-        id: 'unknown:repository-root',
-        claim: 'repository.root',
-        pathValue: '.',
-        reason: 'repository-root-not-directory',
-      })]);
-    }
-    rootName = path.basename(realRoot) || rootName;
-  } catch (error) {
+  const acquiredRoot = acquireRepositoryRoot(absoluteRoot);
+  if (!acquiredRoot.ok) {
     return emptyReport(rootName, rootName, [unknownEntry({
       id: 'unknown:repository-root',
       claim: 'repository.root',
       pathValue: '.',
-      reason: error?.code || 'repository-root-unreadable',
+      reason: acquiredRoot.reason,
     })]);
   }
+  const realRoot = acquiredRoot.canonicalPath;
+  rootName = path.basename(realRoot) || rootName;
 
   const observed = [];
   const inferred = [];
@@ -814,17 +875,97 @@ export async function inspectRepository(root) {
   const contentByPath = new Map();
   let filesDiscovered = 0;
   let bytesRead = 0;
+  let entriesVisited = 0;
+  let directoriesVisited = 0;
+  let traversalStopped = false;
+  let rootInvalidated = false;
   const fileByPath = new Map();
 
   const noteUnknown = (item) => unknown.push(item);
 
+  const stopTraversal = (reason, reachedAt, limit) => {
+    if (traversalStopped) return;
+    traversalStopped = true;
+    noteUnknown(unknownEntry({
+      id: 'unknown:repository-traversal-limit',
+      claim: 'repository.contents',
+      pathValue: '.',
+      reason,
+      details: {
+        limit,
+        reachedAt: reachedAt || '.',
+      },
+    }));
+  };
+
   async function walkDirectory(directoryPath, directoryRelativePath, depth) {
-    let entries;
+    if (traversalStopped) return;
+    if (directoriesVisited >= limits.maxVisitedDirectories) {
+      stopTraversal('directory-visit-limit', directoryRelativePath, limits.maxVisitedDirectories);
+      return;
+    }
+    directoriesVisited += 1;
+
+    const entries = [];
+    let directory;
+    let directoryGuard;
     try {
-      const before = await verifiedStatInsideRoot(directoryPath, realRoot);
+      const before = await verifiedStatInsideRoot(directoryPath, acquiredRoot);
+      if (before.reason === 'repository-root-changed') rootInvalidated = true;
       if (!before.ok || !before.stat.isDirectory()) throw Object.assign(new Error('directory changed'), { code: before.reason ?? 'directory-not-regular' });
-      entries = await fs.readdir(directoryPath, { withFileTypes: true });
-      const after = await verifiedStatInsideRoot(directoryPath, realRoot);
+      directoryGuard = await fs.open(directoryPath, fsConstants.O_RDONLY | DIRECTORY | NOFOLLOW);
+      const guardStat = await directoryGuard.stat();
+      if (!guardStat.isDirectory() || !sameFilesystemObject(guardStat, before.stat)) {
+        throw Object.assign(new Error('directory changed'), { code: 'directory-changed' });
+      }
+      // opendir only acquires its OS directory handle; it does not enumerate
+      // entries. Prove the pathname still names the object we approved before
+      // asking that bound handle for its first Dirent.
+      directory = await fs.opendir(directoryPath, { bufferSize: 1 });
+      const afterOpen = await verifiedStatInsideRoot(directoryPath, acquiredRoot);
+      if (afterOpen.reason === 'repository-root-changed') rootInvalidated = true;
+      if (!afterOpen.ok
+          || !afterOpen.stat.isDirectory()
+          || !sameFilesystemObject(afterOpen.stat, before.stat)
+          || !sameFilesystemObject(afterOpen.stat, guardStat)) {
+        throw Object.assign(new Error('directory changed'), { code: afterOpen.reason ?? 'directory-changed' });
+      }
+      while (!traversalStopped) {
+        if (entriesVisited >= limits.maxVisitedEntries) {
+          stopTraversal('entry-visit-limit', directoryRelativePath, limits.maxVisitedEntries);
+          break;
+        }
+        const beforeRead = await verifiedStatInsideRoot(directoryPath, acquiredRoot);
+        if (beforeRead.reason === 'repository-root-changed') rootInvalidated = true;
+        if (!beforeRead.ok
+            || !beforeRead.stat.isDirectory()
+            || !sameFilesystemObject(beforeRead.stat, guardStat)) {
+          throw Object.assign(new Error('directory changed'), { code: beforeRead.reason ?? 'directory-changed' });
+        }
+        const entry = await directory.read();
+        const afterRead = await verifiedStatInsideRoot(directoryPath, acquiredRoot);
+        if (afterRead.reason === 'repository-root-changed') rootInvalidated = true;
+        if (!afterRead.ok
+            || !afterRead.stat.isDirectory()
+            || !sameFilesystemObject(afterRead.stat, guardStat)) {
+          throw Object.assign(new Error('directory changed'), { code: afterRead.reason ?? 'directory-changed' });
+        }
+        if (!entry) break;
+        entriesVisited += 1;
+        if (entries.length >= limits.maxEntriesPerDirectory) {
+          noteUnknown(unknownEntry({
+            id: `unknown:entries:${directoryRelativePath || '.'}`,
+            claim: 'directory.contents',
+            pathValue: directoryRelativePath || '.',
+            reason: 'directory-entry-limit',
+            details: { limit: limits.maxEntriesPerDirectory },
+          }));
+          break;
+        }
+        entries.push(entry);
+      }
+      const after = await verifiedStatInsideRoot(directoryPath, acquiredRoot);
+      if (after.reason === 'repository-root-changed') rootInvalidated = true;
       if (!after.ok || !after.stat.isDirectory() || after.stat.dev !== before.stat.dev || after.stat.ino !== before.stat.ino) {
         throw Object.assign(new Error('directory changed'), { code: after.reason ?? 'directory-changed' });
       }
@@ -836,20 +977,28 @@ export async function inspectRepository(root) {
         reason: error?.code || 'directory-unreadable',
       }));
       return;
+    } finally {
+      if (directory) {
+        try {
+          await directory.close();
+        } catch {
+          // Closing a directory after EOF or a read failure is best effort.
+          // No repository write was attempted and unread scope stays unknown.
+        }
+      }
+      if (directoryGuard) {
+        try {
+          await directoryGuard.close();
+        } catch {
+          // The guard only pins the approved directory during enumeration.
+          // A close failure cannot make unaccepted repository bytes trusted.
+        }
+      }
     }
     entries.sort((a, b) => compareStrings(a.name, b.name));
-    if (entries.length > limits.maxEntriesPerDirectory) {
-      noteUnknown(unknownEntry({
-        id: `unknown:entries:${directoryRelativePath || '.'}`,
-        claim: 'directory.contents',
-        pathValue: directoryRelativePath || '.',
-        reason: 'directory-entry-limit',
-        details: { limit: limits.maxEntriesPerDirectory, entries: entries.length },
-      }));
-      entries = entries.slice(0, limits.maxEntriesPerDirectory);
-    }
 
     for (const entry of entries) {
+      if (traversalStopped) break;
       const entryRelativePath = directoryRelativePath ? `${directoryRelativePath}/${entry.name}` : entry.name;
       const entryPath = path.join(directoryPath, entry.name);
       if (entry.isSymbolicLink()) {
@@ -862,7 +1011,8 @@ export async function inspectRepository(root) {
         continue;
       }
 
-      const verified = await verifiedStatInsideRoot(entryPath, realRoot);
+      const verified = await verifiedStatInsideRoot(entryPath, acquiredRoot);
+      if (verified.reason === 'repository-root-changed') rootInvalidated = true;
       if (!verified.ok) {
         noteUnknown(unknownEntry({
           id: `unknown:path:${entryRelativePath}`,
@@ -895,6 +1045,7 @@ export async function inspectRepository(root) {
           continue;
         }
         await walkDirectory(entryPath, entryRelativePath, depth + 1);
+        if (traversalStopped) break;
         continue;
       }
       if (!stat.isFile()) {
@@ -907,13 +1058,10 @@ export async function inspectRepository(root) {
         continue;
       }
       if (filesDiscovered >= limits.maxFiles) {
-        noteUnknown(unknownEntry({
-          id: `unknown:file-limit:${entryRelativePath}`,
-          claim: 'repository.contents',
-          pathValue: entryRelativePath,
-          reason: 'file-limit',
-          details: { limit: limits.maxFiles },
-        }));
+        // A file budget is a repository-wide safety boundary, not a quota to
+        // restart in each sibling directory. Stop the whole walk and preserve
+        // every unread branch as unknown through the shared traversal record.
+        stopTraversal('file-limit', entryRelativePath, limits.maxFiles);
         break;
       }
 
@@ -971,7 +1119,8 @@ export async function inspectRepository(root) {
         continue;
       }
 
-      const read = await readBoundedFile(entryPath, limits.maxFileBytes, realRoot);
+      const read = await readBoundedFile(entryPath, limits.maxFileBytes, acquiredRoot);
+      if (read.reason === 'repository-root-changed') rootInvalidated = true;
       if (!read.ok) {
         noteUnknown(unknownEntry({
           id: `unknown:read:${entryRelativePath}`,
@@ -1004,9 +1153,19 @@ export async function inspectRepository(root) {
   }
 
   await walkDirectory(realRoot, '', 0);
+  const rootAfterTraversal = await verifyRepositoryRoot(acquiredRoot);
+  if (!rootAfterTraversal.ok || rootInvalidated) {
+    return emptyReport(rootName, rootName, [unknownEntry({
+      id: 'unknown:repository-root',
+      claim: 'repository.root',
+      pathValue: '.',
+      reason: 'repository-root-changed',
+    })]);
+  }
   files.sort((a, b) => compareStrings(a.path, b.path));
 
-  const git = await readGitOrigin(realRoot, limits);
+  const git = await readGitOrigin(acquiredRoot, limits);
+  if (git.reason === 'repository-root-changed') rootInvalidated = true;
   if (git.skipped) {
     noteUnknown(unknownEntry({
       id: 'unknown:git-metadata',
@@ -1079,6 +1238,31 @@ export async function inspectRepository(root) {
   }
   manifests.sort((a, b) => compareStrings(a.path, b.path));
 
+  const dependenciesByManifest = new Map();
+  let derivedDependencies = 0;
+  let dependencyLimitNoted = false;
+  for (const manifest of manifests) {
+    const accepted = [];
+    for (const dependency of packageDependencyEntries(manifest)) {
+      if (derivedDependencies >= limits.maxDerivedDependencies) {
+        if (!dependencyLimitNoted) {
+          dependencyLimitNoted = true;
+          noteUnknown(unknownEntry({
+            id: 'unknown:manifest-dependency-limit',
+            claim: 'repository.dependencies',
+            pathValue: manifest.path,
+            reason: 'derived-dependency-limit',
+            details: { limit: limits.maxDerivedDependencies },
+          }));
+        }
+        break;
+      }
+      accepted.push(dependency);
+      derivedDependencies += 1;
+    }
+    dependenciesByManifest.set(manifest.path, accepted);
+  }
+
   for (const manifest of manifests) {
     inferred.push(evidenceEntry({
       id: `inferred:manifest:${manifest.path}`,
@@ -1089,19 +1273,6 @@ export async function inspectRepository(root) {
       value: manifest.kind,
       source: 'manifest-name',
     }));
-    if (manifest.kind === 'package') {
-      for (const dependency of packageDependencyEntries(manifest)) {
-        observed.push(evidenceEntry({
-          id: `observed:dependency:${manifest.path}:${dependency.section}:${dependency.name}`,
-          state: 'observed',
-          claim: 'dependency.declared',
-          subject: `external:${dependency.name}`,
-          pathValue: manifest.path,
-          value: { name: dependency.name, section: dependency.section, version: dependency.version },
-          source: 'manifest',
-        }));
-      }
-    }
   }
 
   const graphNodeById = new Map();
@@ -1109,18 +1280,51 @@ export async function inspectRepository(root) {
     graphNodeById.set(file.id, { id: file.id, kind: 'file', path: file.path });
   }
   const edgeById = new Map();
-  const addExternalNode = (specifier) => {
-    const id = externalNodeId(specifier);
-    if (!graphNodeById.has(id)) graphNodeById.set(id, { id, kind: 'external', specifier });
-    return id;
+  let derivedGraphNodes = 0;
+  let derivedGraphEvidence = 0;
+  const graphLimitsNoted = new Set();
+  const noteGraphLimit = (reason, claim, reachedAt, limit) => {
+    if (graphLimitsNoted.has(reason)) return;
+    graphLimitsNoted.add(reason);
+    noteUnknown(unknownEntry({
+      id: `unknown:graph:${reason}`,
+      claim,
+      pathValue: reachedAt ?? '.',
+      reason,
+      details: { limit },
+    }));
   };
-  const addEdge = (from, to, kind, specifier) => {
+  const addGraphRelation = ({ from, to, targetNode, kind, specifier, evidenceEntries, reachedAt }) => {
     const id = `edge:${from}->${to}:${kind}:${specifier || ''}`;
-    if (!edgeById.has(id)) {
+    const needsNode = targetNode !== null && !graphNodeById.has(to);
+    const needsEdge = !edgeById.has(id);
+    if (needsNode && derivedGraphNodes >= limits.maxDerivedGraphNodes) {
+      noteGraphLimit('derived-node-limit', 'graph.nodes', reachedAt, limits.maxDerivedGraphNodes);
+      return null;
+    }
+    if (needsEdge && edgeById.size >= limits.maxDerivedGraphEdges) {
+      noteGraphLimit('derived-edge-limit', 'graph.edges', reachedAt, limits.maxDerivedGraphEdges);
+      return null;
+    }
+    if (derivedGraphEvidence + evidenceEntries.length > limits.maxDerivedGraphEvidence) {
+      noteGraphLimit('derived-evidence-limit', 'graph.evidence', reachedAt, limits.maxDerivedGraphEvidence);
+      return null;
+    }
+    if (needsNode) {
+      graphNodeById.set(to, targetNode);
+      derivedGraphNodes += 1;
+    }
+    if (needsEdge) {
       const edge = { id, from, to, kind };
       if (specifier !== undefined) edge.specifier = specifier;
       edgeById.set(id, edge);
     }
+    for (const entry of evidenceEntries) {
+      if (entry.state === 'unknown') noteUnknown(entry);
+      else if (entry.state === 'observed') observed.push(entry);
+      else inferred.push(entry);
+    }
+    derivedGraphEvidence += evidenceEntries.length;
     return id;
   };
 
@@ -1138,18 +1342,28 @@ export async function inspectRepository(root) {
       continue;
     }
     const text = bytes.subarray(0, limits.maxTextBytes).toString('utf8');
-    for (const specifier of extractImportSpecifiers(text)) {
+    const extracted = extractImportSpecifiers(text, limits.maxImportSpecifiersPerFile);
+    if (extracted.truncated) {
+      noteUnknown(unknownEntry({
+        id: `unknown:import-specifier-limit:${file.path}`,
+        claim: 'graph.imports',
+        pathValue: file.path,
+        reason: 'import-specifier-limit',
+        details: { limit: limits.maxImportSpecifiersPerFile },
+      }));
+    }
+    for (const specifier of extracted.specifiers) {
       const localTarget = resolveLocalImport(file.path, specifier, fileByPath);
       const isLocal = specifier.startsWith('.') || specifier.startsWith('/');
       let target;
+      let targetNode = null;
+      const evidenceEntries = [];
       if (localTarget) {
         target = localTarget;
       } else if (isLocal) {
         target = unresolvedNodeId(file.path, specifier);
-        if (!graphNodeById.has(target)) {
-          graphNodeById.set(target, { id: target, kind: 'unresolved', specifier });
-        }
-        noteUnknown(unknownEntry({
+        targetNode = { id: target, kind: 'unresolved', specifier };
+        evidenceEntries.push(unknownEntry({
           id: `unknown:import-target:${file.path}:${specifier}`,
           claim: 'graph.importTarget',
           pathValue: file.path,
@@ -1157,34 +1371,52 @@ export async function inspectRepository(root) {
           details: { specifier },
         }));
       } else {
-        target = addExternalNode(specifier);
+        target = externalNodeId(specifier);
+        targetNode = { id: target, kind: 'external', specifier };
       }
-      const edgeId = addEdge(file.id, target, 'import', specifier);
-      inferred.push(evidenceEntry({
+      const prospectiveEdgeId = `edge:${file.id}->${target}:import:${specifier}`;
+      evidenceEntries.push(evidenceEntry({
         id: `inferred:edge:${file.id}:${specifier}`,
         state: 'inferred',
         claim: 'graph.import',
-        subject: edgeId,
+        subject: prospectiveEdgeId,
         pathValue: file.path,
         value: { specifier, target },
         source: 'static-import-syntax',
       }));
+      addGraphRelation({
+        from: file.id,
+        to: target,
+        targetNode,
+        kind: 'import',
+        specifier,
+        evidenceEntries,
+        reachedAt: file.path,
+      });
     }
   }
   for (const manifest of manifests) {
-    for (const dependency of packageDependencyEntries(manifest)) {
-      const target = addExternalNode(dependency.name);
+    for (const dependency of dependenciesByManifest.get(manifest.path) ?? []) {
+      const target = externalNodeId(dependency.name);
       const source = `manifest:${manifest.path}`;
-      const edgeId = addEdge(source, target, 'dependency', dependency.name);
-      inferred.push(evidenceEntry({
-        id: `inferred:dependency-edge:${manifest.path}:${dependency.section}:${dependency.name}`,
-        state: 'inferred',
-        claim: 'graph.dependency',
-        subject: edgeId,
-        pathValue: manifest.path,
-        value: { target, section: dependency.section, version: dependency.version },
-        source: 'manifest-dependency-field',
-      }));
+      const prospectiveEdgeId = `edge:${source}->${target}:dependency:${dependency.name}`;
+      addGraphRelation({
+        from: source,
+        to: target,
+        targetNode: { id: target, kind: 'external', specifier: dependency.name },
+        kind: 'dependency',
+        specifier: dependency.name,
+        reachedAt: manifest.path,
+        evidenceEntries: [evidenceEntry({
+          id: `observed:dependency:${manifest.path}:${dependency.section}:${dependency.name}`,
+          state: 'observed',
+          claim: 'dependency.declared',
+          subject: prospectiveEdgeId,
+          pathValue: manifest.path,
+          value: { name: dependency.name, section: dependency.section, version: dependency.version },
+          source: 'manifest',
+        })],
+      });
     }
   }
 
@@ -1254,6 +1486,16 @@ export async function inspectRepository(root) {
     reason: 'source-not-executed',
     details: { policy: 'read-only-static-inspection' },
   }));
+
+  const finalRoot = await verifyRepositoryRoot(acquiredRoot);
+  if (!finalRoot.ok || rootInvalidated) {
+    return emptyReport(rootName, rootName, [unknownEntry({
+      id: 'unknown:repository-root',
+      claim: 'repository.root',
+      pathValue: '.',
+      reason: 'repository-root-changed',
+    })]);
+  }
 
   const report = {
     schemaVersion: INSPECTION_REPORT_SCHEMA_VERSION,

@@ -148,6 +148,7 @@ function errorResponse(res, error, allow = 'GET, HEAD') {
   const statuses = {
     bad_request: 400,
     request_uri_too_long: 414,
+    forbidden_host: 403,
     forbidden_path: 403,
     not_found: 404,
     method_not_allowed: 405,
@@ -156,9 +157,29 @@ function errorResponse(res, error, allow = 'GET, HEAD') {
   sendJson(res, status, error, error === 'method_not_allowed' ? { Allow: allow } : {});
 }
 
+function requestHasExpectedHost(req, expectedHost) {
+  if (typeof expectedHost !== 'string' || expectedHost.length === 0) return false;
+  let rawHost = null;
+  let rawHostCount = 0;
+  for (let index = 0; index < req.rawHeaders.length; index += 2) {
+    if (req.rawHeaders[index].toLowerCase() !== 'host') continue;
+    rawHostCount += 1;
+    rawHost = req.rawHeaders[index + 1];
+  }
+  return rawHostCount === 1
+    && rawHost === expectedHost
+    && req.headers.host === expectedHost;
+}
+
 function configureServer(files, control = {}) {
   const server = http.createServer(async (req, res) => {
     try {
+      if (!requestHasExpectedHost(req, control.expectedHost)) {
+        res.shouldKeepAlive = false;
+        errorResponse(res, 'forbidden_host');
+        res.once('finish', () => req.destroy());
+        return;
+      }
       const parsed = requestedPath(req.url);
       if (parsed.error) {
         errorResponse(res, parsed.error);
@@ -244,7 +265,7 @@ function createLocalServer({
 
 /** Start a loopback-only server and return its origin plus an idempotent close. */
 export async function startLocalServer({ snapshots, expectedSha256, port = 0, maxFileBytes = DEFAULT_MAX_FILE_BYTES, maxTotalBytes = DEFAULT_MAX_TOTAL_BYTES } = {}) {
-  const control = { expectedOrigin: null, onShutdown: null, shutdownRequested: false };
+  const control = { expectedHost: null, expectedOrigin: null, onShutdown: null, shutdownRequested: false };
   const server = createLocalServer({ snapshots, expectedSha256, port, maxFileBytes, maxTotalBytes, control });
   await new Promise((resolve, reject) => {
     const onError = (error) => {
@@ -260,7 +281,9 @@ export async function startLocalServer({ snapshots, expectedSha256, port = 0, ma
   });
   const address = server.address();
   const actualPort = typeof address === 'object' && address ? address.port : port;
-  const origin = new URL(`http://${HOST}:${actualPort}`).origin;
+  const expectedHost = `${HOST}:${actualPort}`;
+  const origin = new URL(`http://${expectedHost}`).origin;
+  control.expectedHost = expectedHost;
   control.expectedOrigin = origin;
   let closed = false;
   const close = async () => {

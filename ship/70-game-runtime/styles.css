@@ -30,6 +30,12 @@ body {
   display: block;
 }
 
+.game-shell {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
 #game-canvas {
   display: block;
   width: auto;
@@ -69,6 +75,34 @@ body {
   white-space: pre-wrap;
   color: #fff4d7;
   line-height: 1.35;
+}
+
+.game-ui-hint {
+  position: absolute;
+  display: block;
+  width: max-content;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #c39a55;
+  background: rgb(19 23 20 / 92%);
+  color: #fff4d7;
+  font-size: 12px;
+  line-height: 1.25;
+  text-align: center;
+  text-shadow: 0 1px 0 #000;
+  box-shadow: inset 0 0 0 1px rgb(255 226 157 / 12%), 2px 2px 0 rgb(0 0 0 / 45%);
+}
+
+.game-ui-hint::after {
+  position: absolute;
+  left: 50%;
+  bottom: var(--hint-tip-offset, -5px);
+  width: var(--hint-tip-size, 7px);
+  height: var(--hint-tip-size, 7px);
+  border-right: var(--hint-tip-border, 1px) solid #c39a55;
+  border-bottom: var(--hint-tip-border, 1px) solid #c39a55;
+  background: rgb(19 23 20 / 92%);
+  content: '';
+  transform: translateX(-50%) rotate(45deg);
 }
 
 .game-ui:empty {

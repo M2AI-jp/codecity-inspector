@@ -9,20 +9,20 @@
       "version": "1.0.0",
       "path": "light--lit.png",
       "url": "/assets/light--lit.png",
-      "sha256": "8fc4cddf7ec81f6b849bc8469b906aec314c8a753f64933d858f2f2dc2202115",
+      "sha256": "f158abbc38e89953a05e5d16a519d0b180362110723c91666b8f1539d3222fb0",
       "dimensions": {
-        "width": 14,
+        "width": 32,
         "height": 64
       },
       "pivot": {
-        "x": 7,
+        "x": 16,
         "y": 63
       },
       "usage": {
         "kind": "light",
         "layer": "foreground",
         "frame": {
-          "width": 14,
+          "width": 32,
           "height": 64,
           "columns": 1,
           "rows": 1
@@ -37,20 +37,20 @@
       "version": "1.0.0",
       "path": "light--unknown.png",
       "url": "/assets/light--unknown.png",
-      "sha256": "068d6a13943d06dffb87a8a5d991aeb33a457c2d3f222aa8558f89b4e615da1f",
+      "sha256": "33022ccca051456d962a4f66b7c57ffe1f67b8d5ed275448b22b8f97c5e3ca55",
       "dimensions": {
-        "width": 45,
+        "width": 32,
         "height": 64
       },
       "pivot": {
-        "x": 22,
+        "x": 16,
         "y": 63
       },
       "usage": {
         "kind": "light",
         "layer": "foreground",
         "frame": {
-          "width": 45,
+          "width": 32,
           "height": 64,
           "columns": 1,
           "rows": 1
@@ -65,20 +65,20 @@
       "version": "1.0.0",
       "path": "light--unlit.png",
       "url": "/assets/light--unlit.png",
-      "sha256": "3253600a175b474fd1687d7e29e929e16b55df7a5fc67e0d884a0f7896f4e42d",
+      "sha256": "c4160cef349ec2d7c5d8432c253818829c55054a92f485fb08c957a9f24bd281",
       "dimensions": {
-        "width": 14,
+        "width": 32,
         "height": 64
       },
       "pivot": {
-        "x": 7,
+        "x": 16,
         "y": 63
       },
       "usage": {
         "kind": "light",
         "layer": "foreground",
         "frame": {
-          "width": 14,
+          "width": 32,
           "height": 64,
           "columns": 1,
           "rows": 1
@@ -93,7 +93,7 @@
       "version": "1.0.0",
       "path": "player--default.png",
       "url": "/assets/player--default.png",
-      "sha256": "d5fbb67c6d26e107b0cec6e78f09715e95be54cf4201de44025ca00477dd658f",
+      "sha256": "aa8e6bbaedde69a67da8fd5c5afd5466c6c7b92703c4dfd9132af2e04b29cf28",
       "dimensions": {
         "width": 192,
         "height": 256
@@ -241,7 +241,7 @@
       "version": "1.0.0",
       "path": "prop--lamp.png",
       "url": "/assets/prop--lamp.png",
-      "sha256": "e4aca9db5101bd5327d4bc9fddb5a2d009757850a0ce7d48ea5b8d854c6cc9e5",
+      "sha256": "55e0439cc0099df6781c2fe3cb7e2eee6e41923908acc13c4e0f518f17645b0f",
       "dimensions": {
         "width": 38,
         "height": 145
@@ -269,7 +269,7 @@
       "version": "1.0.0",
       "path": "prop--sign.png",
       "url": "/assets/prop--sign.png",
-      "sha256": "74919eb419d7283cbdbc10d684a4402a61bde8f9b655567b56f0277123996420",
+      "sha256": "00b898e3d8fc0747dbb21038f066603ecc343cddc70d14ef9d0c5fab94bd0b43",
       "dimensions": {
         "width": 71,
         "height": 102
@@ -297,7 +297,7 @@
       "version": "1.0.0",
       "path": "prop--tree.png",
       "url": "/assets/prop--tree.png",
-      "sha256": "8ce50e8fc64b1f75baf72ba50bc0c9b97e3c191196e55fba187f9a0733588e1d",
+      "sha256": "20e83fa3b4806ffd89daa3db348c4231a6eadae08a92b0f8699391eed0ac72ae",
       "dimensions": {
         "width": 96,
         "height": 130
@@ -325,7 +325,7 @@
       "version": "1.0.0",
       "path": "ui--dialogue.png",
       "url": "/assets/ui--dialogue.png",
-      "sha256": "5a4d3e86817d971a7f3413d26e1c8c85eecc7792459a916585a25432ac9177d2",
+      "sha256": "0ad17c199de0d8bf437a0599588b9014cd5bac9ca424eafb28edc8df0d83bf5e",
       "dimensions": {
         "width": 384,
         "height": 216
@@ -353,7 +353,7 @@
       "version": "1.0.0",
       "path": "ui--inspection-report.png",
       "url": "/assets/ui--inspection-report.png",
-      "sha256": "5d191399c5afd59b6a41781e7df637bf9ea2596fb80dc7d06340d5aca01523ca",
+      "sha256": "c980e11eefffb4c7c805eebb919c6761a123aff5a6987c15bd66e8c17ebcebd2",
       "dimensions": {
         "width": 384,
         "height": 216
@@ -368,6 +368,5308 @@
         "frame": {
           "width": 384,
           "height": 216,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "ui--exit-v1",
+      "version": "1.0.0",
+      "path": "ui--exit.png",
+      "url": "/assets/ui--exit.png",
+      "sha256": "741cbfaa466050597cb645492e4ac3c94fc66b7442c44eae43d2940b01512ead",
+      "dimensions": {
+        "width": 384,
+        "height": 216
+      },
+      "pivot": {
+        "x": 192,
+        "y": 215
+      },
+      "usage": {
+        "kind": "ui",
+        "layer": "ui",
+        "frame": {
+          "width": 384,
+          "height": 216,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "surface--ground-v1",
+      "version": "1.0.0",
+      "path": "surface--ground.png",
+      "url": "/assets/surface--ground.png",
+      "sha256": "c060057c34385fbf8036c17fe8e19976f71910aaabb12affb9fe3b255cbd15a0",
+      "dimensions": {
+        "width": 512,
+        "height": 512
+      },
+      "pivot": {
+        "x": 0,
+        "y": 0
+      },
+      "usage": {
+        "kind": "terrain",
+        "layer": "ground",
+        "frame": {
+          "width": 512,
+          "height": 512,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "surface--plaza-v1",
+      "version": "1.0.0",
+      "path": "surface--plaza.png",
+      "url": "/assets/surface--plaza.png",
+      "sha256": "d01f9629b3914afa2af7c5bedba191bbaa315f2a16dcd6642f0bcb8726105335",
+      "dimensions": {
+        "width": 512,
+        "height": 512
+      },
+      "pivot": {
+        "x": 0,
+        "y": 0
+      },
+      "usage": {
+        "kind": "road",
+        "layer": "ground",
+        "frame": {
+          "width": 512,
+          "height": 512,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "surface--road-local-v1",
+      "version": "1.0.0",
+      "path": "surface--road-local.png",
+      "url": "/assets/surface--road-local.png",
+      "sha256": "941238dbd933e0ed23e0ac0f0e5894d8d901e23f150a7944983a893db7597e3f",
+      "dimensions": {
+        "width": 512,
+        "height": 512
+      },
+      "pivot": {
+        "x": 0,
+        "y": 0
+      },
+      "usage": {
+        "kind": "road",
+        "layer": "ground",
+        "frame": {
+          "width": 512,
+          "height": 512,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "surface--road-main-v1",
+      "version": "1.0.0",
+      "path": "surface--road-main.png",
+      "url": "/assets/surface--road-main.png",
+      "sha256": "0a3ac86724204e64296a8869a9e624f8545cc28a4d11e3eef5054510cd4e353e",
+      "dimensions": {
+        "width": 512,
+        "height": 512
+      },
+      "pivot": {
+        "x": 0,
+        "y": 0
+      },
+      "usage": {
+        "kind": "road",
+        "layer": "ground",
+        "frame": {
+          "width": 512,
+          "height": 512,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "npc--artisan-v1",
+      "version": "1.0.0",
+      "path": "npc--artisan.png",
+      "url": "/assets/npc--artisan.png",
+      "sha256": "8ecc43bd7969d9fa50c176cff18847aa603dbd9d0a4ac8e37a4425fbc935d799",
+      "dimensions": {
+        "width": 192,
+        "height": 256
+      },
+      "pivot": {
+        "x": 16,
+        "y": 31
+      },
+      "usage": {
+        "kind": "character",
+        "layer": "actor",
+        "frame": {
+          "width": 32,
+          "height": 32,
+          "columns": 6,
+          "rows": 8
+        },
+        "collision": {
+          "kind": "rect",
+          "x": 10,
+          "y": 20,
+          "width": 12,
+          "height": 12
+        },
+        "animations": {
+          "idle": {
+            "north": {
+              "frames": [
+                0,
+                1
+              ],
+              "fps": 2
+            },
+            "south": {
+              "frames": [
+                12,
+                13
+              ],
+              "fps": 2
+            },
+            "east": {
+              "frames": [
+                24,
+                25
+              ],
+              "fps": 2
+            },
+            "west": {
+              "frames": [
+                36,
+                37
+              ],
+              "fps": 2
+            }
+          },
+          "walk": {
+            "north": {
+              "frames": [
+                2,
+                3,
+                4,
+                5
+              ],
+              "fps": 8
+            },
+            "south": {
+              "frames": [
+                14,
+                15,
+                16,
+                17
+              ],
+              "fps": 8
+            },
+            "east": {
+              "frames": [
+                26,
+                27,
+                28,
+                29
+              ],
+              "fps": 8
+            },
+            "west": {
+              "frames": [
+                38,
+                39,
+                40,
+                41
+              ],
+              "fps": 8
+            }
+          },
+          "work": {
+            "north": {
+              "frames": [
+                6,
+                7,
+                8,
+                9,
+                10,
+                11
+              ],
+              "fps": 4
+            },
+            "south": {
+              "frames": [
+                18,
+                19,
+                20,
+                21,
+                22,
+                23
+              ],
+              "fps": 4
+            },
+            "east": {
+              "frames": [
+                30,
+                31,
+                32,
+                33,
+                34,
+                35
+              ],
+              "fps": 4
+            },
+            "west": {
+              "frames": [
+                42,
+                43,
+                44,
+                45,
+                46,
+                47
+              ],
+              "fps": 4
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "npc--keeper-v1",
+      "version": "1.0.0",
+      "path": "npc--keeper.png",
+      "url": "/assets/npc--keeper.png",
+      "sha256": "e742677139648db1322fd278f47d85d33cd99a08905c51a97e200b9d04169e5c",
+      "dimensions": {
+        "width": 192,
+        "height": 256
+      },
+      "pivot": {
+        "x": 16,
+        "y": 31
+      },
+      "usage": {
+        "kind": "character",
+        "layer": "actor",
+        "frame": {
+          "width": 32,
+          "height": 32,
+          "columns": 6,
+          "rows": 8
+        },
+        "collision": {
+          "kind": "rect",
+          "x": 10,
+          "y": 20,
+          "width": 12,
+          "height": 12
+        },
+        "animations": {
+          "idle": {
+            "north": {
+              "frames": [
+                0,
+                1
+              ],
+              "fps": 2
+            },
+            "south": {
+              "frames": [
+                12,
+                13
+              ],
+              "fps": 2
+            },
+            "east": {
+              "frames": [
+                24,
+                25
+              ],
+              "fps": 2
+            },
+            "west": {
+              "frames": [
+                36,
+                37
+              ],
+              "fps": 2
+            }
+          },
+          "walk": {
+            "north": {
+              "frames": [
+                2,
+                3,
+                4,
+                5
+              ],
+              "fps": 8
+            },
+            "south": {
+              "frames": [
+                14,
+                15,
+                16,
+                17
+              ],
+              "fps": 8
+            },
+            "east": {
+              "frames": [
+                26,
+                27,
+                28,
+                29
+              ],
+              "fps": 8
+            },
+            "west": {
+              "frames": [
+                38,
+                39,
+                40,
+                41
+              ],
+              "fps": 8
+            }
+          },
+          "work": {
+            "north": {
+              "frames": [
+                6,
+                7,
+                8,
+                9,
+                10,
+                11
+              ],
+              "fps": 4
+            },
+            "south": {
+              "frames": [
+                18,
+                19,
+                20,
+                21,
+                22,
+                23
+              ],
+              "fps": 4
+            },
+            "east": {
+              "frames": [
+                30,
+                31,
+                32,
+                33,
+                34,
+                35
+              ],
+              "fps": 4
+            },
+            "west": {
+              "frames": [
+                42,
+                43,
+                44,
+                45,
+                46,
+                47
+              ],
+              "fps": 4
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "npc--neighbor-v1",
+      "version": "1.0.0",
+      "path": "npc--neighbor.png",
+      "url": "/assets/npc--neighbor.png",
+      "sha256": "1a2d05edf1a3a995f89c30cf73fcdfb559aa91da75881d02ea244b2f4e6a1ea5",
+      "dimensions": {
+        "width": 192,
+        "height": 256
+      },
+      "pivot": {
+        "x": 16,
+        "y": 31
+      },
+      "usage": {
+        "kind": "character",
+        "layer": "actor",
+        "frame": {
+          "width": 32,
+          "height": 32,
+          "columns": 6,
+          "rows": 8
+        },
+        "collision": {
+          "kind": "rect",
+          "x": 10,
+          "y": 20,
+          "width": 12,
+          "height": 12
+        },
+        "animations": {
+          "idle": {
+            "north": {
+              "frames": [
+                0,
+                1
+              ],
+              "fps": 2
+            },
+            "south": {
+              "frames": [
+                12,
+                13
+              ],
+              "fps": 2
+            },
+            "east": {
+              "frames": [
+                24,
+                25
+              ],
+              "fps": 2
+            },
+            "west": {
+              "frames": [
+                36,
+                37
+              ],
+              "fps": 2
+            }
+          },
+          "walk": {
+            "north": {
+              "frames": [
+                2,
+                3,
+                4,
+                5
+              ],
+              "fps": 8
+            },
+            "south": {
+              "frames": [
+                14,
+                15,
+                16,
+                17
+              ],
+              "fps": 8
+            },
+            "east": {
+              "frames": [
+                26,
+                27,
+                28,
+                29
+              ],
+              "fps": 8
+            },
+            "west": {
+              "frames": [
+                38,
+                39,
+                40,
+                41
+              ],
+              "fps": 8
+            }
+          },
+          "work": {
+            "north": {
+              "frames": [
+                6,
+                7,
+                8,
+                9,
+                10,
+                11
+              ],
+              "fps": 4
+            },
+            "south": {
+              "frames": [
+                18,
+                19,
+                20,
+                21,
+                22,
+                23
+              ],
+              "fps": 4
+            },
+            "east": {
+              "frames": [
+                30,
+                31,
+                32,
+                33,
+                34,
+                35
+              ],
+              "fps": 4
+            },
+            "west": {
+              "frames": [
+                42,
+                43,
+                44,
+                45,
+                46,
+                47
+              ],
+              "fps": 4
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "clue--threshold-v1",
+      "version": "1.0.0",
+      "path": "clue--threshold.png",
+      "url": "/assets/clue--threshold.png",
+      "sha256": "99859861b5e651ce2af88255219431e7f25041c4dd0722acef48e34f1a4a0267",
+      "dimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 63
+      },
+      "usage": {
+        "kind": "quest",
+        "layer": "object",
+        "frame": {
+          "width": 64,
+          "height": 64,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "clue--water-source-v1",
+      "version": "1.0.0",
+      "path": "clue--water-source.png",
+      "url": "/assets/clue--water-source.png",
+      "sha256": "d51dfa341d9d61690f2484c775fae3887ee630b1710502c8b2d07432d0673de2",
+      "dimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 63
+      },
+      "usage": {
+        "kind": "quest",
+        "layer": "object",
+        "frame": {
+          "width": 64,
+          "height": 64,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "clue--ledger-v1",
+      "version": "1.0.0",
+      "path": "clue--ledger.png",
+      "url": "/assets/clue--ledger.png",
+      "sha256": "69bf792671e1e04ad636d68b2b5afd9592408f4d14fdd7e126818940853b7dbe",
+      "dimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 63
+      },
+      "usage": {
+        "kind": "quest",
+        "layer": "object",
+        "frame": {
+          "width": 64,
+          "height": 64,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--workshop--base-v1",
+      "version": "1.0.0",
+      "path": "place--workshop--base-v1.png",
+      "url": "/assets/place--workshop--base-v1.png",
+      "sha256": "3b3f24e599851f2fc3e2c2d0f6d485b33cfe04804555f41b63b826b9ad35e4c8",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "ground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--workshop--upper-v1",
+      "version": "1.0.0",
+      "path": "place--workshop--upper-v1.png",
+      "url": "/assets/place--workshop--upper-v1.png",
+      "sha256": "f2a426ae1df11ed1d1e76cfc34d2475efd0ec2246a4f409dafc42b91786f8f4f",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--workshop--foreground-v1",
+      "version": "1.0.0",
+      "path": "place--workshop--foreground-v1.png",
+      "url": "/assets/place--workshop--foreground-v1.png",
+      "sha256": "8dc8272ae9a7a84d5e963705669ef21e49810200d01cc40cf2fe6c4255c1ac65",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--workshop--interior-v1",
+      "version": "1.0.0",
+      "path": "place--workshop--interior-v1.png",
+      "url": "/assets/place--workshop--interior-v1.png",
+      "sha256": "c1b492774478801f44bcfabb789053bd632c3039682602ccc8cbfb9c10633c44",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "room",
+        "layer": "ground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "rects",
+          "rects": [
+            {
+              "x": 43,
+              "y": 34,
+              "width": 41,
+              "height": 49
+            },
+            {
+              "x": 137,
+              "y": 42,
+              "width": 28,
+              "height": 27
+            },
+            {
+              "x": 164,
+              "y": 34,
+              "width": 20,
+              "height": 48
+            },
+            {
+              "x": 111,
+              "y": 78,
+              "width": 32,
+              "height": 13
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "place--workshop--interior-foreground-v1",
+      "version": "1.0.0",
+      "path": "place--workshop--interior-foreground-v1.png",
+      "url": "/assets/place--workshop--interior-foreground-v1.png",
+      "sha256": "5359b97b591feab0ee6d42e16ca8e827e7ff2787baeb8f3cac7bd6fe8c50f5b6",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "room",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "rects",
+          "rects": [
+            {
+              "x": 40,
+              "y": 86,
+              "width": 40,
+              "height": 39
+            },
+            {
+              "x": 164,
+              "y": 85,
+              "width": 43,
+              "height": 44
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "place--town-hall--base-v1",
+      "version": "1.0.0",
+      "path": "place--town-hall--base-v1.png",
+      "url": "/assets/place--town-hall--base-v1.png",
+      "sha256": "7f42978ae8e101d90584afbdef435df657c35a8dbf3560ed5e7773eda168db3a",
+      "dimensions": {
+        "width": 240,
+        "height": 176
+      },
+      "pivot": {
+        "x": 120,
+        "y": 166
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "ground",
+        "frame": {
+          "width": 240,
+          "height": 176,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--town-hall--upper-v1",
+      "version": "1.0.0",
+      "path": "place--town-hall--upper-v1.png",
+      "url": "/assets/place--town-hall--upper-v1.png",
+      "sha256": "179bff8a846becd3584a3e99da7b984da31b6eab880dc06c49dbba1972ffd262",
+      "dimensions": {
+        "width": 240,
+        "height": 176
+      },
+      "pivot": {
+        "x": 120,
+        "y": 166
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 176,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--town-hall--foreground-v1",
+      "version": "1.0.0",
+      "path": "place--town-hall--foreground-v1.png",
+      "url": "/assets/place--town-hall--foreground-v1.png",
+      "sha256": "64094de8b97627bcc93536f56e623468d91ea19bc81612c89f03444a823edda1",
+      "dimensions": {
+        "width": 240,
+        "height": 176
+      },
+      "pivot": {
+        "x": 120,
+        "y": 166
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 176,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--town-hall--interior-v1",
+      "version": "1.0.0",
+      "path": "place--town-hall--interior-v1.png",
+      "url": "/assets/place--town-hall--interior-v1.png",
+      "sha256": "2287cabc8e2fee9f85e07c9e606d8e2865cee7bde04e39b40f539fd9a80e44e6",
+      "dimensions": {
+        "width": 240,
+        "height": 176
+      },
+      "pivot": {
+        "x": 120,
+        "y": 166
+      },
+      "usage": {
+        "kind": "room",
+        "layer": "ground",
+        "frame": {
+          "width": 240,
+          "height": 176,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "rects",
+          "rects": [
+            {
+              "x": 94,
+              "y": 43,
+              "width": 52,
+              "height": 22
+            },
+            {
+              "x": 49,
+              "y": 38,
+              "width": 34,
+              "height": 55
+            },
+            {
+              "x": 158,
+              "y": 38,
+              "width": 34,
+              "height": 55
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "place--town-hall--interior-foreground-v1",
+      "version": "1.0.0",
+      "path": "place--town-hall--interior-foreground-v1.png",
+      "url": "/assets/place--town-hall--interior-foreground-v1.png",
+      "sha256": "0773418d3ba1cb396aaf10831f950b2ec0959b7d261ffeddf2da26b4d915bcbb",
+      "dimensions": {
+        "width": 240,
+        "height": 176
+      },
+      "pivot": {
+        "x": 120,
+        "y": 166
+      },
+      "usage": {
+        "kind": "room",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 176,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "rects",
+          "rects": [
+            {
+              "x": 42,
+              "y": 123,
+              "width": 48,
+              "height": 36
+            },
+            {
+              "x": 150,
+              "y": 123,
+              "width": 48,
+              "height": 36
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "place--warehouse--base-v1",
+      "version": "1.0.0",
+      "path": "place--warehouse--base-v1.png",
+      "url": "/assets/place--warehouse--base-v1.png",
+      "sha256": "9b9622191a9a64d9278e6d051a83cd656c49dcff5e4b520dd393e6bf9639bba9",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "ground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--warehouse--upper-v1",
+      "version": "1.0.0",
+      "path": "place--warehouse--upper-v1.png",
+      "url": "/assets/place--warehouse--upper-v1.png",
+      "sha256": "3cbb148eade895856bd38d7d791af9c24de0cf745140050a5dc38d8d5b7dc1c2",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--warehouse--foreground-v1",
+      "version": "1.0.0",
+      "path": "place--warehouse--foreground-v1.png",
+      "url": "/assets/place--warehouse--foreground-v1.png",
+      "sha256": "01a6bf317c9412af6720e11b5a31955fc949792a320ef9bdeaee2fdd628987c9",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--warehouse--interior-v1",
+      "version": "1.0.0",
+      "path": "place--warehouse--interior-v1.png",
+      "url": "/assets/place--warehouse--interior-v1.png",
+      "sha256": "b08a212f173257c6f5ccc9efb9aa5a1d537b7081c5c443419f36f39322ae55f5",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "room",
+        "layer": "ground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "rects",
+          "rects": [
+            {
+              "x": 45,
+              "y": 18,
+              "width": 38,
+              "height": 55
+            },
+            {
+              "x": 84,
+              "y": 18,
+              "width": 61,
+              "height": 35
+            },
+            {
+              "x": 146,
+              "y": 24,
+              "width": 40,
+              "height": 35
+            },
+            {
+              "x": 45,
+              "y": 72,
+              "width": 31,
+              "height": 46
+            },
+            {
+              "x": 169,
+              "y": 70,
+              "width": 25,
+              "height": 49
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "place--warehouse--interior-foreground-v1",
+      "version": "1.0.0",
+      "path": "place--warehouse--interior-foreground-v1.png",
+      "url": "/assets/place--warehouse--interior-foreground-v1.png",
+      "sha256": "d363eee47929f43874b4471b131176452017c25b1f867dcccb4ff9728cbbd998",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "room",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "rects",
+          "rects": [
+            {
+              "x": 39,
+              "y": 88,
+              "width": 42,
+              "height": 54
+            },
+            {
+              "x": 151,
+              "y": 88,
+              "width": 44,
+              "height": 54
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "place--dwelling-gabled--base-v1",
+      "version": "1.0.0",
+      "path": "place--dwelling-gabled--base-v1.png",
+      "url": "/assets/place--dwelling-gabled--base-v1.png",
+      "sha256": "88f840eb88c74e929954ecaa03bc3f5371955a720a99f379c5ba5f84adebcfb0",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "ground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--dwelling-gabled--upper-v1",
+      "version": "1.0.0",
+      "path": "place--dwelling-gabled--upper-v1.png",
+      "url": "/assets/place--dwelling-gabled--upper-v1.png",
+      "sha256": "2981f15597e889351d96e6259292297ae1ebb3de960ad2a020e6b10f197f066f",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--dwelling-gabled--foreground-v1",
+      "version": "1.0.0",
+      "path": "place--dwelling-gabled--foreground-v1.png",
+      "url": "/assets/place--dwelling-gabled--foreground-v1.png",
+      "sha256": "9365d9fa00ac0cc0d3f8c05bdfb083a7b973b3063d19b101897c4cc8263e4968",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--dwelling-stone--base-v1",
+      "version": "1.0.0",
+      "path": "place--dwelling-stone--base-v1.png",
+      "url": "/assets/place--dwelling-stone--base-v1.png",
+      "sha256": "0e8a769858f77a64c74f424d004053f7c0d22ad1c1273e3af128785d1a7d7bb6",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "ground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--dwelling-stone--upper-v1",
+      "version": "1.0.0",
+      "path": "place--dwelling-stone--upper-v1.png",
+      "url": "/assets/place--dwelling-stone--upper-v1.png",
+      "sha256": "5f6257b06385475d06ac59109008086b8b7c912813101c8c0bcab44ed34ab9cf",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--dwelling-stone--foreground-v1",
+      "version": "1.0.0",
+      "path": "place--dwelling-stone--foreground-v1.png",
+      "url": "/assets/place--dwelling-stone--foreground-v1.png",
+      "sha256": "8d208b74c52d48d7615ae2dcedd8b9bbf2bab4cc0ddaa6d5e30907d4f11240b6",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--dwelling-stone-bay--base-v1",
+      "version": "1.0.0",
+      "path": "place--dwelling-stone-bay-base-v1.png",
+      "url": "/assets/place--dwelling-stone-bay-base-v1.png",
+      "sha256": "1716caf3864900d8113d33b9cc4c895e7f8ed07aaff195141ecc8b5138e6e358",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "ground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--dwelling-stone-bay--upper-v1",
+      "version": "1.0.0",
+      "path": "place--dwelling-stone-bay-upper-v1.png",
+      "url": "/assets/place--dwelling-stone-bay-upper-v1.png",
+      "sha256": "dba1c78a34de68445315799361f732b32dbf080bed394dba6762cbb500d94bb6",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--dwelling-stone-bay--foreground-v1",
+      "version": "1.0.0",
+      "path": "place--dwelling-stone-bay-foreground-v1.png",
+      "url": "/assets/place--dwelling-stone-bay-foreground-v1.png",
+      "sha256": "08d69b51f95c4611d779b91249d64f3d7295f8645953ecdeeeae93db730328c3",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--gate--base-v1",
+      "version": "1.0.0",
+      "path": "place--gate--base-v1.png",
+      "url": "/assets/place--gate--base-v1.png",
+      "sha256": "013f9f912a0d649dfed7dc53f7c56d9658abe5401298a27df211f98643f4912c",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "ground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--gate--upper-v1",
+      "version": "1.0.0",
+      "path": "place--gate--upper-v1.png",
+      "url": "/assets/place--gate--upper-v1.png",
+      "sha256": "5ec8f7cc69577f6c9c9ab4e3f7010747156ddf280a57dac877e050302d1f2ff5",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--gate--foreground-v1",
+      "version": "1.0.0",
+      "path": "place--gate--foreground-v1.png",
+      "url": "/assets/place--gate--foreground-v1.png",
+      "sha256": "a4035771d2fd4bd404e37e8f04914c79d18ece47de52666e64bb2ad84f7efbec",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--well--base-v1",
+      "version": "1.0.0",
+      "path": "place--well--base-v1.png",
+      "url": "/assets/place--well--base-v1.png",
+      "sha256": "11e068095d3af6972cdc2ef0b8a211a464ffe45983f56cb0d954087d88682f85",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "ground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--well--upper-v1",
+      "version": "1.0.0",
+      "path": "place--well--upper-v1.png",
+      "url": "/assets/place--well--upper-v1.png",
+      "sha256": "e3700527f3a86f686953f7736a1dffc057793509c037ac7de38bf3a9183758e3",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--well--foreground-v1",
+      "version": "1.0.0",
+      "path": "place--well--foreground-v1.png",
+      "url": "/assets/place--well--foreground-v1.png",
+      "sha256": "7d45de3076da5f3b4abff4383609eba093c519e3439bede8a50c84366a87c9b0",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--clue--ledger-v1",
+      "version": "1.0.0",
+      "path": "snow--clue--ledger.png",
+      "url": "/assets/snow--clue--ledger.png",
+      "sha256": "69bf792671e1e04ad636d68b2b5afd9592408f4d14fdd7e126818940853b7dbe",
+      "dimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 60
+      },
+      "usage": {
+        "kind": "quest",
+        "layer": "object",
+        "frame": {
+          "width": 64,
+          "height": 64,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--clue--threshold-v1",
+      "version": "1.0.0",
+      "path": "snow--clue--threshold.png",
+      "url": "/assets/snow--clue--threshold.png",
+      "sha256": "99859861b5e651ce2af88255219431e7f25041c4dd0722acef48e34f1a4a0267",
+      "dimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 60
+      },
+      "usage": {
+        "kind": "quest",
+        "layer": "object",
+        "frame": {
+          "width": 64,
+          "height": 64,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--clue--water-source-v1",
+      "version": "1.0.0",
+      "path": "snow--clue--water-source.png",
+      "url": "/assets/snow--clue--water-source.png",
+      "sha256": "d51dfa341d9d61690f2484c775fae3887ee630b1710502c8b2d07432d0673de2",
+      "dimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 58
+      },
+      "usage": {
+        "kind": "quest",
+        "layer": "object",
+        "frame": {
+          "width": 64,
+          "height": 64,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--light--lit-v1",
+      "version": "1.0.0",
+      "path": "snow--light--lit.png",
+      "url": "/assets/snow--light--lit.png",
+      "sha256": "a7806bb6ad4e791c4206bd08a351db609e0d767632121ba4f2206de56b5c6a8e",
+      "dimensions": {
+        "width": 32,
+        "height": 64
+      },
+      "pivot": {
+        "x": 16,
+        "y": 62
+      },
+      "usage": {
+        "kind": "light",
+        "layer": "foreground",
+        "frame": {
+          "width": 32,
+          "height": 64,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--light--unknown-v1",
+      "version": "1.0.0",
+      "path": "snow--light--unknown.png",
+      "url": "/assets/snow--light--unknown.png",
+      "sha256": "7ec58bfe5a478f0abecd1e5a5e92ada213c5deb556c60e8498ea6ddad3013404",
+      "dimensions": {
+        "width": 32,
+        "height": 64
+      },
+      "pivot": {
+        "x": 16,
+        "y": 62
+      },
+      "usage": {
+        "kind": "light",
+        "layer": "foreground",
+        "frame": {
+          "width": 32,
+          "height": 64,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--light--unlit-v1",
+      "version": "1.0.0",
+      "path": "snow--light--unlit.png",
+      "url": "/assets/snow--light--unlit.png",
+      "sha256": "15c7e863d244c074d3ac597664b00ce5d800706213235c7445cc0acb9a3489e8",
+      "dimensions": {
+        "width": 32,
+        "height": 64
+      },
+      "pivot": {
+        "x": 16,
+        "y": 62
+      },
+      "usage": {
+        "kind": "light",
+        "layer": "foreground",
+        "frame": {
+          "width": 32,
+          "height": 64,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--npc--artisan-v1",
+      "version": "1.0.0",
+      "path": "snow--npc--artisan.png",
+      "url": "/assets/snow--npc--artisan.png",
+      "sha256": "03a771789668e492d405105150021392a7390b1c118830f4827fcfd4193aa788",
+      "dimensions": {
+        "width": 192,
+        "height": 256
+      },
+      "pivot": {
+        "x": 16,
+        "y": 31
+      },
+      "usage": {
+        "kind": "character",
+        "layer": "actor",
+        "frame": {
+          "width": 32,
+          "height": 32,
+          "columns": 6,
+          "rows": 8
+        },
+        "collision": {
+          "kind": "rect",
+          "x": 10,
+          "y": 20,
+          "width": 12,
+          "height": 12
+        },
+        "animations": {
+          "idle": {
+            "north": {
+              "frames": [
+                0,
+                1
+              ],
+              "fps": 2
+            },
+            "south": {
+              "frames": [
+                12,
+                13
+              ],
+              "fps": 2
+            },
+            "east": {
+              "frames": [
+                24,
+                25
+              ],
+              "fps": 2
+            },
+            "west": {
+              "frames": [
+                36,
+                37
+              ],
+              "fps": 2
+            }
+          },
+          "walk": {
+            "north": {
+              "frames": [
+                2,
+                3,
+                4,
+                5
+              ],
+              "fps": 8
+            },
+            "south": {
+              "frames": [
+                14,
+                15,
+                16,
+                17
+              ],
+              "fps": 8
+            },
+            "east": {
+              "frames": [
+                26,
+                27,
+                28,
+                29
+              ],
+              "fps": 8
+            },
+            "west": {
+              "frames": [
+                38,
+                39,
+                40,
+                41
+              ],
+              "fps": 8
+            }
+          },
+          "work": {
+            "north": {
+              "frames": [
+                6,
+                7,
+                8,
+                9,
+                10,
+                11
+              ],
+              "fps": 4
+            },
+            "south": {
+              "frames": [
+                18,
+                19,
+                20,
+                21,
+                22,
+                23
+              ],
+              "fps": 4
+            },
+            "east": {
+              "frames": [
+                30,
+                31,
+                32,
+                33,
+                34,
+                35
+              ],
+              "fps": 4
+            },
+            "west": {
+              "frames": [
+                42,
+                43,
+                44,
+                45,
+                46,
+                47
+              ],
+              "fps": 4
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "snow--npc--keeper-v1",
+      "version": "1.0.0",
+      "path": "snow--npc--keeper.png",
+      "url": "/assets/snow--npc--keeper.png",
+      "sha256": "32618d0e30278abaae83015cecc36490075f645b32e20ba919f41d39fdd64666",
+      "dimensions": {
+        "width": 192,
+        "height": 256
+      },
+      "pivot": {
+        "x": 16,
+        "y": 31
+      },
+      "usage": {
+        "kind": "character",
+        "layer": "actor",
+        "frame": {
+          "width": 32,
+          "height": 32,
+          "columns": 6,
+          "rows": 8
+        },
+        "collision": {
+          "kind": "rect",
+          "x": 10,
+          "y": 20,
+          "width": 12,
+          "height": 12
+        },
+        "animations": {
+          "idle": {
+            "north": {
+              "frames": [
+                0,
+                1
+              ],
+              "fps": 2
+            },
+            "south": {
+              "frames": [
+                12,
+                13
+              ],
+              "fps": 2
+            },
+            "east": {
+              "frames": [
+                24,
+                25
+              ],
+              "fps": 2
+            },
+            "west": {
+              "frames": [
+                36,
+                37
+              ],
+              "fps": 2
+            }
+          },
+          "walk": {
+            "north": {
+              "frames": [
+                2,
+                3,
+                4,
+                5
+              ],
+              "fps": 8
+            },
+            "south": {
+              "frames": [
+                14,
+                15,
+                16,
+                17
+              ],
+              "fps": 8
+            },
+            "east": {
+              "frames": [
+                26,
+                27,
+                28,
+                29
+              ],
+              "fps": 8
+            },
+            "west": {
+              "frames": [
+                38,
+                39,
+                40,
+                41
+              ],
+              "fps": 8
+            }
+          },
+          "work": {
+            "north": {
+              "frames": [
+                6,
+                7,
+                8,
+                9,
+                10,
+                11
+              ],
+              "fps": 4
+            },
+            "south": {
+              "frames": [
+                18,
+                19,
+                20,
+                21,
+                22,
+                23
+              ],
+              "fps": 4
+            },
+            "east": {
+              "frames": [
+                30,
+                31,
+                32,
+                33,
+                34,
+                35
+              ],
+              "fps": 4
+            },
+            "west": {
+              "frames": [
+                42,
+                43,
+                44,
+                45,
+                46,
+                47
+              ],
+              "fps": 4
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "snow--npc--neighbor-v1",
+      "version": "1.0.0",
+      "path": "snow--npc--neighbor.png",
+      "url": "/assets/snow--npc--neighbor.png",
+      "sha256": "14f7496aafead587b1ce0c7a53b66d8aac9911d1f98ac7acc0d35c7594bf281c",
+      "dimensions": {
+        "width": 192,
+        "height": 256
+      },
+      "pivot": {
+        "x": 16,
+        "y": 31
+      },
+      "usage": {
+        "kind": "character",
+        "layer": "actor",
+        "frame": {
+          "width": 32,
+          "height": 32,
+          "columns": 6,
+          "rows": 8
+        },
+        "collision": {
+          "kind": "rect",
+          "x": 10,
+          "y": 20,
+          "width": 12,
+          "height": 12
+        },
+        "animations": {
+          "idle": {
+            "north": {
+              "frames": [
+                0,
+                1
+              ],
+              "fps": 2
+            },
+            "south": {
+              "frames": [
+                12,
+                13
+              ],
+              "fps": 2
+            },
+            "east": {
+              "frames": [
+                24,
+                25
+              ],
+              "fps": 2
+            },
+            "west": {
+              "frames": [
+                36,
+                37
+              ],
+              "fps": 2
+            }
+          },
+          "walk": {
+            "north": {
+              "frames": [
+                2,
+                3,
+                4,
+                5
+              ],
+              "fps": 8
+            },
+            "south": {
+              "frames": [
+                14,
+                15,
+                16,
+                17
+              ],
+              "fps": 8
+            },
+            "east": {
+              "frames": [
+                26,
+                27,
+                28,
+                29
+              ],
+              "fps": 8
+            },
+            "west": {
+              "frames": [
+                38,
+                39,
+                40,
+                41
+              ],
+              "fps": 8
+            }
+          },
+          "work": {
+            "north": {
+              "frames": [
+                6,
+                7,
+                8,
+                9,
+                10,
+                11
+              ],
+              "fps": 4
+            },
+            "south": {
+              "frames": [
+                18,
+                19,
+                20,
+                21,
+                22,
+                23
+              ],
+              "fps": 4
+            },
+            "east": {
+              "frames": [
+                30,
+                31,
+                32,
+                33,
+                34,
+                35
+              ],
+              "fps": 4
+            },
+            "west": {
+              "frames": [
+                42,
+                43,
+                44,
+                45,
+                46,
+                47
+              ],
+              "fps": 4
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "snow--place--dwelling-gabled--base-v1",
+      "version": "1.0.0",
+      "path": "snow--place--dwelling-gabled--base.png",
+      "url": "/assets/snow--place--dwelling-gabled--base.png",
+      "sha256": "bfacca1df5fee0a7c229bd8fce3080c740bb6b22962711b1fc4d8a24115bce5b",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "ground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--place--dwelling-gabled--foreground-v1",
+      "version": "1.0.0",
+      "path": "snow--place--dwelling-gabled--foreground.png",
+      "url": "/assets/snow--place--dwelling-gabled--foreground.png",
+      "sha256": "b8b46903c6d9e95b82643a6668cd4e550e7f0931b762d8f5e3d719efa0792cc2",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--place--dwelling-gabled--upper-v1",
+      "version": "1.0.0",
+      "path": "snow--place--dwelling-gabled--upper.png",
+      "url": "/assets/snow--place--dwelling-gabled--upper.png",
+      "sha256": "80a184cb7f9b55d58a221155536cd3402e72fa80c0033f7ba55de2abbd773761",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--place--dwelling-stone--base-v1",
+      "version": "1.0.0",
+      "path": "snow--place--dwelling-stone--base.png",
+      "url": "/assets/snow--place--dwelling-stone--base.png",
+      "sha256": "1d2c373c8b367fb5148e78314de7f8b9729699a1df65f2d71c84a7cdda61f5f5",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "ground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--place--dwelling-stone--foreground-v1",
+      "version": "1.0.0",
+      "path": "snow--place--dwelling-stone--foreground.png",
+      "url": "/assets/snow--place--dwelling-stone--foreground.png",
+      "sha256": "f3304a4997b28a8494f629fdff5f20e3f00fbb43018c8702e5d28931fa595d91",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--place--dwelling-stone--upper-v1",
+      "version": "1.0.0",
+      "path": "snow--place--dwelling-stone--upper.png",
+      "url": "/assets/snow--place--dwelling-stone--upper.png",
+      "sha256": "d45557867c634af2b360c2eed06471cc7693a365d1319311dcfe5889d30382fc",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--place--gate--base-v1",
+      "version": "1.0.0",
+      "path": "snow--place--gate--base.png",
+      "url": "/assets/snow--place--gate--base.png",
+      "sha256": "87c25b737184a3fc48fd3a8fa9b36c86dda6692f5e7a2bfdba462a47243b2d56",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "ground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--place--gate--foreground-v1",
+      "version": "1.0.0",
+      "path": "snow--place--gate--foreground.png",
+      "url": "/assets/snow--place--gate--foreground.png",
+      "sha256": "31b942d7358130dde3d6287dd99f3c4386844d833abaf672d342959fa11645d1",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--place--gate--upper-v1",
+      "version": "1.0.0",
+      "path": "snow--place--gate--upper.png",
+      "url": "/assets/snow--place--gate--upper.png",
+      "sha256": "aab38d73ae21fe9587d37fcfbb3028f0020d5b6882035dff0ff742bb5dde6ca6",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--place--town-hall--base-v1",
+      "version": "1.0.0",
+      "path": "snow--place--town-hall--base.png",
+      "url": "/assets/snow--place--town-hall--base.png",
+      "sha256": "578e328f75a75043349d6ebc52ff0920e64531fa2fa34210b1492fcb568bb245",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "ground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--place--town-hall--foreground-v1",
+      "version": "1.0.0",
+      "path": "snow--place--town-hall--foreground.png",
+      "url": "/assets/snow--place--town-hall--foreground.png",
+      "sha256": "ce5c861c928ce14a02b10852e957c0ea85861d485993256735cffaeebf137833",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--place--town-hall--interior-foreground-v1",
+      "version": "1.0.0",
+      "path": "snow--place--town-hall--interior-foreground.png",
+      "url": "/assets/snow--place--town-hall--interior-foreground.png",
+      "sha256": "f3866d5ff1dd82cc8faa35e07f4e8faf46757114a31d5645b696f1ef1acfde1f",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "room",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "rects",
+          "rects": [
+            {
+              "x": 42,
+              "y": 123,
+              "width": 48,
+              "height": 36
+            },
+            {
+              "x": 150,
+              "y": 123,
+              "width": 48,
+              "height": 36
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "snow--place--town-hall--interior-v1",
+      "version": "1.0.0",
+      "path": "snow--place--town-hall--interior.png",
+      "url": "/assets/snow--place--town-hall--interior.png",
+      "sha256": "8165b49f685e0c73ba368deea7340a72ab8f0a153466edec2aa6b0a0e5ee758a",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "room",
+        "layer": "ground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "rects",
+          "rects": [
+            {
+              "x": 94,
+              "y": 43,
+              "width": 52,
+              "height": 22
+            },
+            {
+              "x": 49,
+              "y": 38,
+              "width": 34,
+              "height": 55
+            },
+            {
+              "x": 158,
+              "y": 38,
+              "width": 34,
+              "height": 55
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "snow--place--town-hall--upper-v1",
+      "version": "1.0.0",
+      "path": "snow--place--town-hall--upper.png",
+      "url": "/assets/snow--place--town-hall--upper.png",
+      "sha256": "94622f2166bebae9a6e2c46a5f034b828093b6239c2c9a6ac254908781101837",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--place--warehouse--base-v1",
+      "version": "1.0.0",
+      "path": "snow--place--warehouse--base.png",
+      "url": "/assets/snow--place--warehouse--base.png",
+      "sha256": "469fc3bebcb3aafc10ad8169e9d75e92e92264ea9507a8bd1331a7758b1d0e96",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "ground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--place--warehouse--foreground-v1",
+      "version": "1.0.0",
+      "path": "snow--place--warehouse--foreground.png",
+      "url": "/assets/snow--place--warehouse--foreground.png",
+      "sha256": "d60f19837df15bfdb3f2cc239c7230304788ce231413de9f07d7576bc291b0eb",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--place--warehouse--interior-foreground-v1",
+      "version": "1.0.0",
+      "path": "snow--place--warehouse--interior-foreground.png",
+      "url": "/assets/snow--place--warehouse--interior-foreground.png",
+      "sha256": "4419247b5f474c0edc10617aee177d372e4803a7ee6fd64bec36cfc7d503a475",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "room",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "rects",
+          "rects": [
+            {
+              "x": 39,
+              "y": 88,
+              "width": 42,
+              "height": 54
+            },
+            {
+              "x": 151,
+              "y": 88,
+              "width": 44,
+              "height": 54
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "snow--place--warehouse--interior-v1",
+      "version": "1.0.0",
+      "path": "snow--place--warehouse--interior.png",
+      "url": "/assets/snow--place--warehouse--interior.png",
+      "sha256": "f2892cafe37b70ec3e5d244136049254f6aad8c2073752857d65dc81eead1a56",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "room",
+        "layer": "ground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "rects",
+          "rects": [
+            {
+              "x": 45,
+              "y": 18,
+              "width": 38,
+              "height": 55
+            },
+            {
+              "x": 84,
+              "y": 18,
+              "width": 61,
+              "height": 35
+            },
+            {
+              "x": 146,
+              "y": 24,
+              "width": 40,
+              "height": 35
+            },
+            {
+              "x": 45,
+              "y": 72,
+              "width": 31,
+              "height": 46
+            },
+            {
+              "x": 169,
+              "y": 70,
+              "width": 25,
+              "height": 49
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "snow--place--warehouse--upper-v1",
+      "version": "1.0.0",
+      "path": "snow--place--warehouse--upper.png",
+      "url": "/assets/snow--place--warehouse--upper.png",
+      "sha256": "64ea8bee3b665af0d9926a0a7246a7e0fd86b10065dad389145691bb2ce1b11c",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--place--well--base-v1",
+      "version": "1.0.0",
+      "path": "snow--place--well--base.png",
+      "url": "/assets/snow--place--well--base.png",
+      "sha256": "39a66e9a764be1f5d8968a397952d08fd0b4d2a8d3ea455a0a95bf4561478998",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "ground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--place--well--foreground-v1",
+      "version": "1.0.0",
+      "path": "snow--place--well--foreground.png",
+      "url": "/assets/snow--place--well--foreground.png",
+      "sha256": "7db7a39dee39667c8710b6c0bac982d6f17e66793cee8e26b19d05c3d2691db9",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--place--well--upper-v1",
+      "version": "1.0.0",
+      "path": "snow--place--well--upper.png",
+      "url": "/assets/snow--place--well--upper.png",
+      "sha256": "4014416588f7c35adff5df18cc37833787f73c4f03785c42735b210375ae1ece",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--place--workshop--base-v1",
+      "version": "1.0.0",
+      "path": "snow--place--workshop--base.png",
+      "url": "/assets/snow--place--workshop--base.png",
+      "sha256": "5b0cec4c97ce48173cc1c45ad9d0695680150d9eff2f86614f90f277fbb7e8c5",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "ground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--place--workshop--foreground-v1",
+      "version": "1.0.0",
+      "path": "snow--place--workshop--foreground.png",
+      "url": "/assets/snow--place--workshop--foreground.png",
+      "sha256": "1c4e019ab22f24643a1e2404e1da362778eb7e4f3df76bccefd9f22405c472a5",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--place--workshop--interior-foreground-v1",
+      "version": "1.0.0",
+      "path": "snow--place--workshop--interior-foreground.png",
+      "url": "/assets/snow--place--workshop--interior-foreground.png",
+      "sha256": "5d0055e30ad26734b61dbbef42f95a9cdf9d366b735f36a0498f7c863e613b98",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "room",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "rects",
+          "rects": [
+            {
+              "x": 40,
+              "y": 86,
+              "width": 40,
+              "height": 39
+            },
+            {
+              "x": 164,
+              "y": 85,
+              "width": 43,
+              "height": 44
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "snow--place--workshop--interior-v1",
+      "version": "1.0.0",
+      "path": "snow--place--workshop--interior.png",
+      "url": "/assets/snow--place--workshop--interior.png",
+      "sha256": "9a7fc02c855e8a7707b431aac4ecde8587be6b248a044afc94bfce2b23a4fca8",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "room",
+        "layer": "ground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "rects",
+          "rects": [
+            {
+              "x": 43,
+              "y": 34,
+              "width": 41,
+              "height": 49
+            },
+            {
+              "x": 137,
+              "y": 42,
+              "width": 28,
+              "height": 27
+            },
+            {
+              "x": 164,
+              "y": 34,
+              "width": 20,
+              "height": 48
+            },
+            {
+              "x": 111,
+              "y": 78,
+              "width": 32,
+              "height": 13
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "snow--place--workshop--upper-v1",
+      "version": "1.0.0",
+      "path": "snow--place--workshop--upper.png",
+      "url": "/assets/snow--place--workshop--upper.png",
+      "sha256": "d616ca1f7c33e79f60ad5c271abe72df78694b1c6d064228486f76ba39c19039",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--player-v1",
+      "version": "1.0.0",
+      "path": "snow--player.png",
+      "url": "/assets/snow--player.png",
+      "sha256": "f8a6931c48c979e8b6292cee922bebdd94cfc2db9498e6ab93f575662230d6c7",
+      "dimensions": {
+        "width": 192,
+        "height": 256
+      },
+      "pivot": {
+        "x": 16,
+        "y": 31
+      },
+      "usage": {
+        "kind": "character",
+        "layer": "actor",
+        "frame": {
+          "width": 32,
+          "height": 32,
+          "columns": 6,
+          "rows": 8
+        },
+        "collision": {
+          "kind": "rect",
+          "x": 10,
+          "y": 20,
+          "width": 12,
+          "height": 12
+        },
+        "animations": {
+          "idle": {
+            "north": {
+              "frames": [
+                0,
+                1
+              ],
+              "fps": 2
+            },
+            "south": {
+              "frames": [
+                12,
+                13
+              ],
+              "fps": 2
+            },
+            "east": {
+              "frames": [
+                24,
+                25
+              ],
+              "fps": 2
+            },
+            "west": {
+              "frames": [
+                36,
+                37
+              ],
+              "fps": 2
+            }
+          },
+          "walk": {
+            "north": {
+              "frames": [
+                2,
+                3,
+                4,
+                5
+              ],
+              "fps": 8
+            },
+            "south": {
+              "frames": [
+                14,
+                15,
+                16,
+                17
+              ],
+              "fps": 8
+            },
+            "east": {
+              "frames": [
+                26,
+                27,
+                28,
+                29
+              ],
+              "fps": 8
+            },
+            "west": {
+              "frames": [
+                38,
+                39,
+                40,
+                41
+              ],
+              "fps": 8
+            }
+          },
+          "run": {
+            "north": {
+              "frames": [
+                6,
+                7,
+                8,
+                9,
+                10,
+                11
+              ],
+              "fps": 12
+            },
+            "south": {
+              "frames": [
+                18,
+                19,
+                20,
+                21,
+                22,
+                23
+              ],
+              "fps": 12
+            },
+            "east": {
+              "frames": [
+                30,
+                31,
+                32,
+                33,
+                34,
+                35
+              ],
+              "fps": 12
+            },
+            "west": {
+              "frames": [
+                42,
+                43,
+                44,
+                45,
+                46,
+                47
+              ],
+              "fps": 12
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "snow--surface--bank-v1",
+      "version": "1.0.0",
+      "path": "snow--surface--bank.png",
+      "url": "/assets/snow--surface--bank.png",
+      "sha256": "7cdcc4980f8b5af2a2376bc758724d5a37354efb39e4d57e56e8362409ffd4d6",
+      "dimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 0,
+        "y": 0
+      },
+      "usage": {
+        "kind": "terrain",
+        "layer": "ground",
+        "frame": {
+          "width": 64,
+          "height": 64,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--surface--crossing-v1",
+      "version": "1.0.0",
+      "path": "snow--surface--crossing.png",
+      "url": "/assets/snow--surface--crossing.png",
+      "sha256": "c88b6bbe082afa1299b2da9cdef3329eae339a1bd3261a4955c5417dd1995806",
+      "dimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 0,
+        "y": 0
+      },
+      "usage": {
+        "kind": "road",
+        "layer": "ground",
+        "frame": {
+          "width": 64,
+          "height": 64,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--surface--ground-v1",
+      "version": "1.0.0",
+      "path": "snow--surface--ground.png",
+      "url": "/assets/snow--surface--ground.png",
+      "sha256": "58b9bf730a067fcf88095f8ed704c8dd21bde56cf01db124065dd0d18b62806b",
+      "dimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 0,
+        "y": 0
+      },
+      "usage": {
+        "kind": "terrain",
+        "layer": "ground",
+        "frame": {
+          "width": 64,
+          "height": 64,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--surface--plaza-v1",
+      "version": "1.0.0",
+      "path": "snow--surface--plaza.png",
+      "url": "/assets/snow--surface--plaza.png",
+      "sha256": "2610fa4cf4070bfc31d0a4760d3de759bdb0eeabd0596eb32612bd3d2b7d6f6b",
+      "dimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 0,
+        "y": 0
+      },
+      "usage": {
+        "kind": "road",
+        "layer": "ground",
+        "frame": {
+          "width": 64,
+          "height": 64,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--surface--road-local-v1",
+      "version": "1.0.0",
+      "path": "snow--surface--road-local.png",
+      "url": "/assets/snow--surface--road-local.png",
+      "sha256": "1c8cfabd60811e40a7a8f1d8ae28442bf33bfa9ff47ba4d2a6dc19b88a40c4a4",
+      "dimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 0,
+        "y": 0
+      },
+      "usage": {
+        "kind": "road",
+        "layer": "ground",
+        "frame": {
+          "width": 64,
+          "height": 64,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--surface--road-main-v1",
+      "version": "1.0.0",
+      "path": "snow--surface--road-main.png",
+      "url": "/assets/snow--surface--road-main.png",
+      "sha256": "081866a49b8bc6d301ea25d9739e2a971934cef609cf1ba96bb2a96ca1318027",
+      "dimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 0,
+        "y": 0
+      },
+      "usage": {
+        "kind": "road",
+        "layer": "ground",
+        "frame": {
+          "width": 64,
+          "height": 64,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--surface--water-v1",
+      "version": "1.0.0",
+      "path": "snow--surface--water.png",
+      "url": "/assets/snow--surface--water.png",
+      "sha256": "36c8a05adf1cb7923bdb3e448fcc68afe04a44855b0a4cc54a873f28bd157dd1",
+      "dimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 0,
+        "y": 0
+      },
+      "usage": {
+        "kind": "water",
+        "layer": "ground",
+        "frame": {
+          "width": 64,
+          "height": 64,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--ui--dialogue-v1",
+      "version": "1.0.0",
+      "path": "snow--ui--dialogue.png",
+      "url": "/assets/snow--ui--dialogue.png",
+      "sha256": "1c7f93b092f68dd71bfe561e7d194ea9cb142cce90c7d844cff913479f8df9b0",
+      "dimensions": {
+        "width": 384,
+        "height": 216
+      },
+      "pivot": {
+        "x": 192,
+        "y": 215
+      },
+      "usage": {
+        "kind": "ui",
+        "layer": "ui",
+        "frame": {
+          "width": 384,
+          "height": 216,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--ui--exit-v1",
+      "version": "1.0.0",
+      "path": "snow--ui--exit.png",
+      "url": "/assets/snow--ui--exit.png",
+      "sha256": "94703fb325575cfcc1d4dc163d59bb0470f828f9072fbe9132f353382dc82ec8",
+      "dimensions": {
+        "width": 384,
+        "height": 216
+      },
+      "pivot": {
+        "x": 192,
+        "y": 215
+      },
+      "usage": {
+        "kind": "ui",
+        "layer": "ui",
+        "frame": {
+          "width": 384,
+          "height": 216,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--ui--inspection-report-v1",
+      "version": "1.0.0",
+      "path": "snow--ui--inspection-report.png",
+      "url": "/assets/snow--ui--inspection-report.png",
+      "sha256": "6086a0b98495f2e259b2427fb1411d3f95212887f141e7f1b8019a9b33fbf25d",
+      "dimensions": {
+        "width": 384,
+        "height": 216
+      },
+      "pivot": {
+        "x": 192,
+        "y": 215
+      },
+      "usage": {
+        "kind": "ui",
+        "layer": "ui",
+        "frame": {
+          "width": 384,
+          "height": 216,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--prop--dock-cargo-v1",
+      "version": "1.0.0",
+      "path": "snow--prop--dock-cargo.png",
+      "url": "/assets/snow--prop--dock-cargo.png",
+      "sha256": "1df53b87fa91387cff5b6ea5a06efc151d41997e14585c28448b6a6111fcfcc3",
+      "dimensions": {
+        "width": 144,
+        "height": 96
+      },
+      "pivot": {
+        "x": 72,
+        "y": 95
+      },
+      "usage": {
+        "kind": "prop",
+        "layer": "object",
+        "frame": {
+          "width": 144,
+          "height": 96,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "rects",
+          "rects": [
+            {
+              "x": 12,
+              "y": 58,
+              "width": 120,
+              "height": 34
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "snow--prop--evergreen-v1",
+      "version": "1.0.0",
+      "path": "snow--prop--evergreen.png",
+      "url": "/assets/snow--prop--evergreen.png",
+      "sha256": "40f32d281ca78596307492ef94f71c83c755d426b71c68b6eee20e387f121302",
+      "dimensions": {
+        "width": 96,
+        "height": 144
+      },
+      "pivot": {
+        "x": 48,
+        "y": 143
+      },
+      "usage": {
+        "kind": "prop",
+        "layer": "object",
+        "frame": {
+          "width": 96,
+          "height": 144,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "snow--prop--harbor-lamp-v1",
+      "version": "1.0.0",
+      "path": "snow--prop--harbor-lamp.png",
+      "url": "/assets/snow--prop--harbor-lamp.png",
+      "sha256": "bc2b3d511563c7459c595af9a171804b43ab20ff02bbef6869c7de14bf2450e3",
+      "dimensions": {
+        "width": 48,
+        "height": 128
+      },
+      "pivot": {
+        "x": 24,
+        "y": 127
+      },
+      "usage": {
+        "kind": "prop",
+        "layer": "object",
+        "frame": {
+          "width": 48,
+          "height": 128,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "prop--work-clutter-v1",
+      "version": "1.0.0",
+      "path": "prop--work-clutter.png",
+      "url": "/assets/prop--work-clutter.png",
+      "sha256": "a1adb62a1c16e1b486eb568665417c78c67ee7a2cfddf3d6069e42d0d7bce438",
+      "dimensions": {
+        "width": 128,
+        "height": 88
+      },
+      "pivot": {
+        "x": 64,
+        "y": 87
+      },
+      "usage": {
+        "kind": "prop",
+        "layer": "object",
+        "frame": {
+          "width": 128,
+          "height": 88,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "rects",
+          "rects": [
+            {
+              "x": 10,
+              "y": 54,
+              "width": 108,
+              "height": 24
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "prop--civic-planter-v1",
+      "version": "1.0.0",
+      "path": "prop--civic-planter.png",
+      "url": "/assets/prop--civic-planter.png",
+      "sha256": "87be04df5542deefc104a4a18cf6e38dd88206a34bca161c65fdcbd62ae06992",
+      "dimensions": {
+        "width": 112,
+        "height": 88
+      },
+      "pivot": {
+        "x": 56,
+        "y": 87
+      },
+      "usage": {
+        "kind": "prop",
+        "layer": "object",
+        "frame": {
+          "width": 112,
+          "height": 88,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "rects",
+          "rects": [
+            {
+              "x": 13,
+              "y": 54,
+              "width": 86,
+              "height": 24
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "prop--living-woodpile-v1",
+      "version": "1.0.0",
+      "path": "prop--living-woodpile.png",
+      "url": "/assets/prop--living-woodpile.png",
+      "sha256": "c0bf0e042db0c94f143a8a9601125c891b2cb7fad6fd79da932745be838813fb",
+      "dimensions": {
+        "width": 128,
+        "height": 78
+      },
+      "pivot": {
+        "x": 64,
+        "y": 77
+      },
+      "usage": {
+        "kind": "prop",
+        "layer": "object",
+        "frame": {
+          "width": 128,
+          "height": 78,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "rects",
+          "rects": [
+            {
+              "x": 8,
+              "y": 47,
+              "width": 112,
+              "height": 22
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "npc--porter-v1",
+      "version": "1.0.0",
+      "path": "npc--porter.png",
+      "url": "/assets/npc--porter.png",
+      "sha256": "f791d71760bc787f74a91b12b1c74e4521bac044fa687fcea63fa4b01a560a10",
+      "dimensions": {
+        "width": 192,
+        "height": 256
+      },
+      "pivot": {
+        "x": 16,
+        "y": 31
+      },
+      "usage": {
+        "kind": "character",
+        "layer": "actor",
+        "frame": {
+          "width": 32,
+          "height": 32,
+          "columns": 6,
+          "rows": 8
+        },
+        "collision": {
+          "kind": "rect",
+          "x": 10,
+          "y": 20,
+          "width": 12,
+          "height": 12
+        },
+        "animations": {
+          "idle": {
+            "north": {
+              "frames": [
+                0,
+                1
+              ],
+              "fps": 2
+            },
+            "south": {
+              "frames": [
+                12,
+                13
+              ],
+              "fps": 2
+            },
+            "east": {
+              "frames": [
+                24,
+                25
+              ],
+              "fps": 2
+            },
+            "west": {
+              "frames": [
+                36,
+                37
+              ],
+              "fps": 2
+            }
+          },
+          "walk": {
+            "north": {
+              "frames": [
+                2,
+                3,
+                4,
+                5
+              ],
+              "fps": 8
+            },
+            "south": {
+              "frames": [
+                14,
+                15,
+                16,
+                17
+              ],
+              "fps": 8
+            },
+            "east": {
+              "frames": [
+                26,
+                27,
+                28,
+                29
+              ],
+              "fps": 8
+            },
+            "west": {
+              "frames": [
+                38,
+                39,
+                40,
+                41
+              ],
+              "fps": 8
+            }
+          },
+          "work": {
+            "north": {
+              "frames": [
+                6,
+                7,
+                8,
+                9,
+                10,
+                11
+              ],
+              "fps": 4
+            },
+            "south": {
+              "frames": [
+                18,
+                19,
+                20,
+                21,
+                22,
+                23
+              ],
+              "fps": 4
+            },
+            "east": {
+              "frames": [
+                30,
+                31,
+                32,
+                33,
+                34,
+                35
+              ],
+              "fps": 4
+            },
+            "west": {
+              "frames": [
+                42,
+                43,
+                44,
+                45,
+                46,
+                47
+              ],
+              "fps": 4
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "npc--watcher-v1",
+      "version": "1.0.0",
+      "path": "npc--watcher.png",
+      "url": "/assets/npc--watcher.png",
+      "sha256": "b3c261a7841532ae13449bf2a7fea9be91ab82bc6c86308579b8402b1256d9c2",
+      "dimensions": {
+        "width": 192,
+        "height": 256
+      },
+      "pivot": {
+        "x": 16,
+        "y": 31
+      },
+      "usage": {
+        "kind": "character",
+        "layer": "actor",
+        "frame": {
+          "width": 32,
+          "height": 32,
+          "columns": 6,
+          "rows": 8
+        },
+        "collision": {
+          "kind": "rect",
+          "x": 10,
+          "y": 20,
+          "width": 12,
+          "height": 12
+        },
+        "animations": {
+          "idle": {
+            "north": {
+              "frames": [
+                0,
+                1
+              ],
+              "fps": 2
+            },
+            "south": {
+              "frames": [
+                12,
+                13
+              ],
+              "fps": 2
+            },
+            "east": {
+              "frames": [
+                24,
+                25
+              ],
+              "fps": 2
+            },
+            "west": {
+              "frames": [
+                36,
+                37
+              ],
+              "fps": 2
+            }
+          },
+          "walk": {
+            "north": {
+              "frames": [
+                2,
+                3,
+                4,
+                5
+              ],
+              "fps": 8
+            },
+            "south": {
+              "frames": [
+                14,
+                15,
+                16,
+                17
+              ],
+              "fps": 8
+            },
+            "east": {
+              "frames": [
+                26,
+                27,
+                28,
+                29
+              ],
+              "fps": 8
+            },
+            "west": {
+              "frames": [
+                38,
+                39,
+                40,
+                41
+              ],
+              "fps": 8
+            }
+          },
+          "work": {
+            "north": {
+              "frames": [
+                6,
+                7,
+                8,
+                9,
+                10,
+                11
+              ],
+              "fps": 4
+            },
+            "south": {
+              "frames": [
+                18,
+                19,
+                20,
+                21,
+                22,
+                23
+              ],
+              "fps": 4
+            },
+            "east": {
+              "frames": [
+                30,
+                31,
+                32,
+                33,
+                34,
+                35
+              ],
+              "fps": 4
+            },
+            "west": {
+              "frames": [
+                42,
+                43,
+                44,
+                45,
+                46,
+                47
+              ],
+              "fps": 4
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "npc--traveler-v1",
+      "version": "1.0.0",
+      "path": "npc--traveler.png",
+      "url": "/assets/npc--traveler.png",
+      "sha256": "e6c11ce162d2ddfdcbfb36a37221cea564401bcea01e57f88c17612f8d012a15",
+      "dimensions": {
+        "width": 192,
+        "height": 256
+      },
+      "pivot": {
+        "x": 16,
+        "y": 31
+      },
+      "usage": {
+        "kind": "character",
+        "layer": "actor",
+        "frame": {
+          "width": 32,
+          "height": 32,
+          "columns": 6,
+          "rows": 8
+        },
+        "collision": {
+          "kind": "rect",
+          "x": 10,
+          "y": 20,
+          "width": 12,
+          "height": 12
+        },
+        "animations": {
+          "idle": {
+            "north": {
+              "frames": [
+                0,
+                1
+              ],
+              "fps": 2
+            },
+            "south": {
+              "frames": [
+                12,
+                13
+              ],
+              "fps": 2
+            },
+            "east": {
+              "frames": [
+                24,
+                25
+              ],
+              "fps": 2
+            },
+            "west": {
+              "frames": [
+                36,
+                37
+              ],
+              "fps": 2
+            }
+          },
+          "walk": {
+            "north": {
+              "frames": [
+                2,
+                3,
+                4,
+                5
+              ],
+              "fps": 8
+            },
+            "south": {
+              "frames": [
+                14,
+                15,
+                16,
+                17
+              ],
+              "fps": 8
+            },
+            "east": {
+              "frames": [
+                26,
+                27,
+                28,
+                29
+              ],
+              "fps": 8
+            },
+            "west": {
+              "frames": [
+                38,
+                39,
+                40,
+                41
+              ],
+              "fps": 8
+            }
+          },
+          "work": {
+            "north": {
+              "frames": [
+                6,
+                7,
+                8,
+                9,
+                10,
+                11
+              ],
+              "fps": 4
+            },
+            "south": {
+              "frames": [
+                18,
+                19,
+                20,
+                21,
+                22,
+                23
+              ],
+              "fps": 4
+            },
+            "east": {
+              "frames": [
+                30,
+                31,
+                32,
+                33,
+                34,
+                35
+              ],
+              "fps": 4
+            },
+            "west": {
+              "frames": [
+                42,
+                43,
+                44,
+                45,
+                46,
+                47
+              ],
+              "fps": 4
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "clue--inspection-mark-v1",
+      "version": "1.0.0",
+      "path": "clue--inspection-mark.png",
+      "url": "/assets/clue--inspection-mark.png",
+      "sha256": "d115504544e6fc60b22d3feda0d0c47ccc503dc39fc022e084dc6704007c8631",
+      "dimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 63
+      },
+      "usage": {
+        "kind": "quest",
+        "layer": "object",
+        "frame": {
+          "width": 64,
+          "height": 64,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "clue--night-log-v1",
+      "version": "1.0.0",
+      "path": "clue--night-log.png",
+      "url": "/assets/clue--night-log.png",
+      "sha256": "01242392c7f44b0f8b7d1b8ad29ad4b406269e42be61d52c6ae74789e152af6e",
+      "dimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 63
+      },
+      "usage": {
+        "kind": "quest",
+        "layer": "object",
+        "frame": {
+          "width": 64,
+          "height": 64,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "clue--repair-tools-v1",
+      "version": "1.0.0",
+      "path": "clue--repair-tools.png",
+      "url": "/assets/clue--repair-tools.png",
+      "sha256": "bb39768e2958bdb65a196ad6411df2699fca677fc463637eb03adcef5aff8cf8",
+      "dimensions": {
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 63
+      },
+      "usage": {
+        "kind": "quest",
+        "layer": "object",
+        "frame": {
+          "width": 64,
+          "height": 64,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "surface--water-v1",
+      "version": "1.0.0",
+      "path": "surface--water.png",
+      "url": "/assets/surface--water.png",
+      "sha256": "f2357c200cb217ce4b00659c13b368f727ce91b107aaecf5563a06012c17fa7d",
+      "dimensions": {
+        "width": 512,
+        "height": 512
+      },
+      "pivot": {
+        "x": 0,
+        "y": 0
+      },
+      "usage": {
+        "kind": "water",
+        "layer": "ground",
+        "frame": {
+          "width": 512,
+          "height": 512,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "surface--bank-v1",
+      "version": "1.0.0",
+      "path": "surface--bank.png",
+      "url": "/assets/surface--bank.png",
+      "sha256": "95188c32d771dc5567dfd17efce58ecd1fd53fb28b2833fcbbd8841334012f15",
+      "dimensions": {
+        "width": 512,
+        "height": 512
+      },
+      "pivot": {
+        "x": 0,
+        "y": 0
+      },
+      "usage": {
+        "kind": "terrain",
+        "layer": "ground",
+        "frame": {
+          "width": 512,
+          "height": 512,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "surface--crossing-v1",
+      "version": "1.0.0",
+      "path": "surface--crossing.png",
+      "url": "/assets/surface--crossing.png",
+      "sha256": "ac7244e34621e50d8131e8bb9f12c6ea30e34c1174e7bc0e4defce56c1a730f3",
+      "dimensions": {
+        "width": 512,
+        "height": 512
+      },
+      "pivot": {
+        "x": 0,
+        "y": 0
+      },
+      "usage": {
+        "kind": "road",
+        "layer": "ground",
+        "frame": {
+          "width": 512,
+          "height": 512,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--guild--base-v1",
+      "version": "1.0.0",
+      "path": "place--guild--base-v1.png",
+      "url": "/assets/place--guild--base-v1.png",
+      "sha256": "866358fb165bb60a15be0036f667277b535f6307a190730e5b9129c938b4ac1a",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "ground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--guild--upper-v1",
+      "version": "1.0.0",
+      "path": "place--guild--upper-v1.png",
+      "url": "/assets/place--guild--upper-v1.png",
+      "sha256": "743a81c3fd71a558c509200ca7f4401bd04c136796875e1a9c6be5a55b091fc0",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--guild--foreground-v1",
+      "version": "1.0.0",
+      "path": "place--guild--foreground-v1.png",
+      "url": "/assets/place--guild--foreground-v1.png",
+      "sha256": "442dc26a280ebae758f8f3526499c2f57ae206b441a39c09d48cb6e9dd0d98b1",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--dock--base-v1",
+      "version": "1.0.0",
+      "path": "place--dock--base-v1.png",
+      "url": "/assets/place--dock--base-v1.png",
+      "sha256": "a0a3e694db228a0e4712551ffc28848177ee5a74622cfc33de3238fee840fee5",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "ground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--dock--upper-v1",
+      "version": "1.0.0",
+      "path": "place--dock--upper-v1.png",
+      "url": "/assets/place--dock--upper-v1.png",
+      "sha256": "875bffa734349b54c56281a07bb72cba7881a5b6be3da01532713eb2a0429404",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--dock--foreground-v1",
+      "version": "1.0.0",
+      "path": "place--dock--foreground-v1.png",
+      "url": "/assets/place--dock--foreground-v1.png",
+      "sha256": "ab228458b84c792fb83d2fe662581ff68b1028a017e89a0462f673a8eecbd57c",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--ruin--base-v1",
+      "version": "1.0.0",
+      "path": "place--ruin--base-v1.png",
+      "url": "/assets/place--ruin--base-v1.png",
+      "sha256": "419a2f2ab625522fc58938cd2d496b84acc748cf9ac74978e1eef35275136bf9",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "ground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--ruin--upper-v1",
+      "version": "1.0.0",
+      "path": "place--ruin--upper-v1.png",
+      "url": "/assets/place--ruin--upper-v1.png",
+      "sha256": "419a2f2ab625522fc58938cd2d496b84acc748cf9ac74978e1eef35275136bf9",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--ruin--foreground-v1",
+      "version": "1.0.0",
+      "path": "place--ruin--foreground-v1.png",
+      "url": "/assets/place--ruin--foreground-v1.png",
+      "sha256": "419a2f2ab625522fc58938cd2d496b84acc748cf9ac74978e1eef35275136bf9",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--watchtower--base-v1",
+      "version": "1.0.0",
+      "path": "place--watchtower--base-v1.png",
+      "url": "/assets/place--watchtower--base-v1.png",
+      "sha256": "8c25cd6e36db9363253b94b6019909ee580b065b4e096518ae550ce50e9d6ae1",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "ground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--watchtower--upper-v1",
+      "version": "1.0.0",
+      "path": "place--watchtower--upper-v1.png",
+      "url": "/assets/place--watchtower--upper-v1.png",
+      "sha256": "81568d29dabc588d9337dde97634971fb652d3f675e5c9093300169d6bc852ba",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--watchtower--foreground-v1",
+      "version": "1.0.0",
+      "path": "place--watchtower--foreground-v1.png",
+      "url": "/assets/place--watchtower--foreground-v1.png",
+      "sha256": "504f2fe5524b325b9b71e98a2b994725923a71453a71d143c4932c06e237f1fd",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--shop--base-v1",
+      "version": "1.0.0",
+      "path": "place--shop--base-v1.png",
+      "url": "/assets/place--shop--base-v1.png",
+      "sha256": "044a2c5a844a3b32b1d8a401178a3f73d148786ab3a5b9827e8219a499baa2bf",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "ground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--shop--upper-v1",
+      "version": "1.0.0",
+      "path": "place--shop--upper-v1.png",
+      "url": "/assets/place--shop--upper-v1.png",
+      "sha256": "9e9b75088c4ff60f74b1c66db503babbcdbf9676040d9686a071d3779cf23843",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--shop--foreground-v1",
+      "version": "1.0.0",
+      "path": "place--shop--foreground-v1.png",
+      "url": "/assets/place--shop--foreground-v1.png",
+      "sha256": "4d313b136e1c1757ecb73ed421c4b117040a7ff15072b32a8ca5ab4625e7d547",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--dwelling-tall--base-v1",
+      "version": "1.0.0",
+      "path": "place--dwelling-tall--base-v1.png",
+      "url": "/assets/place--dwelling-tall--base-v1.png",
+      "sha256": "369e75b6e1c81cbcf004dde4d542a11f554fc0cdb9197c63c6a689f466fbaaa5",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "ground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--dwelling-tall--upper-v1",
+      "version": "1.0.0",
+      "path": "place--dwelling-tall--upper-v1.png",
+      "url": "/assets/place--dwelling-tall--upper-v1.png",
+      "sha256": "d8ee4a8ec8df3d3826ef299a9c7c824942ad963d2a8e24606a98ebf57cd7dfb1",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--dwelling-tall--foreground-v1",
+      "version": "1.0.0",
+      "path": "place--dwelling-tall--foreground-v1.png",
+      "url": "/assets/place--dwelling-tall--foreground-v1.png",
+      "sha256": "86883fb21cc09160cf9c35e194b8d7b54ce22dd4f47653b2de1c613599708438",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--dwelling-tall-narrow--base-v1",
+      "version": "1.0.0",
+      "path": "place--dwelling-tall-narrow-base-v1.png",
+      "url": "/assets/place--dwelling-tall-narrow-base-v1.png",
+      "sha256": "711ccfd7a78828fb6cf953db33de8f93ed53ad89f37b55bd187e54e596923253",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "ground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--dwelling-tall-narrow--upper-v1",
+      "version": "1.0.0",
+      "path": "place--dwelling-tall-narrow-upper-v1.png",
+      "url": "/assets/place--dwelling-tall-narrow-upper-v1.png",
+      "sha256": "f45245cb6bb58abef100e5bb8162ac9536521edfffdcc0e90a082f66ed8ddb73",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--dwelling-tall-narrow--foreground-v1",
+      "version": "1.0.0",
+      "path": "place--dwelling-tall-narrow-foreground-v1.png",
+      "url": "/assets/place--dwelling-tall-narrow-foreground-v1.png",
+      "sha256": "456fb00ab1c8b8806f50e4e70cc21aaf8733c68adead191b02a696f9384167ed",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--dojo--base-v1",
+      "version": "1.0.0",
+      "path": "place--dojo--base-v1.png",
+      "url": "/assets/place--dojo--base-v1.png",
+      "sha256": "ebdb2a075554a53fcba5430c5494b943e6c71f7752c3229b4225a2e5e272bafc",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "ground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--dojo--upper-v1",
+      "version": "1.0.0",
+      "path": "place--dojo--upper-v1.png",
+      "url": "/assets/place--dojo--upper-v1.png",
+      "sha256": "933529b3d3377f579fc92c15dd89320eb4bf63a3f094c8ebee065b7c9980c1d5",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "place--dojo--foreground-v1",
+      "version": "1.0.0",
+      "path": "place--dojo--foreground-v1.png",
+      "url": "/assets/place--dojo--foreground-v1.png",
+      "sha256": "8a65ce170145aed369b5f4fc07241ea4f52d1a109a6dd472cea31209acc748e2",
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      },
+      "pivot": {
+        "x": 120,
+        "y": 150
+      },
+      "usage": {
+        "kind": "building",
+        "layer": "foreground",
+        "frame": {
+          "width": 240,
+          "height": 160,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "prop--edge-stone-stair-v1",
+      "version": "1.0.0",
+      "path": "prop--edge-stone-stair.png",
+      "url": "/assets/prop--edge-stone-stair.png",
+      "sha256": "93867734584165ee48791d5fcf783b20a0d53d5c28f29595831e3d45e5414a74",
+      "dimensions": {
+        "width": 96,
+        "height": 116
+      },
+      "pivot": {
+        "x": 48,
+        "y": 114
+      },
+      "usage": {
+        "kind": "prop",
+        "layer": "object",
+        "frame": {
+          "width": 96,
+          "height": 116,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "rects",
+          "rects": [
+            {
+              "x": 3,
+              "y": 6,
+              "width": 18,
+              "height": 70
+            },
+            {
+              "x": 75,
+              "y": 6,
+              "width": 18,
+              "height": 70
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "prop--edge-hedge-curb-v1",
+      "version": "1.0.0",
+      "path": "prop--edge-hedge-curb.png",
+      "url": "/assets/prop--edge-hedge-curb.png",
+      "sha256": "3cddc7ba64b3b1301d542e8af14c5b0c72cd1508616aa48fea3cec9cee536762",
+      "dimensions": {
+        "width": 196,
+        "height": 70
+      },
+      "pivot": {
+        "x": 98,
+        "y": 66
+      },
+      "usage": {
+        "kind": "prop",
+        "layer": "object",
+        "frame": {
+          "width": 196,
+          "height": 70,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "rects",
+          "rects": [
+            {
+              "x": 1,
+              "y": 42,
+              "width": 78,
+              "height": 21
+            },
+            {
+              "x": 117,
+              "y": 42,
+              "width": 78,
+              "height": 21
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "snow--prop--edge-evergreen-yard-v1",
+      "version": "1.0.0",
+      "path": "snow--prop--edge-evergreen-yard.png",
+      "url": "/assets/snow--prop--edge-evergreen-yard.png",
+      "sha256": "8ee946fd6236bce11fd409f96a00d82ec66b7115c4b0aa667324bfeaa956a11d",
+      "dimensions": {
+        "width": 216,
+        "height": 140
+      },
+      "pivot": {
+        "x": 108,
+        "y": 136
+      },
+      "usage": {
+        "kind": "prop",
+        "layer": "object",
+        "frame": {
+          "width": 216,
+          "height": 140,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "rects",
+          "rects": [
+            {
+              "x": 12,
+              "y": 105,
+              "width": 58,
+              "height": 29
+            },
+            {
+              "x": 147,
+              "y": 105,
+              "width": 57,
+              "height": 29
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "snow--prop--edge-harbor-shore-v1",
+      "version": "1.0.0",
+      "path": "snow--prop--edge-harbor-shore.png",
+      "url": "/assets/snow--prop--edge-harbor-shore.png",
+      "sha256": "30d2c0f09f2c5b97bffa83ff17899e4ed2b67567870c36c2de47ca1e3946d75f",
+      "dimensions": {
+        "width": 235,
+        "height": 31
+      },
+      "pivot": {
+        "x": 117,
+        "y": 29
+      },
+      "usage": {
+        "kind": "prop",
+        "layer": "object",
+        "frame": {
+          "width": 235,
+          "height": 31,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "rects",
+          "rects": [
+            {
+              "x": 2,
+              "y": 7,
+              "width": 231,
+              "height": 22
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "environment--late-compact-v1",
+      "version": "1.0.0",
+      "path": "environment--late-compact.png",
+      "url": "/assets/environment--late-compact.png",
+      "sha256": "6140de3148118b828599e28e8630921200ba698660a4f2b87a17fb7710eea923",
+      "dimensions": {
+        "width": 1312,
+        "height": 920
+      },
+      "pivot": {
+        "x": 0,
+        "y": 0
+      },
+      "usage": {
+        "kind": "terrain",
+        "layer": "ground",
+        "frame": {
+          "width": 1312,
+          "height": 920,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "environment--snow-compact-v1",
+      "version": "1.0.0",
+      "path": "environment--snow-compact.png",
+      "url": "/assets/environment--snow-compact.png",
+      "sha256": "d556c58b0ab78dd389a1516d428456eb8c2ca0802c14f23b6474b13ef6c1deca",
+      "dimensions": {
+        "width": 1328,
+        "height": 880
+      },
+      "pivot": {
+        "x": 0,
+        "y": 0
+      },
+      "usage": {
+        "kind": "terrain",
+        "layer": "ground",
+        "frame": {
+          "width": 1328,
+          "height": 880,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "environment--late-small-v1",
+      "version": "1.0.0",
+      "path": "environment--late-small.png",
+      "url": "/assets/environment--late-small.png",
+      "sha256": "b0efb332fc04b6bb8aec28ffda2b400bee4ccfd1647a0dc2b3bcce3e5d1352b5",
+      "dimensions": {
+        "width": 1312,
+        "height": 928
+      },
+      "pivot": {
+        "x": 0,
+        "y": 0
+      },
+      "usage": {
+        "kind": "terrain",
+        "layer": "ground",
+        "frame": {
+          "width": 1312,
+          "height": 928,
+          "columns": 1,
+          "rows": 1
+        },
+        "collision": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "id": "environment--late-broad-v1",
+      "version": "1.0.0",
+      "path": "environment--late-broad.png",
+      "url": "/assets/environment--late-broad.png",
+      "sha256": "d8ab7119acb56e294612fd640f05be7db4e5a09391f9f94223980d93f0a7622c",
+      "dimensions": {
+        "width": 1392,
+        "height": 952
+      },
+      "pivot": {
+        "x": 0,
+        "y": 0
+      },
+      "usage": {
+        "kind": "terrain",
+        "layer": "ground",
+        "frame": {
+          "width": 1392,
+          "height": 952,
           "columns": 1,
           "rows": 1
         },

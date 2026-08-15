@@ -26,6 +26,7 @@ const DEFAULT_ASSET_ROOT = path.join(DEFAULT_SHIPPING_ART_ROOT, 'assets');
 const DEFAULT_ASSET_MANIFEST = path.join(DEFAULT_SHIPPING_ART_ROOT, 'manifest.json');
 const DEFAULT_RUNTIME_ARTIFACT_ROOT = path.resolve(CLI_MODULE_ROOT, '../70-game-runtime');
 const DEFAULT_RUNTIME_ARTIFACT_ALLOWLIST = Object.freeze(['app.mjs', 'index.html', 'index.mjs', 'state.mjs', 'styles.css']);
+const MAX_TERMINAL_LINE_CODE_POINTS = 2_048;
 
 class CliError extends Error {
   constructor(code, message) {
@@ -38,8 +39,16 @@ function fail(code, message) {
   throw new CliError(code, message);
 }
 
+function sanitizeTerminalText(value) {
+  const printable = String(value).replace(/[\p{Cc}\p{Cf}\p{Cs}\p{Zl}\p{Zp}]+/gu, '�');
+  const codePoints = [...printable];
+  return codePoints.length <= MAX_TERMINAL_LINE_CODE_POINTS
+    ? printable
+    : `${codePoints.slice(0, MAX_TERMINAL_LINE_CODE_POINTS).join('')}…`;
+}
+
 function writeLine(line) {
-  console.log(String(line));
+  console.log(sanitizeTerminalText(line));
 }
 
 function normalizePort(value) {
@@ -93,7 +102,7 @@ function parseCliArgs(argv = []) {
   return result;
 }
 
-function helpText() {
+function helpLines() {
   return [
     'あなたのリポジトリを街にします。',
     '',
@@ -102,7 +111,7 @@ function helpText() {
     '  --port N    127.0.0.1 の待ち受けポートを指定します。',
     '',
     '次の一歩: npx codecity ./あなたのリポジトリ --no-open',
-  ].join('\n');
+  ];
 }
 
 function lstatOrNull(target) {
@@ -247,6 +256,10 @@ function normalizeManifestInput() {
 async function buildCodeCity({ repositoryPath } = {}) {
   const root = normalizedRepositoryPath(repositoryPath);
   const report = await inspectRepository(root);
+  const rootUnknown = report?.evidence?.unknown?.some((entry) => entry?.claim === 'repository.root');
+  if (rootUnknown) {
+    fail('REPOSITORY_ROOT_REJECTED', '指定されたリポジトリを安全に固定できないため、測量を開始しません。');
+  }
   const semanticModel = inferSemanticModel(report);
   const townModel = buildTownModel(semanticModel);
   const worldPlan = generateWorldPlan({ town: townModel });
@@ -314,7 +327,7 @@ export async function main(argv = process.argv.slice(2)) {
   try {
     const parsed = parseCliArgs(argv);
     if (parsed.help) {
-      writeLine(helpText());
+      for (const line of helpLines()) writeLine(line);
       return 0;
     }
     await runCodeCity(parsed);

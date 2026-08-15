@@ -39,31 +39,14 @@ function quantizeCameraOrigin(value, zoom) {
   return Math.round(value / quantum) * quantum;
 }
 
-function quantizedOverviewZoom(bounds, viewport) {
-  const ratio = Math.max(bounds.width / viewport.width, bounds.height / viewport.height);
-  let exponent = !Number.isFinite(ratio) || ratio <= 1 ? 0 : Math.max(0, Math.ceil(Math.log2(ratio)));
-  while (true) {
-    const zoom = 1 / (2 ** exponent);
-    const quantum = Math.max(1, Math.round(1 / zoom));
-    const visibleWorld = { width: viewport.width / zoom, height: viewport.height / zoom };
-    const origin = {
-      x: Math.round((bounds.x + (bounds.width - visibleWorld.width) / 2) / quantum) * quantum,
-      y: Math.round((bounds.y + (bounds.height - visibleWorld.height) / 2) / quantum) * quantum,
-    };
-    if (origin.x <= bounds.x && origin.y <= bounds.y
-      && origin.x + visibleWorld.width >= bounds.x + bounds.width
-      && origin.y + visibleWorld.height >= bounds.y + bounds.height) return zoom;
-    exponent += 1;
-  }
-}
-
 function overviewCamera(game, viewport) {
   const overview = game.camera.overview;
-  const minimum = minimumView(game);
-  if (viewport.width === minimum.width && viewport.height === minimum.height) {
-    return { mode: 'overview', zoom: overview.zoom, x: overview.origin.x, y: overview.origin.y };
-  }
-  const zoom = quantizedOverviewZoom(overview.bounds, viewport);
+  // The scene compiler already authored the only quantized overview zoom.
+  // A browser that is a few pixels shorter must crop that composed edge, not
+  // halve the entire town and turn native actors and buildings into a tiny
+  // catalogue. Width and height still use whole logical pixels; this changes
+  // only the camera window around the same world.
+  const zoom = overview.zoom;
   const visibleWorld = {
     width: viewport.width / zoom,
     height: viewport.height / zoom,
@@ -255,6 +238,12 @@ export function reduceGameState(state, action, bundle) {
       };
     case 'VIEWPORT_CHANGED':
       return changeViewport(state, action.viewport, game);
+    case 'INPUT_RESET':
+      return {
+        ...state,
+        input: { up: false, down: false, left: false, right: false, shift: false },
+        player: { ...state.player, moving: false },
+      };
     default:
       return state;
   }
@@ -346,7 +335,9 @@ function residentPlane(game, resident, body) {
       && !interior.collisions.some((entry) => intersects(entry, body)));
   }
   if (body.x < 0 || body.y < 0 || body.x + body.width > game.worldSize.width || body.y + body.height > game.worldSize.height) return false;
-  if (game.collisions.some((entry) => intersects(entry, body)) || blockedBySurface(game, body)) return false;
+  if (!walkableAt(game, body)
+    || game.collisions.some((entry) => intersects(entry, body))
+    || blockedBySurface(game, body)) return false;
   return !game.interiors.some((entry) => intersects(entry.bounds, body) && !intersects(entry.access, body));
 }
 
@@ -581,6 +572,12 @@ function canonicalDiscovery(quest) {
   };
 }
 
+function discoveryTruthLine(state) {
+  if (state === 'inferred') return 'これは手がかりからの推定です。';
+  if (state === 'unknown') return 'これはまだ確認できないことです。';
+  return null;
+}
+
 function discoverQuest(state, game, index) {
   if (state.quest.discoveries[index] || !game.quests[index]) return state;
   const quest = game.quests[index];
@@ -594,7 +591,12 @@ function discoverQuest(state, game, index) {
       kind: 'discovery',
       questId: quest.id,
       prompt: quest.subject,
-      lines: [`${discovery.action}。`, discovery.sentence],
+      lines: [
+        `${discovery.action}。`,
+        discovery.sentence,
+        discoveryTruthLine(discovery.state),
+        complete ? '三つの発見がそろいました。役場へ戻り、調査報告をまとめられます。' : null,
+      ].filter(Boolean),
       discovery,
     },
     quest: { discoveries, reported: state.quest.reported, accepted: true, status: complete ? 'ready_report' : 'investigating' },
@@ -708,7 +710,9 @@ function canOccupy(bundle, interiorId, player, x, y, state = null) {
     if (interior.collisions.some((rect) => intersects(foot, rect))) return false;
   } else {
     if (foot.x < 0 || foot.y < 0 || foot.x + foot.width > game.worldSize.width || foot.y + foot.height > game.worldSize.height) return false;
-    if (game.collisions.some((rect) => intersects(foot, rect)) || blockedBySurface(game, foot)) return false;
+    if (!walkableAt(game, foot)
+      || game.collisions.some((rect) => intersects(foot, rect))
+      || blockedBySurface(game, foot)) return false;
   }
   if (state?.residents?.some((resident) => resident.interiorId === (interiorId ?? null) && intersects(foot, resident.body))) return false;
   return true;
@@ -718,8 +722,43 @@ function blockedBySurface(game, foot) {
   const crossings = game.surfaces.filter((surface) => surface.recipe === 'crossing');
   for (const surface of game.surfaces) {
     if (!surface.blocked || !surfaceIntersectsRect(surface, foot)) continue;
-    if (crossings.some((crossing) => surfaceIntersectsRect(crossing, foot))) continue;
+    if (crossings.some((crossing) => surfaceContainsRect(crossing, foot))) continue;
     return true;
+  }
+  return false;
+}
+
+function walkableAt(game, rectangle) {
+  const center = {
+    x: rectangle.x + rectangle.width / 2,
+    y: rectangle.y + rectangle.height / 2,
+  };
+  return game.surfaces.some((surface) => surface.walkable === true && surfaceContainsPoint(surface, center));
+}
+
+function surfaceContainsRect(surface, rectangle) {
+  return [
+    { x: rectangle.x, y: rectangle.y },
+    { x: rectangle.x + rectangle.width, y: rectangle.y },
+    { x: rectangle.x, y: rectangle.y + rectangle.height },
+    { x: rectangle.x + rectangle.width, y: rectangle.y + rectangle.height },
+  ].every((corner) => surfaceContainsPoint(surface, corner));
+}
+
+function surfaceContainsPoint(surface, value) {
+  const geometry = surface.geometry;
+  if (geometry?.kind === 'area') return pointInRect(value, geometry.rect);
+  if (geometry?.kind === 'polygon') {
+    if (!Array.isArray(geometry.points) || geometry.points.length < 3) return false;
+    if (pointInPolygon(value, geometry.points)) return true;
+    for (let index = 1; index <= geometry.points.length; index += 1) {
+      if (distancePointToSegment(value, geometry.points[index - 1], geometry.points[index % geometry.points.length]) <= 0.001) return true;
+    }
+    return false;
+  }
+  if (geometry?.kind !== 'path' || !Array.isArray(geometry.points) || !Number.isFinite(geometry.width)) return false;
+  for (let index = 1; index < geometry.points.length; index += 1) {
+    if (distancePointToSegment(value, geometry.points[index - 1], geometry.points[index]) <= geometry.width / 2) return true;
   }
   return false;
 }
@@ -727,9 +766,38 @@ function blockedBySurface(game, foot) {
 function surfaceIntersectsRect(surface, rectangle) {
   const geometry = surface.geometry;
   if (geometry?.kind === 'area') return intersects(geometry.rect, rectangle);
+  if (geometry?.kind === 'polygon') return polygonIntersectsRect(geometry.points, rectangle);
   if (geometry?.kind !== 'path' || !Array.isArray(geometry.points) || !Number.isFinite(geometry.width)) return false;
   for (let index = 1; index < geometry.points.length; index += 1) {
     if (distanceSegmentToRect(geometry.points[index - 1], geometry.points[index], rectangle) <= geometry.width / 2) return true;
+  }
+  return false;
+}
+
+function pointInPolygon(value, polygon) {
+  let inside = false;
+  for (let index = 0, previous = polygon.length - 1; index < polygon.length; previous = index++) {
+    const current = polygon[index];
+    const prior = polygon[previous];
+    const crosses = ((current.y > value.y) !== (prior.y > value.y))
+      && value.x < ((prior.x - current.x) * (value.y - current.y)) / (prior.y - current.y) + current.x;
+    if (crosses) inside = !inside;
+  }
+  return inside;
+}
+
+function polygonIntersectsRect(polygon, rectangle) {
+  if (!Array.isArray(polygon) || polygon.length < 3) return false;
+  const corners = [
+    { x: rectangle.x, y: rectangle.y },
+    { x: rectangle.x + rectangle.width, y: rectangle.y },
+    { x: rectangle.x, y: rectangle.y + rectangle.height },
+    { x: rectangle.x + rectangle.width, y: rectangle.y + rectangle.height },
+  ];
+  if (corners.some((corner) => pointInPolygon(corner, polygon))
+    || polygon.some((entry) => pointInRect(entry, rectangle))) return true;
+  for (let index = 1; index <= polygon.length; index += 1) {
+    if (segmentIntersectsRect(polygon[index - 1], polygon[index % polygon.length], rectangle)) return true;
   }
   return false;
 }

@@ -548,7 +548,6 @@ function evidenceForState(value, state, fallback) {
   result[target].push(fallback);
   return result;
 }
-function evidenceState(evidence) { return evidence.observed.length ? 'observed' : evidence.inferred.length ? 'inferred' : 'unknown'; }
 function observedActiveCondition(kind, evidence) {
   const keys = new Set(evidence?.observed ?? []);
   return keys.has(`facility.${kind}.active`) || keys.has(`facility.${kind}.condition.active`);

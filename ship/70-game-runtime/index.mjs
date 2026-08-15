@@ -8,25 +8,28 @@ import {
 const SCENE_BUNDLE_FORMAT = 'codecity.scene-bundle';
 const SCENE_BUNDLE_SCHEMA_VERSION = 2;
 const PERSISTENCE_LIMIT_BYTES = 64 * 1024;
+const BACKPLATE_VERSION = 1;
+const BACKPLATE_MAX_DIMENSION = 8192;
+const BACKPLATE_MAX_PIXELS = 8192 * 8192;
 const HASH_RE = /^[a-f0-9]{64}$/iu;
 const EVIDENCE_STATES = Object.freeze(['observed', 'inferred', 'unknown']);
 const ASSET_DIRECTIONS = Object.freeze(['north', 'south', 'east', 'west']);
-const UI_ASSET_IDS = Object.freeze({
-  dialogue: 'ui--dialogue-v1',
-  report: 'ui--inspection-report-v1',
-});
 const REWARD_CHANGES = Object.freeze({
   [RUNTIME_REPOSITORY_INSPECTION_BINDING.event]: RUNTIME_REPOSITORY_INSPECTION_BINDING,
 });
 const REWARD_EFFECTS = new Set(Object.values(REWARD_CHANGES).map(({ effect }) => effect));
 const REQUIRED_GAME_KEYS = Object.freeze([
   'viewSize', 'worldSize', 'camera', 'spawn', 'player', 'surfaces', 'collisions',
-  'interiors', 'npcs', 'quests', 'request', 'report', 'renderables', 'ui',
+  'interiors', 'npcs', 'quests', 'request', 'report', 'renderables', 'backplate', 'ui',
 ]);
 const KEY_ACTIONS = Object.freeze({
   Enter: 'INTERACT', Space: 'INTERACT', KeyE: 'INTERACT', KeyZ: 'INTERACT',
   Escape: 'EXIT', KeyX: 'BACK',
 });
+const MOVEMENT_KEYS = new Set([
+  'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
+  'KeyW', 'KeyA', 'KeyS', 'KeyD', 'ShiftLeft', 'ShiftRight',
+]);
 
 export class GameRuntimeError extends Error {
   constructor(code, message, issues = []) {
@@ -139,6 +142,123 @@ function validateCharacterAnimations(asset, path, requiredStates, issues) {
         issues.push(issue(`${path}.usage.animations.${state}.${direction}`, 'CHARACTER_ANIMATION_INVALID', `${state}/${direction} animation is required`));
       }
     }
+  }
+}
+
+function validateBackplate(backplate, game, assets, issues) {
+  const path = '$.game.backplate';
+  if (!isRecord(backplate)) {
+    issues.push(issue(path, 'BACKPLATE_REQUIRED', 'the transient environment backplate contract is required'));
+    return;
+  }
+  rejectUnknownKeys(backplate, ['version', 'environmentAssetId', 'surfaceIds', 'structureShadows', 'staticRenderableIds'], path, issues);
+  if (backplate.version !== BACKPLATE_VERSION) {
+    issues.push(issue(`${path}.version`, 'BACKPLATE_VERSION_INVALID', `backplate version must be exactly ${BACKPLATE_VERSION}`));
+  }
+
+  const environmentAssetId = backplate.environmentAssetId;
+  const hasEnvironmentAsset = environmentAssetId === null || nonEmpty(environmentAssetId);
+  if (!hasEnvironmentAsset) {
+    issues.push(issue(`${path}.environmentAssetId`, 'BACKPLATE_ENVIRONMENT_ID_INVALID', 'environment asset ID must be a non-empty string or null'));
+  } else if (nonEmpty(environmentAssetId)) {
+    const asset = assets?.get(environmentAssetId);
+    if (!asset) {
+      issues.push(issue(`${path}.environmentAssetId`, 'BACKPLATE_ENVIRONMENT_ASSET_UNKNOWN', 'environmentAssetId must reference a declared shipping asset'));
+    } else if (asset.usage?.kind !== 'terrain') {
+      issues.push(issue(`${path}.environmentAssetId`, 'BACKPLATE_ENVIRONMENT_ASSET_KIND_INVALID', 'environmentAssetId must reference a terrain surface asset'));
+    } else {
+      const world = game?.worldSize;
+      const dimensions = asset.dimensions;
+      if (!isRecord(world) || dimensions?.width !== world.width || dimensions?.height !== world.height) {
+        issues.push(issue(`${path}.environmentAssetId`, 'BACKPLATE_ENVIRONMENT_DIMENSIONS_INVALID', 'environment asset dimensions must equal game.worldSize'));
+      }
+    }
+  }
+
+  const surfaces = array(game?.surfaces) ? game.surfaces : [];
+  const expectedSurfaceIds = surfaces.map((surface) => surface?.id);
+  if (!array(backplate.surfaceIds)) {
+    issues.push(issue(`${path}.surfaceIds`, 'BACKPLATE_SURFACE_IDS_REQUIRED', 'surface IDs must be an array'));
+  } else {
+    const seen = new Set();
+    backplate.surfaceIds.forEach((id, index) => {
+      if (!nonEmpty(id)) {
+        issues.push(issue(`${path}.surfaceIds[${index}]`, 'BACKPLATE_SURFACE_ID_INVALID', 'surface ID must be a non-empty string'));
+        return;
+      }
+      if (seen.has(id)) issues.push(issue(`${path}.surfaceIds[${index}]`, 'BACKPLATE_SURFACE_ID_DUPLICATE', 'backplate surface IDs must be unique'));
+      seen.add(id);
+      if (!expectedSurfaceIds.includes(id)) issues.push(issue(`${path}.surfaceIds[${index}]`, 'BACKPLATE_SURFACE_ID_UNKNOWN', id));
+    });
+    if (nonEmpty(environmentAssetId)) {
+      if (backplate.surfaceIds.length !== 0) {
+        issues.push(issue(`${path}.surfaceIds`, 'BACKPLATE_SURFACE_IDS_WITH_ENVIRONMENT', 'surface IDs must be empty when an environment asset is selected'));
+      }
+    } else {
+      if (backplate.surfaceIds.length !== expectedSurfaceIds.length) {
+        issues.push(issue(`${path}.surfaceIds`, 'BACKPLATE_SURFACE_SET_INVALID', 'backplate must reference every composed surface exactly once'));
+      }
+      if (backplate.surfaceIds.length === expectedSurfaceIds.length
+        && expectedSurfaceIds.every((id, index) => id === backplate.surfaceIds[index])) {
+        // Stable surface order is already established by the compiler. Keep
+        // this branch explicit so the runtime never sorts or reinterprets it.
+      } else if (backplate.surfaceIds.length === expectedSurfaceIds.length) {
+        issues.push(issue(`${path}.surfaceIds`, 'BACKPLATE_SURFACE_ORDER_INVALID', 'backplate surface IDs must match game.surfaces order'));
+      }
+    }
+  }
+
+  if (!array(backplate.staticRenderableIds)) {
+    issues.push(issue(`${path}.staticRenderableIds`, 'BACKPLATE_STATIC_IDS_INVALID', 'staticRenderableIds must be an array'));
+  } else {
+    if (backplate.staticRenderableIds.length > 0) {
+      issues.push(issue(`${path}.staticRenderableIds`, 'BACKPLATE_STATIC_RENDERABLES_FORBIDDEN', 'the first backplate pass must not cache renderables'));
+    }
+    const seen = new Set();
+    backplate.staticRenderableIds.forEach((id, index) => {
+      if (!nonEmpty(id)) issues.push(issue(`${path}.staticRenderableIds[${index}]`, 'BACKPLATE_STATIC_ID_INVALID', 'static renderable IDs must be non-empty strings'));
+      if (seen.has(id)) issues.push(issue(`${path}.staticRenderableIds[${index}]`, 'BACKPLATE_STATIC_ID_DUPLICATE', 'static renderable IDs must be unique'));
+      seen.add(id);
+    });
+  }
+
+  const renderables = array(game?.renderables) ? game.renderables : [];
+  const renderableById = new Map(renderables.filter((entry) => nonEmpty(entry?.id)).map((entry) => [entry.id, entry]));
+  if (!array(backplate.structureShadows)) {
+    issues.push(issue(`${path}.structureShadows`, 'BACKPLATE_SHADOWS_INVALID', 'structureShadows must be an array'));
+    return;
+  }
+  const seenShadowIds = new Set();
+  for (const [index, shadow] of backplate.structureShadows.entries()) {
+    const shadowPath = `${path}.structureShadows[${index}]`;
+    rejectUnknownKeys(shadow, ['renderableId', 'footprint'], shadowPath, issues);
+    if (!isRecord(shadow) || !nonEmpty(shadow.renderableId) || !rect(shadow.footprint)) {
+      issues.push(issue(shadowPath, 'BACKPLATE_SHADOW_INVALID', 'each structure shadow needs a renderable ID and footprint'));
+      continue;
+    }
+    if (seenShadowIds.has(shadow.renderableId)) {
+      issues.push(issue(`${shadowPath}.renderableId`, 'BACKPLATE_SHADOW_DUPLICATE', 'structure shadow renderable IDs must be unique'));
+    }
+    seenShadowIds.add(shadow.renderableId);
+    const renderable = renderableById.get(shadow.renderableId);
+    if (!renderable || !shadow.renderableId.startsWith('structure-base:') || renderable.plane !== 'ground') {
+      issues.push(issue(`${shadowPath}.renderableId`, 'BACKPLATE_SHADOW_REFERENCE_INVALID', 'structure shadow must reference a structure-base ground renderable'));
+    }
+    const world = game?.worldSize;
+    if (rect(world) && (shadow.footprint.x < 0 || shadow.footprint.y < 0
+      || shadow.footprint.x + shadow.footprint.width > world.width
+      || shadow.footprint.y + shadow.footprint.height > world.height)) {
+      issues.push(issue(`${shadowPath}.footprint`, 'BACKPLATE_SHADOW_BOUNDS_INVALID', 'structure shadow footprint must fit inside the world'));
+    }
+  }
+  const expectedStructureIds = renderables
+    .filter((entry) => nonEmpty(entry?.id) && entry.id.startsWith('structure-base:'))
+    .map((entry) => entry.id)
+    .sort((left, right) => left.localeCompare(right));
+  const actualStructureIds = backplate.structureShadows.map((entry) => entry?.renderableId).sort((left, right) => String(left).localeCompare(String(right)));
+  if (expectedStructureIds.length !== actualStructureIds.length
+    || expectedStructureIds.some((id, index) => id !== actualStructureIds[index])) {
+    issues.push(issue(`${path}.structureShadows`, 'BACKPLATE_SHADOWS_MISMATCH', 'each structure-base renderable must have exactly one structure shadow'));
   }
 }
 
@@ -275,14 +395,14 @@ function validateGame(game, assets, issues) {
   }
 
   if (!isRecord(game.ui)) {
-    issues.push(issue('$.game.ui', 'UI_REQUIRED', 'the framed dialogue/report UI contract is required'));
+    issues.push(issue('$.game.ui', 'UI_REQUIRED', 'framed dialogue, report, and exit UI contracts are required'));
   } else {
-    rejectUnknownKeys(game.ui, ['frame', 'dialogue', 'report'], '$.game.ui', issues);
+    rejectUnknownKeys(game.ui, ['frame', 'dialogue', 'report', 'exit'], '$.game.ui', issues);
     const frame = game.ui.frame;
     if (!isRecord(frame) || frame.width !== 384 || frame.height !== 216) {
       issues.push(issue('$.game.ui.frame', 'UI_FRAME_INVALID', 'UI frame must be exactly 384 by 216 logical pixels'));
     }
-    for (const kind of ['dialogue', 'report']) {
+    for (const kind of ['dialogue', 'report', 'exit']) {
       const contract = game.ui[kind];
       const path = `$.game.ui.${kind}`;
       if (!isRecord(contract)) {
@@ -308,25 +428,36 @@ function validateGame(game, assets, issues) {
   } else {
     for (const [index, surface] of game.surfaces.entries()) {
       const path = `$.game.surfaces[${index}]`;
-      rejectUnknownKeys(surface, ['id', 'recipe', 'assetId', 'z', 'blocked', 'geometry'], path, issues);
-      if (!isRecord(surface) || !nonEmpty(surface.id) || !assets.has(surface.assetId) || !finite(surface.z) || typeof surface.blocked !== 'boolean') {
+      rejectUnknownKeys(surface, ['id', 'recipe', 'assetId', 'z', 'blocked', 'walkable', 'opacity', 'geometry'], path, issues);
+      if (!isRecord(surface) || !nonEmpty(surface.id) || !assets.has(surface.assetId) || !finite(surface.z)
+        || typeof surface.blocked !== 'boolean' || typeof surface.walkable !== 'boolean'
+        || !finite(surface.opacity) || surface.opacity <= 0 || surface.opacity > 1) {
         issues.push(issue(path, 'SURFACE_INVALID', 'surface role, asset, and depth are required'));
         continue;
       }
       const geometry = surface.geometry;
       const validArea = geometry?.kind === 'area' && rect(geometry.rect);
+      const validPolygon = geometry?.kind === 'polygon' && array(geometry.points)
+        && geometry.points.length >= 3 && geometry.points.every(point);
       const validPath = geometry?.kind === 'path' && array(geometry.points) && geometry.points.length >= 2
-        && geometry.points.every(point) && positive(geometry.width);
-      if (!validArea && !validPath) issues.push(issue(`${path}.geometry`, 'SURFACE_GEOMETRY_INVALID', 'surface needs a whole area or continuous path'));
+        && geometry.points.every(point) && positive(geometry.width)
+        && (!own(geometry, 'cap') || ['butt', 'round', 'square'].includes(geometry.cap))
+        && (!own(geometry, 'join') || ['bevel', 'miter', 'round'].includes(geometry.join));
+      if (!validArea && !validPolygon && !validPath) issues.push(issue(`${path}.geometry`, 'SURFACE_GEOMETRY_INVALID', 'surface needs a whole area, polygon pocket, or continuous path'));
     }
     const ground = game.surfaces.find((surface) => surface?.recipe === 'ground' && surface.geometry?.kind === 'area');
     if (!ground) {
       issues.push(issue('$.game.surfaces', 'GROUND_SURFACE_REQUIRED', 'one composed ground area is required'));
+    } else if (ground.walkable !== false) {
+      issues.push(issue('$.game.surfaces', 'GROUND_WALKABILITY_INVALID', 'the environment ground is not itself a walkable road'));
     } else if (isRecord(game.worldSize) && positive(game.worldSize.width) && positive(game.worldSize.height)
       && (ground.geometry.rect.x > 0 || ground.geometry.rect.y > 0
       || ground.geometry.rect.x + ground.geometry.rect.width < game.worldSize.width
       || ground.geometry.rect.y + ground.geometry.rect.height < game.worldSize.height)) {
       issues.push(issue('$.game.surfaces', 'GROUND_COVERAGE_INVALID', 'the continuous ground must cover the whole walkable world'));
+    }
+    if (!game.surfaces.some((surface) => surface?.walkable === true)) {
+      issues.push(issue('$.game.surfaces', 'WALKABLE_SURFACE_REQUIRED', 'at least one authored road, plaza, crossing, or threshold is required'));
     }
   }
 
@@ -439,8 +570,16 @@ function validateGame(game, assets, issues) {
     }
   }
 
-  for (const id of Object.values(UI_ASSET_IDS)) {
-    if (!assets.has(id) || assets.get(id)?.usage?.kind !== 'ui') issues.push(issue('$.assets', 'UI_ASSET_REQUIRED', `${id} is required`));
+  validateBackplate(game.backplate, game, assets, issues);
+
+  // The compiler chooses one complete worldview before the runtime starts.
+  // The UI contract names the assets for that worldview, so do not force the
+  // late-medieval frame IDs onto another complete town.
+  for (const kind of ['dialogue', 'report', 'exit']) {
+    const id = game?.ui?.[kind]?.assetId;
+    if (nonEmpty(id) && (!assets.has(id) || assets.get(id)?.usage?.kind !== 'ui')) {
+      issues.push(issue('$.assets', 'UI_ASSET_REQUIRED', `${id} is required`));
+    }
   }
 }
 
@@ -503,6 +642,7 @@ function assertCanvas(canvas) {
   if (!canvas || typeof canvas.getContext !== 'function') throw new GameRuntimeError('CANVAS_REQUIRED', 'a Canvas element is required');
   const context = canvas.getContext('2d');
   if (!context) throw new GameRuntimeError('CANVAS_CONTEXT_REQUIRED', 'a 2D Canvas context is required');
+  if (typeof context.drawImage !== 'function') throw new GameRuntimeError('CANVAS_CONTEXT_REQUIRED', 'the 2D Canvas context cannot draw the environment backplate');
   return context;
 }
 function assertUiRoot(uiRoot) {
@@ -562,31 +702,194 @@ function createSurfacePatterns(context, game, images) {
   return patterns;
 }
 
-function drawSurfaces(context, game, camera, patterns) {
-  context.save?.();
-  context.scale?.(camera.zoom, camera.zoom);
-  context.translate?.(-camera.x, -camera.y);
-  for (const surface of game.surfaces) {
-    const pattern = patterns.get(surface.assetId);
-    if (!pattern) throw new GameRuntimeError('ASSET_NOT_LOADED', `surface asset ${surface.assetId} was not loaded`);
-    if (surface.geometry.kind === 'area') {
-      context.fillStyle = pattern;
-      const area = surface.geometry.rect;
-      context.fillRect?.(area.x, area.y, area.width, area.height);
-      continue;
-    }
-    context.strokeStyle = pattern;
-    context.lineWidth = surface.geometry.width;
-    context.lineCap = 'round';
-    context.lineJoin = 'round';
+function drawSurface(context, surface, pattern) {
+  if (!pattern) throw new GameRuntimeError('ASSET_NOT_LOADED', `surface asset ${surface.assetId} was not loaded`);
+  const previousAlpha = finite(context.globalAlpha) ? context.globalAlpha : 1;
+  context.globalAlpha = previousAlpha * surface.opacity;
+  if (surface.geometry.kind === 'area') {
+    context.fillStyle = pattern;
+    const area = surface.geometry.rect;
+    context.fillRect?.(area.x, area.y, area.width, area.height);
+    context.globalAlpha = previousAlpha;
+    return;
+  }
+  if (surface.geometry.kind === 'polygon') {
+    context.fillStyle = pattern;
     context.beginPath?.();
     surface.geometry.points.forEach((value, index) => {
       if (index === 0) context.moveTo?.(value.x, value.y);
       else context.lineTo?.(value.x, value.y);
     });
-    context.stroke?.();
+    context.closePath?.();
+    context.fill?.();
+    context.globalAlpha = previousAlpha;
+    return;
   }
+  context.strokeStyle = pattern;
+  context.lineWidth = surface.geometry.width;
+  context.lineCap = surface.geometry.cap ?? (surface.recipe === 'water' || surface.recipe === 'bank' || surface.recipe === 'crossing' ? 'butt' : 'round');
+  context.lineJoin = surface.geometry.join ?? (surface.recipe === 'crossing' ? 'miter' : 'round');
+  context.beginPath?.();
+  surface.geometry.points.forEach((value, index) => {
+    if (index === 0) context.moveTo?.(value.x, value.y);
+    else context.lineTo?.(value.x, value.y);
+  });
+  context.stroke?.();
+  context.globalAlpha = previousAlpha;
+}
+
+function assertBackplateWorldSize(worldSize) {
+  if (!isRecord(worldSize) || !integer(worldSize.width) || !integer(worldSize.height)
+    || worldSize.width <= 0 || worldSize.height <= 0) {
+    throw new GameRuntimeError('BACKPLATE_CONTRACT_INVALID', 'backplate world size must use positive integer dimensions');
+  }
+  if (worldSize.width > BACKPLATE_MAX_DIMENSION || worldSize.height > BACKPLATE_MAX_DIMENSION
+    || worldSize.width * worldSize.height > BACKPLATE_MAX_PIXELS) {
+    throw new GameRuntimeError(
+      'BACKPLATE_TOO_LARGE',
+      `backplate world size ${worldSize.width}x${worldSize.height} exceeds the safe transient canvas limit`,
+      [issue('$.game.worldSize', 'BACKPLATE_TOO_LARGE', `maximum is ${BACKPLATE_MAX_DIMENSION}x${BACKPLATE_MAX_DIMENSION} and ${BACKPLATE_MAX_PIXELS} pixels`)],
+    );
+  }
+}
+
+function createBackplateCanvas(worldSize) {
+  assertBackplateWorldSize(worldSize);
+  const constructors = [];
+  if (typeof globalThis.OffscreenCanvas === 'function') constructors.push(() => new globalThis.OffscreenCanvas(worldSize.width, worldSize.height));
+  const documentObject = globalThis.document;
+  if (documentObject && typeof documentObject.createElement === 'function') {
+    constructors.push(() => {
+      const canvas = documentObject.createElement('canvas');
+      canvas.width = worldSize.width;
+      canvas.height = worldSize.height;
+      return canvas;
+    });
+  }
+  if (constructors.length === 0) {
+    throw new GameRuntimeError('BACKPLATE_UNAVAILABLE', 'an offscreen canvas implementation is required for the environment backplate');
+  }
+  const errors = [];
+  for (const allocate of constructors) {
+    try {
+      const canvas = allocate();
+      if (!canvas || canvas.width !== worldSize.width || canvas.height !== worldSize.height) {
+        throw new Error('allocated canvas dimensions do not match world size');
+      }
+      const context = canvas.getContext?.('2d');
+      if (!context) throw new Error('2D context is unavailable');
+      for (const method of ['clearRect', 'fillRect', 'drawImage']) {
+        if (typeof context[method] !== 'function') throw new Error(`2D context method ${method} is unavailable`);
+      }
+      return { canvas, context };
+    } catch (error) {
+      errors.push(String(error?.message ?? error));
+    }
+  }
+  throw new GameRuntimeError(
+    'BACKPLATE_ALLOCATION_FAILED',
+    `the ${worldSize.width}x${worldSize.height} transient backplate could not be allocated`,
+    [{ path: '$.game.worldSize', code: 'BACKPLATE_ALLOCATION_FAILED', message: errors.join('; ') }],
+  );
+}
+
+function drawStructureShadow(context, footprint) {
+  const width = Math.max(1, Math.round(footprint.width * 0.9));
+  const height = Math.max(4, Math.min(18, Math.round(footprint.height * 0.16)));
+  const x = Math.round(footprint.x + (footprint.width - width) / 2);
+  const y = Math.round(footprint.y + footprint.height - height * 0.55);
+  context.fillStyle = '#0a1015';
+  context.globalAlpha = 0.24;
+  if (typeof context.ellipse === 'function') {
+    context.beginPath?.();
+    context.ellipse(x + width / 2, y + height / 2, width / 2, height / 2, 0, 0, Math.PI * 2);
+    context.fill?.();
+  } else {
+    context.fillRect?.(Math.round(x), Math.round(y), Math.round(width), Math.round(height));
+  }
+  context.globalAlpha = 1;
+}
+
+function loadedImageDimensions(image) {
+  if (!image || (typeof image !== 'object' && typeof image !== 'function')) return null;
+  const width = positive(image.naturalWidth) ? image.naturalWidth : image.width;
+  const height = positive(image.naturalHeight) ? image.naturalHeight : image.height;
+  return integer(width) && integer(height) ? { width, height } : null;
+}
+
+function createBackplate(bundle, images) {
+  const game = bundle.game;
+  const { canvas, context } = createBackplateCanvas(game.worldSize);
+  if ('imageSmoothingEnabled' in context) context.imageSmoothingEnabled = false;
+  context.setTransform?.(1, 0, 0, 1, 0, 0);
+  context.clearRect?.(0, 0, game.worldSize.width, game.worldSize.height);
+  const environmentAssetId = game.backplate.environmentAssetId;
+  if (nonEmpty(environmentAssetId)) {
+    const asset = bundle.assets.find((entry) => entry?.id === environmentAssetId);
+    if (!asset) {
+      throw new GameRuntimeError('BACKPLATE_CONTRACT_INVALID', `backplate environment asset ${environmentAssetId} is not declared`, [issue('$.game.backplate.environmentAssetId', 'BACKPLATE_ENVIRONMENT_ASSET_UNKNOWN', environmentAssetId)]);
+    }
+    if (asset.usage?.kind !== 'terrain') {
+      throw new GameRuntimeError('BACKPLATE_CONTRACT_INVALID', `backplate environment asset ${environmentAssetId} is not a terrain surface`, [issue('$.game.backplate.environmentAssetId', 'BACKPLATE_ENVIRONMENT_ASSET_KIND_INVALID', environmentAssetId)]);
+    }
+    const image = images.get(environmentAssetId);
+    if (!image) {
+      throw new GameRuntimeError('ASSET_LOAD_FAILED', `backplate environment asset ${environmentAssetId} was not loaded`, [issue(environmentAssetId, 'BACKPLATE_ENVIRONMENT_ASSET_NOT_LOADED', environmentAssetId)]);
+    }
+    const dimensions = loadedImageDimensions(image);
+    if (!dimensions || dimensions.width !== game.worldSize.width || dimensions.height !== game.worldSize.height) {
+      const actual = dimensions ? `${dimensions.width}x${dimensions.height}` : 'unknown';
+      throw new GameRuntimeError(
+        'BACKPLATE_CONTRACT_INVALID',
+        `backplate environment asset ${environmentAssetId} has native dimensions ${actual}, expected ${game.worldSize.width}x${game.worldSize.height}`,
+        [issue(`$.game.backplate.environmentAssetId`, 'BACKPLATE_ENVIRONMENT_DIMENSIONS_INVALID', `expected ${game.worldSize.width}x${game.worldSize.height}, got ${actual}`)],
+      );
+    }
+    // The compiler guarantees the environment image is already the exact
+    // world-sized native surface. Paint it once at its intrinsic dimensions.
+    context.drawImage?.(image, 0, 0);
+  } else {
+    const patterns = createSurfacePatterns(context, game, images);
+    const surfaceById = new Map(game.surfaces.map((surface) => [surface.id, surface]));
+    for (const surfaceId of game.backplate.surfaceIds) {
+      const surface = surfaceById.get(surfaceId);
+      if (!surface) {
+        throw new GameRuntimeError('BACKPLATE_CONTRACT_INVALID', `backplate surface ${surfaceId} is not in game.surfaces`, [issue(`$.game.backplate.surfaceIds`, 'BACKPLATE_SURFACE_REFERENCE_INVALID', surfaceId)]);
+      }
+      drawSurface(context, surface, patterns.get(surface.assetId));
+    }
+  }
+  context.save?.();
+  for (const shadow of game.backplate.structureShadows) drawStructureShadow(context, shadow.footprint);
   context.restore?.();
+  return Object.freeze({ canvas, width: game.worldSize.width, height: game.worldSize.height });
+}
+
+function drawBackplateCrop(context, backplate, camera, view) {
+  if (!backplate?.canvas) throw new GameRuntimeError('BACKPLATE_REQUIRED', 'an initialized environment backplate is required before drawing');
+  const zoom = positive(camera.zoom) ? camera.zoom : 1;
+  const sourceWidth = Math.max(1, Math.ceil(view.width / zoom));
+  const sourceHeight = Math.max(1, Math.ceil(view.height / zoom));
+  const sourceLeft = Math.max(0, Math.floor(camera.x));
+  const sourceTop = Math.max(0, Math.floor(camera.y));
+  const sourceRight = Math.min(backplate.width, Math.ceil(camera.x + sourceWidth));
+  const sourceBottom = Math.min(backplate.height, Math.ceil(camera.y + sourceHeight));
+  if (sourceRight <= sourceLeft || sourceBottom <= sourceTop) return;
+  const destinationX = Math.round((sourceLeft - camera.x) * zoom);
+  const destinationY = Math.round((sourceTop - camera.y) * zoom);
+  const destinationWidth = Math.max(1, Math.round((sourceRight - sourceLeft) * zoom));
+  const destinationHeight = Math.max(1, Math.round((sourceBottom - sourceTop) * zoom));
+  context.drawImage?.(
+    backplate.canvas,
+    sourceLeft,
+    sourceTop,
+    sourceRight - sourceLeft,
+    sourceBottom - sourceTop,
+    destinationX,
+    destinationY,
+    destinationWidth,
+    destinationHeight,
+  );
 }
 
 function drawRenderable(context, entry, asset, image, state, alpha) {
@@ -616,8 +919,9 @@ function drawRenderable(context, entry, asset, image, state, alpha) {
 
 function drawDialogueFrame(context, view, state, game, assets, images) {
   const kind = state.dialogue?.kind;
+  const exit = kind === 'exit';
   const report = kind === 'report' || (kind === 'feedback' && state.quest.reported);
-  const contract = report ? game.ui.report : game.ui.dialogue;
+  const contract = exit ? game.ui.exit : report ? game.ui.report : game.ui.dialogue;
   const ids = state.dialogue ? [contract.assetId] : [];
   for (const id of ids) {
     const asset = assets.get(id);
@@ -630,7 +934,47 @@ function drawDialogueFrame(context, view, state, game, assets, images) {
   }
 }
 
-function drawFrame(context, canvas, bundle, state, images, patterns, displayScale) {
+// The game gives a short in-world prompt only when the player is close enough
+// to a deliberate interaction. It keeps the opening view clean while making
+// the request, discoveries, report, and resident conversations discoverable
+// without a permanent help panel.
+function interactionHint(state, game) {
+  if (state.phase !== 'explore' || state.dialogue) return null;
+  const footbox = game.player?.footbox;
+  if (!rect(footbox)) return null;
+  const foot = {
+    x: state.player.x + footbox.x,
+    y: state.player.y + footbox.y,
+    width: footbox.width,
+    height: footbox.height,
+  };
+  const outdoors = state.interiorId === null;
+  const inInteractionSpace = (entry) => entry?.interiorId
+    ? entry.interiorId === state.interiorId
+    : outdoors;
+  if (outdoors && state.quest.status === 'available' && overlaps(foot, game.request.rect)) {
+    return game.request.prompt;
+  }
+  if (state.quest.accepted) {
+    const index = game.quests.findIndex((quest, questIndex) =>
+      !state.quest.discoveries[questIndex]
+      && inInteractionSpace(quest)
+      && overlaps(foot, quest.rect));
+    if (index >= 0) return game.quests[index].subject;
+  }
+  if (state.quest.status === 'ready_report' && inInteractionSpace(game.report)
+    && overlaps(foot, game.report.rect)) {
+    return game.report.prompt;
+  }
+  const resident = state.residents.find((entry) => {
+    const activeInterior = entry.interiorId && entry.interiorId === state.interiorId;
+    const activeOutdoors = outdoors && !entry.interiorId;
+    return (activeInterior || activeOutdoors) && overlaps(foot, entry.interactionRect);
+  });
+  return resident?.prompt ?? null;
+}
+
+function drawFrame(context, canvas, bundle, state, images, backplate, displayScale) {
   const game = bundle.game;
   const view = state.viewport;
   const pixelWidth = view.width * displayScale;
@@ -639,11 +983,14 @@ function drawFrame(context, canvas, bundle, state, images, patterns, displayScal
   if (canvas.height !== pixelHeight) canvas.height = pixelHeight;
   if ('imageSmoothingEnabled' in context) context.imageSmoothingEnabled = false;
   context.setTransform?.(displayScale, 0, 0, displayScale, 0, 0);
-  context.fillStyle = '#071016';
-  context.fillRect?.(0, 0, view.width, view.height);
   const assets = new Map(bundle.assets.map((asset) => [asset.id, asset]));
   const camera = state.camera;
-  drawSurfaces(context, game, camera, patterns);
+  // The viewport is cleared before the cached world crop is blitted. The
+  // ground surface covers the canonical world, while this fill remains the
+  // explicit edge colour if a resized browser view extends beyond that world.
+  context.fillStyle = '#071016';
+  context.fillRect?.(0, 0, view.width, view.height);
+  drawBackplateCrop(context, backplate, camera, view);
 
   const renderables = [...game.renderables];
   for (const npc of state.residents) {
@@ -741,28 +1088,73 @@ function createUiText(documentObject, className, text, safeRect, scale, metrics)
 
 function renderUi(uiRoot, state, game, displayScale) {
   const active = Boolean(state.dialogue);
+  const hint = active ? null : interactionHint(state, game);
+  const exit = state.dialogue?.kind === 'exit';
   const report = state.dialogue?.kind === 'report' || (state.dialogue?.kind === 'feedback' && state.quest.reported);
-  const contract = report ? game.ui.report : game.ui.dialogue;
+  const contract = exit ? game.ui.exit : report ? game.ui.report : game.ui.dialogue;
   const metrics = report ? UI_TEXT_METRICS.report : UI_TEXT_METRICS.dialogue;
   const frame = game.ui.frame;
-  uiRoot.dataset.kind = state.dialogue?.kind ?? '';
-  uiRoot.dataset.frame = active ? (report ? 'report' : 'dialogue') : '';
-  uiRoot.hidden = !active;
+  uiRoot.dataset.kind = state.dialogue?.kind ?? (hint ? 'hint' : '');
+  uiRoot.dataset.frame = active ? (exit ? 'exit' : report ? 'report' : 'dialogue') : '';
+  uiRoot.hidden = !active && !hint;
+  if (!active) {
+    if (!hint) {
+      uiRoot.textContent = '';
+      return;
+    }
+    // A nearby action belongs to the player and place, not to the civic
+    // centre. Give the hint the full viewport as its positioning plane, then
+    // keep the compact plaque immediately above the actor. Dialogue, report,
+    // and exit frames continue to use their authored 384 by 216 plane below.
+    uiRoot.style.left = '0px';
+    uiRoot.style.top = '0px';
+    uiRoot.style.width = `${state.viewport.width * displayScale}px`;
+    uiRoot.style.height = `${state.viewport.height * displayScale}px`;
+    const documentObject = globalThis.document;
+    if (!documentObject || typeof documentObject.createElement !== 'function' || typeof uiRoot.replaceChildren !== 'function') {
+      uiRoot.textContent = `Enter：${hint}`;
+      return;
+    }
+    const hintElement = documentObject.createElement('span');
+    hintElement.className = 'game-ui-hint';
+    hintElement.textContent = `Enter：${hint}`;
+    // Keep the hint in the same whole-pixel scale as the authored frame and
+    // dialogue text. Without these inline dimensions it becomes a tiny CSS
+    // label when the game is shown at a 2x or 3x display scale.
+    hintElement.style.fontSize = `${12 * displayScale}px`;
+    hintElement.style.padding = `${4 * displayScale}px ${8 * displayScale}px`;
+    hintElement.style.borderWidth = `${Math.max(1, displayScale)}px`;
+    hintElement.style.setProperty('--hint-tip-size', `${7 * displayScale}px`);
+    hintElement.style.setProperty('--hint-tip-offset', `${-5 * displayScale}px`);
+    hintElement.style.setProperty('--hint-tip-border', `${Math.max(1, displayScale)}px`);
+    const camera = state.camera;
+    const actorCenterX = ((state.player.x + game.player.footbox.x + game.player.footbox.width / 2 - camera.x) * camera.zoom);
+    const actorTopY = ((state.player.y - camera.y) * camera.zoom);
+    const edgeInset = Math.min(112, Math.max(24, state.viewport.width / 2));
+    const hintX = Math.max(edgeInset, Math.min(state.viewport.width - edgeInset, actorCenterX));
+    const hintY = Math.max(32, actorTopY - 7);
+    hintElement.style.left = `${Math.round(hintX) * displayScale}px`;
+    hintElement.style.right = 'auto';
+    hintElement.style.top = `${Math.round(hintY) * displayScale}px`;
+    hintElement.style.bottom = 'auto';
+    hintElement.style.maxWidth = `${Math.max(180, frame.width - 32) * displayScale}px`;
+    hintElement.style.transform = 'translate(-50%, -100%)';
+    uiRoot.replaceChildren(hintElement);
+    return;
+  }
   uiRoot.style.left = `${Math.floor((state.viewport.width - frame.width) / 2) * displayScale}px`;
   uiRoot.style.top = `${Math.floor((state.viewport.height - frame.height) / 2) * displayScale}px`;
   uiRoot.style.width = `${frame.width * displayScale}px`;
   uiRoot.style.height = `${frame.height * displayScale}px`;
-  if (!active) {
-    uiRoot.textContent = '';
-    return;
-  }
   const pages = Array.isArray(state.dialogue.pages) ? state.dialogue.pages : null;
   const page = Number.isInteger(state.dialogue.page) ? state.dialogue.page : 0;
   const bodyLines = pages ? (pages[page] ?? pages[0] ?? []) : (state.dialogue.lines ?? []);
   const submittedReport = state.dialogue?.kind === 'feedback' && state.quest.reported;
-  const footer = report
+  const footer = exit
+    ? '端末で停止してください'
+    : report
     ? submittedReport
-      ? pages && page < pages.length - 1 ? 'Enter：次のページ　X：閉じる' : 'Enter：閉じる　X：閉じる'
+      ? pages && page < pages.length - 1 ? 'Enter：次のページ　X：閉じる' : 'Enter：街へ戻る　Esc：街を出る'
       : pages && page < pages.length - 1 ? 'Enter：次のページ　X：戻る' : 'Enter：役場へ届ける　X：戻る'
     : 'Enter：進む　X：戻る';
   const documentObject = globalThis.document;
@@ -793,9 +1185,10 @@ function fitCanvasToWindow(view, target) {
   const displayScale = Math.max(1, Math.floor(Math.min(availableWidth / view.width, availableHeight / view.height)));
   return {
     displayScale,
-    // The logical viewport grows with the whole-pixel display scale. The
-    // canvas and overlay still begin at integer top-left coordinates, leaving
-    // any odd remainder to the right and bottom of the browser view.
+    // Grow the logical view to the useful browser area at one whole-pixel
+    // display scale. Canvas pixels and CSS pixels remain identical, so the
+    // browser never stretches a 1280 by 720 bitmap across a different aspect
+    // ratio. Any sub-pixel remainder stays outside the composed scene.
     viewport: {
       width: Math.max(1, Math.floor(availableWidth / displayScale)),
       height: Math.max(1, Math.floor(availableHeight / displayScale)),
@@ -813,7 +1206,7 @@ function createGameRuntime({ bundle, canvas, uiRoot, storage, assetLoader, onExi
   const key = storageKey(identity, bundle.world.contentDigest);
   let state = createInitialState(bundle, readSaved(storage, key, identity));
   let images = new Map();
-  let patterns = new Map();
+  let backplate = null;
   let frame = null;
   let previousTime = null;
   let running = false;
@@ -833,7 +1226,7 @@ function createGameRuntime({ bundle, canvas, uiRoot, storage, assetLoader, onExi
   };
 
   const render = () => {
-    drawFrame(context, canvas, bundle, state, images, patterns, displayScale);
+    drawFrame(context, canvas, bundle, state, images, backplate, displayScale);
     renderUi(uiRoot, state, bundle.game, displayScale);
   };
   const save = () => writeSaved(storage, key, state, identity, bundle.game.quests.map((quest) => quest.id));
@@ -857,16 +1250,25 @@ function createGameRuntime({ bundle, canvas, uiRoot, storage, assetLoader, onExi
   };
   const onKeyDown = (event) => {
     let action = actionForKey(event.code);
-    if (action) { event.preventDefault?.(); dispatch(action); return; }
+    if (action) {
+      event.preventDefault?.();
+      // Browser key repeat must not accept a request, skip a discovery, or
+      // submit a report while the player is still holding the action key.
+      if (!event.repeat) dispatch(action);
+      return;
+    }
+    if (MOVEMENT_KEYS.has(event.code)) event.preventDefault?.();
     dispatch({ type: 'KEY_DOWN', key: event.code });
   };
   const onKeyUp = (event) => dispatch({ type: 'KEY_UP', key: event.code });
+  const onBlur = () => dispatch({ type: 'INPUT_RESET' });
   const attach = () => {
     if (!target || typeof target.addEventListener !== 'function') throw new GameRuntimeError('INPUT_TARGET_REQUIRED', 'an input target is required');
     target.addEventListener('keydown', onKeyDown);
     target.addEventListener('keyup', onKeyUp);
+    target.addEventListener('blur', onBlur);
     target.addEventListener('resize', fitCanvas);
-    listeners.push(['keydown', onKeyDown], ['keyup', onKeyUp], ['resize', fitCanvas]);
+    listeners.push(['keydown', onKeyDown], ['keyup', onKeyUp], ['blur', onBlur], ['resize', fitCanvas]);
   };
   const detach = () => {
     for (const [type, listener] of listeners.splice(0)) target.removeEventListener?.(type, listener);
@@ -885,8 +1287,12 @@ function createGameRuntime({ bundle, canvas, uiRoot, storage, assetLoader, onExi
       }
       images = await loadAssets(bundle, assetLoader);
       fitCanvas();
-      patterns = createSurfacePatterns(context, bundle.game, images);
+      backplate = createBackplate(bundle, images);
       attach();
+      // Give the game the first keyboard focus so movement works as soon as
+      // the town appears. The listeners remain on the window so a browser
+      // focus change cannot silently drop an already-running journey.
+      try { canvas.focus?.({ preventScroll: true }); } catch { canvas.focus?.(); }
       running = true;
       previousTime = timer.now();
       lastMovementSaveAt = previousTime;
