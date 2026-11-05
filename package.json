@@ -1,32 +1,10 @@
 {
   "name": "codecity",
-  "version": "0.1.0",
-  "private": false,
+  "version": "0.2.0",
+  "private": true,
   "type": "module",
-  "description": "A repository becomes a continuous pixel-art town.",
-  "bin": {
-    "codecity": "ship/90-cli/bin/codecity.mjs"
-  },
-  "exports": {
-    ".": "./ship/90-cli/index.mjs"
-  },
-  "files": [
-    "ship/10-inspect/index.mjs",
-    "ship/20-semantics/index.mjs",
-    "ship/30-town-domain/index.mjs",
-    "ship/40-worldgen/index.mjs",
-    "ship/50-art/index.mjs",
-    "ship/50-art/manifest.json",
-    "ship/50-art/license.json",
-    "ship/50-art/provenance.json",
-    "ship/50-art/assets/",
-    "ship/60-compiler/index.mjs",
-    "ship/70-runtime/index.mjs",
-    "ship/80-local-server/index.mjs",
-    "ship/80-local-server/index.html",
-    "ship/80-local-server/app.mjs",
-    "ship/90-cli/bin/codecity.mjs",
-    "ship/90-cli/index.mjs",
-    "README.md"
-  ]
+  "description": "A repository becomes a walkable night-time pixel-art town.",
+  "bin": { "codecity": "codecity.mjs" },
+  "engines": { "node": ">=22" },
+  "scripts": { "start": "node codecity.mjs ." }
 }
