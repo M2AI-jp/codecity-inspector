@@ -1,0 +1,83 @@
+html, body {
+  margin: 0; height: 100%; overflow: hidden; background: #07080c;
+  color: #efe6d2;
+  font-family: "Hiragino Maru Gothic ProN", "Hiragino Sans", "Yu Gothic UI", "Noto Sans JP", "Meiryo", system-ui, sans-serif;
+  -webkit-user-select: none; user-select: none;
+  touch-action: none;
+}
+#view {
+  position: absolute; left: 0; top: 0;
+  image-rendering: pixelated; image-rendering: crisp-edges;
+  display: block; cursor: pointer;
+}
+#ui { position: absolute; inset: 0; pointer-events: none; }
+
+.panel {
+  position: absolute;
+  background: rgba(12, 13, 22, 0.86);
+  border: 2px solid #1b1c28;
+  box-shadow: inset 0 0 0 2px rgba(214, 186, 128, 0.42), 0 4px 0 rgba(0, 0, 0, 0.35);
+  border-radius: 2px;
+  padding: 12px 16px;
+  opacity: 0; transform: translateY(6px);
+  transition: opacity 160ms ease-out, transform 160ms ease-out;
+  font-size: 18px; line-height: 1.55;
+}
+.panel.show { opacity: 1; transform: none; }
+.dim { color: #b5ab98; }
+
+#repo { left: 14px; top: 14px; padding: 8px 14px; }
+#repo .name { font-size: 20px; font-weight: 700; letter-spacing: 0.02em; }
+#repo .sub { font-size: 18px; color: #b5ab98; font-family: ui-monospace, Menlo, monospace; }
+
+#stats { right: 14px; top: 14px; width: min(380px, 38vw); max-height: calc(100vh - 260px); overflow: hidden; background: rgba(12, 13, 22, 0.78); }
+#stats .head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+#stats .kind { font-size: 18px; font-weight: 700; padding: 0 8px; border-radius: 2px; background: #3a3426; color: #ffe2a0; }
+#stats .kind-workshop { background: #4a2f1e; color: #ffc98a; }
+#stats .kind-shop { background: #2b3550; color: #b8d2ff; }
+#stats .kind-house { background: #33402a; color: #d4efaa; }
+#stats .kind-ruin { background: #3a3a3a; color: #d8d2c4; }
+#stats .path { font-size: 21px; font-weight: 700; word-break: break-all; }
+#stats .grid { display: grid; grid-template-columns: max-content 1fr; column-gap: 12px; }
+#stats .k, #stats .v { padding: 3px 0; border-top: 1px solid rgba(214, 186, 128, 0.16); }
+#stats .k { color: #d9bf86; font-size: 18px; white-space: nowrap; }
+#stats .v { font-size: 18px; word-break: break-word; }
+#stats .file { font-family: ui-monospace, Menlo, monospace; font-size: 18px; word-break: break-all; }
+
+#dialogue {
+  left: 50%; bottom: 22px; width: min(820px, calc(100vw - 40px));
+  transform: translate(-50%, 8px); padding: 18px 22px 14px; min-height: 120px;
+  cursor: pointer;
+  background: rgba(10, 11, 19, 0.9);
+}
+#dialogue.show { transform: translate(-50%, 0); pointer-events: auto; }
+#dialogue .nameplate {
+  position: absolute; left: 18px; top: -18px; font-size: 18px; font-weight: 700;
+  background: #2a2333; padding: 2px 12px; border-radius: 2px;
+  box-shadow: inset 0 0 0 2px rgba(214, 186, 128, 0.5); color: #ffe2a0;
+}
+#dlg-text p { margin: 0 0 4px; font-size: 22px; line-height: 1.6; }
+#dlg-text p.old { color: #a79e8d; font-size: 19px; }
+#dlg-text .more { position: absolute; right: 16px; bottom: 6px; font-size: 15px; color: #8f8778; }
+
+#notice { left: 50%; bottom: 22px; width: min(720px, calc(100vw - 40px)); transform: translate(-50%, 8px); }
+#notice.show { transform: translate(-50%, 0); }
+#notice .label { font-size: 18px; color: #d9bf86; }
+#notice .title { font-size: 24px; font-weight: 700; margin: 2px 0 4px; }
+#notice p { margin: 0; font-size: 20px; }
+
+#bubble {
+  position: absolute; left: 0; top: 0; white-space: nowrap;
+  background: rgba(12, 13, 22, 0.9); padding: 4px 12px; border-radius: 2px;
+  box-shadow: inset 0 0 0 2px rgba(214, 186, 128, 0.45);
+  font-size: 18px; opacity: 0; transition: opacity 140ms ease-out;
+}
+#bubble.show { opacity: 1; }
+#bubble .who { font-weight: 700; margin-right: 10px; color: #ffe2a0; }
+
+#hint { left: 14px; bottom: 14px; font-size: 18px; padding: 6px 12px; color: #d6ccb8; }
+#loading { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 20px; color: #b5ab98; }
+#loading.hide { display: none; }
+#error { left: 50%; top: 40%; transform: translate(-50%, -50%); max-width: 640px; }
+#error .title { font-size: 22px; font-weight: 700; }
+#fps { position: absolute; right: 8px; bottom: 6px; font: 12px ui-monospace, Menlo, monospace; color: #8affb0; text-shadow: 0 1px 0 #000; }

@@ -7,3 +7,4 @@
 - 地面のtexture: `node tools/pixelize.mjs in.png out.png --grid 1x1 --size 128x128 --fit stretch --tileable`（継ぎ目なし）
 - 見比べ: `node tools/preview.mjs side art/approved/player--default.png out.png cmp.png --scale 4`
 - 拡大表示: `node tools/preview.mjs up out.png out-x4.png --scale 4 --grid 32`
+- manifest: `node tools/build-manifest.mjs`（art/game/ の画像と sidecar の .json から art/game/manifest.json を作る。manifest は手で編集しない）

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>CodeCity</title>
+<link rel="stylesheet" href="/web/style.css">
+</head>
+<body>
+<canvas id="view"></canvas>
+<div id="ui">
+  <div id="repo" class="panel"></div>
+  <div id="stats" class="panel"></div>
+  <div id="notice" class="panel"></div>
+  <div id="dialogue" class="panel">
+    <div id="dlg-name" class="nameplate"></div>
+    <div id="dlg-text"></div>
+  </div>
+  <div id="bubble"></div>
+  <div id="hint" class="panel">矢印キー / WASD で移動　Shift でゆっくり歩く　クリックした場所へ歩く</div>
+  <div id="loading">街をつくっています…</div>
+  <div id="error" class="panel"></div>
+  <div id="fps"></div>
+</div>
+<script type="module" src="/web/main.js"></script>
+</body>
+</html>

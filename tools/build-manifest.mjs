@@ -1,0 +1,183 @@
+#!/usr/bin/env node
+// Builds art/game/manifest.json from the images and their sidecar .json files (CONTRACTS.md
+// 「画像ごとのsidecar」). Never edit manifest.json by hand; run `node tools/build-manifest.mjs`.
+//
+//   art/game/buildings/<archetype>-<n>.json (+ the pngs it names)  -> archetypes[archetype].variants[]
+//   art/game/residents/keeper-<kind>.png                            -> characters.keepers[kind]
+//   art/game/residents/townsfolk-<n>.png                            -> characters.townsfolk[] (by n)
+//   art/game/props/<type>.png (+ <type>.json)                       -> props[type]
+//   art/game/ground/<name>.png                                      -> ground[name]
+//
+// Node 22+, standard library only.
+
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const GAME = path.join(ROOT, 'art', 'game');
+const OUT = path.join(GAME, 'manifest.json');
+
+// 4x4 people sheets: rows down / left / right / up; cols idle / walkA / idle / walkB.
+const PEOPLE_ANIMS = {
+  idle: { down: [0], left: [4], right: [8], up: [12] },
+  walk: { down: [1, 2, 3, 0], left: [5, 6, 7, 4], right: [9, 10, 11, 8], up: [13, 14, 15, 12] },
+};
+// The approved player sheet (6x8): see web/assets.js for how the frames were chosen.
+const PLAYER = {
+  src: '../approved/player--default.png', frame: [32, 32], pivot: [16, 31],
+  anims: {
+    idle: { up: [0], down: [12], right: [24], left: [36] },
+    walk: { up: [2, 3, 4, 5], down: [14, 15, 16, 17], right: [26, 27, 28, 29], left: [38, 39, 40, 41] },
+  },
+};
+// file name -> module.kind
+const KEEPER_KIND = { smith: 'workshop', workshop: 'workshop', shop: 'shop', house: 'house', ruin: 'ruin' };
+
+const warnings = [];
+const warn = (m) => warnings.push(m);
+const rel = (abs) => path.relative(GAME, abs).split(path.sep).join('/');
+const list = (dir, ext) => (fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith(ext)).sort() : []);
+
+function pngSize(file) {
+  const b = fs.readFileSync(file);
+  if (b.length < 24 || b.readUInt32BE(0) !== 0x89504e47 || b.toString('latin1', 12, 16) !== 'IHDR') return null;
+  return [b.readUInt32BE(16), b.readUInt32BE(20)];
+}
+
+function readJSON(file) {
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')); }
+  catch (e) { warn(`${rel(file)}: JSON を読めません (${e.message})`); return null; }
+}
+
+const isBox = (a) => Array.isArray(a) && a.length >= 4 && a.slice(0, 4).every(Number.isFinite);
+const isLight = (a) => Array.isArray(a) && a.length >= 3 && a.slice(0, 3).every(Number.isFinite);
+const isPt = (a) => Array.isArray(a) && a.length >= 2 && a.slice(0, 2).every(Number.isFinite);
+
+// --- buildings -------------------------------------------------------------------------
+function buildings() {
+  const dir = path.join(GAME, 'buildings');
+  const archetypes = {};
+  for (const f of list(dir, '.json')) {
+    const file = path.join(dir, f);
+    const s = readJSON(file);
+    if (!s) continue;
+    const id = f.replace(/\.json$/, '');
+    const key = s.archetype || id.replace(/-\d+$/, '');
+    const img = (part) => {
+      const p = s[part];
+      if (!p || !p.src) return null;
+      const abs = path.join(dir, p.src);
+      if (!fs.existsSync(abs)) { warn(`${rel(file)}: ${part} の画像 ${p.src} がありません`); return null; }
+      const origin = isPt(p.origin) ? p.origin.slice(0, 2) : [0, 0];
+      if (!isPt(p.origin)) warn(`${rel(file)}: ${part}.origin がありません（[0,0] とみなす）`);
+      return { src: rel(abs), origin, size: pngSize(abs) };
+    };
+    const exterior = img('exterior');
+    if (!exterior) { warn(`${rel(file)}: exterior が無いので、この版は使いません`); continue; }
+    const cutaway = img('cutaway');
+    if (!cutaway) warn(`${rel(file)}: cutaway がありません（中に入っても外観のまま）`);
+    const fp = isPt(s.footprint) ? s.footprint.slice(0, 2) : null;
+    if (!fp) warn(`${rel(file)}: footprint がありません`);
+    const variant = {
+      id,
+      footprint: fp,
+      exterior,
+      cutaway,
+      door: s.door && Number.isFinite(s.door.x) ? { x: s.door.x, w: Number.isFinite(s.door.w) ? s.door.w : 1 } : null,
+      blockers: (s.blockers || []).filter(isBox),
+      lights: (s.lights || []).filter(isLight),
+      smoke: (s.smoke || []).filter(isPt),
+    };
+    if (!variant.door) warn(`${rel(file)}: door がありません（town.json の扉を使う）`);
+    (archetypes[key] || (archetypes[key] = { variants: [] })).variants.push(variant);
+  }
+  for (const a of Object.values(archetypes)) a.variants.sort((p, q) => p.id.localeCompare(q.id, 'en', { numeric: true }));
+  return archetypes;
+}
+
+// --- people ----------------------------------------------------------------------------
+function personDef(abs) {
+  const size = pngSize(abs);
+  const side = abs.replace(/\.png$/, '.json');
+  const s = fs.existsSync(side) ? readJSON(side) || {} : {};
+  if (size && (size[0] % 32 || size[1] % 32)) warn(`${rel(abs)}: ${size.join('x')} は 32px の frame で割り切れません`);
+  return {
+    src: rel(abs),
+    frame: isPt(s.frame) ? s.frame.slice(0, 2) : [32, 32],
+    pivot: isPt(s.pivot) ? s.pivot.slice(0, 2) : [16, 31],
+    anims: s.anims || PEOPLE_ANIMS,
+  };
+}
+
+function people() {
+  const dir = path.join(GAME, 'residents');
+  const keepers = {};
+  const folk = [];
+  for (const f of list(dir, '.png')) {
+    const abs = path.join(dir, f);
+    let m;
+    if ((m = /^keeper-([a-z]+)\.png$/.exec(f))) {
+      const kind = KEEPER_KIND[m[1]];
+      if (!kind) { warn(`residents/${f}: 番人の種類 "${m[1]}" を知りません`); continue; }
+      keepers[kind] = personDef(abs);
+    } else if ((m = /^townsfolk-(\d+)\.png$/.exec(f))) {
+      folk.push([Number(m[1]), personDef(abs)]);
+    } else warn(`residents/${f}: keeper-<kind>.png でも townsfolk-<n>.png でもないので無視します`);
+  }
+  folk.sort((a, b) => a[0] - b[0]);
+  for (const k of ['workshop', 'shop', 'house', 'ruin']) if (!keepers[k]) warn(`番人 ${k} の画像がありません`);
+  return { keepers, townsfolk: folk.map(([, d]) => d) };
+}
+
+// --- props -----------------------------------------------------------------------------
+function props() {
+  const dir = path.join(GAME, 'props');
+  const out = {};
+  for (const f of list(dir, '.png')) {
+    const type = f.replace(/\.png$/, '');
+    const abs = path.join(dir, f);
+    const size = pngSize(abs) || [16, 16];
+    const side = path.join(dir, `${type}.json`);
+    const s = fs.existsSync(side) ? readJSON(side) || {} : null;
+    if (!s) warn(`props/${type}.json がありません（足元は画像の下端中央、衝突・光なし）`);
+    const d = s || {};
+    out[type] = {
+      src: rel(abs),
+      origin: isPt(d.origin) ? d.origin.slice(0, 2) : [Math.floor(size[0] / 2), size[1] - 1],
+      solid: isBox(d.solid) ? d.solid.slice(0, 4) : null,
+      light: isLight(d.light) ? d.light.slice(0, 3) : null,
+      flicker: d.flicker !== false,
+    };
+  }
+  for (const f of list(dir, '.json')) {
+    if (!fs.existsSync(path.join(dir, f.replace(/\.json$/, '.png')))) warn(`props/${f}: 対応する png がありません`);
+  }
+  return out;
+}
+
+function ground() {
+  const dir = path.join(GAME, 'ground');
+  const out = {};
+  for (const f of list(dir, '.png')) out[f.replace(/\.png$/, '')] = rel(path.join(dir, f));
+  return out;
+}
+
+const { keepers, townsfolk } = people();
+const manifest = {
+  _generated: 'tools/build-manifest.mjs が art/game/ の画像と sidecar から作ったファイル。手で編集しない。',
+  tile: 16,
+  characters: { player: PLAYER, keepers, townsfolk },
+  archetypes: buildings(),
+  props: props(),
+  ground: ground(),
+};
+// keep short number arrays on one line so the file stays readable
+const text = JSON.stringify(manifest, null, 2).replace(/\[\s+([-\d.,\s]+?)\s+\]/g, (_, inner) => `[${inner.trim().split(/\s*,\s*/).join(', ')}]`);
+fs.writeFileSync(OUT, `${text}\n`);
+
+const nv = Object.values(manifest.archetypes).reduce((n, a) => n + a.variants.length, 0);
+console.log(`wrote ${path.relative(ROOT, OUT)}: ${Object.keys(manifest.archetypes).length} archetypes (${nv} variants), ` +
+  `${Object.keys(keepers).length} keepers, ${townsfolk.length} townsfolk, ${Object.keys(manifest.props).length} props, ` +
+  `${Object.keys(manifest.ground).length} ground textures`);
+for (const w of warnings) console.warn(`  ! ${w}`);
