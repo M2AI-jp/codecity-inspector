@@ -4,16 +4,11 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 
 /**
- * Public contract for shipping art.
- *
- * This module deliberately has no dependency on the production workspace. A release manifest
- * is the only thing the shipping side needs to know about an asset. An asset
- * is either fully described and resolvable or it is an error; there is no
- * placeholder/fallback path in this contract.
+ * Load only the artwork selected by the caller's world plan. Unselected
+ * manifest/provenance entries and asset files are not startup dependencies.
  */
 const ASSET_MANIFEST_SCHEMA_VERSION = 2;
 const ASSET_MANIFEST_FORMAT = 'codecity.asset-manifest';
-const FALLBACK_POLICY = 'none';
 
 const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 const SHA256_RE = /^[a-f0-9]{64}$/i;
@@ -21,7 +16,6 @@ const SEMVER_RE = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;
 const USAGE_KINDS = new Set(['terrain', 'water', 'road', 'building', 'room', 'character', 'prop', 'light', 'quest', 'ui', 'effect']);
 const USAGE_LAYERS = new Set(['ground', 'object', 'actor', 'foreground', 'ui', 'effect']);
 const DIRECTIONS = new Set(['north', 'south', 'east', 'west']);
-const VALIDATED_MANIFESTS = new WeakSet();
 const MAX_MANIFEST_ASSETS = 8_192;
 const MAX_STRING_LENGTH = 4_096;
 const MAX_IMAGE_DIMENSION = 8_192;
@@ -29,9 +23,6 @@ const MAX_IMAGE_PIXELS = 64 * 1024 * 1024;
 const MAX_ASSET_FILE_BYTES = 4 * 1024 * 1024;
 const MAX_ASSET_TOTAL_BYTES = 10 * 1024 * 1024;
 const MAX_MANIFEST_FILE_BYTES = 8 * 1024 * 1024;
-const MAX_STRUCTURE_NODES = 250_000;
-const MAX_STRUCTURE_DEPTH = 20;
-const MAX_STRUCTURE_STRINGS = 8 * 1024 * 1024;
 const MAX_ANIMATION_STATES = 16;
 const MAX_ANIMATION_FRAMES = 64;
 
@@ -56,55 +47,6 @@ function isObject(value) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
   const prototype = Object.getPrototypeOf(value);
   return prototype === Object.prototype || prototype === null;
-}
-
-function assertBoundedPlainData(value) {
-  const seen = new WeakSet();
-  const stack = [{ value, depth: 0 }];
-  let nodes = 0;
-  let stringUnits = 0;
-  try {
-    while (stack.length > 0) {
-      const current = stack.pop();
-      if (current.depth > MAX_STRUCTURE_DEPTH) fail('Asset manifest is too deeply nested', { code: 'MANIFEST_TOO_COMPLEX', issues: [issue('$', `nesting must not exceed ${MAX_STRUCTURE_DEPTH}`, 'MANIFEST_TOO_COMPLEX')] });
-      const item = current.value;
-      if (typeof item === 'string') {
-        stringUnits += item.length;
-        if (stringUnits > MAX_STRUCTURE_STRINGS) fail('Asset manifest strings exceed the structural budget', { code: 'MANIFEST_TOO_COMPLEX', issues: [issue('$', 'aggregate string content is too large', 'MANIFEST_TOO_COMPLEX')] });
-        continue;
-      }
-      if (item === null || typeof item !== 'object') continue;
-      if (!Array.isArray(item) && !isObject(item)) fail('Asset manifest must contain plain data only', { code: 'INVALID_MANIFEST', issues: [issue('$', 'class instances and typed objects are forbidden', 'INVALID_MANIFEST')] });
-      if (seen.has(item)) fail('Asset manifest must not contain cycles', { code: 'INVALID_MANIFEST', issues: [issue('$', 'cyclic data is forbidden', 'INVALID_MANIFEST')] });
-      seen.add(item);
-      nodes += 1;
-      if (nodes > MAX_STRUCTURE_NODES) fail('Asset manifest exceeds the structural budget', { code: 'MANIFEST_TOO_COMPLEX', issues: [issue('$', `must contain at most ${MAX_STRUCTURE_NODES} containers`, 'MANIFEST_TOO_COMPLEX')] });
-      if (Array.isArray(item)) {
-        if (item.length > MAX_STRUCTURE_NODES) fail('Asset manifest array exceeds the structural budget', { code: 'MANIFEST_TOO_COMPLEX', issues: [issue('$', 'array is too large', 'MANIFEST_TOO_COMPLEX')] });
-        for (let index = 0; index < item.length; index += 1) stack.push({ value: item[index], depth: current.depth + 1 });
-      } else {
-        const descriptors = Object.getOwnPropertyDescriptors(item);
-        if (Object.getOwnPropertySymbols(item).length > 0 || Object.values(descriptors).some((descriptor) => !descriptor.enumerable || !Object.prototype.hasOwnProperty.call(descriptor, 'value'))) {
-          fail('Asset manifest must contain enumerable data fields only', { code: 'INVALID_MANIFEST', issues: [issue('$', 'symbols, accessors, and hidden fields are forbidden', 'INVALID_MANIFEST')] });
-        }
-        for (const [key, descriptor] of Object.entries(descriptors)) {
-          stringUnits += key.length;
-          stack.push({ value: descriptor.value, depth: current.depth + 1 });
-        }
-      }
-    }
-  } catch (error) {
-    if (error instanceof AssetContractError) throw error;
-    fail('Asset manifest cannot be inspected as plain data', { code: 'INVALID_MANIFEST', issues: [issue('$', 'proxy or unstable object input is forbidden', 'INVALID_MANIFEST')] });
-  }
-}
-
-function cloneAndFreeze(value, seen = new WeakSet()) {
-  if (value === null || typeof value !== 'object' || Object.isFrozen(value)) return value;
-  if (seen.has(value)) return value;
-  seen.add(value);
-  for (const child of Object.values(value)) cloneAndFreeze(child, seen);
-  return Object.freeze(value);
 }
 
 function assertSemver(value, field, issues) {
@@ -353,56 +295,6 @@ function validateAssetShape(asset, index) {
   return issues;
 }
 
-function normalizeManifestInput(manifest) {
-  assertBoundedPlainData(manifest);
-  if (!isObject(manifest)) {
-    fail('Asset manifest must be an object', {
-      issues: [issue('$', 'must be an object', 'INVALID_MANIFEST')]
-    });
-  }
-  const issues = [];
-  assertExactKeys(manifest, ['format', 'schemaVersion', 'manifestVersion', 'fallbackPolicy', 'assets'], '$', issues, 'INVALID_MANIFEST_FIELD');
-  assertNoFallback(manifest, '$', issues);
-  if (manifest.format !== ASSET_MANIFEST_FORMAT) {
-    issues.push(issue('$.format', `must be ${ASSET_MANIFEST_FORMAT}`, 'INVALID_FORMAT'));
-  }
-  if (manifest.schemaVersion !== ASSET_MANIFEST_SCHEMA_VERSION) {
-    issues.push(issue('$.schemaVersion', `must be ${ASSET_MANIFEST_SCHEMA_VERSION}`, 'UNSUPPORTED_SCHEMA'));
-  }
-  assertSemver(manifest.manifestVersion, '$.manifestVersion', issues);
-  if (manifest.fallbackPolicy !== FALLBACK_POLICY) {
-    issues.push(issue('$.fallbackPolicy', 'must be exactly none', 'FALLBACK_FORBIDDEN'));
-  }
-  if (!Array.isArray(manifest.assets) || manifest.assets.length === 0) {
-    issues.push(issue('$.assets', 'must be a non-empty array', 'MISSING_ASSETS'));
-  } else if (manifest.assets.length > MAX_MANIFEST_ASSETS) {
-    issues.push(issue('$.assets', `must contain at most ${MAX_MANIFEST_ASSETS} assets`, 'TOO_MANY_ASSETS'));
-  }
-  const ids = new Set();
-  if (Array.isArray(manifest.assets)) {
-    for (let index = 0; index < manifest.assets.length; index += 1) {
-      issues.push(...validateAssetShape(manifest.assets[index], index));
-      const id = manifest.assets[index]?.id;
-      if (typeof id === 'string') {
-        if (ids.has(id)) issues.push(issue(`assets[${index}].id`, 'must be unique', 'DUPLICATE_ID'));
-        ids.add(id);
-      }
-    }
-  }
-  if (issues.length > 0) {
-    fail('Asset manifest failed the shipping contract', {
-      code: 'ASSET_MANIFEST_INVALID',
-      issues
-    });
-  }
-  // Keep the caller's semantic fields intact, but do not mutate the caller.
-  try {
-    return structuredClone(manifest);
-  } catch {
-    fail('Asset manifest cannot be copied as plain data', { code: 'INVALID_MANIFEST', issues: [issue('$', 'proxy or unstable object input is forbidden', 'INVALID_MANIFEST')] });
-  }
-}
-
 const CRC_TABLE = Object.freeze(Array.from({ length: 256 }, (_, index) => {
   let value = index;
   for (let bit = 0; bit < 8; bit += 1) value = (value & 1) ? (0xedb88320 ^ (value >>> 1)) : (value >>> 1);
@@ -601,18 +493,61 @@ function verifyAssetFile(asset, assetRoot) {
   }
 }
 
-/** Validate a versioned manifest and every referenced file. */
-export function validateAssetManifest(manifest, assetRoot) {
+/** Return metadata for exactly requiredIds, checking only their PNG bytes,
+ * geometry and SHA-linked provenance. Source art is never opened or executed. */
+export function loadAssets({ manifestPath, provenancePath, assetRoot, requiredIds } = {}) {
   if (typeof assetRoot !== 'string' || assetRoot.trim() === '') {
     fail('assetRoot is required', {
       code: 'ASSET_ROOT_REQUIRED',
       issues: [issue('assetRoot', 'must be a non-empty directory path', 'ASSET_ROOT_REQUIRED')]
     });
   }
-  const normalized = normalizeManifestInput(manifest);
+  if (!Array.isArray(requiredIds) || requiredIds.length > MAX_MANIFEST_ASSETS
+      || requiredIds.some(id => typeof id !== 'string' || !id.trim())) {
+    fail('Explicit required asset IDs are required', { code: 'ASSET_IDS_REQUIRED' });
+  }
+  const ids = [...new Set(requiredIds)];
+  if (!ids.length) return [];
+  const readJson = file => {
+    try {
+      return JSON.parse(readRegularFile(file, MAX_MANIFEST_FILE_BYTES).toString('utf8'));
+    } catch (error) {
+      if (error instanceof AssetContractError) throw error;
+      fail(`Asset metadata JSON is invalid: ${file}`, { code: 'INVALID_ASSET_JSON' });
+    }
+  };
+  const manifest = readJson(manifestPath);
+  const provenance = readJson(provenancePath);
+  if (manifest?.format !== ASSET_MANIFEST_FORMAT
+      || manifest.schemaVersion !== ASSET_MANIFEST_SCHEMA_VERSION || !Array.isArray(manifest.assets)) {
+    fail('Expected an asset manifest v2', { code: 'INVALID_MANIFEST' });
+  }
+  if (provenance?.format !== 'codecity.asset-provenance'
+      || provenance.schemaVersion !== 1 || !Array.isArray(provenance.assets)) {
+    fail('Expected asset provenance v1', { code: 'INVALID_PROVENANCE' });
+  }
+  const selected = ids.map(id => {
+    const matches = manifest.assets.filter(asset => asset?.id === id);
+    if (!matches.length) fail(`Required asset is missing: ${id}`, { code: 'ASSET_NOT_FOUND' });
+    if (matches.length !== 1) fail(`Required asset ID is duplicated: ${id}`, { code: 'DUPLICATE_ID' });
+    const asset = matches[0];
+    const issues = validateAssetShape(asset, id);
+    if (issues.length) fail(`Required asset metadata is invalid: ${id}`, { code: 'INVALID_ASSET', issues });
+    const records = provenance.assets.filter(record => typeof record?.assetSha256 === 'string'
+      && record.assetSha256.toLowerCase() === asset.sha256.toLowerCase());
+    if (!records.length) fail(`Required asset provenance is missing: ${id}`, { code: 'PROVENANCE_NOT_FOUND' });
+    for (const record of records) {
+      const recordIssues = [];
+      assertNonEmptyString(record.source, `provenance.${id}.source`, recordIssues);
+      assertNonEmptyString(record.kind, `provenance.${id}.kind`, recordIssues);
+      if (!SHA256_RE.test(record.sourceSha256 ?? '')) recordIssues.push(issue(`provenance.${id}.sourceSha256`, 'must be a SHA-256 digest'));
+      if (recordIssues.length) fail(`Required asset provenance is invalid: ${id}`, { code: 'INVALID_PROVENANCE', issues: recordIssues });
+    }
+    return asset;
+  });
   let totalBytes = 0;
   const countedPaths = new Set();
-  for (const asset of normalized.assets) {
+  for (const asset of selected) {
     const file = verifyAssetFile(asset, assetRoot);
     if (!countedPaths.has(asset.path)) {
       totalBytes += file.byteLength;
@@ -620,58 +555,5 @@ export function validateAssetManifest(manifest, assetRoot) {
     }
     if (totalBytes > MAX_ASSET_TOTAL_BYTES) fail('Shipping assets exceed the shipping budget', { code: 'ASSET_TOTAL_TOO_LARGE', issues: [issue('$.assets', `unique files must total at most ${MAX_ASSET_TOTAL_BYTES} bytes`, 'ASSET_TOTAL_TOO_LARGE')] });
   }
-  const validated = cloneAndFreeze(normalized);
-  VALIDATED_MANIFESTS.add(validated);
-  return validated;
-}
-
-/** Validate a manifest JSON file from disk. */
-export function loadAssetManifest(manifestPath, assetRoot) {
-  try {
-    const parsed = JSON.parse(readRegularFile(manifestPath, MAX_MANIFEST_FILE_BYTES).toString('utf8'));
-    return validateAssetManifest(parsed, assetRoot);
-  } catch (error) {
-    if (error instanceof AssetContractError) throw error;
-    fail('Asset manifest JSON is invalid', { code: 'INVALID_MANIFEST_JSON', issues: [issue('manifestPath', 'must contain bounded valid JSON', 'INVALID_MANIFEST_JSON')] });
-  }
-}
-
-/**
- * Resolve exactly one shipping asset. Missing IDs are hard errors; no fallback
- * or placeholder is ever selected.
- */
-export function resolveAsset(manifest, assetId, assetRoot) {
-  if (typeof assetRoot !== 'string' || assetRoot.trim() === '') {
-    fail('assetRoot is required', {
-      code: 'ASSET_ROOT_REQUIRED',
-      issues: [issue('assetRoot', 'must be a non-empty directory path', 'ASSET_ROOT_REQUIRED')]
-    });
-  }
-  const validated = isObject(manifest) && VALIDATED_MANIFESTS.has(manifest)
-    ? manifest
-    : validateAssetManifest(manifest, assetRoot);
-  if (typeof assetId !== 'string' || assetId.trim() === '') {
-    fail('An asset ID is required', {
-      code: 'ASSET_ID_REQUIRED',
-      issues: [issue('assetId', 'must be a non-empty string', 'ASSET_ID_REQUIRED')]
-    });
-  }
-  const asset = validated.assets.find((candidate) => candidate.id === assetId);
-  if (!asset) {
-    fail(`Shipping asset is not present in the manifest: ${assetId}`, {
-      code: 'ASSET_NOT_FOUND',
-      issues: [issue(`assets.${assetId}`, 'no fallback is permitted', 'ASSET_NOT_FOUND')]
-    });
-  }
-  verifyAssetFile(asset, assetRoot);
-  return cloneAndFreeze({
-    id: asset.id,
-    version: asset.version,
-    path: asset.path,
-    url: asset.url ?? asset.path,
-    sha256: asset.sha256.toLowerCase(),
-    dimensions: { ...asset.dimensions },
-    pivot: { ...asset.pivot },
-    usage: structuredClone(asset.usage)
-  });
+  return selected;
 }

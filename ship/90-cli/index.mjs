@@ -1,343 +1,164 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { execFile } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { promisify } from 'node:util';
-
 import { inspectRepository } from '../10-inspect/index.mjs';
 import { inferSemanticModel } from '../20-semantics/index.mjs';
 import { buildTownModel } from '../30-town-domain/index.mjs';
 import { generateWorldPlan } from '../40-worldgen/index.mjs';
-import { loadAssetManifest } from '../50-art/index.mjs';
-import { compileScene } from '../60-scene-compiler/index.mjs';
+import { loadAssets } from '../50-art/index.mjs';
+import { compileWorldPlan } from '../60-compiler/index.mjs';
 import { startLocalServer } from '../80-local-server/index.mjs';
 
-const execFileAsync = promisify(execFile);
-const HOST = '127.0.0.1';
-const DEFAULT_MAX_ARTIFACT_FILE_BYTES = 4 * 1024 * 1024;
-const DEFAULT_MAX_ARTIFACT_TOTAL_BYTES = 6 * 1024 * 1024;
-const DEFAULT_MAX_ASSET_TOTAL_BYTES = 10 * 1024 * 1024;
-const DEFAULT_MAX_SCENE_BYTES = 4 * 1024 * 1024;
-const DEFAULT_MAX_DISTRIBUTION_BYTES = 20 * 1024 * 1024;
-const CLI_MODULE_ROOT = path.dirname(fileURLToPath(import.meta.url));
-const DEFAULT_SHIPPING_ART_ROOT = path.resolve(CLI_MODULE_ROOT, '../50-art');
-const DEFAULT_ASSET_ROOT = path.join(DEFAULT_SHIPPING_ART_ROOT, 'assets');
-const DEFAULT_ASSET_MANIFEST = path.join(DEFAULT_SHIPPING_ART_ROOT, 'manifest.json');
-const DEFAULT_RUNTIME_ARTIFACT_ROOT = path.resolve(CLI_MODULE_ROOT, '../70-game-runtime');
-const DEFAULT_RUNTIME_ARTIFACT_ALLOWLIST = Object.freeze(['app.mjs', 'index.html', 'index.mjs', 'state.mjs', 'styles.css']);
-const MAX_TERMINAL_LINE_CODE_POINTS = 2_048;
+const SHIP_ROOT = fileURLToPath(new URL('../', import.meta.url));
+const ART_ROOT = path.join(SHIP_ROOT, '50-art');
+const ASSET_ROOT = path.join(ART_ROOT, 'assets');
+const MAX_FILE_BYTES = 4 * 1024 * 1024;
+const MAX_TOTAL_BYTES = 20 * 1024 * 1024;
 
-class CliError extends Error {
-  constructor(code, message) {
-    super(message);
-    this.code = code;
+function writeLine(value) {
+  console.log([...String(value).replace(/[\p{Cc}\p{Cf}\p{Cs}\p{Zl}\p{Zp}]+/gu, '�')].slice(0, 2048).join(''));
+}
+
+function relativePath(value) {
+  if (typeof value !== 'string' || !value || /[%\\?#:\u0000-\u001f]/u.test(value)
+      || value.split('/').some(part => !part || part.startsWith('.'))) {
+    throw new TypeError('配信ファイルのパスが不正です。');
   }
+  return value;
 }
 
-function fail(code, message) {
-  throw new CliError(code, message);
-}
-
-function sanitizeTerminalText(value) {
-  const printable = String(value).replace(/[\p{Cc}\p{Cf}\p{Cs}\p{Zl}\p{Zp}]+/gu, '�');
-  const codePoints = [...printable];
-  return codePoints.length <= MAX_TERMINAL_LINE_CODE_POINTS
-    ? printable
-    : `${codePoints.slice(0, MAX_TERMINAL_LINE_CODE_POINTS).join('')}…`;
-}
-
-function writeLine(line) {
-  console.log(sanitizeTerminalText(line));
-}
-
-function normalizePort(value) {
-  const port = Number(value);
-  if (!Number.isInteger(port) || port < 0 || port > 65535) fail('INVALID_PORT', 'ポートは0から65535までの整数です。');
-  return port;
-}
-
-function normalizedRepositoryPath(value) {
-  const requested = value === undefined ? process.cwd() : value;
-  if (typeof requested !== 'string' || requested.trim() === '') fail('REPOSITORY_REQUIRED', '測量する土地の場所がありません。');
-  return path.resolve(requested);
-}
-
-function parsePortFlag(argv, index) {
-  if (index + 1 >= argv.length) fail('INVALID_ARGS', '--port の次に番号が必要です。');
-  const raw = argv[index + 1];
-  if (typeof raw !== 'string' || raw.startsWith('-')) fail('INVALID_ARGS', '--port の次に番号が必要です。');
-  return { port: normalizePort(raw), next: index + 1 };
-}
-
-/** Parse the supported flags. There are no subcommands. */
-function parseCliArgs(argv = []) {
-  if (!Array.isArray(argv)) fail('INVALID_ARGS', '街の指示を読み取れません。');
-  const result = { repositoryPath: undefined, noOpen: false, port: 4173, help: false };
-  let portSeen = false;
-  for (let index = 0; index < argv.length; index += 1) {
-    const argument = argv[index];
-    if (argument === '--help' || argument === '-h') {
-      result.help = true;
-    } else if (argument === '--no-open') {
-      if (result.noOpen) fail('INVALID_ARGS', '--no-open が重複しています。');
-      result.noOpen = true;
-    } else if (argument === '--port') {
-      if (portSeen) fail('INVALID_ARGS', '--port が重複しています。');
-      portSeen = true;
-      const parsed = parsePortFlag(argv, index);
-      result.port = parsed.port;
-      index = parsed.next;
-    } else if (typeof argument === 'string' && argument.startsWith('-')) {
-      fail('INVALID_ARGS', `知らない旗です: ${argument}`);
-    } else if (result.repositoryPath !== undefined) {
-      fail('INVALID_ARGS', '測量する場所は一つだけ指定できます。');
-    } else {
-      result.repositoryPath = argument;
-    }
-  }
-  if (result.help && argv.some((argument) => argument !== '--help' && argument !== '-h')) {
-    fail('INVALID_ARGS', '--help と他の指示は一緒に使いません。');
-  }
-  return result;
-}
-
-function helpLines() {
-  return [
-    'あなたのリポジトリを街にします。',
-    '',
-    '使い方: npx codecity [repositoryPath] [--no-open] [--port N]',
-    '  --no-open  ブラウザを開かず、127.0.0.1 の場所だけ表示します。',
-    '  --port N    127.0.0.1 の待ち受けポートを指定します。',
-    '',
-    '次の一歩: npx codecity ./あなたのリポジトリ --no-open',
-  ];
-}
-
-function lstatOrNull(target) {
-  try {
-    return fs.lstatSync(target);
-  } catch (error) {
-    if (error?.code === 'ENOENT') return null;
-    throw error;
-  }
-}
-
-function assertRegularDirectory(target, label) {
-  const stat = lstatOrNull(target);
-  if (!stat || stat.isSymbolicLink() || !stat.isDirectory()) fail('INVALID_DIRECTORY', `${label} は通常のディレクトリである必要があります。`);
-}
-
-function normalizeArtifactPath(value) {
-  if (typeof value !== 'string' || value.trim() === '') fail('INVALID_ARTIFACT_ALLOWLIST', '実行成果物の許可リストに空の名前があります。');
-  const normalized = value.replaceAll('\\', '/').replace(/^\/+/, '');
-  const segments = normalized.split('/');
-  if (segments.some((segment) => !segment || segment === '.' || segment === '..' || segment.startsWith('.'))) {
-    fail('INVALID_ARTIFACT_ALLOWLIST', '実行成果物の許可リストに危険なパスがあります。');
-  }
-  if (normalized === 'scene.json') fail('INVALID_ARTIFACT_ALLOWLIST', 'scene.json は自動生成専用です。');
-  return segments.join('/');
-}
-
-function assertSafeArtifactComponents(root, relative) {
-  let current = root;
+// Only explicitly selected shipping artifacts enter the in-memory allowlist.
+// Customer repository files never pass through this reader or HTTP server.
+function readArtifact(root, relative, expectedSha256) {
+  relativePath(relative);
+  const rootStat = fs.lstatSync(root);
+  if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) throw new Error('配信元が通常のディレクトリではありません。');
+  let source = root;
   for (const component of relative.split('/')) {
-    current = path.join(current, component);
-    const stat = lstatOrNull(current);
-    if (!stat) fail('ARTIFACT_MISSING', `許可された実行成果物が見つかりません: ${relative}`);
-    if (stat.isSymbolicLink()) fail('ARTIFACT_SYMLINK', '実行成果物のパスにシンボリックリンクは使えません。');
+    source = path.join(source, component);
+    if (fs.lstatSync(source).isSymbolicLink()) throw new Error('配信ファイルにシンボリックリンクは使えません。');
   }
-  return current;
-}
-
-function readShippingArtifact(sourceRoot, relative, maxBytes, { expectedSha256 = null } = {}) {
-  const source = assertSafeArtifactComponents(sourceRoot, relative);
-  const sourceStat = fs.lstatSync(source);
-  if (!sourceStat.isFile()) fail('ARTIFACT_INVALID', `許可された実行成果物が通常のファイルではありません: ${relative}`);
-  if (sourceStat.size > maxBytes) fail('ARTIFACT_TOO_LARGE', `実行成果物が大きすぎます: ${relative}`);
-  const sourceDescriptor = fs.openSync(source, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW ?? 0));
+  const descriptor = fs.openSync(source, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW ?? 0));
   try {
-    const checked = fs.fstatSync(sourceDescriptor);
-    if (!checked.isFile() || checked.ino !== sourceStat.ino || checked.dev !== sourceStat.dev) fail('ARTIFACT_CHANGED', '実行成果物が読み取り中に変化しました。');
-    if (checked.size > maxBytes) fail('ARTIFACT_TOO_LARGE', `実行成果物が大きすぎます: ${relative}`);
-    const bytes = Buffer.alloc(checked.size);
+    const before = fs.fstatSync(descriptor);
+    const realRoot = fs.realpathSync(root);
+    const realSource = fs.realpathSync(source);
+    const canonical = fs.lstatSync(realSource);
+    if (!realSource.startsWith(`${realRoot}${path.sep}`)
+        || canonical.ino !== before.ino || canonical.dev !== before.dev
+        || !before.isFile() || before.size > MAX_FILE_BYTES) {
+      throw new Error('配信ファイルを安全に読み込めません。');
+    }
+    const bytes = Buffer.alloc(before.size);
     let offset = 0;
     while (offset < bytes.length) {
-      const count = fs.readSync(sourceDescriptor, bytes, offset, bytes.length - offset, offset);
-      if (count === 0) fail('ARTIFACT_CHANGED', '実行成果物が読み取り中に変化しました。');
+      const count = fs.readSync(descriptor, bytes, offset, bytes.length - offset, offset);
+      if (!count) throw new Error('配信ファイルが読み取り中に変化しました。');
       offset += count;
     }
-    const finalStat = fs.fstatSync(sourceDescriptor);
-    if (finalStat.size !== checked.size || finalStat.mtimeMs !== checked.mtimeMs) fail('ARTIFACT_CHANGED', '実行成果物が読み取り中に変化しました。');
-    const actualSha256 = crypto.createHash('sha256').update(bytes).digest('hex');
-    if (expectedSha256 !== null && actualSha256 !== expectedSha256.toLowerCase()) fail('ASSET_CHANGED', '出荷アセットが検証後に変化しました。');
-    return { bytes, byteLength: bytes.length, sha256: actualSha256 };
-  } finally {
-    fs.closeSync(sourceDescriptor);
-  }
-}
-
-function collectSceneAssets({ sceneBundle, assetRoot, occupiedEntries }) {
-  const maxAssetFileBytes = DEFAULT_MAX_ARTIFACT_FILE_BYTES;
-  const maxAssetTotalBytes = DEFAULT_MAX_ASSET_TOTAL_BYTES;
-  const sourceRoot = path.resolve(assetRoot);
-  assertRegularDirectory(sourceRoot, '出荷アセットディレクトリ');
-  const occupied = new Set(occupiedEntries);
-  const byDestination = new Map();
-  for (const asset of sceneBundle.assets) {
-    const sourceRelative = normalizeArtifactPath(asset.path);
-    const destinationRelative = normalizeArtifactPath(asset.url);
-    if (path.posix.extname(destinationRelative).toLowerCase() !== '.png') fail('ASSET_URL_INVALID', 'アセットの配布URLは.pngで終わる必要があります。');
-    if (occupied.has(destinationRelative)) fail('DISTRIBUTION_PATH_COLLISION', `実行成果物とアセットの配布先が衝突しています: ${destinationRelative}`);
-    const previous = byDestination.get(destinationRelative);
-    if (previous && previous.sha256 !== asset.sha256) fail('DISTRIBUTION_PATH_COLLISION', `異なるアセットが同じ配布先を使っています: ${destinationRelative}`);
-    if (!previous) byDestination.set(destinationRelative, { sourceRelative, sha256: asset.sha256 });
-  }
-  let total = 0;
-  const entries = [...byDestination.keys()].sort();
-  const sha256ByFile = {};
-  const snapshots = {};
-  for (const destinationRelative of entries) {
-    const asset = byDestination.get(destinationRelative);
-    const loaded = readShippingArtifact(sourceRoot, asset.sourceRelative, maxAssetFileBytes, { expectedSha256: asset.sha256 });
-    total += loaded.byteLength;
-    sha256ByFile[destinationRelative] = loaded.sha256;
-    snapshots[destinationRelative] = loaded.bytes;
-    if (total > maxAssetTotalBytes) fail('ASSET_TOTAL_TOO_LARGE', '出荷アセットの合計が10MB予算を超えています。');
-  }
-  return { sha256ByFile, snapshots };
-}
-
-function collectRuntimeArtifacts() {
-  const maxArtifactFileBytes = DEFAULT_MAX_ARTIFACT_FILE_BYTES;
-  const maxArtifactTotalBytes = DEFAULT_MAX_ARTIFACT_TOTAL_BYTES;
-  const sourceRoot = DEFAULT_RUNTIME_ARTIFACT_ROOT;
-  assertRegularDirectory(sourceRoot, '実行成果物ディレクトリ');
-  const entries = DEFAULT_RUNTIME_ARTIFACT_ALLOWLIST.map(normalizeArtifactPath).sort();
-  let total = 0;
-  const sha256ByFile = {};
-  const snapshots = {};
-  for (const relative of entries) {
-    const loaded = readShippingArtifact(sourceRoot, relative, maxArtifactFileBytes);
-    total += loaded.byteLength;
-    sha256ByFile[relative] = loaded.sha256;
-    snapshots[relative] = loaded.bytes;
-    if (total > maxArtifactTotalBytes) fail('ARTIFACT_TOTAL_TOO_LARGE', '実行成果物の合計が大きすぎます。');
-  }
-  return { entries, sha256ByFile, snapshots };
-}
-
-function defaultBrowserOpener(url) {
-  const parsed = new URL(url);
-  if (parsed.protocol !== 'http:' || parsed.hostname !== HOST || parsed.pathname !== '/index.html') fail('BROWSER_ORIGIN_INVALID', 'ブラウザは生成した127.0.0.1の入口だけを開けます。');
-  if (process.platform === 'darwin') return execFileAsync('open', [url]);
-  if (process.platform === 'win32') return execFileAsync('cmd', ['/c', 'start', '', url]);
-  return execFileAsync('xdg-open', [url]);
-}
-
-function assertBrowserUrl(url, origin) {
-  const parsed = new URL(url);
-  const expected = new URL(`${origin}/index.html`);
-  if (parsed.protocol !== 'http:' || parsed.hostname !== HOST || parsed.origin !== expected.origin || parsed.pathname !== '/index.html') {
-    fail('BROWSER_ORIGIN_INVALID', 'ブラウザは生成した127.0.0.1の入口だけを開けます。');
-  }
-}
-
-function normalizeManifestInput() {
-  if (!fs.existsSync(DEFAULT_ASSET_MANIFEST)) fail('ASSET_MANIFEST_REQUIRED', '出荷アセット台帳がありません。デモ素材は使いません。');
-  try {
-    return { manifest: loadAssetManifest(DEFAULT_ASSET_MANIFEST, DEFAULT_ASSET_ROOT), assetRoot: DEFAULT_ASSET_ROOT };
-  } catch (error) {
-    fail(error?.code ?? 'ASSET_MANIFEST_INVALID', '出荷アセット台帳を読めません。');
-  }
-}
-
-/** Build the read-only inspection/domain/world pipeline. No files are written. */
-async function buildCodeCity({ repositoryPath } = {}) {
-  const root = normalizedRepositoryPath(repositoryPath);
-  const report = await inspectRepository(root);
-  const rootUnknown = report?.evidence?.unknown?.some((entry) => entry?.claim === 'repository.root');
-  if (rootUnknown) {
-    fail('REPOSITORY_ROOT_REJECTED', '指定されたリポジトリを安全に固定できないため、測量を開始しません。');
-  }
-  const semanticModel = inferSemanticModel(report);
-  const townModel = buildTownModel(semanticModel);
-  const worldPlan = generateWorldPlan({ town: townModel });
-  return { townModel, worldPlan };
-}
-
-/** Compose the complete pipeline into immutable memory and optionally start 127.0.0.1. */
-async function runCodeCity({ repositoryPath, noOpen = false, port = 4173 } = {}) {
-  const { townModel, worldPlan } = await buildCodeCity({ repositoryPath });
-  writeLine(`${townModel.repository.name}を測量しています…`);
-
-  if (worldPlan.investigations.length !== 3 || townModel.investigations.candidates.length !== 3) {
-    fail('THREE_INVESTIGATIONS_REQUIRED', '根拠のある調査依頼が三件そろわないため、遊べる街としては起動しません。');
-  }
-  const { manifest: assetManifest, assetRoot } = normalizeManifestInput();
-  const sceneBundle = compileScene({ worldPlan, assetManifest, assetRoot });
-  let running = null;
-  try {
-    const runtimeCopy = collectRuntimeArtifacts();
-    const assetCopy = collectSceneAssets({
-      sceneBundle,
-      assetRoot,
-      occupiedEntries: runtimeCopy.entries,
-    });
-    const sceneBytes = Buffer.from(`${JSON.stringify(sceneBundle)}\n`, 'utf8');
-    if (sceneBytes.length > DEFAULT_MAX_SCENE_BYTES) fail('SCENE_TOO_LARGE', '街の設計図が配布上限を超えています。');
-    const snapshots = {
-      ...runtimeCopy.snapshots,
-      ...assetCopy.snapshots,
-      'scene.json': sceneBytes,
-    };
-    const expectedSha256 = {
-      ...runtimeCopy.sha256ByFile,
-      ...assetCopy.sha256ByFile,
-      'scene.json': crypto.createHash('sha256').update(sceneBytes).digest('hex'),
-    };
-    running = await startLocalServer({
-      snapshots,
-      expectedSha256,
-      maxFileBytes: DEFAULT_MAX_SCENE_BYTES,
-      maxTotalBytes: DEFAULT_MAX_DISTRIBUTION_BYTES,
-      port,
-    });
-  } catch (error) {
-    await running?.close();
-    throw error;
-  }
-  const browserUrl = `${running.origin}/index.html`;
-  writeLine(`http://${HOST}:${new URL(running.origin).port} でお待ちしています。`);
-  writeLine('（このツールはコードを外部に送信しません）');
-  writeLine('次の一歩: ブラウザで門をくぐり、掲示板の依頼を受けてください。');
-  if (!noOpen) {
-    try {
-      assertBrowserUrl(browserUrl, running.origin);
-      await defaultBrowserOpener(browserUrl);
-    } catch (error) {
-      await running.close();
-      throw error;
+    const after = fs.fstatSync(descriptor);
+    if (after.size !== before.size || after.mtimeMs !== before.mtimeMs) throw new Error('配信ファイルが読み取り中に変化しました。');
+    if (expectedSha256 && crypto.createHash('sha256').update(bytes).digest('hex') !== expectedSha256.toLowerCase()) {
+      throw new Error('アセットが台帳の検証後に変化しました。');
     }
+    return bytes;
+  } finally {
+    fs.closeSync(descriptor);
   }
 }
 
-/** CLI entry point; returns a process-style exit code and never swallows failures. */
+function sceneSnapshots(scene) {
+  const snapshots = {
+    'index.html': readArtifact(path.join(SHIP_ROOT, '80-local-server'), 'index.html'),
+    'app.mjs': readArtifact(path.join(SHIP_ROOT, '80-local-server'), 'app.mjs'),
+    'runtime.mjs': readArtifact(path.join(SHIP_ROOT, '70-runtime'), 'index.mjs'),
+  };
+  const destinations = new Map();
+  for (const asset of scene.assets) {
+    const source = relativePath(asset.path);
+    const location = asset.url ?? asset.path;
+    // Accept manifest-relative names or existing /assets/ names; always emit
+    // an absolute same-origin URL below the one asset namespace.
+    if (typeof location !== 'string') throw new TypeError('アセットのURLが不正です。');
+    const relative = relativePath(location.replace(/^\/?assets\//u, ''));
+    if (path.posix.extname(relative) !== '.png') throw new Error('アセットはPNGである必要があります。');
+    const destination = `assets/${relative}`;
+    if (destinations.has(destination) && destinations.get(destination) !== asset.sha256) {
+      throw new Error('異なるアセットの配信先が重複しています。');
+    }
+    if (!destinations.has(destination)) snapshots[destination] = readArtifact(ASSET_ROOT, source, asset.sha256);
+    destinations.set(destination, asset.sha256);
+    asset.url = `/${destination}`;
+    // A browser only needs its served URL, not a filesystem-relative path.
+    delete asset.path;
+  }
+  snapshots['scene.json'] = Buffer.from(JSON.stringify(scene));
+  return snapshots;
+}
+
+/** Safely read a repository, compile its town, then serve only generated data
+ * and referenced shipping assets. The caller owns the returned close method. */
+export async function runCodeCity({ repositoryPath = process.cwd(), port = 0 } = {}) {
+  if (typeof repositoryPath !== 'string' || !repositoryPath.trim()) throw new TypeError('リポジトリのパスが必要です。');
+  if (!Number.isInteger(port) || port < 0 || port > 65535) throw new TypeError('ポートは0から65535までの整数です。');
+  const inspection = await inspectRepository(path.resolve(repositoryPath));
+  if (inspection.evidence?.unknown?.some(entry => entry.claim === 'repository.root')) {
+    throw new Error('指定されたリポジトリを安全に読み込めません。');
+  }
+  const semantics = inferSemanticModel(inspection);
+  const town = buildTownModel(semantics);
+  const worldPlan = generateWorldPlan({ town });
+  const requiredIds = [...new Set([
+    ...worldPlan.surfaces.map(surface => surface.assetId),
+    ...worldPlan.places.flatMap(place => [
+      place.assets.base, place.assets.upper, place.assets.foreground,
+      place.interior.assetId, place.interior.foregroundAssetId, place.interior.floorAssetId,
+    ]),
+    worldPlan.player.assetId,
+    ...worldPlan.people.map(person => person.assetId),
+    ...worldPlan.props.map(prop => prop.assetId),
+  ].filter(id => id !== null && id !== undefined))];
+  const assets = loadAssets({
+    manifestPath: path.join(ART_ROOT, 'manifest.json'),
+    provenancePath: path.join(ART_ROOT, 'provenance.json'),
+    assetRoot: ASSET_ROOT,
+    requiredIds,
+  });
+  const scene = compileWorldPlan({ worldPlan, assets });
+  return startLocalServer({
+    snapshots: sceneSnapshots(scene), port,
+    maxFileBytes: MAX_FILE_BYTES, maxTotalBytes: MAX_TOTAL_BYTES,
+  });
+}
+
+/** CLI entry; an ephemeral loopback port is the default. */
 export async function main(argv = process.argv.slice(2)) {
   try {
-    const parsed = parseCliArgs(argv);
-    if (parsed.help) {
-      for (const line of helpLines()) writeLine(line);
+    if (argv.length === 1 && ['--help', '-h'].includes(argv[0])) {
+      writeLine('使い方: codecity [repositoryPath] [--port N]');
+      writeLine('表示されたURLをブラウザで開いてください。終了は Ctrl+C。');
       return 0;
     }
-    await runCodeCity(parsed);
+    let repositoryPath;
+    let port = 0;
+    let portSeen = false;
+    for (let index = 0; index < argv.length; index += 1) {
+      const argument = argv[index];
+      if (argument === '--port' && !portSeen && /^\d+$/u.test(argv[index + 1] ?? '')) {
+        port = Number(argv[++index]);
+        portSeen = true;
+      } else if (argument.startsWith('-') || repositoryPath !== undefined) {
+        throw new Error('使い方: codecity [repositoryPath] [--port N]');
+      } else repositoryPath = argument;
+    }
+    writeLine('リポジトリから街を構成しています…');
+    const running = await runCodeCity({ repositoryPath, port });
+    writeLine(running.url);
+    writeLine('ブラウザでURLを開いてください。終了は Ctrl+C。');
     return 0;
   } catch (error) {
-    const code = error instanceof CliError ? error.code : 'CLI_FAILED';
-    writeLine(`街の門番: ${error instanceof Error ? error.message : String(error)}`);
-    writeLine(`（コード: ${code}）`);
-    writeLine('127.0.0.1 は起動していません。');
-    writeLine('次の一歩: 指示と出荷素材を確認して、もう一度実行してください。');
+    writeLine(`CodeCity: ${error instanceof Error ? error.message : String(error)}`);
     return 1;
   }
 }

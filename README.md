@@ -1,37 +1,13 @@
 # CodeCity
 
-CodeCity is under development as a local, read-only, top-down pixel-art game.
-It reads a repository without executing or modifying it.
+リポジトリの意味を建物や地区へ変換し、緻密なオリジナル2Dピクセルアートの街として表現するプロジェクトです。
 
-## Run
+製品の唯一の規範SSoTは [PRODUCT.md](studio/governance/PRODUCT.md) です。ユーザー要求の出典、確定した意図、未承認事項、実行順序を同ファイルに集約します。
 
-With Node.js 22 or newer, point CodeCity at a repository you are authorized to
-inspect:
+現行の実装入口は次の一つです。
 
 ```sh
-npx codecity /path/to/repository
+node ship/90-cli/bin/codecity.mjs /path/to/repository
 ```
 
-CodeCity serves the current generated scene on `127.0.0.1` and opens it in your
-browser. Use `--no-open` to print the local URL without opening a browser.
-
-CodeCity reads repository files to build the town. It does not execute or modify
-the inspected repository, run its tests, hooks, binaries, or package manager,
-upload its source or analysis, or bind the game server to a non-loopback host.
-
-The generated dialogue keeps observed, inferred, and unknown evidence distinct.
-Untested code is not reported as broken.
-
-Contributor source checkouts use `studio/governance/PRODUCT.md` as the only
-product authority and remaining-work queue; that pre-shipping file is not part
-of the npm package.
-
-## Repository divisions
-
-- `art/references/user-provided/`: 22 immutable owner-provided originals; they
-  are not production code or package content.
-- `studio/governance/PRODUCT.md`: product authority only; it is not package
-  content.
-- `ship/`: customer-delivered modules, exact shipping art, and custody records.
-  Only the human owner may authorize new exact bytes under
-  `ship/50-art/assets/`.
+CLIが表示したlocalhost URLをブラウザで開き、矢印キーまたはWASDで街を歩けます。2026-09-12にChromeで、連続した街の表示、移動、衝突、入口での自動cutaway、同じ座標の室内、退出時の外観復帰まで実測し、独立QAが最終PASSと判定しました。

@@ -7,9 +7,6 @@ const DEFAULT_MAX_FILE_BYTES = 4 * 1024 * 1024;
 const DEFAULT_MAX_TOTAL_BYTES = 16 * 1024 * 1024;
 const MAX_ALLOWED_FILES = 4096;
 const MAX_REQUEST_PATH_BYTES = 8 * 1024;
-const SHUTDOWN_PATH = '__codecity/shutdown';
-const SHUTDOWN_HEADER = 'x-codecity-exit';
-const SHUTDOWN_HEADER_VALUE = '1';
 
 const MIME_TYPES = Object.freeze({
   '.css': 'text/css; charset=utf-8',
@@ -186,34 +183,6 @@ function configureServer(files, control = {}) {
         return;
       }
       const relative = parsed.decoded.replace(/^\/+/, '');
-      if (relative === SHUTDOWN_PATH) {
-        if (req.method !== 'POST') {
-          res.shouldKeepAlive = false;
-          errorResponse(res, 'method_not_allowed', 'POST');
-          res.once('finish', () => req.destroy());
-          return;
-        }
-        const origin = req.headers.origin;
-        const shutdownHeader = req.headers[SHUTDOWN_HEADER];
-        if (origin !== control.expectedOrigin || shutdownHeader !== SHUTDOWN_HEADER_VALUE) {
-          res.shouldKeepAlive = false;
-          errorResponse(res, 'forbidden_path');
-          res.once('finish', () => req.destroy());
-          return;
-        }
-        res.shouldKeepAlive = false;
-        res.writeHead(204, responseHeaders({
-          'Cache-Control': 'no-store',
-          'Content-Length': 0,
-        }));
-        res.once('finish', () => {
-          if (control.shutdownRequested) return;
-          control.shutdownRequested = true;
-          if (typeof control.onShutdown === 'function') void control.onShutdown();
-        });
-        res.end();
-        return;
-      }
       if (req.method !== 'GET' && req.method !== 'HEAD') {
         res.shouldKeepAlive = false;
         errorResponse(res, 'method_not_allowed');
@@ -260,12 +229,13 @@ function createLocalServer({
   assertMaxTotalBytes(maxTotalBytes, maxFileBytes);
   if (snapshots === undefined) throw new TypeError('snapshots are required');
   const files = loadSnapshotFiles(snapshots, maxFileBytes, maxTotalBytes, expectedSha256);
+  if (!files.has('index.html')) throw new TypeError('snapshots must include index.html');
   return configureServer(files, control);
 }
 
-/** Start a loopback-only server and return its origin plus an idempotent close. */
+/** Start a loopback-only snapshot server; return its actual entry URL and close. */
 export async function startLocalServer({ snapshots, expectedSha256, port = 0, maxFileBytes = DEFAULT_MAX_FILE_BYTES, maxTotalBytes = DEFAULT_MAX_TOTAL_BYTES } = {}) {
-  const control = { expectedHost: null, expectedOrigin: null, onShutdown: null, shutdownRequested: false };
+  const control = { expectedHost: null };
   const server = createLocalServer({ snapshots, expectedSha256, port, maxFileBytes, maxTotalBytes, control });
   await new Promise((resolve, reject) => {
     const onError = (error) => {
@@ -284,7 +254,6 @@ export async function startLocalServer({ snapshots, expectedSha256, port = 0, ma
   const expectedHost = `${HOST}:${actualPort}`;
   const origin = new URL(`http://${expectedHost}`).origin;
   control.expectedHost = expectedHost;
-  control.expectedOrigin = origin;
   let closed = false;
   const close = async () => {
     if (closed) return;
@@ -292,9 +261,9 @@ export async function startLocalServer({ snapshots, expectedSha256, port = 0, ma
     if (!server.listening) return;
     await new Promise((resolve) => server.close(() => resolve()));
   };
-  control.onShutdown = close;
   return Object.freeze({
     close,
     origin,
+    url: `${origin}/index.html`,
   });
 }
