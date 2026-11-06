@@ -121,8 +121,8 @@ function people() {
   for (const f of list(dir, '.png')) {
     const abs = path.join(dir, f);
     let m;
-    if ((m = /^keeper-([a-z]+)\.png$/.exec(f))) {
-      const kind = KEEPER_KIND[m[1]];
+    if ((m = /^keeper-([a-z_]+)\.png$/.exec(f))) {
+      const kind = KEEPER_KIND[m[1]] || m[1];
       if (!kind) { warn(`residents/${f}: 番人の種類 "${m[1]}" を知りません`); continue; }
       keepers[kind] = personDef(abs);
     } else if ((m = /^townsfolk-(\d+)\.png$/.exec(f))) {
