@@ -284,7 +284,7 @@ function generate(groups, maxH, need, seed, scale, fac) {
         const p = { x, w: wide ? 2 : 1, up, lo, code: wide ? STREET : DIRT };
         passages.push(p);
         for (let c = x; c < x + p.w; c++) if (up.top[c] >= 0 && lo.btop[c] >= 0) for (let y = up.top[c] + up.sh; y < lo.btop[c]; y++) block(c, y);
-        if (wide && lo !== H && rng() < 0.45) addSquare(x, x + 1, lo);
+        if (wide && lo !== H && rng() < 0.45) addSquare(x, x + 1, lo);   // 路地が通りに出る所の小さな広場（ポケット）
       }
     }
   }
@@ -344,7 +344,8 @@ function generate(groups, maxH, need, seed, scale, fac) {
     return { r: Math.hypot(x - pcx, (y - pcy) * Y_WEIGHT) / (1 + 0.22 * noise(theta)), theta };
   };
 
-  const nextGap = () => (rng() < 0.8 ? 1 : 2);      // 隣とは1マス（ときどき2マスで路地）
+  // 隣とは1マス（ときどき2マスで路地、まれに3マスで小さな横庭）。並びの頭がそろわないように
+  const nextGap = () => { const r = rng(); return r < 0.72 ? 1 : r < 0.92 ? 2 : 3; };
   const place = (f, spec, pos, group) => {
     commit(spec, f, pos, group);
     const gap = nextGap();
@@ -454,11 +455,14 @@ function generate(groups, maxH, need, seed, scale, fac) {
         const s = q[phase][i];
         if (tried.has(s.w * 64 + s.h)) continue;
         tried.add(s.w * 64 + s.h);
-        const setback = s.h < maxH && rng() < 0.45 ? 1 : 0;  // 低い家は、ときどき1行下がって前庭をつくる（裏庭を残さない）
+        // 低い家は、ときどき1〜2行下がる（2行なら柵のある小さな前庭）。裏庭を残さず、通りぎわの線を崩す
+        const sr = rng();
+        const setback = s.h < maxH ? (sr < 0.24 ? 2 : sr < 0.52 ? 1 : 0) : 0;
         for (let k = 0; k <= WINDOW && (!best || k < best.k); k++) {
           const x0 = f.dir < 0 ? f.cursor - extra - k - s.w + 1 : f.cursor + extra + k;
           if (f.dir < 0 ? x0 < f.limit : x0 + s.w - 1 > f.limit) break;
-          const pos = fit(f, x0, s.w, s.h, setback) || (setback ? fit(f, x0, s.w, s.h, 0) : null);
+          let pos = null;
+          for (let sb = setback; sb >= 0 && !pos; sb--) pos = fit(f, x0, s.w, s.h, sb);
           if (pos) { best = { i, s, pos, k }; break; }
         }
         if (best && best.k === 0) break;
@@ -521,6 +525,9 @@ function finalize(P, maxH) {
   for (let x = h0 - 1; x >= 1; x--) if (H.top[x] >= 0) ptsW.push([x, H.top[x] + 1]);
   for (let x = h1 + 1; x <= cols - 2; x++) if (H.top[x] >= 0) ptsE.push([x, H.top[x] + 1]);
   for (const pts of [ptsN, ptsS, ptsW, ptsE]) path(pts);
+  // 宿屋のある側は、街の外へ出ていく2行の土の道（街道）
+  const inn = placed.find((p) => p.spec.archetype === 'inn' && p.face.road === H);
+  if (inn) path((inn.face.dir < 0 ? ptsW : ptsE).map(([x, y]) => [x, y + 1]));
 
   for (const p of passages) {
     const ku = keep.get(p.up), kl = keep.get(p.lo);
@@ -538,9 +545,19 @@ function finalize(P, maxH) {
   plaza.cuts = [[plaza.x0, plaza.y0], [plaza.x0 + 1, plaza.y0], [plaza.x0, plaza.y0 + 1], [plaza.x1, plaza.y0], [plaza.x1 - 1, plaza.y0],
     [plaza.x1, plaza.y0 + 1], [plaza.x0, plaza.y1], [plaza.x1, plaza.y1]];
   for (const [x, y] of plaza.cuts) setG(x, y, GRASS);          // 角を落として植え込みに
-  // footprint のすぐ下の行と前庭を舗装する
-  for (const p of placed) for (let x = p.x; x < p.x + p.w; x++) {
-    for (let y = p.yb + 1; y < Math.max(p.yb + 2, p.face.road.btop[x]); y++) if (g[id(x, y)] === GRASS) g[id(x, y)] = p.face.road.code;
+  // footprint のすぐ下の行と前庭を舗装する。2行以上下がった家は、扉の前の1行だけ舗装し、残りは草の前庭（柵は小物で）
+  const yard = new Uint8Array(N);
+  for (const p of placed) {
+    let depth = 1e9;
+    for (let x = p.x; x < p.x + p.w; x++) depth = Math.min(depth, p.face.road.btop[x] - 1 - p.yb);
+    p.yard = !p.spec.facility && depth >= 2;
+    for (let x = p.x; x < p.x + p.w; x++) {
+      for (let y = p.yb + 1; y < Math.max(p.yb + 2, p.face.road.btop[x]); y++) {
+        if (g[id(x, y)] !== GRASS) continue;
+        if (p.yard && y > p.yb + 1) yard[id(x, y)] = 1;
+        else g[id(x, y)] = p.face.road.code;
+      }
+    }
   }
   // 建物の間の路地（下の通りから裏庭を抜けて上の通りへ）と、路地でない隙間
   const gap = new Uint8Array(N);
@@ -591,21 +608,8 @@ function finalize(P, maxH) {
       if (dist[n] > dist[t] + 1) { dist[n] = dist[t] + 1; q.push(n); }
     }
   }
-  // 外周からつながっている遠い所だけを外にする（街の中の広い庭は草地のまま）
-  const far = (t) => dist[t] > 3;
-  const outQ = [];
-  for (let y = crop.y0; y <= crop.y1; y++) for (let x = crop.x0; x <= crop.x1; x++) {
-    const t = id(x, y);
-    if ((x === crop.x0 || x === crop.x1 || y === crop.y0 || y === crop.y1) && far(t)) { g[t] = OUT; outQ.push(t); }
-  }
-  for (let h = 0; h < outQ.length; h++) {
-    const t = outQ[h], x = t % cols, y = (t / cols) | 0;
-    for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
-      if (nx < crop.x0 || ny < crop.y0 || nx > crop.x1 || ny > crop.y1) continue;
-      const n = id(nx, ny);
-      if (far(n) && g[n] !== OUT) { g[n] = OUT; outQ.push(n); }
-    }
-  }
+  // 街のまわり（切り出した範囲の残り）は草地のまま森にする（placeProps が dist を見て木を密に植える）。
+  // 地図の端の闇は地面の画像がつける。広場から届かない草地だけが placeProps で「街の外」になる
 
   // 裏庭（上の通りと、下の建物の屋根の間で見えている草地）
   const garden = new Uint8Array(N);
@@ -622,13 +626,13 @@ function finalize(P, maxH) {
       }
     }
   });
-  return { g, gap, garden, keep, kept, keptSquares, crop };
+  return { g, gap, garden, keep, kept, keptSquares, crop, dist, yard };
 }
 
 // ---------- 小物（歩ける所をふさがないことを確かめながら置く） ----------
 function placeProps(P, F, rng, spawn) {
   const { cols, N, id, foot, front, roofZ, plaza, ax, placed } = P;
-  const { g, gap, garden, keep, kept, keptSquares, crop } = F;
+  const { g, gap, garden, keep, kept, keptSquares, crop, dist, yard } = F;
   const inC = (x, y) => x >= crop.x0 && y >= crop.y0 && x <= crop.x1 && y <= crop.y1;
   const blocked = new Uint8Array(N), reserved = new Uint8Array(N);
   const walk = (x, y) => inC(x, y) && g[id(x, y)] !== OUT && foot[id(x, y)] < 0 && !blocked[id(x, y)];
@@ -681,11 +685,11 @@ function placeProps(P, F, rng, spawn) {
     }
     return runs <= 1;
   };
-  const tryProp = (type, tx, ty) => {
+  const tryProp = (type, tx, ty, force = false) => {
     const [fw, fh] = PROP_SIZE[type] || [1, 1];
     const tiles = [];
     for (let dy = 0; dy < fh; dy++) for (let dx = 0; dx < fw; dx++) tiles.push([tx + dx, ty + dy]);
-    for (const [x, y] of tiles) if (!walk(x, y) || reserved[id(x, y)] || (type === 'tree' && noTree[id(x, y)])) return false;
+    for (const [x, y] of tiles) if (!walk(x, y) || (reserved[id(x, y)] && !force) || (type === 'tree' && noTree[id(x, y)])) return false;
     if (tiles.length === 1 && locallySafe(tx, ty)) blocked[id(tx, ty)] = 1;
     else {
       for (const [x, y] of tiles) blocked[id(x, y)] = 1;
@@ -696,6 +700,19 @@ function placeProps(P, F, rng, spawn) {
     return true;
   };
   const pick = (arr) => arr[Math.floor(rng() * arr.length)];
+
+  // 前庭（2行下がった家）: 通りぎわの行に柵と鉢。扉の列のまわり（左1〜右2）は木戸として空ける
+  for (const p of placed) {
+    if (!p.yard) continue;
+    const dc = p.doorCol ?? p.x + p.spec.doorDx;
+    for (let x = p.x; x < p.x + p.w; x++) {
+      if (x >= dc - 1 && x <= dc + 2) continue;
+      const y = p.face.road.btop[x] - 1;
+      if (!yard[id(x, y)]) continue;
+      const end = x === p.x || x === p.x + p.w - 1;
+      tryProp(end && hash32(`yard:${x},${y}`) % 3 === 0 ? 'flowerpot' : 'fence', x, y, true);
+    }
+  }
 
   // 広場: 掲示板・井戸・ベンチ・街灯・植え込み
   const { x0: px0, x1: px1, y0: py0, y1: py1 } = plaza, pc = P.cx;
@@ -712,7 +729,7 @@ function placeProps(P, F, rng, spawn) {
   for (const s of keptSquares) {
     const yTop = s.road.btop[s.x0] - s.d;
     tryProp('lamp', s.x0, yTop);
-    if (s.x1 - s.x0 >= 6) {
+    if (s.x1 - s.x0 >= 4) {                          // どのポケットにもベンチか木（広ければ荷車も）
       const r = rng();
       if (r < 0.3 && s.x1 - s.x0 >= 7) tryProp('cart', s.x1 - 3, s.road.btop[s.x1 - 3] - s.d);
       else tryProp(r < 0.65 ? 'bench' : 'tree', s.x1 - 1, s.road.btop[s.x1 - 1] - s.d);
@@ -815,9 +832,16 @@ function placeProps(P, F, rng, spawn) {
       if (nearPath ? r < 0.12 : r < 0.3) { if (!nearPath && r < 0.07) tryProp('tree', x, y); else if (r < 0.14) tryProp('bush', x, y); else clutter(x, y, kindNear(x, y)); }
       continue;
     }
+    // 街の外まわり: 道のすぐ脇は空け、その外は茂みの生け垣と木、さらに外は木の詰まった森（ずらした格子で樹冠がつながる）
     if (nearPath) continue;
-    if (r < 0.28) tryProp('tree', x, y);
-    else if (r < 0.36) tryProp('bush', x, y);
+    const d = dist[t];
+    if (d <= 2) {
+      if (r < 0.3) tryProp('tree', x, y);
+      else if (r < 0.62) tryProp('bush', x, y);
+      continue;
+    }
+    const lattice = y % 2 === 0 && (x + (y >> 1)) % 2 === 0;
+    if (lattice ? r < 0.9 : r < 0.16) tryProp(lattice || r < 0.06 ? 'tree' : 'bush', x, y);
   }
   return props;
 }
@@ -912,7 +936,6 @@ export function layoutTown(repo, opts = {}) {
   if (!P) throw new Error('layoutTown: 建物を配置できなかった');
   const F = finalize(P, maxH);
   const spawn = { x: P.cx, y: P.plaza.y0 + 2 };
-  const props = placeProps(P, F, makeRng(seed ^ 0x9e3779b9), spawn);
 
   // 見た目の版: 近くに同じ archetype の同じ版が並ばないように選ぶ（同じ入力からは同じ選び方）
   const variantOf = new Map();
@@ -935,6 +958,8 @@ export function layoutTown(repo, opts = {}) {
     }
     variantOf.set(p, best);
   }
+  for (const p of P.placed) p.doorCol = p.x + clamp(variantOf.get(p)?.doorX ?? p.spec.doorDx, 0, p.w - 1);
+  const props = placeProps(P, F, makeRng(seed ^ 0x9e3779b9), spawn);
 
   const { x0, y0, x1, y1 } = F.crop;
   const ground = [];
