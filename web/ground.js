@@ -130,6 +130,19 @@ export function composeGround(town, grid, textures) {
       o[p * 4] = r * k; o[p * 4 + 1] = g * k; o[p * 4 + 2] = b * k; o[p * 4 + 3] = 255;
     }
   }
+  // quay edge: the stone strip (art ground "quay") over the first water row under a street
+  const q = textures.quay;
+  if (q) {
+    for (let ty = 1; ty < rows; ty++) for (let tx = 0; tx < cols; tx++) {
+      if (grid[ty * cols + tx] !== MAT.WATER || grid[(ty - 1) * cols + tx] !== MAT.STREET) continue;
+      for (let ly = 0; ly < q.height && ty * TILE + ly < H; ly++) for (let lx = 0; lx < TILE; lx++) {
+        const x = tx * TILE + lx, y = ty * TILE + ly, qi = (ly * q.width + (x % q.width)) * 4, a = q.data[qi + 3] / 255;
+        if (!a) continue;
+        const p = (y * W + x) * 4;
+        for (let c = 0; c < 3; c++) o[p + c] = o[p + c] * (1 - a) + q.data[qi + c] * a;
+      }
+    }
+  }
   ctx.putImageData(out, 0, 0);
   return { canvas, mat, width: W, height: H };
 }

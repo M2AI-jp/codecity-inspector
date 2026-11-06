@@ -20,11 +20,17 @@ const MEANING = {
   shop: '商店 — 画面・UIの領域', workshop: '工房 — build・CI・開発の道具', ruin: '廃屋 — 長く触られていない古いコード',
   town_hall: '役場 — gitリポジトリそのもの', inn: '宿屋 — 公開Webサービス', pub: '酒場 — API・外部接続・LLM',
   warehouse: '倉庫 — DB・storage', watchtower: '見張り台 — logs・monitoring', dojo: '道場 — test・E2E',
+  dock: '船着場 — アプリ・パッケージを外へ届ける所',
 };
 const KEEPER = {
   'keeper-smith': '工房の親方', 'keeper-shop': '商店の主人', 'keeper-house': '家の人', 'keeper-ruin': '廃屋の管理人',
   'keeper-town_hall': '役場の書記', 'keeper-inn': '宿屋の番頭', 'keeper-pub': '酒場の主人', 'keeper-warehouse': '倉庫番',
-  'keeper-watchtower': '見張り台の番人', 'keeper-dojo': '道場の検査官',
+  'keeper-watchtower': '見張り台の番人', 'keeper-dojo': '道場の検査官', 'keeper-dock': '船頭', 'keeper-well': '井戸番',
+  contractor: '外部工務店の代理人',
+};
+const PROP_MEANING = {
+  wellhouse: '井戸小屋 — env・secrets・設定（外に立つ施設）', pier: '桟橋（歩ける板）', 'pier-2': '桟橋（歩ける板）', boat: 'もやった舟',
+  scaffold: '足場 — 作業中の変更がある建物', 'scaffold-2': '足場 — 作業中の変更がある建物', 'sign-works': '工事中の札', lumber: '材木',
 };
 
 const sections = [];
@@ -69,7 +75,7 @@ if (creatures.length) sections.push({ id: 'creatures', title: '生き物', note:
 // props
 n = 0;
 const pdir = path.join(ART, 'game', 'props');
-const props = list(pdir, /\.png$/).map((f) => ({ code: code('物'), name: f.replace(/\.png$/, ''), img: uri(path.join(pdir, f)), scale: 3 }));
+const props = list(pdir, /\.png$/).map((f) => ({ code: code('物'), name: f.replace(/\.png$/, ''), sub: PROP_MEANING[f.replace(/\.png$/, '')] || '', img: uri(path.join(pdir, f)), scale: 3 }));
 sections.push({ id: 'props', title: '小物', note: '', items: props });
 
 // ground

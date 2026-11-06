@@ -31,7 +31,7 @@ export const CUTAWAY_FADE = 0.18;       // s, exterior <-> cutaway cross-fade
 
 // Night lighting. AMBIENT is the single strength knob: 0 = pitch black, 1 = daylight.
 export const AMBIENT = 0.72;
-export const AMBIENT_TINT = [0.80, 0.86, 1.0];   // cool blue moonlit evening
+export const AMBIENT_TINT = [0.66, 0.78, 1.0];   // cool blue moonlit night (warm windows and lamps stand out against it)
 export const LIGHT_WARM = [255, 196, 120];
 export const PLAYER_LIGHT_RADIUS = 46;
 

@@ -3,9 +3,11 @@
 // 「画像ごとのsidecar」). Never edit manifest.json by hand; run `node tools/build-manifest.mjs`.
 //
 //   art/game/buildings/<archetype>-<n>.json (+ the pngs it names)  -> archetypes[archetype].variants[]
+//                                                                      (+ wall: [left, right] inset px, measured)
 //   art/game/residents/keeper-<kind>.png                            -> characters.keepers[kind]
 //   art/game/residents/townsfolk-<n>.png                            -> characters.townsfolk[] (by n)
-//   art/game/props/<type>.png (+ <type>.json)                       -> props[type]
+//   art/game/residents/contractor.png                               -> characters.contractor (外部工務店の代理人)
+//   art/game/props/<type>.png (+ <type>.json)                       -> props[type] (solid, light, flicker, layer, deck)
 //   art/game/ground/<name>.png                                      -> ground[name]
 //   art/game/creatures/<name>.png (+ <name>.json)                   -> creatures[name]
 //
@@ -14,6 +16,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { decodePNG } from './png.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const GAME = path.join(ROOT, 'art', 'game');
@@ -52,6 +55,24 @@ function readJSON(file) {
 }
 
 const isBox = (a) => Array.isArray(a) && a.length >= 4 && a.slice(0, 4).every(Number.isFinite);
+
+// How far the drawn walls sit inside the footprint's left / right edge (px): the median first /
+// last opaque column over the lower wall rows of the exterior image (props such as a scaffold are
+// pushed against the wall by this much).
+function wallInset(abs, footH) {
+  try {
+    const im = decodePNG(fs.readFileSync(abs));
+    const W = im.width, H = im.height, L = [], R = [];
+    for (let y = Math.max(0, H - Math.min(40, footH * 16 - 4)); y < H - 4; y++) {
+      let l = -1, r = -1;
+      for (let x = 0; x < W; x++) if (im.data[(y * W + x) * 4 + 3] > 128) { if (l < 0) l = x; r = x; }
+      if (l >= 0) { L.push(l); R.push(W - 1 - r); }
+    }
+    if (!L.length) return null;
+    const med = (a) => a.sort((p, q) => p - q)[a.length >> 1];
+    return [med(L), med(R)];
+  } catch { return null; }
+}
 const isLight = (a) => Array.isArray(a) && a.length >= 3 && a.slice(0, 3).every(Number.isFinite);
 const isPt = (a) => Array.isArray(a) && a.length >= 2 && a.slice(0, 2).every(Number.isFinite);
 
@@ -80,11 +101,13 @@ function buildings() {
     if (!cutaway) warn(`${rel(file)}: cutaway がありません（中に入っても外観のまま）`);
     const fp = isPt(s.footprint) ? s.footprint.slice(0, 2) : null;
     if (!fp) warn(`${rel(file)}: footprint がありません`);
+    const wall = fp ? wallInset(path.join(dir, s.exterior.src), fp[1]) : null;
     const variant = {
       id,
       footprint: fp,
       exterior,
       cutaway,
+      ...(wall ? { wall } : {}),
       door: s.door && Number.isFinite(s.door.x) ? { x: s.door.x, w: Number.isFinite(s.door.w) ? s.door.w : 1 } : null,
       floor: isBox(s.floor) ? s.floor.slice(0, 4) : null,
       blockers: (s.blockers || []).filter(isBox),
@@ -119,6 +142,7 @@ function people() {
   const dir = path.join(GAME, 'residents');
   const keepers = {};
   const folk = [];
+  let contractor = null;
   for (const f of list(dir, '.png')) {
     const abs = path.join(dir, f);
     let m;
@@ -128,11 +152,13 @@ function people() {
       keepers[kind] = personDef(abs);
     } else if ((m = /^townsfolk-(\d+)\.png$/.exec(f))) {
       folk.push([Number(m[1]), personDef(abs)]);
-    } else warn(`residents/${f}: keeper-<kind>.png でも townsfolk-<n>.png でもないので無視します`);
+    } else if (f === 'contractor.png') {
+      contractor = personDef(abs);
+    } else warn(`residents/${f}: keeper-<kind>.png・townsfolk-<n>.png・contractor.png のどれでもないので無視します`);
   }
   folk.sort((a, b) => a[0] - b[0]);
   for (const k of ['workshop', 'shop', 'house', 'ruin']) if (!keepers[k]) warn(`番人 ${k} の画像がありません`);
-  return { keepers, townsfolk: folk.map(([, d]) => d) };
+  return { keepers, townsfolk: folk.map(([, d]) => d), contractor };
 }
 
 // --- props -----------------------------------------------------------------------------
@@ -154,6 +180,12 @@ function props() {
       light: isLight(d.light) ? d.light.slice(0, 3) : null,
       flicker: d.flicker !== false,
     };
+    // layer "ground": drawn under the characters (not y-sorted), e.g. a pier's boards or a moored boat
+    if (d.layer === 'ground') out[type].layer = 'ground';
+    else if (d.layer !== undefined && d.layer !== null) warn(`props/${type}.json: layer "${d.layer}" を知りません（"ground" だけ）`);
+    // deck: walkable floor over water, [x, y, w, h] px relative to the foot
+    if (isBox(d.deck)) out[type].deck = d.deck.slice(0, 4);
+    else if (d.deck !== undefined && d.deck !== null) warn(`props/${type}.json: deck は [x, y, w, h] の数の配列にする`);
   }
   for (const f of list(dir, '.json')) {
     if (!fs.existsSync(path.join(dir, f.replace(/\.json$/, '.png')))) warn(`props/${f}: 対応する png がありません`);
@@ -183,11 +215,11 @@ function creatures() {
   return out;
 }
 
-const { keepers, townsfolk } = people();
+const { keepers, townsfolk, contractor } = people();
 const manifest = {
   _generated: 'tools/build-manifest.mjs が art/game/ の画像と sidecar から作ったファイル。手で編集しない。',
   tile: 16,
-  characters: { player: PLAYER, keepers, townsfolk },
+  characters: { player: PLAYER, keepers, townsfolk, ...(contractor ? { contractor } : {}) },
   archetypes: buildings(),
   props: props(),
   ground: ground(),
@@ -199,6 +231,6 @@ fs.writeFileSync(OUT, `${text}\n`);
 
 const nv = Object.values(manifest.archetypes).reduce((n, a) => n + a.variants.length, 0);
 console.log(`wrote ${path.relative(ROOT, OUT)}: ${Object.keys(manifest.archetypes).length} archetypes (${nv} variants), ` +
-  `${Object.keys(keepers).length} keepers, ${townsfolk.length} townsfolk, ${Object.keys(manifest.props).length} props, ` +
+  `${Object.keys(keepers).length} keepers, ${townsfolk.length} townsfolk${contractor ? ', contractor' : ''}, ${Object.keys(manifest.props).length} props, ` +
   `${Object.keys(manifest.ground).length} ground textures, ${Object.keys(manifest.creatures).length} creatures`);
 for (const w of warnings) console.warn(`  ! ${w}`);

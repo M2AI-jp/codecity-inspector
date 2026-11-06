@@ -105,7 +105,7 @@ export class Lighting {
       const x = L.x - camX, y = L.poolY - camY;
       if (x + r < 0 || y + r < 0 || x - r > vw || y - r > vh) continue;
       if (L.kind === 'window') {
-        g.globalAlpha = Math.min(1, 0.95 * f.i);
+        g.globalAlpha = Math.min(1, 1.0 * f.i);
         g.drawImage(this.window, x - r, y - r, r * 2, r * 2);
       } else if (L.footY !== undefined) {
         // street lamp: a softer glow around the lamp, and a bright flattened pool on the ground at its foot
@@ -166,7 +166,7 @@ export class Lighting {
       const r = L.r * (L.kind === 'window' ? 0.45 : 0.55) * f.r;
       const x = L.x - camX, y = L.y - camY;
       if (x + r < 0 || y + r < 0 || x - r > vw || y - r > vh) continue;
-      target.globalAlpha = (L.kind === 'window' ? 0.14 : L.kind === 'door' ? 0.12 : 0.2) * f.i * on;
+      target.globalAlpha = (L.kind === 'window' ? 0.2 : L.kind === 'door' ? 0.16 : 0.22) * f.i * on;
       target.drawImage(this.glow, x - r, y - r, r * 2, r * 2);
     }
     target.globalAlpha = 1;

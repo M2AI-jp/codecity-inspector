@@ -1,35 +1,55 @@
 #!/usr/bin/env node
 // 街を文字で表示して目で確かめる道具。
-//   node tools/ascii-town.mjs <repoPath | town.json> [--check] [--no-props]
-// 建物: W 工房 / S 商店 / H 住宅 / R 廃屋 / G 役場 / Y 宿屋 / P 酒場 / K 倉庫 / M 見張り台 / D 道場（扉は小文字）。地面: . 草地 # 石畳 : 土の路地 + 広場（空白は街の外）
-// 小物: T 木 * 茂み o 樽 x 木箱 % 袋 f 鉢 v プランター c 荷車 = 柵 n ベンチ i 街灯 O 井戸 N 掲示板 / @ 開始位置
+//   node tools/ascii-town.mjs <repoPath | town.json> [--check] [--no-props] [--manifest art/game/manifest.json]
+// 建物: W 工房 / S 商店 / H 住宅 / R 廃屋 / G 役場 / Y 宿屋 / P 酒場 / K 倉庫 / M 見張り台 / D 道場 / Q 船着場（扉は小文字）。
+// 地面: . 草地 # 石畳 : 土の路地 + 広場 ~ 水（空白は街の外）
+// 小物: T 木 * 茂み o 樽 x 木箱 % 袋 f 鉢 v プランター c 荷車 = 柵 n ベンチ i 街灯 O 井戸 N 掲示板 & 井戸小屋 | 桟橋 ^ 舟
+//       ! 足場 $ 工事中の札 _ 材木 / k 外に立つ番人 / @ 開始位置
 // --districts: 建物を種類ではなく地区（最上位ディレクトリ）ごとの文字で描く
 // --check: 重なり・隙間・屋根の余白・footprint の下の行（幅いっぱい歩けて広場から届く）・同じ入力で同じ出力になるか。問題があれば終了コード1
 import { readFileSync } from 'node:fs';
 import { analyzeRepository } from '../src/analyze.mjs';
-import { layoutTown } from '../src/layout.mjs';
+import { layoutTown, loadArt, loadProps, loadGround, propTiles } from '../src/layout.mjs';
 
 const args = process.argv.slice(2);
-const target = args.find((a) => !a.startsWith('--'));
+const mi = args.indexOf('--manifest');
+const manifest = mi >= 0 ? JSON.parse(readFileSync(args[mi + 1], 'utf8')) : undefined;
+const lopts = { art: loadArt(manifest), props: loadProps(manifest), ground: loadGround(manifest) };
+const target = args.find((a, i) => !a.startsWith('--') && args[i - 1] !== '--manifest');
 if (!target) { console.error('使い方: node tools/ascii-town.mjs <repoPath | town.json> [--check] [--no-props]'); process.exit(2); }
 
 let town, model = null;
 if (target.endsWith('.json')) town = JSON.parse(readFileSync(target, 'utf8'));
-else { model = analyzeRepository(target); town = layoutTown(model); }
+else { model = analyzeRepository(target); town = layoutTown(model, lopts); }
 
-const LETTER = { workshop: 'W', shop: 'S', house: 'H', ruin: 'R', town_hall: 'G', inn: 'Y', pub: 'P', warehouse: 'K', watchtower: 'M', dojo: 'D' };
+const LETTER = { workshop: 'W', shop: 'S', house: 'H', ruin: 'R', town_hall: 'G', inn: 'Y', pub: 'P', warehouse: 'K', watchtower: 'M', dojo: 'D', dock: 'Q' };
 const PROP = { tree: 'T', bush: '*', barrel: 'o', crate: 'x', fence: '=', bench: 'n', lamp: 'i', well: 'O', noticeboard: 'N',
-  sacks: '%', flowerpot: 'f', planter: 'v', cart: 'c' };
-const SIZE = { well: [2, 2], noticeboard: [2, 1], bench: [2, 1], cart: [3, 1] };
+  sacks: '%', flowerpot: 'f', planter: 'v', cart: 'c', wellhouse: '&', pier: '|', boat: '^', scaffold: '!', 'sign-works': '$', lumber: '_' };
+const propArt = lopts.props;
+// 桟橋（deck のある小物）は水の上の板: 板の tile を数える。ほかは layout と同じ tile の大きさ
+const deckTiles = (p) => {
+  const d = propArt[p.look || p.type]?.deck;
+  if (!d) return null;
+  const x0 = Math.floor((p.x * 16 + d[0]) / 16), x1 = Math.floor((p.x * 16 + d[0] + d[2] - 1) / 16);
+  const y0 = Math.floor((p.y * 16 + d[1]) / 16), y1 = Math.floor((p.y * 16 + d[1] + d[3] - 1) / 16);
+  const out = [];
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) out.push([x, y]);
+  return out;
+};
 const grid = town.ground.map((r) => [...r]);
-const propTiles = (p) => {
-  const [w, h] = SIZE[p.type] || [1, 1];
-  const tx = Math.round(p.x - w / 2), ty = Math.round(p.y - h);
+const propTilesOf = (p) => {
+  const deck = deckTiles(p);
+  if (deck) return deck;
+  if (p.type === 'boat') return [[Math.floor(p.x), Math.floor(p.y - 0.01)]];
+  let [w, h] = propTiles(p.look || p.type, propArt);
+  if (Number.isInteger(p.w) && p.w > 0) w = p.w;                  // layout が絵より細く場所を取った（足場）
+  const tx = Math.floor(p.x - w / 2 + 0.5), ty = Math.round(p.y - h);
   const out = [];
   for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) out.push([tx + dx, ty + dy]);
   return out;
 };
-if (!args.includes('--no-props')) for (const p of town.props) for (const [x, y] of propTiles(p)) if (grid[y]?.[x] !== undefined) grid[y][x] = PROP[p.type] || '?';
+if (!args.includes('--no-props')) for (const p of town.props) for (const [x, y] of propTilesOf(p)) if (grid[y]?.[x] !== undefined) grid[y][x] = PROP[p.type] || '?';
+for (const l of town.landmarks || []) if (l.keeper && grid[Math.floor(l.keeper.y - 0.01)]?.[Math.floor(l.keeper.x)] !== undefined) grid[Math.floor(l.keeper.y - 0.01)][Math.floor(l.keeper.x)] = 'k';
 const districts = [...new Set(town.buildings.map((b) => b.district))].sort();
 const DL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 const byDistrict = args.includes('--districts');
@@ -73,15 +93,28 @@ if (args.includes('--check')) {
     }
   }
   const seenProp = new Set();
-  for (const p of town.props) for (const [x, y] of propTiles(p)) {
-    const t = y * cols + x;
-    if (foot[t] >= 0) problems.push(`小物 ${p.type} (${x},${y}) が建物の上`);
-    if (seenProp.has(t)) problems.push(`小物 (${x},${y}) が重なる`);
-    if (town.ground[y]?.[x] === ' ' || town.ground[y]?.[x] === undefined) problems.push(`小物 ${p.type} (${x},${y}) が街の外`);
-    seenProp.add(t);
-    blocked[t] = 1;
+  const deckT = new Uint8Array(cols * rows);
+  for (const p of town.props) {
+    const deck = !!deckTiles(p);
+    for (const [x, y] of propTilesOf(p)) {
+      const t = y * cols + x;
+      if (x < 0 || y < 0 || x >= cols || y >= rows) { problems.push(`小物 ${p.type} (${x},${y}) が範囲外`); continue; }
+      if (foot[t] >= 0) problems.push(`小物 ${p.type} (${x},${y}) が建物の上`);
+      if (seenProp.has(t)) problems.push(`小物 (${x},${y}) が重なる`);
+      if (town.ground[y]?.[x] === ' ' || town.ground[y]?.[x] === undefined) problems.push(`小物 ${p.type} (${x},${y}) が街の外`);
+      if (deck) { if (town.ground[y][x] === '~') deckT[t] = 1; continue; }     // 桟橋の板は歩ける（水の上）
+      if (town.ground[y]?.[x] === '~' && p.type !== 'boat') problems.push(`小物 ${p.type} (${x},${y}) が水の上`);
+      seenProp.add(t);
+      blocked[t] = 1;
+    }
   }
-  const walk = (x, y) => x >= 0 && y >= 0 && x < cols && y < rows && '.#:+'.includes(town.ground[y][x]) && foot[y * cols + x] < 0 && !blocked[y * cols + x];
+  for (const l of town.landmarks || []) {
+    if (!l.keeper) { problems.push(`${l.id} に番人の立つ所が無い`); continue; }
+    const kx = Math.floor(l.keeper.x), ky = Math.floor(l.keeper.y - 0.01), t = ky * cols + kx;
+    if (!'.#:+'.includes(town.ground[ky]?.[kx] ?? ' ') || foot[t] >= 0 || blocked[t]) problems.push(`${l.id} の番人 (${kx},${ky}) が歩けない所に立つ`);
+    if (!town.props.some((p) => p.type === l.prop && Math.abs(p.x - l.x) < 0.01 && Math.abs(p.y - l.y) < 0.01)) problems.push(`${l.id} の ${l.prop} が props に無い`);
+  }
+  const walk = (x, y) => x >= 0 && y >= 0 && x < cols && y < rows && ('.#:+'.includes(town.ground[y][x]) || deckT[y * cols + x]) && foot[y * cols + x] < 0 && !blocked[y * cols + x];
   const s = town.spawn;
   if (!walk(s.x, s.y)) problems.push('開始位置が歩けない');
   if (town.ground[s.y][s.x] !== '+') problems.push('開始位置が広場に無い');
@@ -112,7 +145,7 @@ if (args.includes('--check')) {
   }
   if (unreached) problems.push(`広場から行けない歩行面が ${unreached} マス`);
   if (model) {
-    const again = JSON.stringify(layoutTown(analyzeRepository(target)));
+    const again = JSON.stringify(layoutTown(analyzeRepository(target), lopts));
     if (again !== JSON.stringify(town)) problems.push('同じ入力から違う街ができた');
   }
   let builtArea = 0;

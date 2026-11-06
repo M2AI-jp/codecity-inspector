@@ -55,6 +55,11 @@ export class Renderer {
     // collect drawables
     this.count = 0;
     const x0 = camX - 8, y0 = camY - 8, x1 = camX + vw + 8, y1 = camY + vh + 96;
+    // ground-layer props (pier decks, a moored boat) lie under everyone: drawn right after the ground
+    for (const p of world.props) {
+      if (p.layer !== 'ground' || p.x < x0 - 96 || p.x > x1 + 96 || p.y < y0 - 96 || p.y > y1 + 96) continue;
+      this.drawProp(ctx, p, camX, camY);
+    }
     for (const b of world.buildings) {
       const a = b.arch;
       const top = b.py - (a ? Math.max(a.exteriorOrigin[1], a.cutawayOrigin[1]) : 40);
@@ -65,7 +70,7 @@ export class Renderer {
       this.push(key, B_KIND, b, 0);
     }
     for (const p of world.props) {
-      if (p.x < x0 - 48 || p.x > x1 + 48 || p.y < y0 || p.y > y1 + 32) continue;
+      if (p.layer === 'ground' || p.x < x0 - 48 || p.x > x1 + 48 || p.y < y0 || p.y > y1 + 32) continue;
       this.push(p.y, P_KIND, p, 1);
     }
     const chars = s.characters;
@@ -229,7 +234,7 @@ export class Renderer {
     for (const r of world.rects) {
       const x = r.x - camX, y = r.y - camY;
       if (x > vw || y > vh || x + r.w < 0 || y + r.h < 0) continue;
-      if (r.kind === 'wall') { ctx.fillStyle = 'rgba(255,60,60,0.28)'; ctx.fillRect(Math.round(x), Math.round(y), r.w, r.h); continue; }
+      if (r.kind === 'wall' || r.kind === 'water') { ctx.fillStyle = r.kind === 'water' ? 'rgba(60,140,255,0.3)' : 'rgba(255,60,60,0.28)'; ctx.fillRect(Math.round(x), Math.round(y), r.w, r.h); continue; }
       ctx.strokeStyle = r.kind === 'npc' ? '#ffb0f0' : r.kind === 'prop' ? '#ffa040' : '#ff4fd8';
       ctx.strokeRect(Math.round(x) + 0.5, Math.round(y) + 0.5, Math.max(1, r.w - 1), Math.max(1, r.h - 1));
     }

@@ -1,5 +1,7 @@
 // 地面の合成（Node側）: Town の ground（16px tile の文字）から、街全体で1枚の連続した地面画像をつくる。
 //   '.' 草地  '#' 石畳の通り  ':' 土の路地  '+' 広場  '~' 水  ' ' 街の外（暗い下草 → 地図の端で闇へ）
+// 水は art/game/ground/water.png（あれば。無ければ暗い色）。石畳の通りのすぐ下の水の行には
+// quay.png（岸壁の石の帯、横に継ぎ目なし、上端が通りの下端）を重ねる。
 // 光は焼き込まない: 石の左上の面取り、一段高い草地が右下に落とす影、夜のゆるい色調だけ。夜の照明はブラウザ側。
 // 建物の footprint は無地の地面のまま（建物の絵が覆う）。footprint の下辺・右辺に薄い接地影を置く。
 //
@@ -11,10 +13,11 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { decodePNG, encodePNG } from '../tools/png.mjs';
 
-export const GROUND_VERSION = 1;          // 見た目を変えたら上げる（キャッシュの鍵に入る）
+export const GROUND_VERSION = 2;          // 見た目を変えたら上げる（キャッシュの鍵に入る）
 const T = 16;
 const DEFAULT_ART = path.resolve(import.meta.dirname, '../art/game');
 const TEX_NAMES = ['street', 'grass', 'dirt', 'plaza', 'moss'];
+const OPT_TEX = ['water', 'quay'];          // 無くてもよい texture
 
 // tile の種別
 const TG = 0, TS = 1, TD = 2, TP = 3, TW = 4, TO = 5;
@@ -229,8 +232,10 @@ function loadTextures(artDir) {
     MOSS.data[i * 4 + c] = Math.max(0, Math.min(255, (MOSS.data[i * 4 + c] - a.m[c]) / a.s[c] * b.s[c] * 1.1 + b.m[c] * 1.3));
   }
   const grass = prepareGrass(GRS);
+  const opt = (n) => { const f = path.join(artDir, 'ground', `${n}.png`); try { return fs.existsSync(f) ? decodePNG(fs.readFileSync(f)) : null; } catch { return null; } };
+  const WAT = opt('water'), QUAY = opt('quay');
   const t = {
-    COB, GRS, DRT, PLZ, MOSS, GBASE: grass.base, sprites: grass.sprites,
+    COB, GRS, DRT, PLZ, MOSS, GBASE: grass.base, sprites: grass.sprites, WAT, QUAY, WMEAN: WAT ? stats(WAT).m : null,
     segC: segment(COB, 4), segP: segment(PLZ, 0),
     CMEAN: stats(COB).m, PMEAN: stats(PLZ).m, DMEAN: stats(DRT).m,
     GLUM: b.m[0] * 0.299 + b.m[1] * 0.587 + b.m[2] * 0.114,
@@ -270,7 +275,7 @@ function poisson(W, H, r, rnd) {
 // ---------------------------------------------------------------- 本体
 export function renderGround(town, artDir = DEFAULT_ART) {
   const X = loadTextures(artDir);
-  const { COB, GRS, DRT, PLZ, MOSS, GBASE, segC, segP, CMEAN, PMEAN, DMEAN, GLUM } = X;
+  const { COB, GRS, DRT, PLZ, MOSS, GBASE, segC, segP, CMEAN, PMEAN, DMEAN, GLUM, WAT, QUAY } = X;
   const cols = town.cols, rows = town.rows, W = cols * T, H = rows * T, N = W * H;
   const SEED = hashStr(`${town.repo?.name ?? ''}\n${town.ground.join('\n')}`) & 0xffffff;
   const rng = makeRng(SEED ^ 0x5bd1e995);
@@ -673,11 +678,18 @@ export function renderGround(town, artDir = DEFAULT_ART) {
         if (verge(x, y, d, 0.55, 0.18)) { const q = ((y % RH) * RW + (x % RW)) * 4; r = RD[q]; g = RD[q + 1]; b = RD[q + 2]; }
       }
     } else if (m === WATER) {
-      const n = vnoise(x / 7, y / 1.7, SEED + 141);
-      r = 30; g = 40; b = 47;
-      const k = 0.9 + 0.2 * samp(DTONE, x, y);
-      r *= k; g *= k; b *= k;
-      if (n > 0.74) { r += 16; g += 20; b += 22; }
+      if (WAT) {
+        const o = ((y % WAT.height) * WAT.width + (x % WAT.width)) * 4;
+        r = WAT.data[o]; g = WAT.data[o + 1]; b = WAT.data[o + 2];
+        const k = 0.94 + 0.12 * samp(DTONE, x, y);
+        r *= k; g *= k; b *= k;
+      } else {
+        const n = vnoise(x / 7, y / 1.7, SEED + 141);
+        r = 30; g = 40; b = 47;
+        const k = 0.9 + 0.2 * samp(DTONE, x, y);
+        r *= k; g *= k; b *= k;
+        if (n > 0.74) { r += 16; g += 20; b += 22; }
+      }
       let edgeN = 0;
       for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
         const X2 = x + dx, Y2 = y + dy;
@@ -839,6 +851,29 @@ export function renderGround(town, artDir = DEFAULT_ART) {
     }
   }
 
+  // ---- 4b. 岸壁: 石畳の通りのすぐ下の水の行に quay.png を重ねる（上端を通りの下端にそろえ、横は世界座標で繰り返す）
+  if (QUAY) {
+    const QW = QUAY.width, QH = QUAY.height, QD = QUAY.data;
+    for (let ty = 1; ty < rows; ty++) for (let tx = 0; tx < cols; tx++) {
+      if (tc[ty * cols + tx] !== TW || tc[(ty - 1) * cols + tx] !== TS || footT[(ty - 1) * cols + tx] >= 0) continue;
+      // 岸の端（隣の列が岸でない）は 3px ずつ丸めて、地面へなじませる
+      const endL = !(tx > 0 && tc[ty * cols + tx - 1] === TW && tc[(ty - 1) * cols + tx - 1] === TS);
+      const endR = !(tx < cols - 1 && tc[ty * cols + tx + 1] === TW && tc[(ty - 1) * cols + tx + 1] === TS);
+      for (let ly = 0; ly < QH; ly++) {
+        const y = ty * T + ly;
+        if (y >= H) break;
+        if (ly >= T && tc[Math.min(rows - 1, (y / T) | 0) * cols + tx] !== TW) break;
+        for (let lx = 0; lx < T; lx++) {
+          if ((endL && lx < 3 && ly > QH - 4 + lx) || (endR && lx > 12 && ly > QH - 4 + (15 - lx))) continue;
+          const x = tx * T + lx, q = ((ly * QW) + (x % QW)) * 4, a = QD[q + 3] / 255;
+          if (!a) continue;
+          const o = (y * W + x) * 4;
+          out[o] = out[o] * (1 - a) + QD[q] * a; out[o + 1] = out[o + 1] * (1 - a) + QD[q + 1] * a; out[o + 2] = out[o + 2] * (1 - a) + QD[q + 2] * a;
+        }
+      }
+    }
+  }
+
   // ---- 5. 建物の接地影（footprint の下辺と右辺、右下へ 2〜3px）
   for (const bd of town.buildings || []) {
     const x0 = bd.x * T, x1 = (bd.x + bd.w) * T, y0 = bd.y * T, y1 = (bd.y + bd.h) * T;
@@ -877,6 +912,7 @@ export function renderGround(town, artDir = DEFAULT_ART) {
 function textureDigest(artDir) {
   const h = crypto.createHash('sha1');
   for (const n of TEX_NAMES) h.update(fs.readFileSync(texturePath(artDir, n)));
+  for (const n of OPT_TEX) { const f = path.join(artDir, 'ground', `${n}.png`); if (fs.existsSync(f)) h.update(n).update(fs.readFileSync(f)); }
   return h.digest('hex');
 }
 export function groundCacheFile(town, { artDir = DEFAULT_ART, cacheDir = path.join(os.tmpdir(), 'codecity-cache') } = {}) {

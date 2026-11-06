@@ -40,11 +40,40 @@ export class World {
       if (m === MAT.OUT || m === MAT.WATER) this.tileSolid[i] = 1;
     }
     (town.buildings || []).forEach((b, i) => this.addBuilding(b, i));
+    this.decks = [];
+    this.deckTile = new Uint8Array(n);
     (town.props || []).forEach((p, i) => this.addProp(p, i));
+    this.applyDecks();
     this.buildNav();
   }
 
   inGrid(tx, ty) { return tx >= 0 && ty >= 0 && tx < this.cols && ty < this.rows; }
+
+  // Water tiles under a deck become walkable where the deck covers them; the uncovered rest of
+  // each such tile stays solid as px rects, so the feet slide along the deck's edges. Decks are
+  // tile-aligned to nothing in particular: the px rects follow the art's deck exactly.
+  applyDecks() {
+    for (const d of this.decks) {
+      const tx0 = Math.max(0, Math.floor(d.x / T)), ty0 = Math.max(0, Math.floor(d.y / T));
+      const tx1 = Math.min(this.cols - 1, Math.floor((d.x + d.w - 0.001) / T)), ty1 = Math.min(this.rows - 1, Math.floor((d.y + d.h - 0.001) / T));
+      for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
+        const k = ty * this.cols + tx;
+        if (this.grid[k] !== MAT.WATER || this.deckTile[k]) continue;
+        this.deckTile[k] = 1;
+        this.tileSolid[k] = 0;
+        const X0 = tx * T, Y0 = ty * T, X1 = X0 + T, Y1 = Y0 + T;
+        const ix0 = Math.max(X0, d.x), ix1 = Math.min(X1, d.x + d.w), iy1 = Math.min(Y1, d.y + d.h);
+        // a deck that starts a few px below the shore (the quay's top stones stay visible) still
+        // joins the walkable ground above it
+        const shore = ty > 0 && d.y - Y0 <= 8 && this.grid[k - this.cols] !== MAT.WATER && this.grid[k - this.cols] !== MAT.OUT;
+        const iy0 = shore ? Y0 : Math.max(Y0, d.y);
+        this.addRect(X0, Y0, T, iy0 - Y0, 'water');
+        this.addRect(X0, iy1, T, Y1 - iy1, 'water');
+        this.addRect(X0, iy0, ix0 - X0, iy1 - iy0, 'water');
+        this.addRect(ix1, iy0, X1 - ix1, iy1 - iy0, 'water');
+      }
+    }
+  }
 
   addRect(x, y, w, h, kind) {
     if (!(w > 0 && h > 0)) return null;
@@ -180,11 +209,16 @@ export class World {
   }
 
   addProp(p, index) {
-    const def = this.propDef(p.type, Math.round(p.x * T), Math.round(p.y * T));
-    if (!def) warnOnce(`prop:${p.type}`, `prop "${p.type}" が manifest にありません（描画しません）`);
+    // `look` names the exact manifest entry (the layout chose it for its geometry, e.g. a pier's deck)
+    const def = (p.look && this.art.props[p.look]) || this.propDef(p.type, Math.round(p.x * T), Math.round(p.y * T));
+    if (!def) warnOnce(`prop:${p.look || p.type}`, `prop "${p.look || p.type}" が manifest にありません（描画しません）`);
     const ax = Math.round(p.x * T), ay = Math.round(p.y * T);
-    const prop = { index, type: p.type, data: p, def, x: ax, y: ay, solid: null };
+    const prop = { index, type: p.type, data: p, def, x: ax, y: ay, solid: null, layer: def && def.layer === 'ground' ? 'ground' : null };
     if (def && def.solid) prop.solid = this.addRect(ax + def.solid[0], ay + def.solid[1], def.solid[2], def.solid[3], 'prop');
+    // a deck (pier boards) is walkable floor over water: [x, y, w, h] px relative to the foot
+    if (def && Array.isArray(def.deck) && def.deck.length >= 4 && def.deck.slice(0, 4).every(Number.isFinite)) {
+      this.decks.push({ x: ax + def.deck[0], y: ay + def.deck[1], w: def.deck[2], h: def.deck[3], prop });
+    }
     if (def && def.light) {
       // the glow sits at the light point; the pool it casts is centred lower, toward the
       // ground under it (3/4 view: a lantern on a post lights the street around its foot)
@@ -251,7 +285,7 @@ export class World {
         }
         this.nav[k] = free ? 0 : 1;
         const m = this.grid[k];
-        this.cost[k] = this.buildingMap[k] >= 0 ? 1.1 : m === MAT.STREET || m === MAT.PLAZA ? 1 : m === MAT.DIRT ? 1.35 : 2.4;
+        this.cost[k] = this.buildingMap[k] >= 0 ? 1.1 : m === MAT.STREET || m === MAT.PLAZA ? 1 : m === MAT.DIRT || this.deckTile[k] ? 1.35 : 2.4;
       }
     }
     const edges = this.edges;

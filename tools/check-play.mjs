@@ -14,7 +14,10 @@
 //            as a player would, for 1.5 s. Passes when the feet reach the floor.
 //   click  : clicking the building from the spawn (the runtime's path to doorInside), followed with
 //            the Player physics. Passes when the feet reach the floor.
-// Exit code 1 if any building fails. Prints why (what blocks the door corridor).
+// Also: every building has a keeper; every outdoor keeper (town.landmarks, e.g. the well's 井戸番)
+// can be walked up to and talked to (a reachable feet spot within NEAR_KEEPER - 4 px); every pier
+// deck (a prop with `deck`) can be stepped onto from the spawn.
+// Exit code 1 if anything fails. Prints why (what blocks the door corridor).
 
 import { readFileSync, statSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -66,7 +69,8 @@ function artFrom(m) {
     };
   }
   for (const [key, p] of Object.entries(m.props || {})) {
-    art.props[key] = { key, image: null, origin: p.origin || [0, 0], solid: p.solid || null, light: p.light || null, flicker: p.flicker !== false };
+    art.props[key] = { key, image: null, origin: p.origin || [0, 0], solid: p.solid || null, light: p.light || null, flicker: p.flicker !== false,
+      deck: Array.isArray(p.deck) ? p.deck : null, layer: p.layer === 'ground' ? 'ground' : null };
   }
   return art;
 }
@@ -75,8 +79,8 @@ async function townFor(target) {
   const abs = resolve(target);
   if (statSync(abs).isDirectory()) {
     const { analyzeRepository } = await import('../src/analyze.mjs');
-    const { layoutTown } = await import('../src/layout.mjs');
-    return layoutTown(analyzeRepository(abs));
+    const { layoutTown, loadArt, loadProps, loadGround } = await import('../src/layout.mjs');
+    return layoutTown(analyzeRepository(abs), { art: loadArt(manifest), props: loadProps(manifest), ground: loadGround(manifest) });
   }
   return JSON.parse(readFileSync(abs, 'utf8'));
 }
@@ -125,6 +129,25 @@ function flood(world, start) {
     }
   }
   return { seen, count: qt };
+}
+
+// is a reachable feet position within r px of (x, y)?
+function nearSeen(world, seen, x, y, r) {
+  const W = world.W;
+  for (let yy = Math.max(0, Math.floor(y - r)); yy <= Math.min(world.H - 1, Math.ceil(y + r)); yy++) {
+    for (let xx = Math.max(0, Math.floor(x - r)); xx <= Math.min(W - 1, Math.ceil(x + r)); xx++) {
+      if (seen[yy * W + xx] === 1 && Math.hypot(xx - x, yy - y) < r) return true;
+    }
+  }
+  return false;
+}
+// does a reachable feet box stand fully on deck rect d?
+function onDeckSeen(world, seen, d) {
+  const W = world.W, hw = FEET_W / 2;
+  for (let y = Math.ceil(d.y + FEET_UP); y <= Math.floor(d.y + d.h - FEET_H + FEET_UP); y++) {
+    for (let x = Math.ceil(d.x + hw); x <= Math.floor(d.x + d.w - hw); x++) if (seen[y * W + x] === 1) return true;
+  }
+  return false;
 }
 
 // feet positions whose box stands fully on the building's floor
@@ -208,7 +231,7 @@ let failed = 0;
 for (const target of targets) {
   const t0 = performance.now();
   const town = await townFor(target);
-  const { world, start, warns } = buildWorld(town, art);
+  const { world, npcs, start, warns } = buildWorld(town, art);
   const { seen, count } = flood(world, start);
   const rows = [];
   for (const b of world.buildings) {
@@ -222,9 +245,24 @@ for (const target of targets) {
   const bad = rows.filter((x) => !x.ok);
   const soft = rows.filter((x) => x.ok && x.walkOk < 3);
   failed += bad.length;
+  // keepers: every building has one; outdoor keepers can be reached and talked to
+  const noKeeper = world.buildings.filter((b) => b.module && !b.keeper);
+  const outdoor = npcs.keepers.filter((k) => k.outdoor);
+  const farKeepers = outdoor.filter((k) => !nearSeen(world, seen, k.x, k.y, NEAR_KEEPER - 4));
+  const lmCount = (town.landmarks || []).length;
+  if (outdoor.length < lmCount) console.log(`  x ${lmCount - outdoor.length} landmark keeper(s) were not created (town.landmarks has ${lmCount})`);
+  // pier decks: some reachable feet box stands fully on each deck
+  const decks = world.decks || [];
+  const dryDecks = decks.filter((d) => !onDeckSeen(world, seen, d));
+  failed += noKeeper.length + farKeepers.length + dryDecks.length + Math.max(0, lmCount - outdoor.length);
   const ms = Math.round(performance.now() - t0);
   console.log(`${town.repo?.name ?? target}: ${world.buildings.length} buildings, ${bad.length} not enterable, ` +
-    `${soft.length} only from part of the door front; reachable feet px ${count} (${ms} ms)`);
+    `${soft.length} only from part of the door front, ${noKeeper.length} without a keeper; ` +
+    `outdoor keepers ${outdoor.length - farKeepers.length}/${outdoor.length} reachable; piers ${decks.length - dryDecks.length}/${decks.length} walkable; ` +
+    `reachable feet px ${count} (${ms} ms)`);
+  for (const b of noKeeper) console.log(`  x ${b.id} ${b.arch ? b.arch.id : b.archetype} at (${b.x},${b.y}) has no keeper (no spot inside)`);
+  for (const k of farKeepers) console.log(`  x outdoor keeper ${k.name} of ${k.building.id} at (${(k.x / T).toFixed(2)},${(k.y / T).toFixed(2)}) cannot be reached for a talk`);
+  for (const d of dryDecks) console.log(`  x pier deck at px (${d.x},${d.y},${d.w},${d.h}) cannot be stepped onto`);
   for (const x of [...bad, ...(verbose ? soft : [])]) {
     const b = x.b;
     console.log(`  ${x.ok ? '~' : 'x'} ${b.id} ${b.arch ? b.arch.id : b.archetype} at (${b.x},${b.y}) ${b.module?.path ?? ''} [${b.module?.kind ?? ''}]` +

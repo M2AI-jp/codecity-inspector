@@ -20,30 +20,43 @@
     commits: 41,                       // このパスに触れたコミット数
     recent: 12,                        // そのうち latestCommitDate までの90日のコミット数
     authors: [{ name: "amano", commits: 30 }],
-    topFiles: [{ path, lines }]        // 行数の多い順に最大8件
+    topFiles: [{ path, lines }],       // 行数の多い順に最大8件
+    works: { dirty: 3 }                // 省略可。作業ツリーで HEAD と違うこのモジュールのファイル数（変更・追加・削除・無視されていない未追跡）。
+                                       // 0 のとき・git の作業ツリーでないとき・bare リポジトリでは無い（git --no-optional-locks status で読む）
   }],
   facilities: [{                       // src/facilities.mjs。証拠があるものだけ（控えめに判定）
-    archetype: "town_hall" | "inn" | "pub" | "warehouse" | "watchtower" | "dojo",
-    name: "役場",                      // 役場・宿屋・酒場・倉庫・見張り台・道場
+    archetype: "town_hall" | "inn" | "pub" | "warehouse" | "watchtower" | "dojo" | "well" | "dock",
+    name: "役場",                      // 役場・宿屋・酒場・倉庫・見張り台・道場・井戸・船着場
     reason: "git リポジトリ（マージを除くコミット 115 件・タグ 1 個）",   // 日本語、事実のみ。コミット数はどこでもマージを除く
     evidence: ["CHANGELOG.md", ...],   // 根拠のパス（最大20件、ディレクトリは末尾 "/"、役場は ".git"）
     evidenceCount: 131,                // 根拠の総数
-    merged: ["tests", "tests/e2e"],    // 全ファイルがこの施設の根拠であるモジュール（家を建てず、施設の建物にまとめる）
+    merged: ["tests", "tests/e2e"],    // 全ファイルがこの施設の根拠であるモジュール（家を建てず、施設の建物にまとめる）。井戸は建物が無いので常に []
     commits, recent, lastCommit, authors,   // 根拠に触れたコミット（役場はリポジトリ全体）
     facts: { ... }                     // 番人が話す事実（下の表）
   }],
   contributors: [{ name, commits, modules: ["src/engine", ...],     // メールアドレスは含めない
-                  lastCommit: { subject, date } }]                   // その人のいちばん新しいコミット
+                  lastCommit: { subject, date } }],                  // その人のいちばん新しいコミット
+  agents: [{ name: "Claude Code",      // 外部のコード生成エージェント（外部工務店）。コミット数の多い順に最大3つ
+             commits: 38, recent: 31,  // 名前のあるコミット（マージを除く・解析が読んだ直近5000件の中）と、そのうち最新コミットまでの90日の数
+             modules: ["src", ...],    // 触ったモジュール（多い順）
+             last: { subject, date } }]                              // いちばん新しいもの
 }
 ```
+
+agents の見分け方（src/analyze.mjs AGENTS）: 作者名（`claude`・`copilot-swe-agent[bot]`・`chatgpt-codex-connector[bot]`・`Cursor Agent`・`devin-ai-integration[bot]`・`… (aider)`・`gemini-code-assist[bot]` など）、
+trailer（`Co-Authored-By: Claude … <noreply@anthropic.com>`・`Co-authored-by: Codex`・`Co-authored-by: Copilot`・`Co-authored-by: Cursor <…>`・`Amp-Thread:` など）、
+定型の印（`Generated with [Claude Code]`・`Claude-Session: https://claude.ai/code/…`・件名の `aider: `）だけ。本文に名前が出てくるだけ（話題）は数えない。
+作者そのものがエージェントの名前は、犬（bot）にも住人にもしない（`agentForAuthor()`）。名前は Claude Code・Codex・GitHub Copilot・Cursor・Devin・Aider・Gemini・Amp・OpenHands。
 
 facts の形:
 
 | archetype | facts |
 |---|---|
-| town_hall | `{ commits, contributors, contributorsWindow /* 履歴を上限まで読んだとき・浅いクローンのときの範囲 */, firstCommit /* 浅いクローンでは null */, lastCommit, tags /* 浅いクローンでタグが無ければ null（不明） */, latestTag: {name,date}, changelog, shallow }` |
+| town_hall | `{ commits, contributors, contributorsWindow /* 履歴を上限まで読んだとき・浅いクローンのときの範囲 */, firstCommit /* 浅いクローンでは null */, lastCommit, tags /* 浅いクローンでタグが無ければ null（不明） */, latestTag: {name,date}, changelog, shallow, dirty /* 作業ツリーで HEAD と違うファイルの総数。bare・作業ツリーなしは null */, agents: [{ name, commits, recent }] /* 工事報告（RepoModel.agents） */ }` |
 | inn | `{ servers: [{path, how}], deploy: [paths], domains: ["docs.brew.sh"], frameworks: ["Next.js"], configs: [paths], pages: [paths] }` |
-| pub | `{ connectors: [{ name: "OpenAI", via: "dep" \| "url", paths }], webhooks: ["/api/webhook"] }` |
+| pub | `{ connectors: [{ name: "OpenAI", via: "dep" \| "url", paths }], webhooks: ["/api/webhook"], routes: [{ method: "GET" \| "POST" \| … \| null /* 分からなければ null */, route: "/api/chat", path }] /* この街が受ける道。サーバーらしいファイル（フレームワークの呼び出し・Flask/FastAPI・Go・Rails の routes.rb・Next.js の app/**/route と pages/api・サーバーのファイルの "/api/…" の文字列）から。最大30 */, routesTotal, keys: [{ name: "OPENAI_API_KEY", for: "OpenAI" \| null, example: true /* 見本の env に名前がある */ }] /* 鍵らしい設定の名前だけ（値は読まない）。最大20 */, envExamples: [paths], specs: [openapi・swagger・asyncapi・GraphQL・proto のパス], prompts: [AI への頼み方のファイル], promptsTotal, watchtower: true \| false /* 見張り台があるか */, watchTools: ["Sentry"] }`。酒場は connectors・webhooks・API の取り決め（openapi など）のどれかがあるときだけ |
+| well | `{ examples: [".env.example", …] /* 見本（名前だけ読む） */, names: ["OPENAI_API_KEY", …] /* 見本に書いてある名前を先に、製品のコードが読む環境変数の名前（読むファイルの多い順）。最大40。OS・CI が自分で渡す名前（HOME・PATH・GITHUB_SHA など）は除く */, namesTotal, configs: [設定のファイル・ディレクトリ 最大8], committed: [".env", …] /* git に記録された本物の env ファイル。中身は開かない */, loaders: ["dotenv", …], ciSecrets: ["NPM_TOKEN", …] /* .github/workflows の secrets.X（GITHUB_TOKEN は除く）。最大12 */ }`。見本・記録された env・読み込む道具のどれかがあるか、製品のコードが3つ以上の名前を読むときだけ。外に立つ施設（Town の landmarks）なので merged は常に [] |
+| dock | `{ packages: [{ registry: "npm" \| "PyPI" \| "crates.io" \| "RubyGems" \| "Go" \| "Packagist" \| "pub.dev" \| "SwiftPM", name, version \| null, path }] /* 荷札。公開した証拠ではない */, apps: [{ kind: "iOS" \| "macOS" \| "Apple" \| "Android" \| "Expo" \| "React Native" \| "Electron" \| "Tauri" \| "Capacitor" \| "Flutter" \| "Browser extension" \| "VS Code extension", path: "mac/" }], publish: [paths] /* 出港の手順: 公開・配布のコマンドを含む workflow・package.json、配布の設定（.goreleaser.yml・release-please-config.json・electron-builder.yml・eas.json・Fastfile など） */, bins: ["codecity"] }`。アプリ・出港の手順・はっきりした荷札（package.json に main・bin・exports・files などがあり private でない、pyproject の build-system、Cargo.toml の [package]、gemspec など）のどれかがあるときだけ。荷札だけの package.json（名前と版だけ）・go.mod は、船着場があるときに並べるだけ |
 | warehouse | `{ kinds: ["SQLite", ...], sqlFiles, migrations, configs, dataFiles, sqliteCode }` |
 | watchtower | `{ tools: ["Sentry", ...], logDirs, configs }` |
 | dojo | `{ files, runners: ["Vitest", "node --test"], dirs, latest: { subject, date, author } }` |
@@ -58,18 +71,30 @@ facts の形:
   ground: ["..##++..", ...],          // rows個の文字列、各cols文字。'.'草地 '#'石畳の通り ':'土の路地 '+'広場 '~'水 ' '街の外
   groundImage: "/ground.png",         // ground から src/ground.mjs が合成した1枚の地面画像（cols*16 × rows*16 px、原点は tile (0,0) の左上）
   buildings: [{
-    id: "b12",
     id: "b12" | "f1",                  // 施設は f<n>
     archetype: "house_s" | "house_m" | "shop" | "workshop" | "ruin"
-             | "town_hall" | "inn" | "pub" | "warehouse" | "watchtower" | "dojo",   // art/game/manifest.json のキー
+             | "town_hall" | "inn" | "pub" | "warehouse" | "watchtower" | "dojo" | "dock",   // art/game/manifest.json のキー
     variant: "house_s-2",              // 省略可。見た目の版（近くに同じ版が並ばないよう layout が選ぶ）。無ければ hash(id) で選ぶ
     x: 10, y: 8, w: 6, h: 4,           // footprint（壁の外周）。扉は下辺
     door: { x: 12, y: 11 },            // 扉のtile（footprintの最下段）
-    module: { ...RepoModel.modules[i] },  // 施設では kind = archetype、統計は根拠とまとめたモジュールのもの
+    module: { ...RepoModel.modules[i] },  // 施設では kind = archetype、統計は根拠とまとめたモジュールのもの。
+                                       // works: { dirty } はまとめたモジュールの合計（工事中の足場の目印）
     facility: { archetype, name, reason, evidence, evidenceCount, facts, merged }   // 施設のときだけ
   }],
-  props: [{ type: "lamp" | "barrel" | "crate" | "tree" | "bush" | "bench" | "well" | "fence" | "noticeboard"
-                 | "sacks" | "flowerpot" | "planter" | "cart", x: 20.5, y: 14 }],   // manifest に <type>-2 などの別の見た目があれば、位置の hash で選ぶ
+  props: [{ type: "lamp" | "barrel" | "crate" | "tree" | "bush" | "bench" | "fence" | "noticeboard"
+                 | "sacks" | "flowerpot" | "planter" | "cart"
+                 | "wellhouse" | "pier" | "boat" | "scaffold" | "sign-works" | "lumber",
+            x: 20.5, y: 14,            // 足元の中心（tile）。1×1 なら (tx + 0.5, ty + 1)
+            look: "pier-2",            // 省略可。manifest の小物の名前そのもの（layout が形を当てにして選んだもの: 桟橋の板・足場）。
+            w: 1 }],                   // 省略可。layout が場所を取った tile の幅（絵の solid より細く置いたとき。足場を1マスの隙間に立てたとき）
+                                       // 無ければ manifest に <type>-2 などの別の見た目があるとき、位置の hash で選ぶ
+  landmarks: [{                        // 外に立つ施設（建物が無い）。いまは井戸だけ。小物は props にも同じ所に入っている
+    id: "f9", archetype: "well", name: "井戸", prop: "wellhouse",
+    x: 31.5, y: 38,                    // その小物の足元（props と同じ）
+    keeper: { x: 33.5, y: 37.6875 },   // 番人の足元（tile。px = ×16。歩ける1マスの中、小物の横。まわり1マスは小物を置かない）
+    facility: { archetype, name, reason, evidence, evidenceCount, facts, merged }, module: { ... } }],
+  contractors: [{ id: "a1", name: "Claude Code", commits, recent, homes: ["b3", ...], last: { subject, date } }],
+                                       // 外部工務店（codecity.mjs が RepoModel.agents から layout のあとに足す）
   residents: [{ id: "r1", name: "amano", commits: 30, homes: ["b12", "b3"], look: 0,
                 lastCommit: { subject, date } | null }],             // contributors[].lastCommit
   crowd: [{ id: "c1", home: "b12", look: 3, fact: 0 | 1 }],          // 常連（街を歩くモブ）。建物ごとに0〜2人、最近90日の
@@ -83,6 +108,10 @@ facts の形:
   spawn: { x: 48, y: 40 }
 }
 ```
+
+街の形（src/layout.mjs）: 小さな広場（幅10〜14・奥行き9前後。北の辺は役場とその隣の建物の扉が直接面し、東西は広場わきの建物、南は大通り）・広場の南の大通り（ゆるく曲がり段差がある）・広場の両わきから東西へ出る北の通り・広場の両わきの南北の通り・役場の脇から北へと大通りから南へ（北と南で位置がずれる）を骨組みにして、その外の地区を通りで切り分けていく。切れ目は地区ごとに違う位置で T 字に突き当たり、ところどころ1行（1列）ずれる。深い街区には土の路地（ときどき行き止まり）、広い街区には南北の小路。南北の通りが東西の通りに上から突き当たる角のいくつかは小さな広場（舗装、街灯とベンチか木か荷車）、狭い街区のいくつかと街の内側の空き地は緑地・木立ち（使わなかった街区には下の通りから曲がった土の小道が抜ける）。建物の無い通りは消え、街のまわりは森、街の外へ出る土の道が北・南・西・東に残る（宿屋の側は2行の街道）。
+小物（src/layout.mjs placeProps）: 街灯は意味のある所にだけ（広場の四隅の縁、施設の扉のわき、南北の通りが東西の通りに突き当たる角、岸の通り・桟橋の付け根、小さな広場・緑地）で、角や岸の街灯どうしは約12マス離す。木は2〜5本のかたまり（裏庭・広い隙間・街のきわ）と空き地の木立ちで、通り・路地・広場・水のすぐ下2行には植えない（樹冠が歩く人を隠さないように）。建物の足もと（横の壁ぎわの下の1〜3段）には、その建物らしい樽・木箱・袋・鉢・プランター。扉の前の2行はあける。
+水辺（船着場があるとき）: 大通りの南は街区1〜3段で、その下に岸の通り（'#'、2行、使った区間だけ）、その下は街の幅いっぱい・地図の下の端まで水（'~'）。岸の通りのすぐ下の水の行に src/ground.mjs が quay.png（岸壁）を重ねる。桟橋（props の pier、`look` つき）は板の上端が岸壁の行の上から4px下（岸壁の上の石が見える）から南へ突き出し、web/world.js が板と岸の通りをつなぐ（板の上端が岸の下の水の tile の上から8px以内なら、その tile の板の幅は上端から歩ける）。舟（boat）は最初の桟橋の杭にぴったりもやう。水は歩けず、桟橋の板（manifest の deck）の上だけ歩ける。
 
 ### 小さな生き物（src/creatures.mjs → town.creatures → web/creatures.js）
 
@@ -103,7 +132,9 @@ facts の形:
     player: { src: "../approved/player--default.png", frame: [32, 32], pivot: [16, 31],
               anims: { idle: { down: [12], up: [0], right: [24], left: [36] },
                        walk: { down: [14,15,16,17], ... } } },
-    residents: [{ src, frame, pivot, anims }]
+    keepers: { workshop: { src, frame, pivot, anims }, ..., dock: {...}, well: {...} },
+    townsfolk: [{ src, frame, pivot, anims }],
+    contractor: { src, frame, pivot, anims }      // 外部工務店の代理人（あれば）
   },
   archetypes: {
     house_s: {
@@ -112,11 +143,16 @@ facts の形:
       cutaway:  { src: "house_s.cutaway.png",  origin: [0, 40] },
       door: { x: 2, w: 2 },              // footprint下辺での扉の位置と幅（tile）
       blockers: [[x, y, w, h], ...],     // 室内で歩けない家具（footprint基準のpx）
-      lights: [[x, y, radius], ...]      // 窓・炉などの光（footprint基準のpx）
+      lights: [[x, y, radius], ...],     // 窓・炉などの光（footprint基準のpx）
+      wall: [3, 4]                       // build-manifest が外観の絵から測る: 壁が footprint の左・右の端から内側にある px（足場を壁に寄せる）
     }
   },
-  props: { lamp: { src, origin: [ox, oy], solid: [x, y, w, h] | null, light: [x, y, r] | null } },
-  ground: { street: "street.png", grass: "grass.png", dirt: "dirt.png", plaza: "plaza.png" }   // 継ぎ目なしのtexture
+  props: { lamp: { src, origin: [ox, oy], solid: [x, y, w, h] | null, light: [x, y, r] | null, flicker: true },
+           pier: { src, origin, solid: null, light: null, flicker: false,
+                   layer: "ground",            // 省略可。人物の下に描く（y でならべない）: 桟橋の板・もやった舟
+                   deck: [x, y, w, h] } },     // 省略可。水の上で歩ける板（足元基準の px）
+  ground: { street: "street.png", grass: "grass.png", dirt: "dirt.png", plaza: "plaza.png",   // 継ぎ目なしのtexture
+            water: "water.png", quay: "quay.png" }                                           // 省略可（水辺）
 }
 ```
 
@@ -132,19 +168,30 @@ manifest.json は手で編集しない。画像を作る人は、画像の隣に
   `floor: [x,y,w,h]`（footprint基準のpx）があれば、室内で歩けるのはその矩形から `blockers` を除いた所だけで、footprintの残りは壁（扉の隙間を除く）。無ければ従来どおり外周1tile（奥は2tile）が壁。
   画像の大きさは「幅 = footprint幅×16」「高さ = footprint奥行×16 + 屋根の高さ」。footprintの下端が画像の下端に来るので、通常 origin = [0, 画像の高さ − footprint奥行×16]。
   同じarchetypeに複数の `<n>`（見た目の違う版）があってよい。manifestでは `archetypes["house_s"].variants = [...]` になり、町の各建物は `building.variant`（無ければ `hash(building.id)`）で版を選ぶ。
-- 人物 `art/game/residents/<name>.png`（4×4、32×32のframe。行は 下・左・右・上、列は 立ち・歩きA・立ち・歩きB）。`keeper-<kind>.png` は建物の中にいる番人（kind は workshop・shop・house・ruin）、`townsfolk-<n>.png` は街を歩く住人。
+- 人物 `art/game/residents/<name>.png`（4×4、32×32のframe。行は 下・左・右・上、列は 立ち・歩きA・立ち・歩きB）。`keeper-<kind>.png` は番人（kind は module.kind か施設の archetype、`keeper-smith.png` は workshop）→ `characters.keepers[kind]`、`townsfolk-<n>.png` は街を歩く住人、`contractor.png` は外部工務店の代理人 → `characters.contractor`（どれも同じ人物シート）。
 - 生き物 `art/game/creatures/<name>.png` と `<name>.json`: `{ "frame": [16,16], "pivot": [8,15], "anims": { "<anim>": { "down": [...], "left": [...], ... } } }` → manifest の `creatures[name] = { src, frame, pivot, anims }`。name は pigeon・pigeon-fly・dog・cat・cat-2（anims: pigeon は idle・peck・hop、pigeon-fly は fly、dog・cat は idle（座る）・stand・walk）。
-- 小物 `art/game/props/<type>.png` と `<type>.json`: `{ "origin": [ox,oy], "solid": [x,y,w,h] | null, "light": [x,y,r] | null, "flicker": true }`（座標は小物の足元＝town.jsonの(x,y)×16 を原点としたpx）
+- 小物 `art/game/props/<type>.png` と `<type>.json`: `{ "origin": [ox,oy], "solid": [x,y,w,h] | null, "light": [x,y,r] | null, "flicker": true, "layer": "ground", "deck": [x,y,w,h] }`（座標は小物の足元＝town.jsonの(x,y)×16 を原点としたpx。`layer` と `deck` は省略可）
+  `layer: "ground"` の小物は地面のすぐ上・人物の下に描く（y でならべない）。`deck` は水の上で歩ける板: そこに掛かる水の tile は板の矩形だけ歩けて、残りは水のまま（web/world.js）。layout は板の上端を岸壁の行の上から4px下に置く。
+  layout が場所を取る大きさは tile 単位で、幅 = round(solid.w / 16)、奥行き = ceil(solid.h / 16)（最小 1×1、足元は下辺の中央）。井戸小屋 `wellhouse`・足場 `scaffold`（`scaffold-2`）・工事中の札 `sign-works`・材木 `lumber`・桟橋 `pier`（`pier-2`）・舟 `boat` は、絵があるときだけ置く。
+- 地面 `art/game/ground/<name>.png`（継ぎ目なし）: street・grass・dirt・plaza・moss は必須。`water.png` は水面（128×128 前後、縦横に継ぎ目なし）、`quay.png` は岸壁の帯（横に継ぎ目なし、上端 = 岸の通りの下端。16px より高ければ下の水の行に続けて描く。透明な所は水が見える）。水辺は船着場の絵と water.png の両方があるときだけつくる。
 
 ## 施設の置き場所（src/layout.mjs）
 
-- 施設は art manifest にその archetype の絵があるときだけ置く。絵が無ければ置かず、merged のモジュールはふつうの建物になる。
-- 役場は広場の北の真ん中で広場に面する（北へ向かう大通りは役場の脇を通る）。酒場は広場の東か西のきわ。宿屋は大通り（広場の南の東西の通り）を外から入ってきた端。道場・倉庫は広場からひとまわり外の、別々の向きの地区。見張り台は外縁。
-- 施設の扉の前5行には小物を置かず、施設のまわりには木を置かない。
+- 施設は art manifest にその archetype の絵があるときだけ置く。絵が無ければ置かず、merged のモジュールはふつうの建物になる。船着場は water.png もあるときだけ（水辺ごと）。
+- 役場は広場の北の真ん中で広場に面する（北へ向かう通りは役場の脇を通る。役場の前は広場の石が北の通りまで張り出す）。酒場は広場の東か西のきわで大通りに面する。宿屋は大通り（広場の南の東西の通り）を外から入ってきた端（そこから外へ2行の街道）。道場・倉庫は広場からひとまわり外の、別々の向きの地区。見張り台は外縁。船着場は南の岸の通りに面し、南へ向かう通りの脇（桟橋は扉の近く）。
+- 井戸（外に立つ施設）は広場の南寄りの、真ん中（掲示板・開始位置）をあけた左か右に井戸小屋を置き、置けなければ広場に近い緑地。番人は井戸小屋の外側の下の段の歩ける1マスに立ち、そこから街のどこへでも行けることを確かめてから置く。井戸小屋と番人のまわり1マスには木を植えない。
+- 工事中（module.works.dirty > 0）の建物: 横の壁ぎわの草地に足場（扉の前の2行・通り・路地には置かない、街の通り道をふさがない。横が1マスしかあかなければ、細く置いた足場がその1マスの真ん中に立つ）。その建物の横の1マスの隙間は路地にせず草地のままにする（足場の絵があるとき）。足場の手前か反対側の壁ぎわに工事中の札、裏庭か足場の横に材木（どれも絵と余地があるときだけ）。
+- 施設の扉の前（扉の列の左右2マス、5行）には小物を置かず、施設のまわり（左右2マス、上1行〜扉の前5行）には木を置かない。広場の角の植え込みは、広場に面する建物の扉の前の行には作らない。
+- 広場には、もう飾りの井戸（well）を置かない（井戸は env・設定の施設になったので、根拠の無い井戸を見せない）。
 
 ## 番人と住人
 
 - すべての建物に、その建物の種類（module.kind）の番人が1人いる。番人は名前のある人物ではなく「工房の親方」「商店の主人」「家の人」「廃屋の管理人」という役で、そのモジュールの事実だけを話す（誰がよく手を入れているか、最近何が変わったか、どんなファイルがあるか）。
-- 施設の番人は「役場の書記」「宿屋の番頭」「酒場の主人」「倉庫番」「見張り台の番人」「道場の検査官」で、facility.facts だけを話す。絵は `keeper-<archetype>.png`（characters.keepers[archetype]）。無ければいちばん近い番人の絵（宿屋・酒場→shop、倉庫→workshop、ほか→house）で立てる。
+- 施設の番人は「役場の書記」「宿屋の番頭」「酒場の主人」「倉庫番」「見張り台の番人」「道場の検査官」「船頭」（船着場）で、facility.facts だけを話す。絵は `keeper-<archetype>.png`（characters.keepers[archetype]）。無ければいちばん近い番人の絵（宿屋・酒場→shop、倉庫・船着場→workshop、ほか→house）で立てる。
+- 外に立つ施設（town.landmarks）の番人（井戸→「井戸番」、絵は characters.keepers.well、無ければ house）は landmark.keeper に立ち、近づくと建物の番人と同じように話す（web/residents.js LandmarkKeeper）。建物の番人と同じく少しだけ場所をとる（KEEPER_BOX）。
+- 井戸番は設定の名前・見本のファイル・読み込む道具・CI の鍵の名前だけを話し、値は知らないと言う。記録された本物の env ファイルがあれば「秘密の鍵が入っているかもしれないファイル（.env）が記録に入っています。」とやさしく知らせる。船頭は積んであるアプリ・荷札（名前と版）・出港の手順を話し、船が本当に出たかは分からないと言う。
+- 役場の書記は「まだ記録していない変更が N 個あります」（town_hall.facts.dirty）と、外部工務店の工事報告（town_hall.facts.agents）を話し、報告は自己申告で、動くかは道場で（道場が無ければ動かして）確かめると言う。module.works.dirty のある建物の番人は「工事中」と、その数を話す。
+- 酒場の主人は最後に「ここは接続者ギルドだ。名簿を見ていくかい？」と言い、その下に「名簿をみる」が出る（クリック・タップ・Enter・Space）。名簿は町の上に開く窓で、ページは なかま（相手・どうして分かったか・場所）・うけつけ（routes）・いらい（webhook と、コードから使いを出す相手）・もちもの（鍵の名前・取り決めの書類・AI への頼み方）・じょうたい（「つながるか確かめたことはありません（未確認）」・鍵の名前が見本にあるか・見張り台があるか）。空のページはそう書く。← → か Q・E でページ、Esc・× で閉じる。開いている間も ↑ ↓ と WASD では歩け、酒場の主人から離れると閉じる。
+- 外部工務店（town.contractors）は1つにつき代理人が1人、homes の建物のあいだを住人と同じように歩く（絵は characters.contractor、無ければ townsfolk の姿）。吹き出しは「<名前> ─ 外部工務店の代理人です」「この街で最近90日に N 件の工事に名前があります」「工事の報告は自己申告です」「動くかどうかは道場で確かめてください」（数は本当の数だけ）。
 - 常連（town.crowd）は townsfolk の姿（`look % townsfolk数`）で、自分の建物の近くを歩き、ときどき広場やほかの建物の扉へ行き、立ち止まって見回し、二人で向かい合って立ち話をする。吹き出しは「◯◯の常連」と、その建物の本当の事実をひとつだけ言う。
 - コミットした人は townsfolk の姿で街を歩く（`look % townsfolk数` で姿を選ぶ）。番人と同じ人物が二重に現れることはない。

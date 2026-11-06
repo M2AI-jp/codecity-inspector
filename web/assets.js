@@ -206,7 +206,8 @@ export async function loadArt(manifest, manifestUrl, opts) {
 
   // Props
   for (const [key, p] of Object.entries(m.props || {})) {
-    const entry = { key, image: null, origin: p.origin || [0, 0], solid: p.solid || null, light: p.light || null, flicker: p.flicker !== false };
+    const entry = { key, image: null, origin: p.origin || [0, 0], solid: p.solid || null, light: p.light || null, flicker: p.flicker !== false,
+      deck: Array.isArray(p.deck) ? p.deck : null, layer: p.layer === 'ground' ? 'ground' : null };
     art.props[key] = entry;
     if (p.src) jobs.push(loadImage(resolve(p.src, base)).then((img) => { entry.image = img; }));
   }
