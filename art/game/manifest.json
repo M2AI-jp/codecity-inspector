@@ -1500,6 +1500,13 @@
       "light": [0, -33, 70],
       "flicker": true
     },
+    "lowwall": {
+      "src": "props/lowwall.png",
+      "origin": [16, 13],
+      "solid": [-16, -5, 32, 5],
+      "light": null,
+      "flicker": false
+    },
     "lumber": {
       "src": "props/lumber.png",
       "origin": [18, 21],
