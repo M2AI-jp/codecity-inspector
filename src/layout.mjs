@@ -1862,6 +1862,62 @@ function placeProps(P, F, rng, spawn, extra) {
     const lattice = y % 2 === 0 && (x + (y >> 1)) % 2 === 0;
     if (lattice ? r < (shore ? 0.5 : 0.9) : r < 0.16) tryProp(lattice || r < 0.06 ? 'tree' : 'bush', x, y);
   }
+
+  // 何も無い芝生を割る: 基準 target-town.png の町の緑はほとんどが茂み・花・木で、何も無い芝生はいちばん大きい所でも 7 マスほど。
+  // 建物・小物とその周り1マスにかからない草地（建物のすぐ上2行は屋根の陰なので数えない）の4近傍のつながりが LAWN_MAX を超えたら、
+  // つながりの縁（通り・柵・建物の壁ぎわの側）から、茂み・花・低い木をひとつずつ置いていく
+  {
+    const LAWN_MAX = 10;
+    const objAt = (x, y) => inC(x, y) && (foot[id(x, y)] >= 0 || (blocked[id(x, y)] && g[id(x, y)] !== WATER && g[id(x, y)] !== OUT));
+    const underRoof = (x, y) => (inC(x, y + 1) && foot[id(x, y + 1)] >= 0) || (inC(x, y + 2) && foot[id(x, y + 2)] >= 0);
+    const lawnAt = (x, y) => {
+      if (!isGrass(x, y) || blocked[id(x, y)] || underRoof(x, y)) return false;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (objAt(x + dx, y + dy)) return false;
+      return true;
+    };
+    const LOOKS = ['bush', 'bush', 'bush', 'planter', 'flowerpot', 'tree', 'tree', 'bush'];
+    const gaveUp = new Set();
+    for (let iter = 0; iter < 2000; iter++) {
+      // いちばん大きい（あきらめていない）つながり
+      const seen = new Uint8Array(N);
+      let big = null;
+      for (let y = crop.y0; y <= crop.y1; y++) for (let x = crop.x0; x <= crop.x1; x++) {
+        const t0 = id(x, y);
+        if (seen[t0] || !lawnAt(x, y)) continue;
+        const cells = [t0];
+        seen[t0] = 1;
+        for (let h = 0; h < cells.length; h++) {
+          const t = cells[h], cx2 = t % cols, cy2 = (t / cols) | 0;
+          for (const [nx, ny] of [[cx2 + 1, cy2], [cx2 - 1, cy2], [cx2, cy2 + 1], [cx2, cy2 - 1]]) {
+            if (!inC(nx, ny)) continue;
+            const n = id(nx, ny);
+            if (!seen[n] && lawnAt(nx, ny)) { seen[n] = 1; cells.push(n); }
+          }
+        }
+        if (cells.length > LAWN_MAX && !gaveUp.has(t0) && (!big || cells.length > big.length)) big = cells;
+      }
+      if (!big) break;
+      // 縁のマス（つながりの外に接する所）から。通り・土の道に接する所、建物に近い所を先に。同じ点数なら決まった並び
+      const inBig = new Set(big);
+      const score = (t) => {
+        const x = t % cols, y = (t / cols) | 0;
+        let edge = 0, paved = 0, nearB = 0;
+        for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
+          if (!inBig.has(id(nx, ny))) edge = 1;
+          if (isPavedAt(nx, ny)) paved = 1;
+        }
+        for (let dy = -2; dy <= 2 && !nearB; dy++) for (let dx = -2; dx <= 2; dx++) if (objAt(x + dx, y + dy)) { nearB = 1; break; }
+        return (edge ? 0 : 4) + (paved || nearB ? 0 : 2) + (hash32(`lawn:${x},${y}`) % 1000) / 1000;
+      };
+      let placedOne = false;
+      for (const t of [...big].sort((a, b) => score(a) - score(b))) {
+        const x = t % cols, y = (t / cols) | 0;
+        const want = LOOKS[hash32(`lawnk:${x},${y}`) % LOOKS.length];
+        if (tryProp(want, x, y) || (want !== 'bush' && tryProp('bush', x, y))) { placedOne = true; break; }
+      }
+      if (!placedOne) gaveUp.add(big[0]);
+    }
+  }
   return out;
 }
 
