@@ -350,6 +350,45 @@
     "house_m": {
       "variants": [
         {
+          "id": "house_m-1",
+          "footprint": [6, 4],
+          "exterior": {
+            "src": "buildings/house_m-1.exterior.png",
+            "origin": [0, 40],
+            "size": [96, 104]
+          },
+          "cutaway": {
+            "src": "buildings/house_m-1.cutaway.png",
+            "origin": [0, 40],
+            "size": [96, 104]
+          },
+          "door": {
+            "x": 2,
+            "w": 1
+          },
+          "floor": [8, 16, 80, 36],
+          "blockers": [
+            [8, 16, 20, 6],
+            [74, 16, 16, 24],
+            [34, 24, 32, 12],
+            [6, 34, 15, 18],
+            [80, 31, 9, 14]
+          ],
+          "lights": [
+            [17, 39, 24],
+            [75, 39, 24],
+            [25, 9, 22],
+            [69, 9, 22],
+            [64, -5, 20],
+            [57, 35, 20],
+            [19, 12, 32],
+            [45, 19, 20]
+          ],
+          "smoke": [
+            [15, -40]
+          ]
+        },
+        {
           "id": "house_m-2",
           "footprint": [6, 4],
           "exterior": {
@@ -385,6 +424,85 @@
           ],
           "smoke": [
             [90, -39]
+          ]
+        }
+      ]
+    },
+    "house_s": {
+      "variants": [
+        {
+          "id": "house_s-1",
+          "footprint": [5, 4],
+          "exterior": {
+            "src": "buildings/house_s-1.exterior.png",
+            "origin": [0, 32],
+            "size": [80, 96]
+          },
+          "cutaway": {
+            "src": "buildings/house_s-1.cutaway.png",
+            "origin": [0, 32],
+            "size": [80, 96]
+          },
+          "door": {
+            "x": 2,
+            "w": 1
+          },
+          "floor": [6, 16, 68, 37],
+          "blockers": [
+            [7, 16, 18, 12],
+            [29, 16, 18, 8],
+            [50, 16, 18, 8],
+            [67, 18, 8, 10],
+            [27, 28, 24, 10],
+            [58, 36, 17, 16]
+          ],
+          "lights": [
+            [18, 33, 24],
+            [66, 33, 24],
+            [55, 32, 20],
+            [59, 14, 30],
+            [38, 26, 20]
+          ],
+          "smoke": [
+            [63, -30]
+          ]
+        },
+        {
+          "id": "house_s-2",
+          "footprint": [5, 4],
+          "exterior": {
+            "src": "buildings/house_s-2.exterior.png",
+            "origin": [0, 32],
+            "size": [80, 96]
+          },
+          "cutaway": {
+            "src": "buildings/house_s-2.cutaway.png",
+            "origin": [0, 32],
+            "size": [80, 96]
+          },
+          "door": {
+            "x": 1,
+            "w": 1
+          },
+          "floor": [7, 14, 49, 34],
+          "blockers": [
+            [8, 14, 16, 6],
+            [33, 14, 13, 3],
+            [46, 14, 10, 20],
+            [18, 22, 24, 10],
+            [26, 32, 7, 4],
+            [5, 30, 8, 8],
+            [48, 34, 9, 10]
+          ],
+          "lights": [
+            [44, 35, 24],
+            [31, 11, 20],
+            [72, 37, 20],
+            [16, 10, 30],
+            [26, 16, 20]
+          ],
+          "smoke": [
+            [15, -31]
           ]
         }
       ]
