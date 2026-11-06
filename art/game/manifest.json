@@ -1610,6 +1610,7 @@
     "plaza": "ground/plaza.png",
     "quay": "ground/quay.png",
     "street": "ground/street.png",
+    "wall": "ground/wall.png",
     "water": "ground/water.png"
   },
   "creatures": {
