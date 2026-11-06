@@ -13,7 +13,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { decodePNG, encodePNG } from '../tools/png.mjs';
 
-export const GROUND_VERSION = 2;          // 見た目を変えたら上げる（キャッシュの鍵に入る）
+export const GROUND_VERSION = 3;          // 見た目を変えたら上げる（キャッシュの鍵に入る）
 const T = 16;
 const DEFAULT_ART = path.resolve(import.meta.dirname, '../art/game');
 const TEX_NAMES = ['street', 'grass', 'dirt', 'plaza', 'moss'];
@@ -746,8 +746,9 @@ export function renderGround(town, artDir = DEFAULT_ART) {
         const other = (X2, Y2) => X2 < 0 || Y2 < 0 || X2 >= W || Y2 >= H ? false : key[Y2 * W + X2] !== sid;
         const lit = other(x - 1, y) || other(x, y - 1), shade = other(x + 1, y) || other(x, y + 1);
         const bev = 1 - 0.6 * rw;
-        if (lit && !shade) { const k = 1 + (m === SLAB ? 0.09 : m === FRAME ? 0.12 : 0.1) * bev; r *= k; g *= k; b *= k; }
-        else if (shade && !lit) { const k = 1 - (m === SLAB ? 0.12 : m === FRAME ? 0.15 : 0.13) * bev; r *= k; g *= k; b *= k; }
+        // 基準の石畳シート（art/references/user-provided/field_cobblestone_roads_sheet.png）の石は、左上の縁がはっきり明るく右下が暗い
+        if (lit && !shade) { const k = 1 + (m === SLAB ? 0.26 : m === FRAME ? 0.2 : 0.22) * bev; r *= k; g *= k; b *= k; }
+        else if (shade && !lit) { const k = 1 - (m === SLAB ? 0.26 : m === FRAME ? 0.22 : 0.24) * bev; r *= k; g *= k; b *= k; }
       }
       r *= grime; g *= grime; b *= grime;
       if (!foot) {
