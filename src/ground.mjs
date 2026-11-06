@@ -13,7 +13,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { decodePNG, encodePNG } from '../tools/png.mjs';
 
-export const GROUND_VERSION = 12;          // 見た目を変えたら上げる（キャッシュの鍵に入る）
+export const GROUND_VERSION = 14;          // 見た目を変えたら上げる（キャッシュの鍵に入る）
 const T = 16;
 const DEFAULT_ART = path.resolve(import.meta.dirname, '../art/game');
 const TEX_NAMES = ['street', 'grass', 'dirt', 'plaza', 'moss'];
@@ -215,18 +215,8 @@ function prepareGrass(img) {
     pix.forEach(([x, y], k) => { xs[k] = x - x0; ys[k] = y - y0; const o = wrap(x, y) * 4; col[k * 3] = d[o]; col[k * 3 + 1] = d[o + 1]; col[k * 3 + 2] = d[o + 2]; });
     sprites.push({ w, h, xs, ys, col, n: pix.length, big: nb >= 40 });
   }
-  // 株の場所を、株の無い場所の色で埋める（決まったずれの候補から最初に空いているもの）
-  const base = new Uint8ClampedArray(d);
-  const OFFS = [[53, 29], [-41, 67], [97, -23], [-71, -53], [29, 113], [131, 47], [-17, -89], [61, 83], [-107, 11], [11, -131], [83, -67], [-29, 37]];
-  for (let i = 0; i < N; i++) {
-    if (!reg[i]) continue;
-    const x = i % W, y = (i / W) | 0;
-    for (const [dx, dy] of OFFS) {
-      const s2 = wrap(x + dx, y + dy);
-      if (!reg[s2]) { base[i * 4] = d[s2 * 4]; base[i * 4 + 1] = d[s2 * 4 + 1]; base[i * 4 + 2] = d[s2 * 4 + 2]; break; }
-    }
-  }
-  return { base: { width: W, height: H, data: base }, sprites };
+  // 地の草は texture をそのまま使う（株を抜いて暗い所で埋めると、株の塊が消えて 1 画素の粒の絨毯に見えた）。株はその上に撒く
+  return { sprites };
 }
 
 const texCache = new Map();
@@ -249,7 +239,7 @@ function loadTextures(artDir) {
   const opt = (n) => { const f = path.join(artDir, 'ground', `${n}.png`); try { return fs.existsSync(f) ? decodePNG(fs.readFileSync(f)) : null; } catch { return null; } };
   const WAT = opt('water'), QUAY = opt('quay'), WALL = opt('wall');
   const t = {
-    COB, GRS, DRT, PLZ, MOSS, GBASE: grass.base, sprites: grass.sprites, WAT, QUAY, WALL, WMEAN: WAT ? stats(WAT).m : null,
+    COB, GRS, DRT, PLZ, MOSS, GBASE: GRS, sprites: grass.sprites, WAT, QUAY, WALL, WMEAN: WAT ? stats(WAT).m : null,
     segC: segmentSeparated(COB, 4), segP: segment(PLZ, 0),
     CMEAN: stats(COB).m, PMEAN: stats(PLZ).m, DMEAN: stats(DRT).m,
     GLUM: b.m[0] * 0.299 + b.m[1] * 0.587 + b.m[2] * 0.114,
@@ -672,11 +662,7 @@ export function renderGround(town, artDir = DEFAULT_ART) {
       const o = ((y % GH) * GW + (x % GW)) * 4;
       r = GD[o]; g = GD[o + 1]; b = GD[o + 2];
       {
-        const mossy = samp(MOSSY, x, y) + 0.08 * (hash2(x, y, SEED + 62) - 0.5);
-        if (mossy > (f & F_OUT ? 0.55 : 0.6)) {
-          const q = (((y + 91) % MH) * MW + ((x + 37) % MW)) * 4;
-          r = MD[q] * 0.78; g = MD[q + 1] * 0.78; b = MD[q + 2] * 0.78;
-        }
+        // 苔の texture は草地には重ねない（細かい粒が草の株の塊を消す。基準の草地は葉の塊が上から照らされて見える）。苔は石の目地と縁だけ
         const lush = samp(LUSH, x, y);
         const k = 0.93 + 0.14 * lush;
         r *= k * (1.04 - 0.08 * lush); g *= k; b *= k * (0.96 + 0.06 * lush);
@@ -943,16 +929,17 @@ export function renderGround(town, artDir = DEFAULT_ART) {
       else if (b.lx === b.len - 1) k *= 0.82;                                   // 右の縁
       STONE(x, y, b.key, k * (course ? 0.92 : 1.0));
     };
-    // 石段の 1 画素: 石垣から手前へ 8px 張り出す 4 段（6px ごとに 踏み面 3px・段鼻 1px・蹴上げ 2px）。ly は 0..23
+    // 石段の 1 画素: 石垣から手前へ 8px 張り出す 6 段（4px ごとに 踏み面 2px・段鼻 1px・蹴上げ 1px）。ly は 0..23
+    // 基準の役場の石段は、人物の背丈ほどの高さに 5〜6 段（1 段がゲームの画素で約 3.6px）。6px ごとの 4 段では、厚い板に溝が 2 本ある腰掛けに見えた
     const SD = 24;
     const stairPx = (x, y, ly, sx0, sx1) => {
       // 基準の石段: 踏み面は横に長い一枚石で明るく、蹴上げは濃い影。両脇の石垣より明るく、縞ではなく段に見える
-      const step = (ly / 6) | 0, k6 = ly % 6, b = blockAt((x - sx0) * 0.3 + step * 5, 20 + step);
-      if (k6 < 3 && b.lx === 0) { put(x, y, MORTAR, 1.5); return; }
-      let k = k6 === 0 ? 1.34 : k6 < 3 ? 1.24 : k6 === 3 ? 1.5 : k6 === 4 ? 0.36 : 0.22;
+      const step = (ly / 4) | 0, k4 = ly % 4, b = blockAt((x - sx0) * 0.3 + step * 5, 20 + step);
+      let k = k4 === 0 ? 1.3 : k4 === 1 ? 1.22 : k4 === 2 ? 1.46 : 0.3;
+      if (k4 < 2 && b.lx === 0) k *= 0.72;                                     // 踏み面の継ぎ目は細い影（黒い目地にすると四角い穴に見える）
       if (x - sx0 < 2) k *= 0.72;                                              // 左の袖の影
       if (sx1 - 1 - x < 1) k *= 0.6;                                           // 右の端
-      STONE(x, y, b.key + 400, k * (1 - 0.02 * step));
+      STONE(x, y, b.key + 400, k * (1 - 0.015 * step));
     };
     // 柱: 上に 4px 突き出た笠石、左の面は明るく右の面は暗い
     const post = (px0, w, fy) => {
