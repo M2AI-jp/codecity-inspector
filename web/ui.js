@@ -1,8 +1,8 @@
 // DOM overlay (Japanese): repo badge, keeper dialogue (typewriter), building facts, resident
 // bubble, noticeboard. Everything opens and closes by proximity; no key is needed.
 
-import { KIND_JA, fmtInt, langName, relativeDateJa } from './util.js';
-import { keeperLines } from './dialogue.js';
+import { KIND_JA, fmtInt, langName } from './util.js';
+import { keeperLines, residentBubble, whenJa } from './dialogue.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -52,7 +52,7 @@ export class UI {
     if (langs.length) rows.push(['言語', langs.map(([k, n]) => `${esc(langName(k))} ${fmtInt(n)}`).join('・')]);
     const lc = m.lastCommit;
     if (lc) {
-      const when = relativeDateJa(lc.date);
+      const when = whenJa(lc.date);          // same wording as the keeper, so the two never disagree
       rows.push(['最近の変更', `「${esc(lc.subject || '')}」<span class="dim">${esc(lc.author || '')}${when ? `・${esc(when)}` : ''}</span>`]);
     }
     const authors = (m.authors || []).slice(0, 2);
@@ -70,7 +70,7 @@ export class UI {
     const b = keeper.building;
     let st = this.dlgStates.get(b.id);
     if (!st) {
-      st = { lines: keeperLines(b, keeper), line: 0, chars: 0, wait: 0.35 };
+      st = { lines: keeperLines(b, keeper, this.town), line: 0, chars: 0, wait: 0.35 };
       this.dlgStates.set(b.id, st);
     }
     this.dlg = st;
@@ -144,7 +144,9 @@ export class UI {
     if (w !== this.bubbleFor) {
       this.bubbleFor = w;
       if (w) {
-        bub.innerHTML = `<span class="who">${esc(w.name)}</span><span class="dim">コミット ${fmtInt(w.commits)}回</span>`;
+        const t = residentBubble(w.def || w, this.town);
+        bub.innerHTML = `<div><span class="who">${esc(t.name)}</span><span class="sep">─</span>${esc(t.line)}</div>` +
+          (t.more ? `<div class="more">${esc(t.more)}</div>` : '');
         bub.classList.add('show');
       } else bub.classList.remove('show');
     }

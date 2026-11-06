@@ -728,7 +728,7 @@ export function layoutTown(repo, opts = {}) {
       if (hid && !homes.includes(hid)) homes.push(hid);
       if (homes.length >= 3) break;
     }
-    return { id: `r${i + 1}`, name: c.name, commits: c.commits, homes, look: hash32(c.name) % 16 };
+    return { id: `r${i + 1}`, name: c.name, commits: c.commits, homes, look: hash32(c.name) % 16, lastCommit: c.lastCommit ?? null };
   });
 
   return {

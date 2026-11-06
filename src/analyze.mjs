@@ -378,11 +378,11 @@ export function analyzeRepository(rootPath) {
   const history = isGit && head ? readHistory(root) : [];
   const keyer = authorKeyer();
   const stats = groups.map(() => ({ commits: 0, last: null, authors: new Map() }));
-  const people = new Map();   // key -> { commits, touches: Map(moduleIdx -> n) }
+  const people = new Map();   // key -> { commits, touches: Map(moduleIdx -> n), last: 最新のコミット }
   for (const c of history) {
     const k = keyer.key(c.author);
     c.key = k;
-    if (!people.has(k)) people.set(k, { commits: 0, touches: new Map() });
+    if (!people.has(k)) people.set(k, { commits: 0, touches: new Map(), last: c });   // 履歴は新しい順なので最初の1件が最新
     const person = people.get(k);
     person.commits++;
     const mods = new Set();
@@ -457,6 +457,7 @@ export function analyzeRepository(rootPath) {
       name: keyer.display(k),
       commits: p.commits,
       modules: [...p.touches.entries()].sort((a, b) => b[1] - a[1] || a[0] - b[0]).map(([i]) => groups[i].path),
+      lastCommit: { subject: scrub(p.last.subject), date: p.last.date },
     }));
 
   return {

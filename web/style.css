@@ -80,7 +80,9 @@ html, body {
   font-size: 18px; opacity: 0; transition: opacity 140ms ease-out;
 }
 #bubble.show { opacity: 1; }
-#bubble .who { font-weight: 700; margin-right: 10px; color: #ffe2a0; }
+#bubble .who { font-weight: 700; color: #ffe2a0; }
+#bubble .sep { margin: 0 8px; color: #8f8778; }
+#bubble .more { color: #d6ccb8; }
 
 #hint { left: 14px; bottom: 14px; font-size: 18px; padding: 6px 12px; color: #d6ccb8; }
 #loading { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 20px; color: #b5ab98; }

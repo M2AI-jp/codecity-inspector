@@ -20,7 +20,8 @@
     authors: [{ name: "amano", commits: 30 }],
     topFiles: [{ path, lines }]        // 行数の多い順に最大8件
   }],
-  contributors: [{ name, commits, modules: ["src/engine", ...] }]   // メールアドレスは含めない
+  contributors: [{ name, commits, modules: ["src/engine", ...],     // メールアドレスは含めない
+                  lastCommit: { subject, date } }]                   // その人のいちばん新しいコミット
 }
 ```
 
@@ -41,7 +42,8 @@
     module: { ...RepoModel.modules[i] }
   }],
   props: [{ type: "lamp" | "barrel" | "crate" | "tree" | "bush" | "bench" | "well" | "fence" | "noticeboard", x: 20.5, y: 14 }],
-  residents: [{ id: "r1", name: "amano", commits: 30, homes: ["b12", "b3"], look: 0 }],
+  residents: [{ id: "r1", name: "amano", commits: 30, homes: ["b12", "b3"], look: 0,
+                lastCommit: { subject, date } | null }],             // contributors[].lastCommit
   spawn: { x: 48, y: 40 }
 }
 ```
