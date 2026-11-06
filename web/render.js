@@ -208,11 +208,18 @@ export class Renderer {
       ctx.fillStyle = '#ffd54a';
       ctx.fillText(`${b.id} ${b.archetype}${b.arch ? '' : ' (no art)'}`, x + 2, y + 2);
     }
-    ctx.strokeStyle = '#ff4fd8';
     for (const r of world.rects) {
       const x = r.x - camX, y = r.y - camY;
       if (x > vw || y > vh || x + r.w < 0 || y + r.h < 0) continue;
+      if (r.kind === 'wall') { ctx.fillStyle = 'rgba(255,60,60,0.28)'; ctx.fillRect(Math.round(x), Math.round(y), r.w, r.h); continue; }
+      ctx.strokeStyle = r.kind === 'npc' ? '#ffb0f0' : r.kind === 'prop' ? '#ffa040' : '#ff4fd8';
       ctx.strokeRect(Math.round(x) + 0.5, Math.round(y) + 0.5, Math.max(1, r.w - 1), Math.max(1, r.h - 1));
+    }
+    ctx.strokeStyle = '#7dff9a';
+    for (const b of world.buildings) {
+      if (!b.floor) continue;
+      const f = b.floor;
+      ctx.strokeRect(f.x0 - camX + 0.5, f.y0 - camY + 0.5, f.x1 - f.x0 - 1, f.y1 - f.y0 - 1);
     }
     for (const p of world.props) {
       const x = p.x - camX, y = p.y - camY;

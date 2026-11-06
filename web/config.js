@@ -30,8 +30,8 @@ export const NATIVE_TARGET_W = 480;     // native view width target (scale = cei
 export const CUTAWAY_FADE = 0.18;       // s, exterior <-> cutaway cross-fade
 
 // Night lighting. AMBIENT is the single strength knob: 0 = pitch black, 1 = daylight.
-export const AMBIENT = 0.30;
-export const AMBIENT_TINT = [0.62, 0.70, 1.0];   // cool blue night (multiplied by AMBIENT, then mixed up a bit)
+export const AMBIENT = 0.72;
+export const AMBIENT_TINT = [0.80, 0.86, 1.0];   // cool blue moonlit evening
 export const LIGHT_WARM = [255, 196, 120];
 export const PLAYER_LIGHT_RADIUS = 46;
 

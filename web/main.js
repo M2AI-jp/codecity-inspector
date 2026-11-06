@@ -41,7 +41,7 @@ async function boot() {
   let groundImg = null;
   if (town.groundImage) {
     groundImg = await loadImage(new URL(town.groundImage, new URL(TOWN_URL, location.href)).href);
-    if (groundImg) { try { await groundImg.decode(); } catch (e) { /* drawable anyway */ } }
+    // (no img.decode(): it can stall indefinitely in a hidden tab; onload is enough to draw)
     if (groundImg && (groundImg.naturalWidth !== town.cols * T || groundImg.naturalHeight !== town.rows * T)) {
       warnOnce('groundsize', `groundImage の大きさ ${groundImg.naturalWidth}x${groundImg.naturalHeight} が ${town.cols * T}x${town.rows * T} と一致しません`);
     }
@@ -116,7 +116,9 @@ async function boot() {
   function updateCamera(dt) {
     // look slightly ahead along the velocity so running never hides what is in front
     const tx = player.rx - view.vw / 2 + player.vx * CAMERA_LEAD;
-    const ty = player.ry - CAMERA_LOOK_UP - view.vh / 2 + player.vy * CAMERA_LEAD * 0.8;
+    let ty = player.ry - CAMERA_LOOK_UP - view.vh / 2 + player.vy * CAMERA_LEAD * 0.8;
+    // while a panel is docked, frame the player away from it
+    if (ui.talking) ty += (ui.dock === 'top' ? -1 : 1) * view.vh * 0.17;
     const w = CAMERA_OMEGA;
     let remaining = Math.min(dt, 0.1);
     while (remaining > 0) {
@@ -197,7 +199,9 @@ async function boot() {
     for (const k of npcs.keepers) k.update(dt, player);
     for (const w of npcs.walkers) {
       w.update(dt, player);
-      w.solid = w.wait < 0.5;   // a resident that has waited a while lets the player pass
+      // residents are solid on the street, but never while pausing at / passing through a door or
+      // inside, and not once they have waited a while for the player
+      w.solid = w.state !== 'door' && w.state !== 'inside' && !world.buildingAtPx(w.x, w.y) && w.wait < 0.5;
     }
     viewRect.x = view.camX; viewRect.y = view.camY; viewRect.w = view.vw; viewRect.h = view.vh;
     smoke.update(dt, time, viewRect);
@@ -215,7 +219,7 @@ async function boot() {
     return best;
   }
 
-  const uiState = { building: null, keeper: null, walker: null, notice: null, view, dt: 0, playerMoved: false };
+  const uiState = { building: null, keeper: null, walker: null, notice: null, view, player, dt: 0, playerMoved: false };
   const scene = { world, camX: 0, camY: 0, vw: 0, vh: 0, t: 0, player, npcs: npcList, characters, smoke };
 
   function render(alpha, frameDt) {

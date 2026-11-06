@@ -191,6 +191,7 @@ export async function loadArt(manifest, manifestUrl, opts) {
         exteriorOrigin: (v.exterior && v.exterior.origin) || [0, 0],
         cutawayOrigin: (v.cutaway && v.cutaway.origin) || (v.exterior && v.exterior.origin) || [0, 0],
         door: v.door || null,
+        floor: Array.isArray(v.floor) ? v.floor : null,
         blockers: Array.isArray(v.blockers) ? v.blockers : [],
         lights: Array.isArray(v.lights) ? v.lights : [],
         smoke: Array.isArray(v.smoke) ? v.smoke : [],

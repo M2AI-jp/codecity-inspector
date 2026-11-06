@@ -13,7 +13,7 @@ html, body {
 #ui { position: absolute; inset: 0; pointer-events: none; }
 
 .panel {
-  position: absolute;
+  position: absolute; box-sizing: border-box;
   background: rgba(12, 13, 22, 0.86);
   border: 2px solid #1b1c28;
   box-shadow: inset 0 0 0 2px rgba(214, 186, 128, 0.42), 0 4px 0 rgba(0, 0, 0, 0.35);
@@ -30,7 +30,9 @@ html, body {
 #repo .name { font-size: 20px; font-weight: 700; letter-spacing: 0.02em; }
 #repo .sub { font-size: 18px; color: #b5ab98; font-family: ui-monospace, Menlo, monospace; }
 
-#stats { right: 14px; top: 14px; width: min(380px, 38vw); max-height: calc(100vh - 260px); overflow: hidden; background: rgba(12, 13, 22, 0.78); }
+/* facts panel: a side column on the side away from the player */
+#stats { right: 14px; top: 14px; width: min(340px, 30vw); max-height: calc(100vh - 28px); overflow: hidden; background: rgba(12, 13, 22, 0.78); }
+#ui.side-left #stats { right: auto; left: 14px; top: 84px; max-height: calc(100vh - 98px); }
 #stats .head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
 #stats .kind { font-size: 18px; font-weight: 700; padding: 0 8px; border-radius: 2px; background: #3a3426; color: #ffe2a0; }
 #stats .kind-workshop { background: #4a2f1e; color: #ffc98a; }
@@ -44,13 +46,20 @@ html, body {
 #stats .v { font-size: 18px; word-break: break-word; }
 #stats .file { font-family: ui-monospace, Menlo, monospace; font-size: 18px; word-break: break-all; }
 
-#dialogue {
-  left: 50%; bottom: 22px; width: min(820px, calc(100vw - 40px));
-  transform: translate(-50%, 8px); padding: 18px 22px 14px; min-height: 120px;
-  cursor: pointer;
-  background: rgba(10, 11, 19, 0.9);
+/* dialogue + noticeboard: on the screen edge away from the player, beside the facts panel */
+#dialogue, #notice {
+  left: 14px; right: auto; bottom: 18px; top: auto;
+  width: min(620px, calc(100vw - min(340px, 30vw) - 56px));
+  transform: translateY(8px);
 }
-#dialogue.show { transform: translate(-50%, 0); pointer-events: auto; }
+#dialogue.show, #notice.show { transform: none; }
+#ui.side-left #dialogue, #ui.side-left #notice { left: auto; right: 14px; }
+#ui.dock-top #dialogue, #ui.dock-top #notice { bottom: auto; top: 32px; transform: translateY(-8px); }
+#ui.dock-top #dialogue.show, #ui.dock-top #notice.show { transform: none; }
+#ui.dock-top.talking:not(.side-left) #repo, #ui.under-tl #repo { opacity: 0; }
+#ui.under-bl #hint { opacity: 0; }
+#dialogue { padding: 18px 22px 14px; min-height: 110px; cursor: pointer; background: rgba(10, 11, 19, 0.9); }
+#dialogue.show { pointer-events: auto; }
 #dialogue .nameplate {
   position: absolute; left: 18px; top: -18px; font-size: 18px; font-weight: 700;
   background: #2a2333; padding: 2px 12px; border-radius: 2px;
@@ -60,8 +69,6 @@ html, body {
 #dlg-text p.old { color: #a79e8d; font-size: 19px; }
 #dlg-text .more { position: absolute; right: 16px; bottom: 6px; font-size: 15px; color: #8f8778; }
 
-#notice { left: 50%; bottom: 22px; width: min(720px, calc(100vw - 40px)); transform: translate(-50%, 8px); }
-#notice.show { transform: translate(-50%, 0); }
 #notice .label { font-size: 18px; color: #d9bf86; }
 #notice .title { font-size: 24px; font-weight: 700; margin: 2px 0 4px; }
 #notice p { margin: 0; font-size: 20px; }
@@ -81,3 +88,10 @@ html, body {
 #error { left: 50%; top: 40%; transform: translate(-50%, -50%); max-width: 640px; }
 #error .title { font-size: 22px; font-weight: 700; }
 #fps { position: absolute; right: 8px; bottom: 6px; font: 12px ui-monospace, Menlo, monospace; color: #8affb0; text-shadow: 0 1px 0 #000; }
+
+/* narrow windows: facts panel stacks labels above values */
+@media (max-width: 1100px) {
+  #stats .grid { grid-template-columns: 1fr; }
+  #stats .k { border-top: 1px solid rgba(214, 186, 128, 0.16); padding-bottom: 0; }
+  #stats .v { border-top: none; padding-top: 0; }
+}

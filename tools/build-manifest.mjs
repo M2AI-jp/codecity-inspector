@@ -85,6 +85,7 @@ function buildings() {
       exterior,
       cutaway,
       door: s.door && Number.isFinite(s.door.x) ? { x: s.door.x, w: Number.isFinite(s.door.w) ? s.door.w : 1 } : null,
+      floor: isBox(s.floor) ? s.floor.slice(0, 4) : null,
       blockers: (s.blockers || []).filter(isBox),
       lights: (s.lights || []).filter(isLight),
       smoke: (s.smoke || []).filter(isPt),

@@ -67,11 +67,10 @@ export class World {
     const x = b.x | 0, y = b.y | 0, w = Math.max(1, b.w | 0), h = Math.max(1, b.h | 0);
     const arch = this.pickVariant(b, w, h);
     if (!arch) warnOnce(`arch:${b.archetype}`, `archetype "${b.archetype}" が manifest にありません（${b.id} などは描画しません。衝突と扉は town.json の footprint で動きます）`);
-    // door gap on the bottom row
+    // door gap on the bottom row: the art's door wins over town.json's door.x
     let d0, d1;
     if (arch && arch.door && Number.isFinite(arch.door.x)) {
       d0 = x + (arch.door.x | 0); d1 = d0 + Math.max(1, arch.door.w | 0);
-      if (b.door && (b.door.x < d0 || b.door.x >= d1)) warnOnce(`door:${b.id}`, `${b.id}: town の扉 x=${b.door.x} が archetype の扉 ${d0}..${d1 - 1} の外です`);
     } else if (b.door && Number.isFinite(b.door.x)) {
       d0 = b.door.x | 0; d1 = d0 + 1;
     } else {
@@ -92,11 +91,13 @@ export class World {
       keeperSpot: null,
       keeper: null,
     };
+    const fl = arch && Array.isArray(arch.floor) && arch.floor.length >= 4 && arch.floor.slice(0, 4).every(Number.isFinite) ? arch.floor : null;
     for (let ty = y; ty < y + h; ty++) {
       for (let tx = x; tx < x + w; tx++) {
         if (!this.inGrid(tx, ty)) continue;
         const k = ty * this.cols + tx;
         this.buildingMap[k] = index;
+        if (fl) { this.tileSolid[k] = 0; continue; }       // walls come from px rects below
         const ring = ty === y || ty === y + 1 || ty === bottom || tx === x || tx === x + w - 1;
         const doorGap = ty === bottom && tx >= d0 && tx < d1;
         if (ring && !doorGap) this.tileSolid[k] = 1;
@@ -106,6 +107,7 @@ export class World {
         }
       }
     }
+    if (fl) this.addFloorWalls(bld, fl);
     if (arch) {
       for (const bl of arch.blockers) {
         if (Array.isArray(bl) && bl.length >= 4) this.addRect(bld.px + bl[0], bld.py + bl[1], bl[2], bl[3], 'blocker');
@@ -117,6 +119,32 @@ export class World {
     // door lantern just outside the door
     this.lights.push({ x: bld.doorPx, y: bld.bottomPx - 10, poolY: bld.bottomPx + 2, r: 34, kind: 'door', seed: index * 31 + 29, building: bld });
     this.buildings.push(bld);
+  }
+
+  // Variant with an explicit floor: walkable = floor rect (minus blockers) + a door corridor
+  // from the footprint's bottom edge up to the floor; everything else in the footprint is wall,
+  // stored as px rects so collision and sliding are pixel precise.
+  addFloorWalls(b, fl) {
+    const X0 = b.px, Y0 = b.py, X1 = b.px + b.pw, Y1 = b.bottomPx;
+    const cx = (v) => Math.max(X0, Math.min(X1, v)), cy = (v) => Math.max(Y0, Math.min(Y1, v));
+    const f = { x0: cx(X0 + fl[0]), y0: cy(Y0 + fl[1]), x1: cx(X0 + fl[0] + fl[2]), y1: cy(Y0 + fl[1] + fl[3]) };
+    if (f.x1 - f.x0 < FEET_W || f.y1 - f.y0 < FEET_H) warnOnce(`floor:${b.id}`, `${b.id}: floor ${fl.join(',')} が狭すぎて歩けません`);
+    const door = { x0: b.doorX0 * T, y0: Math.min(f.y1, Y1), x1: b.doorX1 * T, y1: Y1 };
+    if (door.x1 <= f.x0 || door.x0 >= f.x1) warnOnce(`floordoor:${b.id}`, `${b.id}: 扉 (${b.doorX0 - b.x}..${b.doorX1 - b.x - 1}) が floor の真下にありません`);
+    b.floor = f;
+    const open = (px, py) => (px >= f.x0 && px < f.x1 && py >= f.y0 && py < f.y1) || (px >= door.x0 && px < door.x1 && py >= door.y0 && py < door.y1);
+    const xs = [...new Set([X0, X1, f.x0, f.x1, cx(door.x0), cx(door.x1)])].sort((a, c) => a - c);
+    const ys = [...new Set([Y0, Y1, f.y0, f.y1, door.y0])].sort((a, c) => a - c);
+    for (let j = 0; j + 1 < ys.length; j++) {
+      const ya = ys[j], yb = ys[j + 1];
+      let run = null;
+      for (let i = 0; i + 1 < xs.length; i++) {
+        const xa = xs[i], xb = xs[i + 1];
+        const solid = !open((xa + xb) / 2, (ya + yb) / 2);
+        if (solid) { if (run) run[1] = xb; else run = [xa, xb]; }
+        if ((!solid || i + 2 === xs.length) && run) { this.addRect(run[0], ya, run[1] - run[0], yb - ya, 'wall'); run = null; }
+      }
+    }
   }
 
   addProp(p, index) {
@@ -197,6 +225,7 @@ export class World {
     // building keeper spots + door points
     for (const b of this.buildings) {
       b.doorOutside = { x: b.doorPx, y: b.bottomPx + 9 };
+      if (b.floor) { this.floorSpots(b); continue; }
       b.doorInside = b.h >= 4 ? { x: b.doorPx, y: (b.y + b.h - 2) * T + 11 } : null;
       let best = null, bestScore = Infinity;
       const doorCols = [];
@@ -214,6 +243,33 @@ export class World {
         b.keeperSpot = { x: tx * T + T / 2, y: ty * T + 11, tx, ty };
       }
     }
+  }
+
+  // Door-inside point and keeper spot for a floor-rect building (px search).
+  floorSpots(b) {
+    const f = b.floor;
+    const dx = Math.max(f.x0 + 6, Math.min(f.x1 - 6, b.doorPx));
+    const dy = f.y1 - 3;
+    b.doorInside = !this.feetHit(dx, dy) ? { x: dx, y: dy } : null;
+    // keeper: back-centre of the floor, clear of blockers and walls (with a little elbow room)
+    const fcx = (f.x0 + f.x1) / 2;
+    let best = null, bestScore = Infinity;
+    for (let y = f.y0 + 5; y <= f.y1 - 2; y += 1) {
+      for (let x = f.x0 + 6; x <= f.x1 - 6; x += 1) {
+        if (this.boxHits(x - 7, y - 6, x + 7, y + 3)) continue;
+        let s = Math.abs(x - fcx) + (y - f.y0) * 0.7;
+        // on a shallow floor don't stand right in the line of the door
+        if (f.y1 - f.y0 < 30 && x + 7 > b.doorX0 * T && x - 7 < b.doorX1 * T) s += 40;
+        if (s < bestScore) { bestScore = s; best = [x, y]; }
+      }
+    }
+    // the floor (minus everything inside it) that walkers may wander on
+    b.interior = [];
+    for (let ty = b.y; ty < b.y + b.h; ty++) for (let tx = b.x; tx < b.x + b.w; tx++) {
+      const k = ty * this.cols + tx;
+      if (this.inGrid(tx, ty) && !this.nav[k] && (ty + 1) * T <= f.y1 + T / 2) b.interior.push(k);
+    }
+    if (best) b.keeperSpot = { x: best[0], y: best[1], tx: Math.floor(best[0] / T), ty: Math.floor((best[1] - 3) / T) };
   }
 
   navFree(tx, ty) { return this.inGrid(tx, ty) && this.nav[ty * this.cols + tx] === 0; }

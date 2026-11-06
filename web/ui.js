@@ -113,7 +113,8 @@ export class UI {
   renderDialogue(full) {
     const st = this.dlg;
     if (!st) return;
-    const from = Math.max(0, st.line - (VISIBLE_LINES - 1));
+    const keep = window.innerHeight < 720 ? 2 : VISIBLE_LINES;      // short windows: fewer lines
+    const from = Math.max(0, st.line - (keep - 1));
     let html = '';
     for (let i = from; i <= st.line; i++) {
       const text = i < st.line ? st.lines[i] : st.lines[i].slice(0, Math.floor(st.chars));
@@ -122,6 +123,7 @@ export class UI {
     const done = st.line >= st.lines.length - 1 && st.chars >= (st.lines[st.line] || '').length;
     html += `<div class="more ${done ? 'done' : ''}">${st.line + 1} / ${st.lines.length}</div>`;
     this.el.dlgText.innerHTML = html;
+    this.panelH = this.el.dialogue.offsetHeight;
   }
 
   // --- per-frame update --------------------------------------------------------
@@ -134,6 +136,8 @@ export class UI {
     }
     this.tickDialogue(s.dt);
 
+    this.layout(s);
+
     // resident bubble
     const w = s.walker;
     const bub = this.el.bubble;
@@ -145,12 +149,15 @@ export class UI {
       } else bub.classList.remove('show');
     }
     if (w) {
+      // above the resident's head, or under their feet when the player stands above them,
+      // so the bubble never sits on the player
       const v = s.view;
+      const below = s.player.ry < w.ry - 4;
       const x = Math.round(((Math.round(w.rx) - v.camX) * v.cssPerPx));
-      const y = Math.round(((Math.round(w.ry) - 34 - v.camY) * v.cssPerPx));
-      if (x !== this.bubbleX || y !== this.bubbleY) {
-        this.bubbleX = x; this.bubbleY = y;
-        bub.style.transform = `translate(${x}px, ${y}px) translate(-50%, -100%)`;
+      const y = Math.round(((Math.round(w.ry) + (below ? 4 : -34) - v.camY) * v.cssPerPx));
+      if (x !== this.bubbleX || y !== this.bubbleY || below !== this.bubbleBelow) {
+        this.bubbleX = x; this.bubbleY = y; this.bubbleBelow = below;
+        bub.style.transform = `translate(${x}px, ${y}px) translate(-50%, ${below ? '0' : '-100%'})`;
       }
     }
 
@@ -162,6 +169,7 @@ export class UI {
         const r = s.notice;
         this.el.notice.innerHTML = `<div class="label">掲示板</div>${r.title ? `<div class="title">${esc(r.title)}</div>` : ''}${r.excerpt ? `<p>${esc(r.excerpt)}</p>` : ''}`;
         this.el.notice.classList.add('show');
+        this.panelH = this.el.notice.offsetHeight;
       } else this.el.notice.classList.remove('show');
     }
 
@@ -171,6 +179,34 @@ export class UI {
       const want = this.hintTime < 6 && !this.dlg && !this.noticeShown;
       if (want !== this.hintShown) { this.hintShown = want; this.el.hint.classList.toggle('show', want); }
     }
+  }
+
+  // Panels never cover the player: the dialogue / noticeboard dock on the screen edge opposite
+  // the player's vertical position, the facts panel on the side opposite their horizontal
+  // position, and the corner badges hide while the player is under them. Classes only change
+  // when the player crosses a threshold (with hysteresis), so the DOM is not touched per frame.
+  layout(s) {
+    const v = s.view, p = s.player;
+    const W = window.innerWidth, H = window.innerHeight;
+    const px = (Math.round(p.rx) - v.camX) * v.cssPerPx;
+    const py = (Math.round(p.ry) - 14 - v.camY) * v.cssPerPx;      // body centre
+    const r = 18 * v.cssPerPx;                                       // player sprite half-size
+    let dock = this.dock || 'bottom', side = this.side || 'right';
+    // dock where the panel actually fits without reaching the player
+    const ph = this.panelH || 160;
+    const below = H - 18 - (py + r), above = (py - r) - 32;
+    if (dock === 'bottom' && below < ph + 8 && above > below) dock = 'top';
+    else if (dock === 'top' && above < ph + 8 && below > above) dock = 'bottom';
+    if (side === 'right' && px > W * 0.56) side = 'left'; else if (side === 'left' && px < W * 0.44) side = 'right';
+    const underTL = px - r < 380 && py - r < 90;
+    const underBL = px - r < 760 && py + r > H - 70;
+    const ui = this.root || (this.root = document.getElementById('ui'));
+    if (dock !== this.dock) { ui.classList.toggle('dock-top', dock === 'top'); this.dock = dock; }
+    if (side !== this.side) { ui.classList.toggle('side-left', side === 'left'); this.side = side; }
+    const talking = !!this.dlg || this.noticeShown;
+    if (talking !== this.talking) { ui.classList.toggle('talking', talking); this.talking = talking; }
+    if (underTL !== this.underTL) { ui.classList.toggle('under-tl', underTL); this.underTL = underTL; }
+    if (underBL !== this.underBL) { ui.classList.toggle('under-bl', underBL); this.underBL = underBL; }
   }
 
   fps(text) { if (this.el.fps) this.el.fps.textContent = text; }

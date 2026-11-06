@@ -29,8 +29,10 @@ export class Player extends Character {
       for (let i = 0; i < list.length; i++) {
         const c = list[i];
         if (!c.solid) continue;
-        // NPC feet box is a little narrower so passing by feels generous
-        if (x - hw < c.x + 5 && x + hw > c.x - 5 && y - FEET_UP < c.y + 2 && y - FEET_UP + FEET_H > c.y - 4) return true;
+        // NPC feet box is a little narrower so passing by feels generous; never trap the player
+        // inside someone they already overlap
+        if (x - hw < c.x + 5 && x + hw > c.x - 5 && y - FEET_UP < c.y + 2 && y - FEET_UP + FEET_H > c.y - 4 &&
+            !(this.x - hw < c.x + 5 && this.x + hw > c.x - 5 && this.y - FEET_UP < c.y + 2 && this.y - FEET_UP + FEET_H > c.y - 4)) return true;
       }
     }
     return false;

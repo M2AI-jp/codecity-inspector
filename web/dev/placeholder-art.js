@@ -180,6 +180,12 @@ export function placeholderManifest() {
     const alt = { ...a, roof: [a.roof[2], a.roof[0], a.roof[1]] };
     archetypes[k] = { variants: [{ id: `${k}-1`, ...building(k, a) }, { id: `${k}-2`, ...building(k, alt) }] };
   }
+  // hand-made test variant: explicit floor rect, door at column 4 (not where town.json puts it)
+  {
+    const a = { ...ARCH.house_m, door: { x: 4, w: 1 }, blockers: [[14, 32, 14, 10]], roof: [70, 96, 70] };
+    const v = { id: 'house_m-2', ...building('house_m', a), floor: [10, 30, 76, 38] };
+    archetypes.house_m.variants[1] = v;
+  }
   const ground = {
     grass: noiseTex(64, [62, 88, 52], 22, 3, 0.04).toDataURL(),
     dirt: noiseTex(64, [112, 90, 64], 18, 5, 0.03).toDataURL(),
