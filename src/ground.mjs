@@ -13,7 +13,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { decodePNG, encodePNG } from '../tools/png.mjs';
 
-export const GROUND_VERSION = 6;          // 見た目を変えたら上げる（キャッシュの鍵に入る）
+export const GROUND_VERSION = 10;          // 見た目を変えたら上げる（キャッシュの鍵に入る）
 const T = 16;
 const DEFAULT_ART = path.resolve(import.meta.dirname, '../art/game');
 const TEX_NAMES = ['street', 'grass', 'dirt', 'plaza', 'moss'];
@@ -171,6 +171,19 @@ function segment(img, thrBias = 0) {
   return { label, dcx, dcy, count: nl };
 }
 
+// 詰め込んだ丸石の texture は、石どうしの隙間が細く、明るさのしきい値によっては隣の石とつながって大きな塊になる。
+// つながった塊が無くなる（いちばん大きい石が 360px 以下になる）まで、しきい値を少しずつ上げる。
+function segmentSeparated(img, thrBias = 0) {
+  let s = segment(img, thrBias);
+  for (let b = thrBias + 3; b <= thrBias + 36; b += 3) {
+    const area = new Int32Array(s.count);
+    for (let i = 0; i < s.label.length; i++) if (s.label[i] >= 0) area[s.label[i]]++;
+    if (Math.max(0, ...area) <= 360) break;
+    s = segment(img, b);
+  }
+  return s;
+}
+
 // 草の texture から、葉の株（明るい葉のかたまり）を切り出し、株を消した下地をつくる。
 // 株は街の上で blue-noise に撒き直す（texture の繰り返しをそのまま見せない）。
 function prepareGrass(img) {
@@ -237,7 +250,7 @@ function loadTextures(artDir) {
   const WAT = opt('water'), QUAY = opt('quay'), WALL = opt('wall');
   const t = {
     COB, GRS, DRT, PLZ, MOSS, GBASE: grass.base, sprites: grass.sprites, WAT, QUAY, WALL, WMEAN: WAT ? stats(WAT).m : null,
-    segC: segment(COB, 4), segP: segment(PLZ, 0),
+    segC: segmentSeparated(COB, 4), segP: segment(PLZ, 0),
     CMEAN: stats(COB).m, PMEAN: stats(PLZ).m, DMEAN: stats(DRT).m,
     GLUM: b.m[0] * 0.299 + b.m[1] * 0.587 + b.m[2] * 0.114,
   };
@@ -1016,7 +1029,13 @@ export function renderGround(town, artDir = DEFAULT_ART) {
     const l = 0.299 * r + 0.587 * g + 0.114 * b;
     r = l + (r - l) * 0.9; g = l + (g - l) * 0.9; b = l + (b - l) * 0.9;
     const cool = Math.max(0, 1 - l / 110);
-    r = r * 0.86; g = g * 0.84 + 2 * cool; b = b * 0.8 + 12 * cool;
+    // 基準 target-town.png の夜は、地面の石と土が月明かりで読める（通りの明るさの中央値 59・赤−青 13、広場 85・26、草 31）。
+    // 環境光（web/config.js の青み）は建物にも掛かるので、地面だけここで明るく暖かく寄せる。暗い目地にだけ青を残す
+    const c6 = cls[i];
+    if (c6 === GRASS) { r = r * 1.2; g = g * 1.13 + 2 * cool; b = b * 1.0 + 8 * cool; }
+    else if (c6 === WATER) { r = r * 0.86; g = g * 0.84 + 2 * cool; b = b * 0.8 + 12 * cool; }
+    else if (c6 === SLAB || c6 === FRAME) { r = r * 1.21; g = g * 1.12 + 1 * cool; b = b * 0.95 + 7 * cool; }   // 広場は texture がもともと明るい暖色
+    else { r = r * 1.3; g = g * 1.18 + 1 * cool; b = b * 0.9 + 7 * cool; }
     const dEdge = Math.min(x + 0.5, y + 0.5, W - x - 0.5, H - y - 0.5);
     let k = 0.3 + 0.7 * smooth(0, 44, dEdge);
     if (flg[i] & F_OUT || tc[((y / T) | 0) * cols + ((x / T) | 0)] === TO) {

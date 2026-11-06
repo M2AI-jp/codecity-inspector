@@ -113,7 +113,7 @@ export class Lighting {
         const rg = r * 0.75;
         g.drawImage(this.warm, x - rg, y - rg, rg * 2, rg * 2);
         const px = r * 0.95 * f.r, py = r * 0.58 * f.r, fy = L.footY - camY - 3;
-        g.globalAlpha = Math.min(1, 0.75 * f.i);
+        g.globalAlpha = Math.min(1, 0.65 * f.i);
         g.drawImage(this.pool, x - px, fy - py, px * 2, py * 2);
       } else {
         // broad pool + hot core: strong enough to show the stone texture, ambient stays dark
@@ -155,7 +155,8 @@ export class Lighting {
       const px = L.r * 0.7 * f.r, py = L.r * 0.4 * f.r;
       const x = L.x - camX, y = L.footY - camY - 3;
       if (x + px < 0 || y + py < 0 || x - px > vw || y - py > vh) continue;
-      target.globalAlpha = 0.22 * f.i;
+      // 地面は src/ground.mjs で月明かりに読める明るさにしてあるので、足し算の光だまりは控えめに（基準の広場の明るい所 131）
+      target.globalAlpha = 0.1 * f.i;
       target.drawImage(this.poolGlow, x - px, y - py, px * 2, py * 2);
     }
     for (const L of world.lights) {
