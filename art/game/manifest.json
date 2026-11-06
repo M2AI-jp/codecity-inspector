@@ -22,6 +22,25 @@
       }
     },
     "keepers": {
+      "dock": {
+        "src": "residents/keeper-dock.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      },
       "dojo": {
         "src": "residents/keeper-dojo.png",
         "frame": [32, 32],
@@ -211,6 +230,25 @@
             "up": [13, 14, 15, 12]
           }
         }
+      },
+      "well": {
+        "src": "residents/keeper-well.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
       }
     },
     "townsfolk": [
@@ -366,9 +404,71 @@
           }
         }
       }
-    ]
+    ],
+    "contractor": {
+      "src": "residents/contractor.png",
+      "frame": [32, 32],
+      "pivot": [16, 31],
+      "anims": {
+        "idle": {
+          "down": [0],
+          "left": [4],
+          "right": [8],
+          "up": [12]
+        },
+        "walk": {
+          "down": [1, 2, 3, 0],
+          "left": [5, 6, 7, 4],
+          "right": [9, 10, 11, 8],
+          "up": [13, 14, 15, 12]
+        }
+      }
+    }
   },
   "archetypes": {
+    "dock": {
+      "variants": [
+        {
+          "id": "dock-1",
+          "footprint": [7, 4],
+          "exterior": {
+            "src": "buildings/dock-1.exterior.png",
+            "origin": [0, 56],
+            "size": [112, 120]
+          },
+          "cutaway": {
+            "src": "buildings/dock-1.cutaway.png",
+            "origin": [0, 56],
+            "size": [112, 120]
+          },
+          "wall": [1, 1],
+          "door": {
+            "x": 3,
+            "w": 1
+          },
+          "floor": [4, 17, 104, 39],
+          "blockers": [
+            [8, 17, 38, 21],
+            [4, 40, 26, 16],
+            [70, 17, 27, 27],
+            [90, 38, 18, 18]
+          ],
+          "lights": [
+            [22, 25, 22],
+            [89, 25, 22],
+            [68, 38, 24],
+            [60, -4, 18]
+          ],
+          "smoke": [
+            [95, -38]
+          ],
+          "interiorLights": [
+            [94, 10, 36],
+            [78, 20, 26]
+          ]
+        }
+      ]
+    },
     "dojo": {
       "variants": [
         {
@@ -384,6 +484,7 @@
             "origin": [0, 48],
             "size": [112, 128]
           },
+          "wall": [1, 1],
           "door": {
             "x": 3,
             "w": 1
@@ -429,6 +530,7 @@
             "origin": [0, 48],
             "size": [112, 128]
           },
+          "wall": [3, 4],
           "door": {
             "x": 2,
             "w": 1
@@ -478,6 +580,7 @@
             "origin": [0, 48],
             "size": [112, 128]
           },
+          "wall": [2, 2],
           "door": {
             "x": 3,
             "w": 1
@@ -530,6 +633,7 @@
             "origin": [0, 48],
             "size": [112, 128]
           },
+          "wall": [2, 2],
           "door": {
             "x": 4,
             "w": 1
@@ -580,6 +684,7 @@
             "origin": [0, 40],
             "size": [96, 104]
           },
+          "wall": [4, 6],
           "door": {
             "x": 2,
             "w": 1
@@ -623,6 +728,7 @@
             "origin": [0, 40],
             "size": [96, 104]
           },
+          "wall": [3, 2],
           "door": {
             "x": 1,
             "w": 2
@@ -666,6 +772,7 @@
             "origin": [0, 58],
             "size": [96, 122]
           },
+          "wall": [4, 3],
           "door": {
             "x": 4,
             "w": 1
@@ -717,6 +824,7 @@
             "origin": [0, 32],
             "size": [80, 96]
           },
+          "wall": [2, 2],
           "door": {
             "x": 2,
             "w": 1
@@ -756,6 +864,7 @@
             "origin": [0, 32],
             "size": [80, 96]
           },
+          "wall": [2, 2],
           "door": {
             "x": 1,
             "w": 1
@@ -790,6 +899,7 @@
             "origin": [0, 32],
             "size": [80, 96]
           },
+          "wall": [2, 4],
           "door": {
             "x": 3,
             "w": 1
@@ -836,6 +946,7 @@
             "origin": [0, 48],
             "size": [112, 128]
           },
+          "wall": [5, 6],
           "door": {
             "x": 3,
             "w": 1
@@ -889,6 +1000,7 @@
             "origin": [0, 48],
             "size": [112, 128]
           },
+          "wall": [3, 3],
           "door": {
             "x": 3,
             "w": 1
@@ -939,6 +1051,7 @@
             "origin": [0, 40],
             "size": [96, 104]
           },
+          "wall": [2, 2],
           "door": {
             "x": 1,
             "w": 2
@@ -967,6 +1080,7 @@
             "origin": [0, 40],
             "size": [96, 104]
           },
+          "wall": [1, 2],
           "door": {
             "x": 2,
             "w": 2
@@ -1006,6 +1120,7 @@
             "origin": [0, 40],
             "size": [96, 104]
           },
+          "wall": [4, 4],
           "door": {
             "x": 1,
             "w": 1
@@ -1044,6 +1159,7 @@
             "origin": [0, 40],
             "size": [96, 104]
           },
+          "wall": [2, 4],
           "door": {
             "x": 1,
             "w": 1
@@ -1090,6 +1206,7 @@
             "origin": [0, 64],
             "size": [128, 144]
           },
+          "wall": [2, 2],
           "door": {
             "x": 3,
             "w": 2
@@ -1143,6 +1260,7 @@
             "origin": [0, 48],
             "size": [112, 112]
           },
+          "wall": [1, 1],
           "door": {
             "x": 3,
             "w": 1
@@ -1188,6 +1306,7 @@
             "origin": [0, 80],
             "size": [64, 144]
           },
+          "wall": [2, 2],
           "door": {
             "x": 1,
             "w": 2
@@ -1227,6 +1346,7 @@
             "origin": [0, 48],
             "size": [112, 128]
           },
+          "wall": [4, 4],
           "door": {
             "x": 4,
             "w": 2
@@ -1270,6 +1390,7 @@
             "origin": [0, 48],
             "size": [112, 128]
           },
+          "wall": [2, 4],
           "door": {
             "x": 4,
             "w": 2
@@ -1314,6 +1435,14 @@
       "solid": [-12, -6, 24, 6],
       "light": null,
       "flicker": false
+    },
+    "boat": {
+      "src": "props/boat.png",
+      "origin": [26, 25],
+      "solid": [-24, -18, 48, 19],
+      "light": [-17, -20, 30],
+      "flicker": true,
+      "layer": "ground"
     },
     "bush-2": {
       "src": "props/bush-2.png",
@@ -1364,12 +1493,37 @@
       "light": [0, -33, 70],
       "flicker": true
     },
+    "lumber": {
+      "src": "props/lumber.png",
+      "origin": [18, 21],
+      "solid": [-17, -9, 34, 9],
+      "light": null,
+      "flicker": false
+    },
     "noticeboard": {
       "src": "props/noticeboard.png",
       "origin": [16, 31],
       "solid": [-13, -3, 26, 3],
       "light": null,
       "flicker": false
+    },
+    "pier-2": {
+      "src": "props/pier-2.png",
+      "origin": [25, 0],
+      "solid": null,
+      "light": null,
+      "flicker": false,
+      "layer": "ground",
+      "deck": [-18, 0, 36, 64]
+    },
+    "pier": {
+      "src": "props/pier.png",
+      "origin": [25, 0],
+      "solid": null,
+      "light": [0, 70, 36],
+      "flicker": true,
+      "layer": "ground",
+      "deck": [-18, 0, 36, 80]
     },
     "planter": {
       "src": "props/planter.png",
@@ -1384,6 +1538,27 @@
       "solid": [-8, -4, 16, 4],
       "light": null,
       "flicker": false
+    },
+    "scaffold-2": {
+      "src": "props/scaffold-2.png",
+      "origin": [24, 71],
+      "solid": [-23, -10, 46, 10],
+      "light": null,
+      "flicker": false
+    },
+    "scaffold": {
+      "src": "props/scaffold.png",
+      "origin": [16, 71],
+      "solid": [-15, -10, 30, 10],
+      "light": null,
+      "flicker": false
+    },
+    "sign-works": {
+      "src": "props/sign-works.png",
+      "origin": [10, 23],
+      "solid": [-10, -4, 21, 4],
+      "light": [12, -14, 20],
+      "flicker": true
     },
     "tree-2": {
       "src": "props/tree-2.png",
@@ -1412,6 +1587,13 @@
       "solid": [-13, -10, 26, 10],
       "light": null,
       "flicker": false
+    },
+    "wellhouse": {
+      "src": "props/wellhouse.png",
+      "origin": [32, 60],
+      "solid": [-31, -20, 62, 20],
+      "light": [-6, -36, 28],
+      "flicker": true
     }
   },
   "ground": {
@@ -1419,7 +1601,9 @@
     "grass": "ground/grass.png",
     "moss": "ground/moss.png",
     "plaza": "ground/plaza.png",
-    "street": "ground/street.png"
+    "quay": "ground/quay.png",
+    "street": "ground/street.png",
+    "water": "ground/water.png"
   },
   "creatures": {
     "cat-2": {
