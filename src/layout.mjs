@@ -15,8 +15,12 @@ import { readFileSync } from 'node:fs';
 
 const DEFAULT_FOOT = { house_s: [5, 4], house_m: [6, 4], house_l: [7, 5], shop: [6, 4], workshop: [7, 5], ruin: [6, 4] };
 const DOOR_DX = { house_s: 2, house_m: 2, house_l: 3, shop: 2, workshop: 3, ruin: 2 };
+// 施設（PRODUCT.md §4）。art manifest にその archetype の絵があるものだけを置く（作ったものだけを置く）。
+export const FACILITY_NAME = { town_hall: '役場', inn: '宿屋', pub: '酒場', warehouse: '倉庫', watchtower: '見張り台', dojo: '道場' };
+const CROWD_CAP = 40;               // 街を歩く常連の上限
+const RECENT_DAYS = 90;
 const PROP_SIZE = { well: [2, 2], noticeboard: [2, 1], bench: [2, 1], cart: [3, 1] };
-const PLAZA_W = 18, PLAZA_ROWS = 9;
+const PLAZA_W = 18;
 const MARGIN = 8;
 const CAP = 120;
 const FLAT = 12;                    // 広場のまわり（中心から左右 FLAT マス）は通りをまっすぐに保つ
@@ -117,9 +121,9 @@ function archetypes(mods) {
 }
 
 // ---------- art manifest（建物の footprint と扉の位置） ----------
-function loadArt() {
-  let m;
-  try { m = JSON.parse(readFileSync(new URL('../art/game/manifest.json', import.meta.url), 'utf8')); } catch { return {}; }
+export function loadArt(manifest) {
+  let m = manifest;
+  if (!m) { try { m = JSON.parse(readFileSync(new URL('../art/game/manifest.json', import.meta.url), 'utf8')); } catch { return {}; } }
   const out = {};
   const okFp = (fp) => Array.isArray(fp) && fp.length === 2 && fp.every((n) => Number.isInteger(n) && n >= 2 && n <= 16);
   for (const [k, a] of Object.entries(m?.archetypes || {})) {
@@ -131,7 +135,8 @@ function loadArt() {
     // 版ごとの扉（同じ footprint の版だけ。版の名前は town.json の building.variant に書く）
     const variants = defs.filter((d) => d?.id && (!d.footprint || (d.footprint[0] === fp[0] && d.footprint[1] === fp[1])))
       .map((d) => ({ id: d.id, doorX: Number.isInteger(d.door?.x) ? d.door.x : undefined }));
-    out[k] = { footprint: fp, doorX: Number.isInteger(dx) ? dx : undefined, variants };
+    const roof = Math.max(0, ...defs.map((d) => Number(d?.exterior?.origin?.[1]) || 0));     // 屋根の高さ（px）
+    out[k] = { footprint: fp, doorX: Number.isInteger(dx) ? dx : undefined, variants, roof };
   }
   return out;
 }
@@ -144,15 +149,18 @@ function arcDistance(theta, g) {
 }
 
 // ---------- 通りを引き、建物を置く（大きめの仮想の格子の上で） ----------
-function generate(groups, maxH, need, seed, scale) {
+function generate(groups, maxH, need, seed, scale, fac) {
   const rng = makeRng(seed);
   const ri = (a, b) => a + Math.floor(rng() * (b - a + 1));
+  const slack = () => (rng() < 0.2 ? 1 : 0);          // 街区の余り（裏庭を浅く保つ）
   const area = (need * (maxH + 8) * 2.4 + 1200) * scale;
   const cols = Math.round(Math.sqrt(area * 1.5)) + 2 * MARGIN;
   const rows = Math.round(Math.sqrt(area / 1.5)) + 2 * MARGIN + 2 * (maxH + 8);
   const N = cols * rows;
   const id = (x, y) => y * cols + x;
   const cx = Math.floor(cols / 2);
+  // 広場の深さ: 広場のきわの家の裏庭が広くなりすぎないよう、いちばん高い建物＋裏庭2行まで
+  const PLAZA_ROWS = Math.max(7, maxH + 2);
   const hTop = Math.floor(rows / 2) + Math.floor(PLAZA_ROWS / 2);
 
   // 街全体のゆるい曲がり（全部の通りで同じなので街区の深さは変わらない）と、通りごとの1行のずれ
@@ -197,21 +205,24 @@ function generate(groups, maxH, need, seed, scale) {
   const roads = [H, U];
   const minTop = MARGIN + maxH + 4, maxBottom = rows - MARGIN;
   for (let cur = U.base; ;) {
-    if (rng() < 0.35) {                                // 深い街区: 真ん中に土の路地、家は2列
-      const m = cur - (1 + 2 + maxH + ri(1, 2)), u = m - (2 + 2 + maxH + ri(1, 2));
+    const first = cur === U.base;
+    // 役場の街区（広場のすぐ北）は役場の高さと屋根に合わせる。ほかは詰める（余りは0〜1行）
+    const depth = first && fac.hall ? Math.max(maxH, fac.hall.h + Math.max(0, fac.hall.roofRows - 3)) : maxH;
+    if (!first && rng() < 0.35) {                      // 深い街区: 真ん中に土の路地、家は2列
+      const m = cur - (1 + 2 + maxH + slack()), u = m - (2 + 2 + maxH + slack());
       if (u >= minTop) { roads.push(makeRoad(m, 1, DIRT, 'lane'), makeRoad(u, 2, STREET, 'street')); cur = u; continue; }
     }
-    const u = cur - (2 + 2 + maxH + ri(0, 2));
+    const u = cur - (2 + 2 + depth + (first && fac.hall ? 0 : slack()));
     if (u < minTop) break;
     roads.push(makeRoad(u, 2, STREET, 'street'));
     cur = u;
   }
   for (let ct = H.base, cs = H.sh; ;) {
     if (rng() < 0.35) {
-      const m = ct + cs + 2 + maxH + ri(1, 2), l = m + 1 + 2 + maxH + ri(1, 2);
+      const m = ct + cs + 2 + maxH + slack(), l = m + 1 + 2 + maxH + slack();
       if (l + 2 <= maxBottom) { roads.push(makeRoad(m, 1, DIRT, 'lane'), makeRoad(l, 2, STREET, 'street')); ct = l; cs = 2; continue; }
     }
-    const l = ct + cs + 2 + maxH + ri(0, 2);
+    const l = ct + cs + 2 + maxH + slack();
     if (l + 2 > maxBottom) break;
     roads.push(makeRoad(l, 2, STREET, 'street'));
     ct = l; cs = 2;
@@ -232,6 +243,15 @@ function generate(groups, maxH, need, seed, scale) {
   };
   wander(U.base - 3, 0, -1);
   wander(H.base + H.sh + 3, rows - 1, 1);
+  // 役場は広場の北の真ん中に立つので、北へ向かう大通りは役場の脇を通す（役場から離れる向きにだけ揺れる）
+  let hallSpot = null;
+  if (fac.hall) {
+    const hx = cx - Math.floor(fac.hall.w / 2);
+    const side = fac.hallSide;
+    const off = side > 0 ? hx + fac.hall.w + 2 + 1 - cx : hx - 2 - cx;
+    for (let y = 0; y < U.base; y++) aw[y] = off + side * Math.abs(aw[y]);
+    hallSpot = { x: hx, w: fac.hall.w };
+  }
   const ax = (y) => cx + aw[clamp(y, 0, rows - 1)];
 
   const blocked = new Uint8Array(N);                   // 道・広場など（建物を置けない）
@@ -257,9 +277,10 @@ function generate(groups, maxH, need, seed, scale) {
     const up = roads[k], lo = roads[k + 1];
     const mid = Math.round((up.base + lo.base) / 2);
     for (const dir of [-1, 1]) {
-      for (let x = ax(mid) + dir * ri(11, 19); x > MARGIN + 2 && x < cols - MARGIN - 3; x += dir * ri(14, 26)) {
-        if (up === U && lo === H && Math.abs(x - cx) < PLAZA_W / 2 + 5) continue;
-        const wide = up.code === STREET && lo.code === STREET && rng() < 0.4;
+      for (let x = ax(mid) + dir * ri(13, 21); x > MARGIN + 2 && x < cols - MARGIN - 3; x += dir * ri(20, 32)) {
+        if (up === U && lo === H && Math.abs(x - cx) < PLAZA_W / 2 + 5 + (fac.pub ? fac.pub.w + 1 : 0)) continue;   // 広場のきわ（酒場の場所）
+        if (hallSpot && lo === U && x + 1 >= hallSpot.x - 1 && x <= hallSpot.x + hallSpot.w) continue;
+        const wide = up.code === STREET && lo.code === STREET && rng() < 0.3;
         const p = { x, w: wide ? 2 : 1, up, lo, code: wide ? STREET : DIRT };
         passages.push(p);
         for (let c = x; c < x + p.w; c++) if (up.top[c] >= 0 && lo.btop[c] >= 0) for (let y = up.top[c] + up.sh; y < lo.btop[c]; y++) block(c, y);
@@ -323,10 +344,89 @@ function generate(groups, maxH, need, seed, scale) {
     return { r: Math.hypot(x - pcx, (y - pcy) * Y_WEIGHT) / (1 + 0.22 * noise(theta)), theta };
   };
 
+  const nextGap = () => (rng() < 0.8 ? 1 : 2);      // 隣とは1マス（ときどき2マスで路地）
+  const place = (f, spec, pos, group) => {
+    commit(spec, f, pos, group);
+    const gap = nextGap();
+    f.cursor = f.dir < 0 ? pos.x - gap - 1 : pos.x + spec.w + gap;
+    f.lastGap = gap;
+    f.lastGroup = group;
+  };
+  // 面 f のカーソルから外へ向かって、spec の置ける所を探す
+  const seek = (f, s, span = WINDOW, extra = 0) => {
+    for (let k = 0; k <= span; k++) {
+      const x0 = f.dir < 0 ? f.cursor - extra - k - s.w + 1 : f.cursor + extra + k;
+      if (f.dir < 0 ? x0 < f.limit : x0 + s.w - 1 > f.limit) return null;
+      const pos = fit(f, x0, s.w, s.h, 0);
+      if (pos) return pos;
+    }
+    return null;
+  };
+  const faceOf = (road, dir) => faces.find((c) => c.road === road && c.dir === dir);
+  const arc = (a, b) => { const d = Math.abs(((a - b) % (2 * Math.PI) + 3 * Math.PI) % (2 * Math.PI) - Math.PI); return d; };
+  const pending = { early: [...fac.early], late: [...fac.late], inn: fac.inn };
+
+  // 役場: 広場の北の真ん中、広場に面して（大通りは脇を通る）
+  if (fac.hall) {
+    const f = faceOf(U, -fac.hallSide);
+    const pos = fit(f, hallSpot.x, fac.hall.w, fac.hall.h, 0);
+    if (pos) {
+      commit(fac.hall, f, pos, '\u0000hall');
+      f.cursor = f.dir < 0 ? pos.x - nextGap() - 1 : pos.x + pos.w + nextGap();
+    } else pending.late.unshift({ ...fac.hall, angle: -Math.PI / 2 });
+  }
+  // 酒場: 広場の東か西のきわ（大通り H に扉を向ける）
+  if (fac.pub) {
+    const dir = fac.pubSide, f = faceOf(H, dir);
+    const x0 = dir < 0 ? plaza.x0 - fac.pub.w : plaza.x1 + 1;
+    const pos = f && fit(f, x0, fac.pub.w, fac.pub.h, 0);
+    if (pos) {
+      commit(fac.pub, f, pos, '\u0000pub');
+      const gap = nextGap();
+      f.cursor = dir < 0 ? pos.x - gap - 1 : pos.x + pos.w + gap;
+      f.lastGap = gap; f.lastGroup = '\u0000pub';
+    } else pending.early.push({ ...fac.pub, angle: dir < 0 ? Math.PI : 0 });
+  }
+
   const queues = groups.map((g) => ({ g, items: [...g.items], ruins: [...g.ruins] }));
-  for (;;) {
-    const phase = queues.some((q) => q.items.length) ? 'items' : queues.some((q) => q.ruins.length) ? 'ruins' : null;
+  for (let guard = 0; guard < 20000; guard++) {
+    const items = queues.some((q) => q.items.length);
+    if (!items && pending.early.length) { pending.late.unshift(...pending.early); pending.early = []; }
+    const phase = items ? 'items' : pending.late.length ? 'late' : pending.inn ? 'inn' : queues.some((q) => q.ruins.length) ? 'ruins' : null;
     if (!phase) break;
+
+    if (phase === 'late') {
+      // 外縁へ: 目当ての角度に近く、いま外周にある面を選ぶ
+      const s = pending.late[0];
+      let f = null, best = Infinity;
+      for (const c of faces) {
+        if (c.closed) continue;
+        const n = nominal(c);
+        const score = n.r + 30 * arc(n.theta, s.angle);
+        if (score < best) { best = score; f = c; }
+      }
+      if (!f) return null;
+      const pos = seek(f, s);
+      if (pos) { place(f, s, pos, `\u0000${s.archetype}`); pending.late.shift(); continue; }
+      f.cursor += f.dir * WINDOW; f.lastGroup = undefined;
+      if (f.dir < 0 ? f.cursor < f.limit : f.cursor > f.limit) f.closed = true;
+      continue;
+    }
+    if (phase === 'inn') {
+      // 宿屋: 大通り H を外から入ってきた所（いま街の端になっている所）に。そのあと H のその側は閉じる
+      const s = pending.inn;
+      const sides = [fac.innSide, -fac.innSide].map((d) => faceOf(H, d)).filter((c) => c && !c.closed);
+      let done = false;
+      for (const f of sides) {
+        const pos = seek(f, s, WINDOW * 3);
+        if (pos) { place(f, s, pos, `\u0000${s.archetype}`); f.closed = true; done = true; break; }
+      }
+      pending.inn = null;
+      if (!done && scale < 2.5) return null;          // 大通りの端に入らない → 少し大きな格子でやり直す
+      if (!done) pending.late.push({ ...s, angle: fac.innSide < 0 ? Math.PI : 0 });
+      continue;
+    }
+
     let f = null, fn = null;
     for (const c of faces) {
       if (c.closed) continue;
@@ -334,33 +434,44 @@ function generate(groups, maxH, need, seed, scale) {
       if (!f || n.r < fn.r - 1e-9) { f = c; fn = n; }
     }
     if (!f) return null;                               // 入りきらない → 大きな格子でやり直す
+    // 地区に置く施設（道場・倉庫など）: 目当ての角度の面が来たら、まずそれを置く
+    if (phase === 'items' && pending.early.length) {
+      // 広場のすぐ脇ではなく、ひとまわり外の地区に（広場の役場・酒場と並ばないように）
+      const e = fn.r >= PLAZA_W * 1.1 ? pending.early.find((s) => arc(fn.theta, s.angle) < 0.45) : null;
+      const pos = e && seek(f, e);
+      if (pos) { place(f, e, pos, `\u0000${e.archetype}`); pending.early.splice(pending.early.indexOf(e), 1); continue; }
+    }
     const cands = queues.filter((q) => q[phase].length)
       .map((q) => ({ q, d: arcDistance(fn.theta, q.g) }))
       .sort((a, b) => a.d - b.d || a.q.g.index - b.q.g.index);
     let done = false;
-    search: for (const { q } of cands) {
-      const extra = f.lastGroup !== undefined && f.lastGroup !== q.g.key && f.lastGap < 2 ? 1 : 0;
+    for (const { q } of cands) {
+      const extra = 0;                                   // 地区が変わっても詰める（路地は隙間にできる）
+      // この地区の建物のうち、カーソルにいちばん近く置けるもの（隙間を残さない）。同じ近さなら並び順の先
       const tried = new Set();
+      let best = null;
       for (let i = 0; i < q[phase].length; i++) {
         const s = q[phase][i];
         if (tried.has(s.w * 64 + s.h)) continue;
         tried.add(s.w * 64 + s.h);
-        const setback = s.h < maxH && rng() < 0.3 ? 1 : 0;   // ときどき1行下がって前庭をつくる
-        for (let k = 0; k <= WINDOW; k++) {
+        const setback = s.h < maxH && rng() < 0.45 ? 1 : 0;  // 低い家は、ときどき1行下がって前庭をつくる（裏庭を残さない）
+        for (let k = 0; k <= WINDOW && (!best || k < best.k); k++) {
           const x0 = f.dir < 0 ? f.cursor - extra - k - s.w + 1 : f.cursor + extra + k;
           if (f.dir < 0 ? x0 < f.limit : x0 + s.w - 1 > f.limit) break;
           const pos = fit(f, x0, s.w, s.h, setback) || (setback ? fit(f, x0, s.w, s.h, 0) : null);
-          if (!pos) continue;
-          q[phase].splice(i, 1);
-          commit(s, f, pos, q.g.key);
-          const gap = rng() < 0.6 ? 1 : rng() < 0.75 ? 2 : 3;
-          f.cursor = f.dir < 0 ? pos.x - gap - 1 : pos.x + s.w + gap;
-          f.lastGap = gap;
-          f.lastGroup = q.g.key;
-          done = true;
-          break search;
+          if (pos) { best = { i, s, pos, k }; break; }
         }
+        if (best && best.k === 0) break;
       }
+      if (!best) continue;
+      q[phase].splice(best.i, 1);
+      commit(best.s, f, best.pos, q.g.key);
+      const gap = nextGap();
+      f.cursor = f.dir < 0 ? best.pos.x - gap - 1 : best.pos.x + best.s.w + gap;
+      f.lastGap = gap;
+      f.lastGroup = q.g.key;
+      done = true;
+      break;
     }
     if (!done) {
       f.cursor += f.dir * WINDOW;
@@ -382,6 +493,8 @@ function finalize(P, maxH) {
   extend(U, plaza.x0 - 1, plaza.x1 + 1);
   extend(H, plaza.x0 - 1, plaza.x1 + 1);
   for (const r of [...keep.keys()]) { const a = ax(r.base); extend(r, a - 3, a + 2); }
+  // 通りぎわの小さな広場は、その通りを残すなら必ず舗装する（建物を置かなかった所が空き地にならないように）
+  for (const sq of squares) if (keep.has(sq.road)) extend(sq.road, sq.x0 - 1, sq.x1 + 1);
   const kept = roads.filter((r) => keep.has(r));
   for (const r of kept) {
     const [a, b] = keep.get(r);
@@ -411,8 +524,13 @@ function finalize(P, maxH) {
 
   for (const p of passages) {
     const ku = keep.get(p.up), kl = keep.get(p.lo);
-    if (!ku || !kl || p.x < Math.max(ku[0], kl[0]) || p.x + p.w - 1 > Math.min(ku[1], kl[1])) continue;
-    for (let c = p.x; c < p.x + p.w; c++) for (let y = p.up.top[c] + p.up.sh; y < p.lo.btop[c]; y++) setG(c, y, p.code);
+    if (!kl || p.x < kl[0] || p.x + p.w - 1 > kl[1]) continue;
+    if (ku && p.x >= ku[0] && p.x + p.w - 1 <= ku[1]) {
+      for (let c = p.x; c < p.x + p.w; c++) for (let y = p.up.top[c] + p.up.sh; y < p.lo.btop[c]; y++) setG(c, y, p.code);
+    } else {
+      // 上の通りが無い所: 家並みの裏へ抜ける行き止まりの路地（建物を置かなかった所を空き地にしない）
+      for (let c = p.x; c < p.x + p.w; c++) for (let y = Math.max(p.up.top[c] + p.up.sh, p.lo.btop[c] - maxH - 2); y < p.lo.btop[c]; y++) setG(c, y, DIRT);
+    }
   }
   const keptSquares = squares.filter((s) => { const k = keep.get(s.road); return k && s.x0 >= k[0] && s.x1 <= k[1]; });
   for (const s of keptSquares) for (let x = s.x0; x <= s.x1; x++) if (s.road.btop[x] >= 0) for (let y = s.road.btop[x] - s.d; y < s.road.btop[x]; y++) setG(x, y, STREET);
@@ -520,6 +638,13 @@ function placeProps(P, F, rng, spawn) {
   for (const p of placed) for (let x = p.x; x < p.x + p.w; x++) for (let y = p.yb + 1; y <= p.yb + 2; y++) reserved[id(x, y)] = 1;
   for (let t = 0; t < N; t++) if (front[t]) reserved[t] = 1;
   for (let dx = -1; dx <= 1; dx++) for (let dy = 0; dy <= 1; dy++) reserved[id(spawn.x + dx, spawn.y + dy)] = 1;
+  // 施設の前（扉から5行）には何も置かない。まわりには木を置かない（主要施設を隠さない）
+  const noTree = new Uint8Array(N);
+  for (const p of placed) {
+    if (!p.spec.facility) continue;
+    for (let x = p.x - 1; x <= p.x + p.w; x++) for (let y = p.yb + 1; y <= p.yb + 5; y++) if (inC(x, y)) reserved[id(x, y)] = 1;
+    for (let x = p.x - 3; x <= p.x + p.w + 2; x++) for (let y = p.y - 2; y <= p.yb + 6; y++) if (inC(x, y)) noTree[id(x, y)] = 1;
+  }
 
   const flood = () => {
     const seen = new Uint8Array(N);
@@ -560,7 +685,7 @@ function placeProps(P, F, rng, spawn) {
     const [fw, fh] = PROP_SIZE[type] || [1, 1];
     const tiles = [];
     for (let dy = 0; dy < fh; dy++) for (let dx = 0; dx < fw; dx++) tiles.push([tx + dx, ty + dy]);
-    for (const [x, y] of tiles) if (!walk(x, y) || reserved[id(x, y)]) return false;
+    for (const [x, y] of tiles) if (!walk(x, y) || reserved[id(x, y)] || (type === 'tree' && noTree[id(x, y)])) return false;
     if (tiles.length === 1 && locallySafe(tx, ty)) blocked[id(tx, ty)] = 1;
     else {
       for (const [x, y] of tiles) blocked[id(x, y)] = 1;
@@ -574,7 +699,8 @@ function placeProps(P, F, rng, spawn) {
 
   // 広場: 掲示板・井戸・ベンチ・街灯・植え込み
   const { x0: px0, x1: px1, y0: py0, y1: py1 } = plaza, pc = P.cx;
-  tryProp('noticeboard', pc - 1, py0 + 1);
+  // 掲示板は役場の前をふさがない所に
+  [[pc - 1, py0 + 1], [px0 + 4, py0 + 1], [px1 - 5, py0 + 1], [pc - 1, py1 - 1]].find(([x, y]) => tryProp('noticeboard', x, y));
   tryProp('well', pc - 1, py0 + 4);
   tryProp('bench', pc - 6, py0 + 2);
   tryProp('bench', pc + 4, py0 + 2);
@@ -617,28 +743,44 @@ function placeProps(P, F, rng, spawn) {
     for (const x of n % 2 ? [a + 1, a - 2] : [a - 2, a + 1]) if (g[id(x, y)] === GRASS && tryProp('lamp', x, y)) break;
   }
 
-  // 建物の間の隙間: 通りぎわに樽・木箱・茂み、奥に茂みや木
+  // 生活の小物: 近くの建物の種類に合わせて選ぶ。続けて置きやすくして、かたまりにする
+  const CLUTTER = {
+    workshop: ['crate', 'barrel', 'sacks', 'crate', 'cart', 'barrel'],
+    shop: ['barrel', 'crate', 'sacks', 'flowerpot', 'planter'],
+    ruin: ['bush', 'crate', 'bush', 'sacks'],
+    house: ['planter', 'flowerpot', 'barrel', 'bush', 'sacks', 'bench', 'crate'],
+    facility: ['barrel', 'crate', 'sacks', 'planter'],
+  };
+  const kindNear = (x, y) => {
+    for (let d = 0; d <= 5; d++) for (const [dx, dy] of [[0, d], [-1, d], [1, d], [0, -d]]) {
+      const t = id(x + dx, y + dy);
+      if (t >= 0 && t < N && foot[t] >= 0) { const s = placed[foot[t]].spec; return s.facility ? 'facility' : s.module.kind; }
+    }
+    return 'house';
+  };
+  const clutter = (x, y, kind) => {
+    const list = CLUTTER[kind] || CLUTTER.house;
+    const type = pick(list);
+    return tryProp(type, x, y) || tryProp(list[0], x, y);
+  };
+  // 建物の間の隙間: 通りぎわに樽・木箱・鉢、奥にも小物や茂み
   for (let y = crop.y0; y <= crop.y1; y++) for (let x = crop.x0; x <= crop.x1; x++) {
     const t = id(x, y);
     if (!gap[t] || g[t] !== GRASS) continue;
     const r = rng();
     const nb = foot[t - 1] >= 0 ? foot[t - 1] : foot[t + 1];
-    const kind = nb >= 0 ? placed[nb].spec.module.kind : 'house';
+    const kind = nb >= 0 ? (placed[nb].spec.facility ? 'facility' : placed[nb].spec.module.kind) : 'house';
     const frontRow = g[t + cols] !== GRASS && g[t + cols] !== OUT && !gap[t + cols];
-    if (frontRow && r < 0.6) {
-      tryProp(kind === 'workshop' ? pick(['crate', 'barrel', 'sacks', 'crate'])
-        : kind === 'shop' ? pick(['barrel', 'crate', 'sacks', 'flowerpot'])
-          : kind === 'ruin' ? pick(['bush', 'crate', 'bush'])
-            : pick(['bush', 'barrel', 'flowerpot', 'planter', 'bush']), x, y);
-    } else if (!frontRow && r < 0.2) tryProp(r < 0.08 ? 'tree' : 'bush', x, y);
+    if (frontRow && r < 0.65) clutter(x, y, kind);
+    else if (!frontRow && r < 0.4) { if (r < 0.06) tryProp('tree', x, y); else if (r < 0.16) tryProp('bush', x, y); else clutter(x, y, kind); }
   }
   // 屋根の上にのぞく裏庭の木
-  for (const p of placed) if (rng() < 0.35) tryProp('tree', p.x + Math.floor(rng() * p.w), p.y - 3);
-  // 家の裏の庭: 通りぎわに柵（ところどころ切れ目）、中に茂み・木・樽
-  let run = 0, gapAt = 4;
+  for (const p of placed) if (!p.spec.facility && rng() < 0.3) tryProp('tree', p.x + Math.floor(rng() * p.w), p.y - 3);
+  // 家の裏の庭: 通りぎわに柵（ところどころ切れ目）、中は生活の小物のかたまりと茂み
+  let run = 0, gapAt = 4, chain = 0;
   for (let y = crop.y0; y <= crop.y1; y++) for (let x = crop.x0; x <= crop.x1; x++) {
     const t = id(x, y);
-    if (!garden[t] || g[t] !== GRASS) { run = 0; continue; }
+    if (!garden[t] || g[t] !== GRASS) { run = 0; chain = 0; continue; }
     const r = rng();
     const edge = g[t - cols] === STREET || g[t - cols] === DIRT;
     if (edge) {
@@ -646,18 +788,34 @@ function placeProps(P, F, rng, spawn) {
       run++;
       if (run > gapAt) { run = 0; gapAt = 4 + Math.floor(rng() * 5); continue; }
       tryProp('fence', x, y);
-    } else if (r < 0.07) tryProp('tree', x, y);
-    else if (r < 0.17) tryProp('bush', x, y);
-    else if (r < 0.2) tryProp(pick(['barrel', 'crate', 'planter', 'sacks']), x, y);
+    } else if (chain > 0 && r < 0.55) { chain = clutter(x, y, kindNear(x, y)) ? chain - 1 : 0; }
+    else if (r < 0.05) { tryProp('tree', x, y); chain = 0; }
+    else if (r < 0.15) { tryProp(rng() < 0.5 ? 'bush' : 'planter', x, y); chain = 0; }
+    else if (r < 0.32) chain = clutter(x, y, kindNear(x, y)) ? 1 + Math.floor(rng() * 3) : 0;
+    else chain = 0;
   }
-  // 街のまわりの森（道のすぐ脇は空ける）
+  // 残りの草地: 街の内側（上下を通りにはさまれた所）は生活の小物と茂み、外側は森（道のすぐ脇は空ける）
+  const keptTop = new Int16Array(cols).fill(-1), keptBot = new Int16Array(cols).fill(-1);
+  for (const r of kept) {
+    const [a, b] = keep.get(r);
+    for (let x = Math.max(0, a); x <= Math.min(cols - 1, b); x++) {
+      if (r.top[x] < 0) continue;
+      if (keptTop[x] < 0 || r.top[x] < keptTop[x]) keptTop[x] = r.top[x];
+      if (r.top[x] + r.sh > keptBot[x]) keptBot[x] = r.top[x] + r.sh;
+    }
+  }
   for (let y = crop.y0; y <= crop.y1; y++) for (let x = crop.x0; x <= crop.x1; x++) {
     const t = id(x, y);
     if (g[t] !== GRASS || foot[t] >= 0 || garden[t] || gap[t] || roofZ[t] || reserved[t]) continue;
     let nearPath = false;
     for (const n of [t - 1, t + 1, t - cols, t + cols]) if (g[n] !== GRASS && g[n] !== OUT) nearPath = true;
-    if (nearPath) continue;
+    const inside = keptTop[x] >= 0 && y > keptTop[x] && y < keptBot[x];
     const r = rng();
+    if (inside) {
+      if (nearPath ? r < 0.12 : r < 0.3) { if (!nearPath && r < 0.07) tryProp('tree', x, y); else if (r < 0.14) tryProp('bush', x, y); else clutter(x, y, kindNear(x, y)); }
+      continue;
+    }
+    if (nearPath) continue;
     if (r < 0.28) tryProp('tree', x, y);
     else if (r < 0.36) tryProp('bush', x, y);
   }
@@ -668,13 +826,42 @@ function placeProps(P, F, rng, spawn) {
 export function layoutTown(repo, opts = {}) {
   const seed = hash32(`${repo.name}@${repo.head ?? 'worktree'}`);
   const art = opts.art ?? loadArt();
-  const mods = aggregate(repo.modules || [], CAP);
+  // 施設: 絵のあるものだけ。施設が丸ごと覆うモジュールは、その施設の建物にまとめる（家は建てない）
+  const facs = (repo.facilities || []).filter((f) => FACILITY_NAME[f.archetype] && art[f.archetype]?.footprint);
+  const byPath = new Map((repo.modules || []).map((m) => [m.path, m]));
+  const covered = new Set(facs.flatMap((f) => f.merged || []));
+  const mods = aggregate((repo.modules || []).filter((m) => !covered.has(m.path)), CAP);
   const arch = archetypes(mods);
   const specs = mods.map((m, i) => {
     const a = arch.get(m);
     const [w, h] = art[a]?.footprint ?? DEFAULT_FOOT[a];
     const doorDx = clamp(art[a]?.doorX ?? DOOR_DX[a] ?? Math.floor((w - 1) / 2), 0, w - 1);
     return { id: `b${i + 1}`, archetype: a, w, h, doorDx, module: m, district: m.path === '.' ? '.' : m.path.split('/')[0] };
+  });
+  const facSpecs = facs.map((f, i) => {
+    const a = art[f.archetype];
+    const [w, h] = a.footprint;
+    const merged = (f.merged || []).map((p) => byPath.get(p)).filter(Boolean);
+    const languages = {};
+    let lines = 0, bytes = 0;
+    const top = [];
+    for (const m of merged) {
+      lines += m.lines; bytes += m.bytes; top.push(...(m.topFiles || []));
+      for (const [k, v] of Object.entries(m.languages || {})) languages[k] = (languages[k] || 0) + v;
+    }
+    const module = {
+      path: f.merged?.length ? f.merged[0] : f.archetype === 'town_hall' ? '.' : (f.evidence[0] || '.'),
+      kind: f.archetype, reason: f.reason,
+      files: merged.length ? merged.reduce((t, m) => t + m.files, 0) : f.evidenceCount, lines, bytes,
+      languages: Object.fromEntries(Object.entries(languages).sort((p, q) => q[1] - p[1] || cmp(p[0], q[0]))),
+      lastCommit: f.lastCommit || null, commits: f.commits || 0, recent: f.recent || 0, authors: f.authors || [],
+      topFiles: top.sort((p, q) => q.lines - p.lines || cmp(p.path, q.path)).slice(0, 8),
+      ...(f.merged?.length ? { merged: [...f.merged] } : {}),
+    };
+    const facility = { archetype: f.archetype, name: FACILITY_NAME[f.archetype], reason: f.reason, evidence: f.evidence,
+      evidenceCount: f.evidenceCount, facts: f.facts || {}, merged: f.merged || [] };
+    return { id: `f${i + 1}`, archetype: f.archetype, w, h, doorDx: clamp(a.doorX ?? Math.floor((w - 1) / 2), 0, w - 1),
+      module, facility, district: '\u0000facility', roofRows: Math.ceil((a.roof || 48) / 16) };
   });
 
   // 工房はひとまとまり、それ以外は最上位ディレクトリごとの地区
@@ -704,10 +891,24 @@ export function layoutTown(repo, opts = {}) {
     g.a1 = a;
   });
 
-  const maxH = Math.max(4, ...specs.map((s) => s.h));
-  const need = specs.reduce((t, s) => t + s.w + 1.6, 0);
+  // 施設の置き場所: 役場は広場の北、酒場は広場のきわ、宿屋は大通りの入口、道場・倉庫は別々の地区、見張り台は外縁
+  const frng = makeRng(seed ^ 0x51ed270b);
+  const fac = { hall: null, pub: null, inn: null, early: [], late: [],
+    hallSide: frng() < 0.5 ? -1 : 1, pubSide: frng() < 0.5 ? -1 : 1, innSide: frng() < 0.5 ? -1 : 1 };
+  const slots = [-0.95, 1.2, 2.35, -2.3].sort(() => 0).map((a) => a + (frng() - 0.5) * 0.3);
+  for (let i = slots.length - 1; i > 0; i--) { const j = Math.floor(frng() * (i + 1)); [slots[i], slots[j]] = [slots[j], slots[i]]; }
+  for (const s of facSpecs) {
+    if (s.archetype === 'town_hall') fac.hall = s;
+    else if (s.archetype === 'pub') fac.pub = s;
+    else if (s.archetype === 'inn') fac.inn = s;
+    else if (s.archetype === 'watchtower') fac.late.push({ ...s, angle: slots.pop() });
+    else fac.early.push({ ...s, angle: slots.pop() });
+  }
+  const all = [...specs, ...facSpecs];
+  const maxH = Math.max(4, ...all.filter((s) => s !== fac.hall).map((s) => s.h));
+  const need = all.reduce((t, s) => t + s.w + 1.6, 0);
   let P = null;
-  for (let attempt = 0, scale = 1; attempt < 14 && !P; attempt++, scale *= 1.25) P = generate(groups, maxH, need, seed, scale);
+  for (let attempt = 0, scale = 1; attempt < 14 && !P; attempt++, scale *= 1.25) P = generate(groups, maxH, need, seed, scale, fac);
   if (!P) throw new Error('layoutTown: 建物を配置できなかった');
   const F = finalize(P, maxH);
   const spawn = { x: P.cx, y: P.plaza.y0 + 2 };
@@ -751,12 +952,13 @@ export function layoutTown(repo, opts = {}) {
     door: { x: p.x - x0 + clamp(variantOf.get(p)?.doorX ?? p.spec.doorDx, 0, p.w - 1), y: p.yb - y0 },
     district: p.spec.district,
     module: p.spec.module,
-  })).sort((a, b) => Number(a.id.slice(1)) - Number(b.id.slice(1)));
+    ...(p.spec.facility ? { facility: p.spec.facility } : {}),
+  })).sort((a, b) => cmp(a.id[0], b.id[0]) || Number(a.id.slice(1)) - Number(b.id.slice(1)));
 
   // 住人: コミットの多い順に最大24人。家は、その人がよく触ったモジュールの建物
   const idOf = new Map();
   for (const b of buildings) {
-    idOf.set(b.module.path, b.id);
+    if (!b.facility) idOf.set(b.module.path, b.id);
     for (const m of b.module.merged || []) idOf.set(m, b.id);
   }
   const residents = (repo.contributors || []).slice(0, 24).map((c, i) => {
@@ -769,9 +971,22 @@ export function layoutTown(repo, opts = {}) {
     return { id: `r${i + 1}`, name: c.name, commits: c.commits, homes, look: hash32(c.name) % 16, lastCommit: c.lastCommit ?? null };
   });
 
+  // 常連（街を歩くモブ）: 建物ごとに0〜2人。最近（最新コミットまでの90日）よく手が入る所ほど多い。廃屋には来ない
+  const active = buildings.filter((b) => b.module.kind !== 'ruin' && b.module.recent > 0);
+  const top = Math.max(1, ...active.map((b) => b.module.recent));
+  const slotsC = [];
+  for (const b of active) {
+    slotsC.push({ b, k: 0 });
+    if (b.module.recent / top >= 0.35 && b.module.recent >= 3) slotsC.push({ b, k: 1 });
+  }
+  slotsC.sort((p, q) => p.k - q.k || q.b.module.recent - p.b.module.recent || cmp(p.b.id, q.b.id));
+  const crowd = slotsC.slice(0, CROWD_CAP).sort((p, q) => cmp(p.b.id, q.b.id) || p.k - q.k)
+    .map(({ b, k }, i) => ({ id: `c${i + 1}`, home: b.id, look: hash32(`crowd:${b.id}:${k}`) % 16, fact: k }));
+
   return {
     version: 1,
-    repo: { name: repo.name, head: repo.head ?? null, branch: repo.branch ?? null, readme: repo.readme ?? null },
+    repo: { name: repo.name, head: repo.head ?? null, branch: repo.branch ?? null, readme: repo.readme ?? null,
+      latestCommitDate: repo.latestCommitDate ?? null, recentDays: RECENT_DAYS },
     tile: 16,
     cols: x1 - x0 + 1,
     rows: y1 - y0 + 1,
@@ -780,6 +995,7 @@ export function layoutTown(repo, opts = {}) {
     props: props.map((p) => ({ type: p.type, x: p.x - x0, y: p.y - y0 }))
       .sort((a, b) => a.y - b.y || a.x - b.x || cmp(a.type, b.type)),
     residents,
+    crowd,
     spawn: { x: spawn.x - x0, y: spawn.y - y0 },
   };
 }

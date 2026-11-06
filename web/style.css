@@ -39,6 +39,12 @@ html, body {
 #stats .kind-shop { background: #2b3550; color: #b8d2ff; }
 #stats .kind-house { background: #33402a; color: #d4efaa; }
 #stats .kind-ruin { background: #3a3a3a; color: #d8d2c4; }
+#stats .kind-town_hall { background: #4a3a1a; color: #ffe08a; }
+#stats .kind-inn { background: #4a2a2a; color: #ffc0a8; }
+#stats .kind-pub { background: #3e2a18; color: #ffcf8f; }
+#stats .kind-warehouse { background: #33302a; color: #e6d8b8; }
+#stats .kind-watchtower { background: #23343e; color: #bfe3ff; }
+#stats .kind-dojo { background: #2e2a40; color: #d8ccff; }
 #stats .path { font-size: 21px; font-weight: 700; word-break: break-all; }
 #stats .grid { display: grid; grid-template-columns: max-content 1fr; column-gap: 12px; }
 #stats .k, #stats .v { padding: 3px 0; border-top: 1px solid rgba(214, 186, 128, 0.16); }

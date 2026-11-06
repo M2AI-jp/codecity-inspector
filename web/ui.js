@@ -44,9 +44,16 @@ export class UI {
     const el = this.el.stats;
     if (!b || !b.module) { el.classList.remove('show'); return; }
     const m = b.module;
+    const fac = b.data && b.data.facility;
     const kind = KIND_JA[m.kind] || '建物';
     const rows = [];
-    if (m.reason && !b.keeper) rows.push(['なぜ' + kind + '？', esc(m.reason)]);   // the keeper says it otherwise
+    if (m.reason && (!b.keeper || fac)) rows.push(['なぜ' + kind + '？', esc(m.reason)]);   // the keeper says it otherwise
+    if (fac && fac.evidence && fac.evidence.length) {
+      const ev = fac.evidence.filter((p) => p !== '.git').slice(0, 3);
+      const more = fac.evidenceCount > ev.length + (fac.evidence.includes('.git') ? 1 : 0) ? ` <span class="dim">ほか ${fmtInt(fac.evidenceCount - ev.length)}</span>` : '';
+      if (ev.length) rows.push(['根拠', ev.map((p) => `<div class="file">${esc(p)}</div>`).join('') + more]);
+    }
+    if (fac && fac.merged && fac.merged.length) rows.push(['まとめた所', esc(fac.merged.slice(0, 3).join('、'))]);
     if (Number.isFinite(m.files)) rows.push(['大きさ', `${fmtInt(m.files)} ファイル・${fmtInt(m.lines)} 行`]);
     const langs = Object.entries(m.languages || {}).filter(([, n]) => n > 0).sort((a, c) => c[1] - a[1]).slice(0, 4);
     if (langs.length) rows.push(['言語', langs.map(([k, n]) => `${esc(langName(k))} ${fmtInt(n)}`).join('・')]);
@@ -61,7 +68,7 @@ export class UI {
     const short = (fp) => (m.path && m.path !== '.' && String(fp).startsWith(`${m.path}/`) ? String(fp).slice(m.path.length + 1) : fp);
     if (files.length) rows.push(['大きいファイル', files.map((f) => `<div class="file">${esc(short(f.path))} <span class="dim">${fmtInt(f.lines)}行</span></div>`).join('')]);
     el.innerHTML = `<div class="head"><span class="kind kind-${esc(m.kind)}">${esc(kind)}</span><span class="path">${esc(m.path === '.' ? '（ルート）' : m.path)}</span></div>` +
-      `<div class="grid">${rows.map(([k, v]) => `<div class="k">${k}</div><div class="v">${v}</div>`).join('')}</div>`;
+      `<div class="grid">${(fac ? rows.filter(([k]) => k !== '大きいファイル' && k !== '言語' && (k !== '大きさ' || (fac.merged && fac.merged.length))) : rows).map(([k, v]) => `<div class="k">${k}</div><div class="v">${v}</div>`).join('')}</div>`;
     el.classList.add('show');
   }
 
@@ -144,7 +151,7 @@ export class UI {
     if (w !== this.bubbleFor) {
       this.bubbleFor = w;
       if (w) {
-        const t = residentBubble(w.def || w, this.town);
+        const t = residentBubble(w.local ? w : (w.def || w), this.town);
         bub.innerHTML = `<div><span class="who">${esc(t.name)}</span><span class="sep">─</span>${esc(t.line)}</div>` +
           (t.more ? `<div class="more">${esc(t.more)}</div>` : '');
         bub.classList.add('show');

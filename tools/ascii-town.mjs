@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // 街を文字で表示して目で確かめる道具。
 //   node tools/ascii-town.mjs <repoPath | town.json> [--check] [--no-props]
-// 建物: W 工房 / S 商店 / H 住宅 / R 廃屋（扉は小文字）。地面: . 草地 # 石畳 : 土の路地 + 広場（空白は街の外）
-// 小物: T 木 * 茂み o 樽 x 木箱 = 柵 n ベンチ i 街灯 O 井戸 N 掲示板 / @ 開始位置
+// 建物: W 工房 / S 商店 / H 住宅 / R 廃屋 / G 役場 / Y 宿屋 / P 酒場 / K 倉庫 / M 見張り台 / D 道場（扉は小文字）。地面: . 草地 # 石畳 : 土の路地 + 広場（空白は街の外）
+// 小物: T 木 * 茂み o 樽 x 木箱 % 袋 f 鉢 v プランター c 荷車 = 柵 n ベンチ i 街灯 O 井戸 N 掲示板 / @ 開始位置
 // --districts: 建物を種類ではなく地区（最上位ディレクトリ）ごとの文字で描く
 // --check: 重なり・隙間・屋根の余白・footprint の下の行（幅いっぱい歩けて広場から届く）・同じ入力で同じ出力になるか。問題があれば終了コード1
 import { readFileSync } from 'node:fs';
@@ -17,9 +17,10 @@ let town, model = null;
 if (target.endsWith('.json')) town = JSON.parse(readFileSync(target, 'utf8'));
 else { model = analyzeRepository(target); town = layoutTown(model); }
 
-const LETTER = { workshop: 'W', shop: 'S', house: 'H', ruin: 'R' };
-const PROP = { tree: 'T', bush: '*', barrel: 'o', crate: 'x', fence: '=', bench: 'n', lamp: 'i', well: 'O', noticeboard: 'N' };
-const SIZE = { well: [2, 2], noticeboard: [2, 1], bench: [2, 1] };
+const LETTER = { workshop: 'W', shop: 'S', house: 'H', ruin: 'R', town_hall: 'G', inn: 'Y', pub: 'P', warehouse: 'K', watchtower: 'M', dojo: 'D' };
+const PROP = { tree: 'T', bush: '*', barrel: 'o', crate: 'x', fence: '=', bench: 'n', lamp: 'i', well: 'O', noticeboard: 'N',
+  sacks: '%', flowerpot: 'f', planter: 'v', cart: 'c' };
+const SIZE = { well: [2, 2], noticeboard: [2, 1], bench: [2, 1], cart: [3, 1] };
 const grid = town.ground.map((r) => [...r]);
 const propTiles = (p) => {
   const [w, h] = SIZE[p.type] || [1, 1];
@@ -45,7 +46,7 @@ const kinds = {};
 const arch = {};
 for (const b of town.buildings) { kinds[b.module.kind] = (kinds[b.module.kind] || 0) + 1; arch[b.archetype] = (arch[b.archetype] || 0) + 1; }
 console.log(`\n${town.repo.name} @ ${town.repo.head ?? '-'}: ${town.cols}×${town.rows} tiles, 建物 ${town.buildings.length}`,
-  JSON.stringify(kinds), JSON.stringify(arch), `小物 ${town.props.length}, 住人 ${town.residents.length}`);
+  JSON.stringify(kinds), JSON.stringify(arch), `小物 ${town.props.length}, 住人 ${town.residents.length}, 常連 ${(town.crowd || []).length}`);
 
 if (args.includes('--check')) {
   const problems = [];

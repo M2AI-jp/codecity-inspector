@@ -82,4 +82,5 @@ export function langName(ext) {
   return LANG_NAMES[k] || (k ? `.${k}` : 'その他');
 }
 
-export const KIND_JA = { workshop: '工房', shop: '商店', house: '住宅', ruin: '廃屋' };
+export const KIND_JA = { workshop: '工房', shop: '商店', house: '住宅', ruin: '廃屋',
+  town_hall: '役場', inn: '宿屋', pub: '酒場', warehouse: '倉庫', watchtower: '見張り台', dojo: '道場' };

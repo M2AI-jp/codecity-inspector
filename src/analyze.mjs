@@ -2,6 +2,7 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { readFileSync, readdirSync, lstatSync } from 'node:fs';
 import { basename, extname, join, resolve } from 'node:path';
+import { detectFacilities } from './facilities.mjs';
 
 const MAX_COMMITS = 5000;          // git log を読む上限
 const MAX_TEXT_BYTES = 1 << 20;    // これより大きいファイルは行数を数えない
@@ -377,7 +378,9 @@ export function analyzeRepository(rootPath) {
 
   const history = isGit && head ? readHistory(root) : [];
   const keyer = authorKeyer();
-  const stats = groups.map(() => ({ commits: 0, last: null, authors: new Map() }));
+  const stats = groups.map(() => ({ commits: 0, recent: 0, last: null, authors: new Map() }));
+  // 「最近」は今日ではなくリポジトリの最新コミットから90日（同じコミットなら同じ結果）
+  const latestTime = history.length ? Date.parse(history[0].date) : 0;
   const people = new Map();   // key -> { commits, touches: Map(moduleIdx -> n), last: 最新のコミット }
   for (const c of history) {
     const k = keyer.key(c.author);
@@ -387,9 +390,11 @@ export function analyzeRepository(rootPath) {
     person.commits++;
     const mods = new Set();
     for (const f of c.files) { const i = ownerOf(f); if (i !== undefined) mods.add(i); }
+    const recent = latestTime - Date.parse(c.date) <= 90 * DAY;
     for (const i of mods) {
       const s = stats[i];
       s.commits++;
+      if (recent) s.recent++;
       if (!s.last) s.last = c;
       s.authors.set(k, (s.authors.get(k) || 0) + 1);
       person.touches.set(i, (person.touches.get(i) || 0) + 1);
@@ -425,6 +430,7 @@ export function analyzeRepository(rootPath) {
       languages: Object.fromEntries(topCounts(languages, 99)),
       lastCommit: s.last ? { hash: s.last.hash, date: s.last.date, author: keyer.display(s.last.key), subject: scrub(s.last.subject) } : null,
       commits: s.commits,
+      recent: s.recent,
       authors: [...s.authors.entries()].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).slice(0, 10)
         .map(([k, n]) => ({ name: keyer.display(k), commits: n })),
       topFiles: [...g.files].sort((a, b) => b.lines - a.lines || (a.path < b.path ? -1 : 1)).slice(0, 8)
@@ -460,10 +466,25 @@ export function analyzeRepository(rootPath) {
       lastCommit: { subject: scrub(p.last.subject), date: p.last.date },
     }));
 
+  let facilities = [];
+  try {
+    facilities = detectFacilities(files, history, groups, {
+      root, isGit, head, keyer, refTime,
+      git: (args) => git(root, args),
+      rootFiles: tree.files.map((f) => f.path),
+    });
+  } catch (e) { console.warn(`施設の判定に失敗した（施設なしで続ける）: ${e.message}`); }
+  for (const f of facilities) {
+    if (f.lastCommit) f.lastCommit.subject = scrub(f.lastCommit.subject);
+    if (f.facts?.latest) f.facts.latest.subject = scrub(f.facts.latest.subject);
+  }
+
   return {
     name, head, branch,
+    latestCommitDate: history.length ? history[0].date : null,
     readme: parseReadme(root, tree.files, readText),
     modules,
+    facilities,
     contributors,
   };
 }

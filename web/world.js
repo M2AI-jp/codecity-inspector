@@ -189,7 +189,7 @@ export class World {
       // the glow sits at the light point; the pool it casts is centred lower, toward the
       // ground under it (3/4 view: a lantern on a post lights the street around its foot)
       const lx = ax + def.light[0], ly = ay + def.light[1];
-      this.lights.push({ x: lx, y: ly, poolY: ly + Math.max(0, ay - ly) * 0.6, r: def.light[2], kind: def.flicker ? 'flame' : 'steady', seed: 1000 + index, building: null });
+      this.lights.push({ x: lx, y: ly, poolY: ly + Math.max(0, ay - ly) * 0.6, footY: ay, r: def.light[2], kind: def.flicker ? 'flame' : 'steady', seed: 1000 + index, building: null });
     }
     this.props.push(prop);
   }

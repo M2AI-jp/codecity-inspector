@@ -321,6 +321,8 @@ const VOICE = {
 // ---------- keeper dialogue ----------
 // building: Town building (with .module); keeper: { kind }; town: for comparing with other buildings.
 export function keeperLines(building, keeper, town) {
+  const fac = (building.data && building.data.facility) || building.facility;
+  if (fac && FACILITY_VOICE[fac.archetype]) return facilityLines(building, fac, town);
   const m = building.module || {};
   const kind = VOICE[keeper && keeper.kind] ? keeper.kind : VOICE[m.kind] ? m.kind : 'house';
   const v = VOICE[kind];
@@ -435,9 +437,130 @@ export function keeperLines(building, keeper, town) {
   return [greet, what, ...list.map((f) => f.t), turn(v.close, 2)].map(spaceOut);
 }
 
+// ---------- facility keepers ----------
+// 役場の書記・宿屋の番頭・酒場の主人・倉庫番・見張り台の番人・道場の検査官。facility.facts（src/facilities.mjs）の事実だけを話す。
+const dateJa = (iso) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || '')); return m ? `${Number(m[1])}年${Number(m[2])}月${Number(m[3])}日` : ''; };
+const listJa = (a) => (a.length <= 1 ? a.join('') : `${a.slice(0, -1).join('、')}と${a[a.length - 1]}`);
+const q = (p) => `「${p}」`;
+const nPeople = (n) => (n === 1 ? 'ひとり' : n === 2 ? 'ふたり' : `${fmtInt(n)}人`);
+
+const FACILITY_VOICE = {
+  town_hall: {
+    greet: ['ようこそ、役場へ。わたしは書記をしております。', 'いらっしゃいませ。こちらは役場の受付です。'],
+    what: ['この街の記録は、ぜんぶここで預かっています。', 'この街の歩みを、一件ずつ帳面につけております。'],
+    facts(f) {
+      const out = [];
+      if (f.commits) {
+        const ppl = f.contributors ? (f.contributorsWindow ? `直近の${fmtInt(f.contributorsWindow)}件では${nPeople(f.contributors)}が手を入れています` : `手を入れた人は${nPeople(f.contributors)}です`) : '';
+        out.push(`記録されたコミットは${fmtInt(f.commits)}件。${ppl ? `${ppl}。` : ''}`);
+      }
+      if (f.firstCommit && f.lastCommit) out.push(`最初の記録は${dateJa(f.firstCommit)}、いちばん新しい記録は${dateJa(f.lastCommit)}です。`);
+      if (f.tags > 0 && f.latestTag) out.push(`節目の印（タグ）は${fmtInt(f.tags)}個。いちばん新しいのは${q(f.latestTag.name)}です。`);
+      else if (f.tags === 0) out.push('節目の印（タグ）は、まだひとつもついていません。');
+      if (f.changelog) out.push(`変更の記録帳${q(f.changelog)}も、ここに保管しています。`);
+      return out;
+    },
+    close: ['記録のことなら、いつでもお尋ねください。', '帳面は、きちんとつけておきますね。'],
+  },
+  inn: {
+    greet: ['いらっしゃいませ！宿屋へようこそ。', 'ようこそ、お疲れさまでした。宿屋の番頭でございます。'],
+    what: ['ここは、外からのお客さんをお迎えする、この街の入口です。', '外から来るお客さんは、まずここに立ち寄られます。'],
+    facts(f) {
+      const out = [];
+      if (f.servers && f.servers[0]) out.push(`お客さんは${q(f.servers[0].path)}でお迎えしています（${f.servers[0].how}）。`);
+      if (f.domains && f.domains[0]) out.push(`表の看板は${q(f.domains[0])}。その住所で、外に開いております。`);
+      else if (f.deploy && f.deploy[0]) out.push(`${q(f.deploy[0])}の段取りで、表に店を出しております。`);
+      if (f.frameworks && f.frameworks.length) out.push(`宿の造りは ${f.frameworks.slice(0, 2).join('、')} です。`);
+      else if (f.configs && f.configs[0]) out.push(`宿の骨組みは${q(f.configs[0])}に書いてございます。`);
+      if (f.pages && f.pages[0]) out.push(`最初にお見せするページは${q(f.pages[0])}です。`);
+      return out;
+    },
+    close: ['どうぞ、ごゆっくり。', 'またのお越しを、お待ちしております。'],
+  },
+  pub: {
+    greet: ['おう、酒場へようこそ。', 'いらっしゃい。まあ、座んな。'],
+    what: ['ここは、外とつながる連中のギルドだ。', 'この街と外をつなぐ連中が、ここに集まってる。'],
+    facts(f) {
+      const out = [];
+      const cs = Array.isArray(f.connectors) ? f.connectors : [];
+      const names = cs.map((c) => c.name);
+      if (names.length) {
+        const first = names.slice(0, 4), rest = names.length - first.length;
+        out.push(names.length === 1 ? `名簿に載ってるのは、${names[0]}だけだ。` : `名簿を読むぞ。${first.join('、')}${rest > 0 ? `、ほか${rest}組` : ''}。`);
+      }
+      const dep = cs.find((c) => c.via === 'dep' && c.paths && c.paths[0]);
+      if (dep) {
+        const same = cs.filter((c) => c.via === 'dep' && c.paths[0] === dep.paths[0]).map((c) => c.name).slice(0, 3);
+        out.push(`${listJa(same)}の名前は、${q(dep.paths[0])}に載ってる。`);
+      }
+      const url = cs.find((c) => c.via === 'url' && c.paths && c.paths[0]);
+      if (url) out.push(`${url.name}へは、${q(url.paths[0])}から使いを出してる。`);
+      if (f.webhooks && f.webhooks[0]) out.push(`外からの知らせは${q(f.webhooks[0])}で受けてる。`);
+      return out;
+    },
+    close: ['外の連中とうまくやるのも、ここの仕事さ。', '新しい顔が来たら、名簿に書いとくよ。'],
+  },
+  warehouse: {
+    greet: ['……倉庫だ。', 'ん。倉庫に用か。'],
+    what: ['データをしまっておく場所だ。', 'ここには、街のデータがしまってある。'],
+    facts(f) {
+      const out = [];
+      if (f.kinds && f.kinds.length) out.push(`しまい方は ${f.kinds.slice(0, 4).join('、')}。`);
+      if (f.sqlFiles > 0) out.push(`SQL のファイルが${count(f.sqlFiles)}。`);
+      if (f.migrations > 0) out.push(`棚の作りかえの手順（migrations）が${fmtInt(f.migrations)}件。`);
+      if (f.configs && f.configs[0]) out.push(`棚の並べ方は${q(f.configs[0])}に書いてある。`);
+      if (f.dataFiles && f.dataFiles[0]) out.push(`データの箱${q(f.dataFiles[0])}も、ここにある。`);
+      else if (f.sqliteCode && f.sqliteCode[0]) out.push(`${q(f.sqliteCode[0])}が、SQLite の箱を開け閉めしてる。`);
+      return out;
+    },
+    close: ['勝手に棚をいじるなよ。', '以上だ。'],
+  },
+  watchtower: {
+    greet: ['止まれ。……なんだ、旅の人か。', 'しっ。見張りの最中だ。'],
+    what: ['ここは見張り台。街で起きたことを記録して、見張っている。', '街の動きは、ここから見張っている。'],
+    facts(f) {
+      const out = [];
+      if (f.tools && f.tools.length) out.push(`見張りの道具は ${f.tools.slice(0, 4).join('、')} だ。`);
+      if (f.logDirs && f.logDirs[0]) out.push(`記録（ログ）は${q(f.logDirs[0])}にためてある。`);
+      if (f.configs && f.configs[0]) out.push(`見張りの段取りは${q(f.configs[0])}に書いてある。`);
+      return out;
+    },
+    close: ['異変があれば、すぐに知らせる。', '気をつけて行け。'],
+  },
+  dojo: {
+    greet: ['ようこそ、道場へ。', 'お静かに。ここは道場です。'],
+    what: ['ここでは、街のしくみが本当に動くかを確かめています。', '動くと言われたものを、実際に動かして確かめる場所です。'],
+    facts(f) {
+      const out = [];
+      if (f.files > 0) out.push(`試験（テスト）は${fmtInt(f.files)}本あります。`);
+      if (f.runners && f.runners.length) out.push(`確かめる道具は ${f.runners.slice(0, 2).join('、')} です。`);
+      if (f.dirs && f.dirs.length) out.push(`稽古場は${f.dirs.slice(0, 2).map(q).join('と')}です。`);
+      if (f.latest && f.latest.subject) {
+        const w = whenJa(f.latest.date);
+        out.push(`最近の稽古は${w ? `${w}、` : ''}${f.latest.author ? san(f.latest.author) : 'だれか'}の『${shortSubject(f.latest.subject)}』です。`);
+      }
+      return out;
+    },
+    close: ['動くと言うなら、確かめてからにしましょう。', '確かめたことだけが、本当のことです。'],
+  },
+};
+
+function facilityLines(building, fac, town) {
+  const v = FACILITY_VOICE[fac.archetype];
+  const rng = mulberry32(strHash(`facility:${building.id}:${fac.archetype}`));
+  const pick = (arr) => arr[Math.floor(rng() * arr.length)];
+  const facts = v.facts(fac.facts || {}).filter(Boolean);
+  // 足りなければ、よく手を入れる人（施設の証拠に触れたコミット）
+  const m = building.module || {};
+  const a = (m.authors || []).filter((x) => x && x.name && x.commits > 0);
+  if (facts.length < 2 && a.length) facts.push(`よく顔を出すのは${san(a[0].name)}です（${fmtInt(a[0].commits)}回）。`);
+  return [pick(v.greet), pick(v.what), ...facts.slice(0, 4), pick(v.close)].map(spaceOut);
+}
+
 // ---------- townsfolk bubble ----------
 // def: Town resident { name, commits, homes, lastCommit }. Returns plain text parts.
 export function residentBubble(def, town) {
+  if (def && def.local) return localBubble(def, town);
   const n = def.commits | 0;
   const line = n > 0 ? `この街に ${fmtInt(n)} 回手を入れた人` : 'この街に手を入れた人';
   let more = '';
@@ -451,4 +574,27 @@ export function residentBubble(def, town) {
     if (b && b.module) more = `よく行くのは${b.module.path === '.' ? '街のおおもと' : `「${b.module.path}」`}の${KIND[b.module.kind] || '建物'}`;
   }
   return { name: def.name || '?', line, more: spaceOut(more) };
+}
+
+// An ambient townsperson (常連): which building they belong to, and one true fact about it.
+function localBubble(loc, town) {
+  const b = loc.home && loc.home.data;
+  const m = (b && b.module) || {};
+  const fac = b && b.facility;
+  const segs = String(m.path || '').split('/');
+  const place = fac ? fac.name : !m.path || m.path === '.' ? '街のおおもと' : `「${width(m.path) > 18 ? segs[segs.length - 1] : m.path}」`;
+  const line = `${place}の常連`;
+  const latest = town && town.repo && Date.parse(town.repo.latestCommitDate);
+  const fresh = Number.isFinite(latest) && Date.now() - latest < 14 * 86400e3;
+  const days = (town && town.repo && town.repo.recentDays) || 90;
+  const n = m.recent | 0;
+  const busy = n > 0 ? (fresh ? (n >= 10 ? `最近にぎやか（この${days}日で${fmtInt(n)}回）` : `この${days}日で${fmtInt(n)}回、手が入った`)
+    : `最後のコミットまでの${days}日で${fmtInt(n)}回、手が入った`) : '';
+  let more = busy;
+  const lc = m.lastCommit;
+  if (loc.def && loc.def.fact === 1 && lc && lc.subject) {
+    const w = whenJa(lc.date);
+    more = `${w ? whenLead(w) : ''}${lc.author ? san(lc.author) : 'だれか'}が『${shortSubject(lc.subject, 20)}』と手を入れた`;
+  }
+  return { name: '町の人', line: spaceOut(line), more: spaceOut(more) };
 }

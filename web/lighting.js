@@ -23,6 +23,24 @@ function lightSprite(size, rgb, falloff) {
   return c;
 }
 
+// A pool of light on the ground: flat bright centre, soft edge (reads as a lit patch of street,
+// not as a glow around the lamp head)
+function poolSprite(size, rgb) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const g = c.getContext('2d');
+  const r = size / 2;
+  const grad = g.createRadialGradient(r, r, 0, r, r, r);
+  for (let i = 0; i <= 16; i++) {
+    const t = i / 16;
+    const a = t < 0.38 ? 1 : Math.pow(1 - (t - 0.38) / 0.62, 1.7);
+    grad.addColorStop(t, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${a.toFixed(4)})`);
+  }
+  g.fillStyle = grad;
+  g.fillRect(0, 0, size, size);
+  return c;
+}
+
 export class Lighting {
   constructor() {
     this.canvas = document.createElement('canvas');
@@ -35,6 +53,8 @@ export class Lighting {
     this.neutral = lightSprite(128, [205, 196, 186], 1.25);
     this.glow = lightSprite(64, [255, 170, 90], 2.2);
     this.interior = lightSprite(128, [255, 214, 160], 0.8);
+    this.pool = poolSprite(128, [255, 206, 138]);
+    this.poolGlow = poolSprite(64, [255, 178, 96]);
   }
 
   resize(w, h) {
@@ -87,6 +107,14 @@ export class Lighting {
       if (L.kind === 'window') {
         g.globalAlpha = Math.min(1, 0.95 * f.i);
         g.drawImage(this.window, x - r, y - r, r * 2, r * 2);
+      } else if (L.footY !== undefined) {
+        // street lamp: a softer glow around the lamp, and a bright flattened pool on the ground at its foot
+        g.globalAlpha = Math.min(1, 0.7 * f.i);
+        const rg = r * 0.75;
+        g.drawImage(this.warm, x - rg, y - rg, rg * 2, rg * 2);
+        const px = r * 0.95 * f.r, py = r * 0.58 * f.r, fy = L.footY - camY - 3;
+        g.globalAlpha = Math.min(1, 1.0 * f.i);
+        g.drawImage(this.pool, x - px, fy - py, px * 2, py * 2);
       } else {
         // broad pool + hot core: strong enough to show the stone texture, ambient stays dark
         g.globalAlpha = Math.min(1, (L.kind === 'door' ? 0.8 : 1) * f.i) * on;
@@ -120,6 +148,16 @@ export class Lighting {
     target.drawImage(this.canvas, 0, 0);
     // glow pass (additive, subtle)
     target.globalCompositeOperation = 'lighter';
+    // street lamps lift the ground under them above its base colour, so the pools read as lit patches
+    for (const L of world.lights) {
+      if (L.footY === undefined) continue;
+      const f = Lighting.flicker(L, t);
+      const px = L.r * 0.7 * f.r, py = L.r * 0.4 * f.r;
+      const x = L.x - camX, y = L.footY - camY - 3;
+      if (x + px < 0 || y + py < 0 || x - px > vw || y - py > vh) continue;
+      target.globalAlpha = 0.22 * f.i;
+      target.drawImage(this.poolGlow, x - px, y - py, px * 2, py * 2);
+    }
     for (const L of world.lights) {
       if (L.kind === 'steady') continue;
       const on = L.interior ? (L.building ? L.building.open : 0) : 1;
