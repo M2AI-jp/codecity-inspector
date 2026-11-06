@@ -33,6 +33,9 @@ console.log(`${model.name}${model.head ? ` @ ${model.head}` : ''}: モジュー�
 const t3 = Date.now();
 try { town.creatures = findCreatures(resolve(repoPath), model, town); }
 catch (e) { town.creatures = []; console.warn(`生き物を探せなかった: ${e.message}`); }
+// 犬になった bot は、人の姿では歩かせない（同じ bot が二重に現れない）
+const dogNames = new Set(town.creatures.filter((c) => c.kind === 'dog').map((c) => String(c.name).toLowerCase()));
+if (dogNames.size) town.residents = town.residents.filter((r) => !dogNames.has(String(r.name).replace(/\[bot\]$/i, '').toLowerCase()));
 const ck = {};
 for (const c of town.creatures) ck[c.kind] = (ck[c.kind] || 0) + 1;
 console.log(`生き物 ${town.creatures.length}${town.creatures.length ? ` (${Object.entries(ck).map(([k, n]) => `${k} ${n}`).join(', ')})` : ''}（${Date.now() - t3}ms）`);

@@ -32,7 +32,10 @@ html, body {
 
 /* facts panel: a side column on the side away from the player */
 #stats { right: 14px; top: 14px; width: min(340px, 30vw); max-height: calc(100vh - 28px); overflow: hidden; background: rgba(12, 13, 22, 0.78); }
-#ui.side-left #stats { right: auto; left: 14px; top: 84px; max-height: calc(100vh - 98px); }
+#ui.side-left #stats { right: auto; left: 14px; }
+/* on the left the facts panel takes the top-left corner (full height, so its last rows are not cut
+   off); the repo badge steps aside while it is shown */
+#ui.side-left:has(#stats.show) #repo { opacity: 0; }
 #stats .head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
 #stats .kind { font-size: 18px; font-weight: 700; padding: 0 8px; border-radius: 2px; background: #3a3426; color: #ffe2a0; }
 #stats .kind-workshop { background: #4a2f1e; color: #ffc98a; }

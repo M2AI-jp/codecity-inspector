@@ -454,7 +454,11 @@ const FACILITY_VOICE = {
         const ppl = f.contributors ? (f.contributorsWindow ? `直近の${fmtInt(f.contributorsWindow)}件では${nPeople(f.contributors)}が手を入れています` : `手を入れた人は${nPeople(f.contributors)}です`) : '';
         out.push(`記録されたコミットは${fmtInt(f.commits)}件。${ppl ? `${ppl}。` : ''}`);
       }
-      if (f.firstCommit && f.lastCommit) out.push(`最初の記録は${dateJa(f.firstCommit)}、いちばん新しい記録は${dateJa(f.lastCommit)}です。`);
+      if (f.firstCommit && f.lastCommit) {
+        out.push(dateJa(f.firstCommit) === dateJa(f.lastCommit)
+          ? `記録の日付は、${dateJa(f.firstCommit)}です。`
+          : `最初の記録は${dateJa(f.firstCommit)}、いちばん新しい記録は${dateJa(f.lastCommit)}です。`);
+      }
       if (f.tags > 0 && f.latestTag) out.push(`節目の印（タグ）は${fmtInt(f.tags)}個。いちばん新しいのは${q(f.latestTag.name)}です。`);
       else if (f.tags === 0) out.push('節目の印（タグ）は、まだひとつもついていません。');
       if (f.changelog) out.push(`変更の記録帳${q(f.changelog)}も、ここに保管しています。`);
@@ -532,7 +536,7 @@ const FACILITY_VOICE = {
     what: ['ここでは、街のしくみが本当に動くかを確かめています。', '動くと言われたものを、実際に動かして確かめる場所です。'],
     facts(f) {
       const out = [];
-      if (f.files > 0) out.push(`試験（テスト）は${fmtInt(f.files)}本あります。`);
+      if (f.files > 0) out.push(`試験（テスト）のファイルが${fmtInt(f.files)}個あります。`);   // test files, helpers included (not test cases)
       if (f.runners && f.runners.length) out.push(`確かめる道具は ${f.runners.slice(0, 2).join('、')} です。`);
       if (f.dirs && f.dirs.length) out.push(`稽古場は${f.dirs.slice(0, 2).map(q).join('と')}です。`);
       if (f.latest && f.latest.subject) {
@@ -553,7 +557,11 @@ function facilityLines(building, fac, town) {
   // 足りなければ、よく手を入れる人（施設の証拠に触れたコミット）
   const m = building.module || {};
   const a = (m.authors || []).filter((x) => x && x.name && x.commits > 0);
-  if (facts.length < 2 && a.length) facts.push(`よく顔を出すのは${san(a[0].name)}です（${fmtInt(a[0].commits)}回）。`);
+  if (facts.length < 2 && a.length) {
+    // the keeper's own way of speaking (the watchtower guard, the warehouse keeper and the pub master are curt)
+    const end = { pub: 'だ', warehouse: 'だ', watchtower: 'だ' }[fac.archetype] || 'です';
+    facts.push(`よく顔を出すのは${san(a[0].name)}${end}（${fmtInt(a[0].commits)}回）。`);
+  }
   return [pick(v.greet), pick(v.what), ...facts.slice(0, 4), pick(v.close)].map(spaceOut);
 }
 

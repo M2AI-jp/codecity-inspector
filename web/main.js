@@ -74,6 +74,12 @@ async function boot() {
   // keepers stand still: make them solid for everyone and refresh navigation around them
   for (const k of npcs.keepers) world.addRect(k.x + KEEPER_BOX[0], k.y + KEEPER_BOX[1], KEEPER_BOX[2], KEEPER_BOX[3], 'npc');
   if (npcs.keepers.length) world.computeNav();
+  // the keeper answers as soon as you step in: one standing further back than NEAR_KEEPER from the
+  // spot just inside the door (behind a shop counter) still speaks from there
+  for (const k of npcs.keepers) {
+    const b = k.building, d = b.doorInside ? Math.hypot(k.x - b.doorInside.x, k.y - b.doorInside.y) + 6 : 0;
+    b.talkR = Math.min(72, Math.max(NEAR_KEEPER, d));
+  }
   const movers = [...npcs.walkers, ...npcs.locals];     // named contributors + ambient townsfolk
   player.blockers = movers;
 
@@ -256,9 +262,9 @@ async function boot() {
 
     uiState.building = current && current.module ? current : null;
     uiState.keeper = current && current.keeper &&
-      Math.hypot(current.keeper.x - player.x, current.keeper.y - player.y) < NEAR_KEEPER + (ui.curKeeper === current.keeper ? 24 : 0)
+      Math.hypot(current.keeper.x - player.x, current.keeper.y - player.y) < (current.talkR || NEAR_KEEPER) + (ui.curKeeper === current.keeper ? 24 : 0)
       ? current.keeper : null;
-    uiState.walker = nearest(movers, NEAR_RESIDENT);
+    uiState.walker = uiState.keeper ? null : nearest(movers, NEAR_RESIDENT);   // one speaker at a time: the keeper's dialogue wins
     uiState.notice = readme && noticeboards.length && nearest(noticeboards, NEAR_NOTICE) ? readme : null;
     uiState.dt = frameDt;
     uiState.playerMoved = playerMoved;

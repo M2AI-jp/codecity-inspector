@@ -7,6 +7,18 @@ import { keeperLines, residentBubble, whenJa, shortSubject } from './dialogue.js
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+// Long paths wrap into a tall column in the narrow facts panel (and push its last rows off the
+// bottom): keep the end of the path (the file / folder name) and elide the front.
+function fitPath(p, max) {
+  p = String(p ?? '');
+  if (p.length <= max) return p;
+  const segs = p.split('/');
+  let out = segs.pop();
+  if (out.length > max) return `${out.slice(0, Math.ceil(max / 2) - 1)}…${out.slice(-Math.floor(max / 2))}`;
+  while (segs.length && out.length + segs[segs.length - 1].length + 3 <= max) out = `${segs.pop()}/${out}`;
+  return segs.length ? `…/${out}` : out;
+}
+
 const TYPE_CPS = 30;          // typewriter characters per second
 const VISIBLE_LINES = 3;
 
@@ -49,11 +61,12 @@ export class UI {
     const rows = [];
     if (m.reason && (!b.keeper || fac)) rows.push(['なぜ' + kind + '？', esc(m.reason)]);   // the keeper says it otherwise
     if (fac && fac.evidence && fac.evidence.length) {
-      const ev = fac.evidence.filter((p) => p !== '.git').slice(0, 3);
+      const ev = fac.evidence.filter((p) => p !== '.git').slice(0, 2);
       const more = fac.evidenceCount > ev.length + (fac.evidence.includes('.git') ? 1 : 0) ? ` <span class="dim">ほか ${fmtInt(fac.evidenceCount - ev.length)}</span>` : '';
-      if (ev.length) rows.push(['根拠', ev.map((p) => `<div class="file">${esc(p)}</div>`).join('') + more]);
+      if (ev.length) rows.push(['根拠', ev.map((p) => `<div class="file" title="${esc(p)}">${esc(fitPath(p, 24))}</div>`).join('') + more]);
     }
-    if (fac && fac.merged && fac.merged.length) rows.push(['まとめた所', esc(fac.merged.slice(0, 3).join('、'))]);
+    const merged = fac && fac.merged ? fac.merged.filter((p) => p !== m.path) : [];     // the header already names m.path
+    if (merged.length) rows.push(['まとめた所', esc(merged.slice(0, 3).join('、'))]);
     if (Number.isFinite(m.files)) rows.push(['大きさ', `${fmtInt(m.files)} ファイル・${fmtInt(m.lines)} 行`]);
     const langs = Object.entries(m.languages || {}).filter(([, n]) => n > 0).sort((a, c) => c[1] - a[1]).slice(0, 4);
     if (langs.length) rows.push(['言語', langs.map(([k, n]) => `${esc(langName(k))} ${fmtInt(n)}`).join('・')]);
@@ -66,8 +79,8 @@ export class UI {
     if (authors.length) rows.push(['よく触る人', authors.map((a) => `${esc(a.name)} <span class="dim">${fmtInt(a.commits)}回</span>`).join('、')]);
     const files = (m.topFiles || []).slice(0, 2);
     const short = (fp) => (m.path && m.path !== '.' && String(fp).startsWith(`${m.path}/`) ? String(fp).slice(m.path.length + 1) : fp);
-    if (files.length) rows.push(['大きいファイル', files.map((f) => `<div class="file">${esc(short(f.path))} <span class="dim">${fmtInt(f.lines)}行</span></div>`).join('')]);
-    el.innerHTML = `<div class="head"><span class="kind kind-${esc(m.kind)}">${esc(kind)}</span><span class="path">${esc(m.path === '.' ? '（ルート）' : m.path)}</span></div>` +
+    if (files.length) rows.push(['大きいファイル', files.map((f) => `<div class="file">${esc(fitPath(short(f.path), 24))} <span class="dim">${fmtInt(f.lines)}行</span></div>`).join('')]);
+    el.innerHTML = `<div class="head"><span class="kind kind-${esc(m.kind)}">${esc(kind)}</span><span class="path" title="${esc(m.path)}">${esc(m.path === '.' ? '（ルート）' : fitPath(m.path, 40))}</span></div>` +
       `<div class="grid">${(fac ? rows.filter(([k]) => k !== '大きいファイル' && k !== '言語' && (k !== '大きさ' || (fac.merged && fac.merged.length))) : rows).map(([k, v]) => `<div class="k">${k}</div><div class="v">${v}</div>`).join('')}</div>`;
     el.classList.add('show');
   }
@@ -155,6 +168,7 @@ export class UI {
         bub.innerHTML = `<div><span class="who">${esc(t.name)}</span><span class="sep">─</span>${esc(t.line)}</div>` +
           (t.more ? `<div class="more">${esc(t.more)}</div>` : '');
         bub.classList.add('show');
+        this.bubbleW = bub.offsetWidth;
       } else bub.classList.remove('show');
     }
     if (w) {
@@ -162,7 +176,8 @@ export class UI {
       // so the bubble never sits on the player
       const v = s.view;
       const below = s.player.ry < w.ry - 4;
-      const x = Math.round(((Math.round(w.rx) - v.camX) * v.cssPerPx));
+      const half = (this.bubbleW || 0) / 2 + 6;        // keep the whole bubble on screen near the edges
+      const x = Math.round(Math.max(half, Math.min(window.innerWidth - half, (Math.round(w.rx) - v.camX) * v.cssPerPx)));
       const y = Math.round(((Math.round(w.ry) + (below ? 4 : -34) - v.camY) * v.cssPerPx));
       if (x !== this.bubbleX || y !== this.bubbleY || below !== this.bubbleBelow) {
         this.bubbleX = x; this.bubbleY = y; this.bubbleBelow = below;

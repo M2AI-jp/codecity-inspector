@@ -39,7 +39,7 @@ export class Walker extends Character {
     const tiles = w.findPath(Math.floor(this.x / T), Math.floor((this.y - 3) / T), Math.floor(px / T), Math.floor((py - 3) / T));
     if (!tiles) { this.path = null; return false; }
     this.path = w.smoothPath(this.x, this.y, tiles, px, py);
-    this.pi = 0; this.state = 'walk'; this.after = then; this.wait = 0;
+    this.pi = 0; this.state = 'walk'; this.after = then; this.wait = 0; this.detours = 0; this.gaveUp = false;
     return true;
   }
 
@@ -148,9 +148,18 @@ export class Walker extends Character {
         this.wait += dt;
         this.facing = facingFrom(px, py, this.facing);
         if (this.wait > 2.2) {
-          // try a path that avoids the player's tile
           const w = this.world;
           const last = this.path[this.path.length - 1];
+          // going to where the player stands, or already went round once: give up and stay here
+          // for a moment (otherwise everyone bound for that spot crowds round a player who stands still)
+          if (this.detours > 0 || Math.hypot(last.x - player.x, last.y - player.y) < 22) {
+            this.path = null; this.wait = 0; this.detours = 0; this.gaveUp = true;
+            this.state = this.after === 'inside' ? 'inside' : 'look';
+            this.timer = 1 + this.rng() * 1.5; this.lookTimer = 0.3;
+            return;
+          }
+          this.detours = 1;
+          // try a path that avoids the player's tile
           const avoid = Math.floor(player.y / T - 0.2) * w.cols + Math.floor(player.x / T);
           const tiles = w.findPath(Math.floor(this.x / T), Math.floor((this.y - 3) / T), Math.floor(last.x / T), Math.floor((last.y - 3) / T), { avoid });
           if (tiles) {
@@ -335,7 +344,7 @@ export class Local extends Walker {
         this.walk(dt, player);
         if (this.state === 'look' && this.partner) {
           const o = this.partner;
-          if (o.partner === this && o.state === 'hold') {
+          if (!this.gaveUp && o.partner === this && o.state === 'hold') {
             const t = 3.5 + this.rng() * 4;
             this.state = o.state = 'chat';
             this.timer = o.timer = t;

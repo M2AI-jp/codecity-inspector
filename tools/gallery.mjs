@@ -126,8 +126,7 @@ section { display: grid; gap: 14px; }
 img { image-rendering: pixelated; max-width: 100%; height: auto; display: block; }
 .row, .pair { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
 .wide { overflow-x: auto; }
-.s2 { width: calc(var(--w, 0) * 2); }
-.ref { width: 96px; opacity: .9; object-fit: none; object-position: 0 -64px; height: 96px; transform: scale(3); transform-origin: bottom left; width: 32px; height: 32px; margin-right: 64px; }
+.ref { width: 96px; height: 96px; image-rendering: pixelated; }
 .walk { width: 96px; height: 96px; image-rendering: pixelated; background: #0f1115; border-radius: 4px; }
 .tile { width: 256px; height: 256px; background-size: auto; background-repeat: repeat; image-rendering: pixelated; }
 .missing { color: var(--dim); font-size: 14px; }
