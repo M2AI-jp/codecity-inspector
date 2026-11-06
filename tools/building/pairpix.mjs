@@ -13,7 +13,7 @@ const a = place(A, 0, 0), b = place(B0, DX, DY);
 const bb = (im) => { let x0 = 1e9, y0 = 1e9, x1 = -1, y1 = -1; for (let y = 0; y < im.h; y++) for (let x = 0; x < im.w; x++) if (im.data[(y * im.w + x) * 4 + 3]) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); } return { x0, y0, x1, y1 }; };
 const ba = bb(a), bbB = bb(b);
 const U = { x0: Math.min(ba.x0, bbB.x0), y0: Math.min(ba.y0, bbB.y0), x1: Math.max(ba.x1, bbB.x1), y1: Math.max(ba.y1, bbB.y1) };
-const S = 40, M = 60; // marker size, margin (source px)
+const S = 110, M = 60; // marker size, margin (source px)
 const mk = [[U.x0 - M - S, U.y0 - M - S], [U.x1 + M, U.y1 + M]];
 for (const im of [a, b]) for (const [mx, my] of mk) for (let y = my; y < my + S; y++) for (let x = mx; x < mx + S; x++) im.data.set([27, 20, 16, 255], (y * im.w + x) * 4);
 const sOut = (ba.x1 - ba.x0 + 1) / TW; // src px per output px, from A's width

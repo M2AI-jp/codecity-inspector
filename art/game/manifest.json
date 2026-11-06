@@ -254,7 +254,116 @@
       }
     ]
   },
-  "archetypes": {},
+  "archetypes": {
+    "ruin": {
+      "variants": [
+        {
+          "id": "ruin-1",
+          "footprint": [6, 4],
+          "exterior": {
+            "src": "buildings/ruin-1.exterior.png",
+            "origin": [0, 40],
+            "size": [96, 104]
+          },
+          "cutaway": {
+            "src": "buildings/ruin-1.cutaway.png",
+            "origin": [0, 40],
+            "size": [96, 104]
+          },
+          "door": {
+            "x": 1,
+            "w": 2
+          },
+          "floor": [8, 26, 83, 25],
+          "blockers": [
+            [31, 29, 19, 9],
+            [26, 32, 6, 8],
+            [56, 26, 13, 5],
+            [67, 26, 12, 4],
+            [80, 26, 9, 5],
+            [8, 33, 9, 10],
+            [63, 35, 16, 8]
+          ],
+          "lights": [],
+          "smoke": []
+        }
+      ]
+    },
+    "shop": {
+      "variants": [
+        {
+          "id": "shop-1",
+          "footprint": [6, 4],
+          "exterior": {
+            "src": "buildings/shop-1.exterior.png",
+            "origin": [0, 40],
+            "size": [96, 104]
+          },
+          "cutaway": {
+            "src": "buildings/shop-1.cutaway.png",
+            "origin": [0, 40],
+            "size": [96, 104]
+          },
+          "door": {
+            "x": 1,
+            "w": 1
+          },
+          "floor": [8, 9, 81, 43],
+          "blockers": [
+            [9, 12, 12, 7],
+            [61, 9, 9, 6],
+            [39, 22, 46, 10],
+            [44, 34, 34, 9],
+            [36, 46, 55, 6]
+          ],
+          "lights": [
+            [64, 35, 30],
+            [31, 32, 22],
+            [65, -1, 22]
+          ],
+          "smoke": [
+            [83, -38]
+          ]
+        },
+        {
+          "id": "shop-2",
+          "footprint": [6, 4],
+          "exterior": {
+            "src": "buildings/shop-2.exterior.png",
+            "origin": [0, 40],
+            "size": [96, 104]
+          },
+          "cutaway": {
+            "src": "buildings/shop-2.cutaway.png",
+            "origin": [0, 40],
+            "size": [96, 104]
+          },
+          "door": {
+            "x": 1,
+            "w": 1
+          },
+          "floor": [6, 13, 84, 38],
+          "blockers": [
+            [6, 22, 17, 11],
+            [22, 21, 8, 6],
+            [52, 23, 36, 14],
+            [6, 46, 10, 6],
+            [38, 46, 11, 6]
+          ],
+          "lights": [
+            [68, 38, 30],
+            [27, 34, 18],
+            [11, 33, 26],
+            [48, -3, 22],
+            [67, 13, 16]
+          ],
+          "smoke": [
+            [15, -37]
+          ]
+        }
+      ]
+    }
+  },
   "props": {
     "barrel": {
       "src": "props/barrel.png",
