@@ -4,7 +4,7 @@
 // 建物: W 工房 / S 商店 / H 住宅 / R 廃屋（扉は小文字）。地面: . 草地 # 石畳 : 土の路地 + 広場（空白は街の外）
 // 小物: T 木 * 茂み o 樽 x 木箱 = 柵 n ベンチ i 街灯 O 井戸 N 掲示板 / @ 開始位置
 // --districts: 建物を種類ではなく地区（最上位ディレクトリ）ごとの文字で描く
-// --check: 重なり・屋根の余白・扉の前・広場からの到達・同じ入力で同じ出力になるかを調べ、問題があれば終了コード1
+// --check: 重なり・隙間・屋根の余白・footprint の下の行（幅いっぱい歩けて広場から届く）・同じ入力で同じ出力になるか。問題があれば終了コード1
 import { readFileSync } from 'node:fs';
 import { analyzeRepository } from '../src/analyze.mjs';
 import { layoutTown } from '../src/layout.mjs';
@@ -93,11 +93,14 @@ if (args.includes('--check')) {
       if (walk(nx, ny) && !seen[ny * cols + nx]) { seen[ny * cols + nx] = 1; q.push(ny * cols + nx); }
     }
   }
+  // 扉の列は絵の版で決まるので、footprint のすぐ下の1行は端から端まで歩ける地面で、広場から行けること
   for (const b of town.buildings) {
-    const x = b.door.x, y = b.door.y + 1;
-    if (!walk(x, y)) problems.push(`${b.id} の扉の前 (${x},${y}) が歩けない`);
-    else if (!seen[y * cols + x]) problems.push(`${b.id} の扉の前 (${x},${y}) に広場から行けない`);
-    if (!'#:+'.includes(town.ground[y]?.[x])) problems.push(`${b.id} の扉の前が通り・路地でない`);
+    const y = b.y + b.h;
+    for (let x = b.x; x < b.x + b.w; x++) {
+      if (!walk(x, y)) problems.push(`${b.id} の下の行 (${x},${y}) が歩けない`);
+      else if (!seen[y * cols + x]) problems.push(`${b.id} の下の行 (${x},${y}) に広場から行けない`);
+      if (!'#:+'.includes(town.ground[y]?.[x])) problems.push(`${b.id} の下の行 (${x},${y}) が通り・路地・広場でない`);
+    }
   }
   let walkable = 0, streets = 0, unreached = 0;
   for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
@@ -117,5 +120,5 @@ if (args.includes('--check')) {
   for (const r of town.ground) for (const ch of r) if (ch !== ' ') inside++;
   console.log(`check: 歩行面 ${walkable}（石畳 ${streets}）, 建物の占有率 ${(100 * builtArea / Math.max(1, inside)).toFixed(1)}%（街の内側に対して）, 到達 ${q.length}`);
   if (problems.length) { console.log(`問題 ${problems.length} 件:\n  ` + [...new Set(problems)].slice(0, 40).join('\n  ')); process.exit(1); }
-  console.log('check: OK（重なり・隙間・屋根の余白・扉の前・到達・決定性）');
+  console.log('check: OK（重なり・隙間・屋根の余白・下の行・到達・決定性）');
 }
