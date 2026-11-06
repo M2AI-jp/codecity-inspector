@@ -298,6 +298,14 @@ function townGrid(town) {
   }
   // 外に立つ番人（井戸番など）の足もと
   for (const l of town.landmarks || []) if (l.keeper) mark(blocked, Math.floor(l.keeper.x), Math.floor(l.keeper.y - 0.01), 1, 1);
+  // 段（terrace）の石垣の前面（y+h の行）には立たない。階段の段だけは歩ける
+  const step = new Set();
+  for (const s of town.stairs || []) for (let x = s.x; x < s.x + s.w; x++) step.add(s.y * cols + x);
+  for (const t of town.terraces || []) {
+    const fy = t.y + t.h;
+    if (fy < 0 || fy >= rows) continue;
+    for (let x = Math.max(0, t.x); x < Math.min(cols, t.x + t.w); x++) if (!step.has(fy * cols + x)) blocked[fy * cols + x] = 1;
+  }
   const ok = (x, y) => x >= 0 && y >= 0 && x < cols && y < rows && !blocked[y * cols + x] && !hidden[y * cols + x];
   return { ch, ok, cols, rows };
 }
