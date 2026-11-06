@@ -16,7 +16,8 @@
 //            the Player physics. Passes when the feet reach the floor.
 // Also: every building has a keeper; every outdoor keeper (town.landmarks, e.g. the well's 井戸番)
 // can be walked up to and talked to (a reachable feet spot within NEAR_KEEPER - 4 px); every pier
-// deck (a prop with `deck`) can be stepped onto from the spawn.
+// deck (a prop with `deck`) can be stepped onto from the spawn; every terrace top (town.terraces) can
+// be reached and every stair (town.stairs) stood on, with the terrace wall solid as in web/world.js.
 // Exit code 1 if anything fails. Prints why (what blocks the door corridor).
 
 import { readFileSync, statSync } from 'node:fs';
@@ -251,6 +252,15 @@ for (const target of targets) {
   const farKeepers = outdoor.filter((k) => !nearSeen(world, seen, k.x, k.y, NEAR_KEEPER - 4));
   const lmCount = (town.landmarks || []).length;
   if (outdoor.length < lmCount) console.log(`  x ${lmCount - outdoor.length} landmark keeper(s) were not created (town.landmarks has ${lmCount})`);
+  // terraces: the raised top can be reached, and every stair can be stood on (climbed from the square / street below)
+  const ters = town.terraces || [], strs = town.stairs || [];
+  const tileSeen = (tx0, ty0, tx1, ty1) => {
+    for (let y = ty0 * T + FEET_UP; y <= (ty1 + 1) * T - FEET_H + FEET_UP; y++) for (let x = tx0 * T + FEET_W / 2; x <= (tx1 + 1) * T - FEET_W / 2; x++) if (seen[y * world.W + x] === 1) return true;
+    return false;
+  };
+  const dryTer = ters.filter((t) => !tileSeen(t.x, t.y, t.x + t.w - 1, t.y + t.h - 1));
+  const dryStair = strs.filter((s2) => !tileSeen(s2.x, s2.y, s2.x + s2.w - 1, s2.y));
+  failed += dryTer.length + dryStair.length;
   // pier decks: some reachable feet box stands fully on each deck
   const decks = world.decks || [];
   const dryDecks = decks.filter((d) => !onDeckSeen(world, seen, d));
@@ -259,10 +269,13 @@ for (const target of targets) {
   console.log(`${town.repo?.name ?? target}: ${world.buildings.length} buildings, ${bad.length} not enterable, ` +
     `${soft.length} only from part of the door front, ${noKeeper.length} without a keeper; ` +
     `outdoor keepers ${outdoor.length - farKeepers.length}/${outdoor.length} reachable; piers ${decks.length - dryDecks.length}/${decks.length} walkable; ` +
+    `terraces ${ters.length - dryTer.length}/${ters.length} reachable, stairs ${strs.length - dryStair.length}/${strs.length} climbable; ` +
     `reachable feet px ${count} (${ms} ms)`);
   for (const b of noKeeper) console.log(`  x ${b.id} ${b.arch ? b.arch.id : b.archetype} at (${b.x},${b.y}) has no keeper (no spot inside)`);
   for (const k of farKeepers) console.log(`  x outdoor keeper ${k.name} of ${k.building.id} at (${(k.x / T).toFixed(2)},${(k.y / T).toFixed(2)}) cannot be reached for a talk`);
   for (const d of dryDecks) console.log(`  x pier deck at px (${d.x},${d.y},${d.w},${d.h}) cannot be stepped onto`);
+  for (const t of dryTer) console.log(`  x terrace top (${t.x},${t.y},${t.w},${t.h}) cannot be reached`);
+  for (const s2 of dryStair) console.log(`  x stair (${s2.x},${s2.y},${s2.w}) cannot be stood on`);
   for (const x of [...bad, ...(verbose ? soft : [])]) {
     const b = x.b;
     console.log(`  ${x.ok ? '~' : 'x'} ${b.id} ${b.arch ? b.arch.id : b.archetype} at (${b.x},${b.y}) ${b.module?.path ?? ''} [${b.module?.kind ?? ''}]` +

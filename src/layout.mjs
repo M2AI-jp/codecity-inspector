@@ -32,7 +32,6 @@ const RECENT_DAYS = 90;
 const PROP_SIZE = { well: [2, 2], noticeboard: [2, 1], bench: [2, 1], cart: [3, 1] };
 const MARGIN = 8;
 const CAP = 120;
-const FLAT = 12;                    // 広場のまわり（中心から左右 FLAT マス）は大通りをまっすぐに保つ
 const WINDOW = 10;                  // 置けないときに先を探す幅
 const WORKSHOP_ANGLE = 0.35;        // 東やや南（広場の南の大通りの東側）
 const Y_WEIGHT = 1.1;               // 縦の距離を少し重めに見て、やや横長の街にする
@@ -153,7 +152,7 @@ export function loadArt(manifest) {
     const dx = v?.door?.x ?? a?.door?.x;
     // 版ごとの扉（同じ footprint の版だけ。版の名前は town.json の building.variant に書く）
     const variants = defs.filter((d) => d?.id && (!d.footprint || (d.footprint[0] === fp[0] && d.footprint[1] === fp[1])))
-      .map((d) => ({ id: d.id, doorX: Number.isInteger(d.door?.x) ? d.door.x : undefined,
+      .map((d) => ({ id: d.id, doorX: Number.isInteger(d.door?.x) ? d.door.x : undefined, doorW: Number.isInteger(d.door?.w) ? d.door.w : 1,
         wall: Array.isArray(d.wall) && d.wall.length === 2 && d.wall.every(Number.isFinite) ? d.wall : [0, 0] }));
     const roof = Math.max(0, ...defs.map((d) => Number(d?.exterior?.origin?.[1]) || 0));     // 屋根の高さ（px）
     out[k] = { footprint: fp, doorX: Number.isInteger(dx) ? dx : undefined, variants, roof };
@@ -203,12 +202,12 @@ function generate(C, scale) {
   const cols = Math.round(Math.sqrt(area * 1.5)) + 2 * MARGIN;
   let rows = Math.round(Math.sqrt(area / 1.5)) + 2 * MARGIN + 2 * (maxH + 8);
   const PR = Math.max(7, maxH + 2) + (chance(0.35) ? 1 : 0);        // 広場の奥行き
-  const PW = (fac.hall ? 12 : 10) + 2 * ri(0, 1);                     // 広場の幅（小さく、まわりを建物の正面が囲む）
+  const PW = fac.hall ? 12 : 10 + 2 * ri(0, 1);                       // 広場の幅（小さく、まわりを建物の正面が囲む）
   // 水辺: 大通りの南は街区 1〜3 段、その下に岸の通りと水。北へ広げる分、格子を縦に足す
   let southRows = 0, hTop;
   if (harbour) {
     const n = C.count;
-    southRows = n <= 22 ? ri(7, 8) : n <= 70 ? ri(16, 18) : ri(25, 27);
+    southRows = n <= 22 ? ri(8, 9) : n <= 70 ? ri(17, 19) : ri(26, 28);
     rows = Math.round(rows * 1.3);
     hTop = rows - 1 - harbour.water - 2 - southRows - 3;
   } else hTop = Math.floor(rows / 2) + Math.floor(PR / 2);
@@ -220,11 +219,12 @@ function generate(C, scale) {
   // ---- 地図: 通り（piece の番号）、広場、予約（切ってはいけない所）
   const road = new Int32Array(N).fill(-1);
   const pieces = [];
-  const addPiece = (dir, x0, y0, x1, y1, code, kind) => {
+  let grpAuto = 1 << 20;                                             // 1つだけの piece の通りの番号
+  const addPiece = (dir, x0, y0, x1, y1, code, kind, grp) => {
     x0 = Math.max(1, x0); y0 = Math.max(1, y0); x1 = Math.min(cols - 2, x1); y1 = Math.min(rows - 2, y1);
     if (x1 < x0 || y1 < y0) return -1;
     const k = pieces.length;
-    pieces.push({ k, dir, x0, y0, x1, y1, code, kind });
+    pieces.push({ k, dir, x0, y0, x1, y1, code, kind, grp: grp ?? grpAuto++ });
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (road[id(x, y)] < 0) road[id(x, y)] = k;
     return k;
   };
@@ -232,32 +232,61 @@ function generate(C, scale) {
   const pinned = [];
   const hitsPin = (x0, y0, x1, y1) => pinned.some(([a, b, c, d]) => x0 <= c && x1 >= a && y0 <= d && y1 >= b);
 
-  // ---- 広場の南の大通り H: 広場の近くはまっすぐ、離れるとゆるく曲がり、ところどころ1行の段差
-  const bendA = 1, bendL = 36 + rng() * 34, bendP = rng() * 2 * Math.PI;
-  const bend = (x) => {
-    const d = x - cx, e = Math.sign(d) * Math.max(0, Math.abs(d) - FLAT);
-    return Math.round(bendA * (Math.sin((2 * Math.PI * e) / bendL + bendP) - Math.sin(bendP)));
+  // ---- 通りを引く道具: 曲がりながら続く通り。まっすぐは seg（7〜12）マスまでで、そこで ±1 ずれる（lo..hi の中、予約は避ける）。
+  // stair なら 2〜3 マスごとに同じ向きへ1ずれる段々の通り（斜めに見える）。flatN: はじめの何マスかはずらさない
+  let grpN = 0;
+  const meander = (dir, base, from, to, sw, code, kind, o = {}) => {
+    const grp = grpN++;
+    const step = from <= to ? 1 : -1, n = Math.abs(to - from) + 1;
+    const lo = o.lo ?? -1, hi = o.hi ?? 1, seg = o.seg ?? [5, 10];
+    const prof = new Map();
+    const box = (a, v) => (dir === 'h' ? [a, base + v, a, base + v + sw - 1] : [base + v, a, base + v + sw - 1, a]);
+    const free = (a, v) => { const r = box(a, v); return !hitsPin(r[0] - 1, r[1] - 1, r[2] + 1, r[3] + 1) && (!o.ok || o.ok(a, v)); };
+    const emit = (a0, a1, v) => {
+      const p = Math.min(a0, a1), q = Math.max(a0, a1);
+      if (dir === 'h') addPiece('h', p, base + v, q, base + v + sw - 1, code, kind, grp);
+      else addPiece('v', base + v, p, base + v + sw - 1, q, code, kind, grp);
+    };
+    // はじめの一区間は短め（交差点の向こうの通りと一直線につながりにくくする）
+    let cur = 0, runA = from, next = (o.flatN || 0) + (o.jogAfterFlat ? 0 : o.stair ? ri(2, 3) : ri(2, 6));
+    for (let i = 0; i < n; i++) {
+      const a = from + i * step;
+      let v = cur;
+      if (i >= next) {
+        // 範囲の端にいれば、内側へ（まっすぐのまま続けない）
+        const want = o.stair ? cur + o.stair : cur <= lo ? cur + 1 : cur >= hi ? cur - 1 : cur + (rng() < 0.5 ? -1 : 1);
+        const alt = o.stair ? cur : clamp(2 * cur - want, lo, hi);
+        if (want !== cur && free(a, want) && free(a + step, want)) v = want;
+        else if (alt !== cur && free(a, alt) && free(a + step, alt)) v = alt;
+        next = i + (o.stair ? ri(2, 3) : ri(seg[0], seg[1]));
+      }
+      if (v !== 0 && !free(a, v) && free(a, 0)) v = 0;
+      if (v !== cur) {
+        emit(runA, a - step, cur);
+        if (sw === 1 || Math.abs(v - cur) >= sw) {               // 段差をつなぐ
+          const m0 = Math.min(cur, v), m1 = Math.max(cur, v) + sw - 1;
+          if (dir === 'h') addPiece('v', a, base + m0, a, base + m1, code, kind, grp);
+          else addPiece('h', base + m0, a, base + m1, a, code, kind, grp);
+        }
+        runA = a; cur = v;
+      }
+      prof.set(a, v);
+    }
+    emit(runA, to, cur);
+    let mn = Infinity, mx = -Infinity;
+    for (const v of prof.values()) { mn = Math.min(mn, v); mx = Math.max(mx, v); }
+    const at = (a) => base + (prof.get(clamp(a, Math.min(from, to), Math.max(from, to))) ?? 0);
+    return { grp, at, min: base + mn, max: base + mx, sw };
   };
+
+  // ---- 広場の南の大通り H（3行）: 広場の下はまっすぐ、その外は 7〜12 マスごとに1行ずれる
+  const PWh = PW / 2;
   const Htop = new Int16Array(cols).fill(-1);
   {
-    const jog = new Int8Array(cols);
-    for (const dir of [-1, 1]) {
-      let j = 0, next = FLAT + ri(3, 10);
-      for (let d = 0; ; d++) {
-        const x = dir < 0 ? cx - 1 - d : cx + d;
-        if (x < 1 || x > cols - 2) break;
-        if (d >= next) { if (rng() < 0.55) j = clamp(j + (rng() < 0.5 ? -1 : 1), -1, 1); next = d + ri(6, 14); }
-        jog[x] = j;
-      }
-    }
-    for (let x = 1; x <= cols - 2; x++) Htop[x] = hTop + bend(x) + jog[x];
-    // 列ごとに 3 行。隣の列と離れすぎた所は上へのばしてつなぐ
-    let run = 1;
-    for (let x = 2; x <= cols - 1; x++) {
-      if (x <= cols - 2 && Htop[x] === Htop[run]) continue;
-      addPiece('h', run, Htop[run], x - 1, Htop[run] + 2, STREET, 'high');
-      run = x;
-    }
+    const L = meander('h', hTop, cx + PWh - 1, 1, 3, STREET, 'high', { flatN: PW, jogAfterFlat: true });
+    const R = meander('h', hTop, cx + PWh, cols - 2, 3, STREET, 'high', { flatN: 1, jogAfterFlat: true });
+    for (let x = 1; x <= cx + PWh - 1; x++) Htop[x] = L.at(x);
+    for (let x = cx + PWh; x <= cols - 2; x++) Htop[x] = R.at(x);
   }
   const hMinTop = (a, b) => { let m = 1e9; for (let x = Math.max(1, a); x <= Math.min(cols - 2, b); x++) m = Math.min(m, Htop[x]); return m; };
   const hMaxBot = (a, b) => { let m = -1; for (let x = Math.max(1, a); x <= Math.min(cols - 2, b); x++) m = Math.max(m, Htop[x] + 2); return m; };
@@ -269,15 +298,16 @@ function generate(C, scale) {
   const plaza = { x0: px0, x1: px1, y0: py0, y1: py1 };
   const plazaM = new Uint8Array(N);
   for (let y = py0; y <= py1; y++) for (let x = px0; x <= px1; x++) plazaM[id(x, y)] = 1;
-  // 広場の両わき（酒場など、大通りに扉を向ける街区）の幅
+  // 広場の両わき（酒場など、大通りに扉を向ける街区）の幅。北の通りが 14 マスを越えないように
   const pubW = fac.pub ? fac.pub.w : 0;
-  const fwL = Math.max(fac.pubSide < 0 ? pubW + 1 + ri(0, 7) : 0, ri(8, 15));
-  const fwR = Math.max(fac.pubSide > 0 ? pubW + 1 + ri(0, 7) : 0, ri(8, 15));
+  const fwL = Math.max(fac.pubSide < 0 ? pubW + 1 + ri(0, 3) : 0, ri(8, 12));
+  const fwR = Math.max(fac.pubSide > 0 ? pubW + 1 + ri(0, 3) : 0, ri(8, 12));
   const kx0 = px0 - fwL, kx1 = px1 + fwR;
   const U = [addPiece('h', kx0 - 2, py0, px0 - 1, py0 + 1, STREET, 'plaza'), addPiece('h', px1 + 1, py0, kx1 + 2, py0 + 1, STREET, 'plaza')];
-  addPiece('v', kx0 - 2, 1, kx0 - 1, hMinTop(kx0 - 2, kx0 - 1) + 1, STREET, 'side');
-  addPiece('v', kx1 + 1, 1, kx1 + 2, hMinTop(kx1 + 1, kx1 + 2) + 1, STREET, 'side');
-  // 役場: 広場の北の真ん中、北の通りに面して。北へ向かう通りは役場の脇を通る
+  // 広場の両わきの南北の通り: 広場のわきはまっすぐ、北では外へ向かって1列ずつずれる
+  const VW = meander('v', kx0 - 2, hMinTop(kx0 - 2, kx0 - 1) + 1, 1, 2, STREET, 'side', { lo: -1, hi: 0, flatN: hMinTop(kx0 - 2, kx0 - 1) + 1 - py0 + 3, jogAfterFlat: true });
+  const VE = meander('v', kx1 + 1, hMinTop(kx1 + 1, kx1 + 2) + 1, 1, 2, STREET, 'side', { lo: 0, hi: 1, flatN: hMinTop(kx1 + 1, kx1 + 2) + 1 - py0 + 3, jogAfterFlat: true });
+  // 役場: 広場の北の真ん中、北の通りに面して。北へ向かう通りは役場の脇を通り、役場の上からは曲がって北へ
   let hall = null, aN;
   if (fac.hall) {
     const hx = cx - Math.floor(fac.hall.w / 2), yb = py0 - 1;
@@ -285,37 +315,58 @@ function generate(C, scale) {
     pinned.push([hx - 1, hall.y - 2, hx + fac.hall.w, yb]);
     aN = fac.hallSide > 0 ? hx + fac.hall.w + 1 + ri(0, 1) : hx - 3 - ri(0, 1);
   } else aN = cx + (rng() < 0.5 ? -1 : 1) * ri(3, 6);
-  addPiece('v', aN, 1, aN + 1, py0 - 1, STREET, 'avenue');
-  // 南へ向かう通りは北の通りと位置をずらす（広場で折れる）
+  const AN = meander('v', aN, py0 - 1, 1, 2, STREET, 'avenue', { flatN: hall ? py0 - hall.y + 3 : 4, jogAfterFlat: true });
+  // 南へ向かう通りは、広場の南から街の端へ段々に斜めに下る（北の通りと位置もずらす）
   let aS = cx + (rng() < 0.5 ? -1 : 1) * ri(2, 6);
   if (Math.abs(aS - aN) < 3) aS = aN + (aN < cx ? 4 : -4);
+  const dirS = aS < cx ? -1 : 1;
   const southEnd = harbour ? hTop + 3 + southRows - 1 : rows - 2;
-  addPiece('v', aS, Htop[aS], aS + 1, southEnd, STREET, 'avenue');
-  // 水辺: 岸の通り（街の幅いっぱい。使わない所は消える）
-  let quay = null;
-  if (harbour) {
-    const qTop = hTop + 3 + southRows;
-    quay = { top: qTop, bottom: qTop + 1, water0: qTop + 2, water1: qTop + 1 + harbour.water };
-    quay.piece = addPiece('h', 1, qTop, cols - 2, qTop + 1, STREET, 'quay');
-  }
-  // 船着場: 岸の通りに面して、南へ向かう通りの脇
+  const AS = meander('v', aS, Htop[aS], southEnd, 2, STREET, 'avenue', { stair: dirS, flatN: 3, ok: (y, v) => aS + v >= MARGIN + 6 && aS + v <= cols - MARGIN - 8 });
+  const aSq = AS.at(southEnd);
+  // 船着場: 岸の通りに面して、斜めの通りの下の端の脇（斜めが来る側の反対）
   let dockAt = null;
   if (harbour) {
-    const d = fac.dock, side = rng() < 0.5 ? -1 : 1;
-    const x = side < 0 ? aS - 2 - d.w - ri(0, 3) : aS + 3 + ri(0, 3);
-    const yb = quay.top - 1;
+    const d = fac.dock, side = dirS;
+    const x = side < 0 ? aSq - 2 - d.w - ri(0, 3) : aSq + 3 + ri(0, 3);
+    const yb = hTop + 3 + southRows - 1;
     dockAt = { x, y: yb - d.h + 1, w: d.w, h: d.h, yb };
     pinned.push([x - 1, dockAt.y - 2, x + d.w, yb]);
   }
+  // 水辺: 岸の通り（街の幅いっぱい。船着場と桟橋の前はまっすぐ、その外は段々に1行下がる。使わない所は消える）
+  let quay = null;
+  if (harbour) {
+    const qTop = hTop + 3 + southRows;
+    const mid = dockAt.x + (fac.dock.doorDx ?? Math.floor(dockAt.w / 2));      // 扉の列。桟橋はその左右（-5〜+4）
+    const QL = meander('h', qTop, mid, 1, 2, STREET, 'quay', { lo: 0, hi: 1, flatN: 8, jogAfterFlat: true });
+    const QR = meander('h', qTop, mid + 1, cols - 2, 2, STREET, 'quay', { lo: 0, hi: 1, flatN: 6, jogAfterFlat: true });
+    const qt = new Int16Array(cols).fill(qTop);
+    for (let x = 1; x <= cols - 2; x++) qt[x] = x <= mid ? QL.at(x) : QR.at(x);
+    quay = { top: qTop, bottom: qTop + 1, qt, water0: qTop + 2, water1: qTop + 1 + harbour.water, grps: [QL.grp, QR.grp] };
+  }
 
   // ---- 地区を通りで切り分ける（BSP）
-  const leaves = [];
+  const leaves = [], courts = [];
   // 縦の通り同士・横の通り同士が、境の通りをはさんでまっすぐ続いてしまう（十字路になる）か
   const alignedV = (x0, x1, y0, y1) => pieces.some((p) => p.dir === 'v' && p.kind !== 'side' && Math.abs(p.x0 - x0) <= 2 && Math.abs(p.x1 - x1) <= 2 &&
     (Math.abs(p.y1 - y0) <= 4 || Math.abs(y1 - p.y0) <= 4));
   const alignedH = (y0, y1, x0, x1) => pieces.some((p) => p.dir === 'h' && p.kind !== 'high' && p.kind !== 'quay' && Math.abs(p.y0 - y0) <= 1 &&
     (Math.abs(p.x1 - x0) <= 4 || Math.abs(x1 - p.x0) <= 4));
   const wmaxOf = (R) => 20 + (hash32(`${seed}:${R.x0},${R.y0}`) % 13);
+  // 斜めの通りに沿う地区: 行ごとに斜めの通りの手前まで（clipR / clipL）。子の地区にも引き継ぐ
+  const sub = (R, x0, x1, y0, y1) => ({ x0, x1, y0, y1, clipR: R.clipR, clipL: R.clipL, diagR: R.diagR, diagL: R.diagL });
+  // 斜めの通りのそばで切った東西の通りは、斜めの通りまでのばしてつなぐ
+  const reachDiag = (R, st, xs0, xs1, code, kind) => {
+    for (const [side, end, diag] of [[1, xs1, R.diagR], [-1, xs0, R.diagL]]) {
+      if (!diag || (side > 0 ? xs1 >= R.rx1 : xs0 <= R.rx0)) continue;     // 地区の端が斜めの通りでなく切った通り
+      for (let y = st.at(end); y < st.at(end) + st.sw; y++) {
+        const dx = diag(y);
+        if (side > 0 && dx - 1 > end) addPiece('h', end + 1, y, dx - 1, y, code, kind, st.grp);
+        if (side < 0 && dx + 1 < end) addPiece('h', dx + 1, y, end - 1, y, code, kind, st.grp);
+      }
+    }
+  };
+  // 東西に切る通りの端: 斜めの通りに沿う地区では、その通りの行での斜めの通りの手前まで
+  const crossSpan = (R, s, sw) => [R.clipL ? Math.max(R.rx0, R.clipL(s - 1, s + sw)) : R.x0, R.clipR ? Math.min(R.rx1, R.clipR(s - 1, s + sw)) : R.x1];
 
   const cutV = (R, type, closedTop) => {
     const w = R.x1 - R.x0 + 1, h = R.y1 - R.y0 + 1;
@@ -328,82 +379,66 @@ function generate(C, scale) {
       for (const [, x] of cands) {
         if (hitsPin(x - 1, R.y0, x + sw, R.y1)) continue;
         if (pass === 0 && alignedV(x, x + sw - 1, R.y0, R.y1)) continue;
-        const code = sw === 2 ? STREET : DIRT, kind = sw === 2 ? 'street' : 'alley';
-        let xl = x, xr = x + sw - 1;
-        if (h >= 16 && chance(0.4)) {
-          // 南北の通りも、途中で1列ずれる
-          const j = R.y0 + ri(6, h - 7), dj = rng() < 0.5 ? -1 : 1;
-          if (!hitsPin(x - 1 + Math.min(0, dj), R.y0, x + sw + Math.max(0, dj), R.y1)) {
-            addPiece('v', x, R.y0, x + sw - 1, j - 1, code, kind);
-            addPiece('v', x + dj, j, x + dj + sw - 1, R.y1, code, kind);
-            if (sw === 1) addPiece('h', Math.min(x, x + dj), j, Math.max(x, x + dj), j, code, kind);
-            xl = Math.min(x, x + dj); xr = Math.max(x, x + dj) + sw - 1;
-          } else addPiece('v', x, R.y0, x + sw - 1, R.y1, code, kind);
-        } else addPiece('v', x, R.y0, x + sw - 1, R.y1, code, kind);
-        bsp({ x0: R.x0, x1: xl - 1, y0: R.y0, y1: R.y1 }, type, closedTop);
-        bsp({ x0: xr + 1, x1: R.x1, y0: R.y0, y1: R.y1 }, type, closedTop);
+        // 南北の通りも、7〜12 マスごとに1列ずれる
+        const st = meander('v', x, R.y0, R.y1, sw, sw === 2 ? STREET : DIRT, sw === 2 ? 'street' : 'alley', { ok: (y, v) => x + v >= R.x0 + minW - 1 && x + v + sw - 1 <= R.x1 - minW + 1 });
+        // 斜めの通りに触れるのは片側の子だけ（もう片側は切った通りで止まる）
+        bsp({ ...sub(R, R.x0, st.min - 1, R.y0, R.y1), clipR: undefined, diagR: undefined }, type, closedTop);
+        bsp({ ...sub(R, st.max + sw, R.x1, R.y0, R.y1), clipL: undefined, diagL: undefined }, type, closedTop);
         return true;
       }
     }
     return false;
   };
-  // 横の通りを1本引く（ときどき途中で1行ずれる）。返すのは通りの上の端と下の端
-  const drawH = (R, s, sw) => {
-    const code = sw === 2 ? STREET : DIRT, kind = sw === 2 ? 'street' : 'lane';
-    const w = R.x1 - R.x0 + 1;
-    if (w >= 24 && chance(0.4)) {
-      const j = R.x0 + ri(8, w - 9), dj = rng() < 0.5 ? -1 : 1;
-      if (!hitsPin(R.x0, s + Math.min(0, dj), R.x1, s + sw - 1 + Math.max(0, dj))) {
-        addPiece('h', R.x0, s, j - 1, s + sw - 1, code, kind);
-        addPiece('h', j, s + dj, R.x1, s + dj + sw - 1, code, kind);
-        if (sw === 1) addPiece('v', j, Math.min(s, s + dj), j, Math.max(s, s + dj), code, kind);
-        return { top: Math.min(s, s + dj), bottom: Math.max(s, s + dj) + sw - 1 };
-      }
-    }
-    addPiece('h', R.x0, s, R.x1, s + sw - 1, code, kind);
-    return { top: s, bottom: s + sw - 1 };
-  };
-  const DEPTHS = [7, 7, 7, 8, 8, 15, 16];
-  // 北向きの地区（下の端が通り）: 下から街区をひとつ切り取り、残りを上へ
+  const DEPTHS = [7, 7, 8, 8, 15, 16, 17];
+  // 北向きの地区（下の端が通り）: 下から街区をひとつ切り取り、残りを上へ。切る通りは上へだけずれる（下の街区の深さを保つ）
   const cutHN = (R, closedTop) => {
     const h = R.y1 - R.y0 + 1, w = R.x1 - R.x0 + 1;
     const sw = w > 26 ? 2 : (chance(0.75) ? 2 : 1);
-    const opts = DEPTHS.map((d) => [d, rng()]).sort((a, b) => a[1] - b[1]).map(([d]) => d);
+    let opts = DEPTHS.map((d) => [d, rng()]).sort((a, b) => a[1] - b[1]).map(([d]) => d);
+    // 役場・船着場のある街区は浅く（予約のせいで路地も中庭も入らず、上が空き地になるのを避ける）
+    if (hitsPin(R.x0, R.y1 - 17, R.x1, R.y1)) opts = [...new Set(DEPTHS)].sort((a, b) => a - b);
     for (let pass = 0; pass < 2; pass++) {
       for (const d of opts) {
-        const rem = h - d - sw;
-        if (rem < 7 || (closedTop && rem > 9 && rem < 15)) continue;
+        const rem = h - d - sw - 1;
+        if (rem < 7 || (closedTop && rem > 10 && rem < 15)) continue;
         const s = R.y1 - d - sw + 1;
         if (hitsPin(R.x0, s - 1, R.x1, s + sw)) continue;
         if (pass === 0 && alignedH(s, s + sw - 1, R.x0, R.x1)) continue;
-        const st = drawH(R, s, sw);
-        bsp({ x0: R.x0, x1: R.x1, y0: st.bottom + 1, y1: R.y1 }, 'N', true);
-        bsp({ x0: R.x0, x1: R.x1, y0: R.y0, y1: st.top - 1 }, 'N', closedTop);
+        const [xs0, xs1] = crossSpan(R, s, sw), code = sw === 2 ? STREET : DIRT, kind = sw === 2 ? 'street' : 'lane';
+        const st = meander('h', s, xs0, xs1, sw, code, kind, { lo: -1, hi: 0 });
+        reachDiag(R, st, xs0, xs1, code, kind);
+        bsp(sub(R, R.rx0, R.rx1, st.max + sw, R.y1), 'N', true);
+        bsp(sub(R, R.rx0, R.rx1, R.y0, st.min - 1), 'N', closedTop);
         return true;
       }
     }
     return false;
   };
-  // 南向きの地区（上の端が通り、下は開いている）: 上から街区をひとつ切り取り、その下に通り
+  // 南向きの地区（上の端が通り、下は開いている）: 上から街区をひとつ切り取り、その下に通り（下へだけずれる）
   const cutHS = (R) => {
     const h = R.y1 - R.y0 + 1, w = R.x1 - R.x0 + 1;
     const sw = w > 26 ? 2 : (chance(0.75) ? 2 : 1);
     const opts = DEPTHS.map((d) => [d, rng()]).sort((a, b) => a[1] - b[1]).map(([d]) => d);
     for (let pass = 0; pass < 2; pass++) {
       for (const d of opts) {
-        if (d + sw > h) continue;
+        if (d + sw + 1 > h) continue;
         const s = R.y0 + d;
-        if (hitsPin(R.x0, s - 1, R.x1, s + sw)) continue;
+        if (hitsPin(R.x0, s - 1, R.x1, s + sw + 1)) continue;
         if (pass === 0 && alignedH(s, s + sw - 1, R.x0, R.x1)) continue;
-        const st = drawH(R, s, sw);
-        bsp({ x0: R.x0, x1: R.x1, y0: R.y0, y1: st.top - 1 }, 'N', true);
-        if (R.y1 - st.bottom >= 9) bsp({ x0: R.x0, x1: R.x1, y0: st.bottom + 1, y1: R.y1 }, 'S', true);
+        const [xs0, xs1] = crossSpan(R, s, sw), code = sw === 2 ? STREET : DIRT, kind = sw === 2 ? 'street' : 'lane';
+        const st = meander('h', s, xs0, xs1, sw, code, kind, { lo: 0, hi: 1 });
+        reachDiag(R, st, xs0, xs1, code, kind);
+        bsp(sub(R, R.rx0, R.rx1, R.y0, st.min - 1), 'N', true);
+        if (R.y1 - (st.max + sw - 1) >= 9) bsp(sub(R, R.rx0, R.rx1, st.max + sw, R.y1), 'S', true);
         return true;
       }
     }
     return false;
   };
-  function bsp(R, type, closedTop) {
+  function bsp(R0, type, closedTop) {
+    const R = { ...R0, rx0: R0.x0, rx1: R0.x1 };
+    if (R.clipR) R.x1 = Math.min(R.x1, R.clipR(R.y0, R.y1));
+    if (R.clipL) R.x0 = Math.max(R.x0, R.clipL(R.y0, R.y1));
     const w = R.x1 - R.x0 + 1, h = R.y1 - R.y0 + 1;
     if (w < 5 || h < 4) return;
     const wmax = wmaxOf(R);
@@ -418,37 +453,65 @@ function generate(C, scale) {
     if (w > wmax && cutV(R, type, closedTop)) return;
     leaf(R, closedTop, 0);
   }
-  // 街区: 深ければ土の路地（ときどき行き止まり）で2段に、広ければ南北の小路で2つに
+  // 街区: 深ければ土の路地（ずれる・ときどき行き止まり）か中庭で2段に、広ければ一度折れる南北の小路で2つに
   function leaf(R, closedTop, lvl) {
     const w = R.x1 - R.x0 + 1, h = R.y1 - R.y0 + 1;
-    if (lvl === 0 && w >= 22 && chance(0.45)) {
+    if (lvl === 0 && w >= 24 && chance(0.35)) {
       for (let t = 0; t < 6; t++) {
         const x = R.x0 + ri(9, w - 10);
-        if (hitsPin(x - 1, R.y0, x + 1, R.y1) || alignedV(x, x, R.y0, R.y1)) continue;
-        addPiece('v', x, R.y0, x, R.y1, DIRT, 'alley');
-        leaf({ x0: R.x0, x1: x - 1, y0: R.y0, y1: R.y1 }, closedTop, 1);
-        leaf({ x0: x + 1, x1: R.x1, y0: R.y0, y1: R.y1 }, closedTop, 1);
+        const dj = h >= 10 && chance(0.6) ? (rng() < 0.5 ? -1 : 1) * ri(2, 3) : 0, j = R.y0 + ri(3, Math.max(3, h - 4));
+        const xa = Math.min(x, x + dj), xb = Math.max(x, x + dj);
+        if (xa < R.x0 + 7 || xb > R.x1 - 7 || hitsPin(xa - 1, R.y0, xb + 1, R.y1) || alignedV(x, x, R.y0, R.y1)) continue;
+        let l1 = xa - 1, r0 = xb + 1;
+        if (!dj) {
+          // 1列ずつ揺れる小路
+          const st = meander('v', x, R.y0, R.y1, 1, DIRT, 'alley', { ok: (y, v) => x + v > R.x0 + 6 && x + v < R.x1 - 6 });
+          l1 = st.min - 1; r0 = st.max + 1;
+        } else {
+          // 一度折れる小路（折れた角の内側は小さな裏庭になる）
+          const grp = grpN++;
+          addPiece('v', x, R.y0, x, j, DIRT, 'alley', grp);
+          addPiece('h', xa, j, xb, j, DIRT, 'alley', grp);
+          addPiece('v', x + dj, j, x + dj, R.y1, DIRT, 'alley', grp);
+        }
+        leaf(sub(R, R.x0, l1, R.y0, R.y1), closedTop, 1);
+        leaf(sub(R, r0, R.x1, R.y0, R.y1), closedTop, 1);
+        return;
+      }
+    }
+    if (h >= 16 && w >= 14 && chance(courts.length ? 0.4 : 0.9)) {
+      // 中庭: 街区の中ほどの小さな舗装の庭に、下の通りから小路が入る。奥の家は中庭に扉を向ける
+      for (let t = 0; t < 6; t++) {
+        const cw = ri(6, 8), c0 = R.x0 + ri(2, Math.max(2, w - cw - 2)), c1 = c0 + cw - 1, m = R.y0 + ri(8, h - 8), ax = c0 + ri(1, cw - 2);
+        if (c1 > R.x1 - 2 || hitsPin(c0 - 1, m - 2, c1 + 1, R.y1)) continue;
+        const grp = grpN++;
+        const k = addPiece('h', c0, m - 1, c1, m, STREET, 'court', grp);
+        addPiece('v', ax, m + 1, ax, R.y1, DIRT, 'alley', grp);
+        if (k >= 0) courts.push(pieces[k]);
+        leaves.push({ x0: R.x0, x1: R.x1, y0: R.y0, y1: m - 2, closedTop });
+        leaves.push({ x0: R.x0, x1: ax - 1, y0: m + 1, y1: R.y1, closedTop: true });
+        leaves.push({ x0: ax + 1, x1: R.x1, y0: m + 1, y1: R.y1, closedTop: true });
         return;
       }
     }
     if (h >= 15 && w >= 12) {
+      // 深い街区: 土の路地（下へだけ1行ずつ揺れる。上の家並みの深さを保つ）。ときどき通りのある側から入る行き止まり
       for (let t = 0; t < 6; t++) {
         const du = ri(7, h - 8), m = R.y0 + du;
-        if (hitsPin(R.x0, m - 1, R.x1, m + 1)) continue;
+        if (hitsPin(R.x0, m - 2, R.x1, m + 3)) continue;
         if (chance(0.45)) {
-          // 行き止まりの路地: 通りのある側から入って、途中で終わる
           const lr = isRoad(R.x0 - 1, m), rr = isRoad(R.x1 + 1, m);
           const fromLeft = lr && rr ? rng() < 0.5 : lr;
           const L = Math.round(w * (0.5 + rng() * 0.3));
           if (L < 10 || (!lr && !rr)) continue;
           const a = fromLeft ? R.x0 : R.x1 - L + 1, b = fromLeft ? R.x0 + L - 1 : R.x1;
-          addPiece('h', a, m, b, m, DIRT, 'lane');
+          meander('h', m, fromLeft ? a : b, fromLeft ? b : a, 1, DIRT, 'lane', { lo: 0, hi: 1 });
           leaves.push({ x0: a, x1: b, y0: R.y0, y1: m - 1, closedTop });
         } else {
-          addPiece('h', R.x0, m, R.x1, m, DIRT, 'lane');
+          meander('h', m, R.x0, R.x1, 1, DIRT, 'lane', { lo: 0, hi: 1 });
           leaves.push({ x0: R.x0, x1: R.x1, y0: R.y0, y1: m - 1, closedTop });
         }
-        leaves.push({ x0: R.x0, x1: R.x1, y0: m + 1, y1: R.y1, closedTop: true });
+        leaves.push({ x0: R.x0, x1: R.x1, y0: m + 2, y1: R.y1, closedTop: true });
         return;
       }
     }
@@ -460,30 +523,64 @@ function generate(C, scale) {
   const flankE = { x0: px1 + 1, x1: kx1, y0: py0 + 2, y1: hMinTop(px1 + 1, kx1) - 1, closedTop: true, flank: 1 };
   leaves.push(flankW, flankE);
   // 北: 西の地区・広場の北（北へ向かう通りの両側）・東の地区
-  bsp({ x0: 1, x1: kx0 - 3, y0: 1, y1: hMinTop(1, kx0 - 3) - 1 }, 'N', false);
-  bsp({ x0: kx0, x1: aN - 1, y0: 1, y1: py0 - 1 }, 'N', false);
-  bsp({ x0: aN + 2, x1: kx1, y0: 1, y1: py0 - 1 }, 'N', false);
-  bsp({ x0: kx1 + 3, x1: cols - 2, y0: 1, y1: hMinTop(kx1 + 3, cols - 2) - 1 }, 'N', false);
-  // 南: 南へ向かう通りの両側
+  bsp({ x0: 1, x1: VW.min - 1, y0: 1, y1: hMinTop(1, VW.min - 1) - 1 }, 'N', false);
+  bsp({ x0: kx0, x1: AN.min - 1, y0: 1, y1: py0 - 1 }, 'N', false);
+  bsp({ x0: AN.max + 2, x1: kx1, y0: 1, y1: py0 - 1 }, 'N', false);
+  bsp({ x0: VE.max + 2, x1: cols - 2, y0: 1, y1: hMinTop(VE.max + 2, cols - 2) - 1 }, 'N', false);
+  // 南: 斜めの通りの両側。地区は行ごとに斜めの通りの手前まで
+  const ys0 = Htop[aS], clipY = (y) => clamp(y, ys0, southEnd);
+  const SWr = { x0: 1, x1: cols - 2, clipR: (a, b) => { let m = 1e9; for (let y = a; y <= b; y++) m = Math.min(m, AS.at(clipY(y)) - 1); return m; }, diagR: (y) => AS.at(clipY(y)) };
+  const SEr = { x0: 1, x1: cols - 2, clipL: (a, b) => { let m = -1e9; for (let y = a; y <= b; y++) m = Math.max(m, AS.at(clipY(y)) + 2); return m; }, diagL: (y) => AS.at(clipY(y)) + 1 };
   if (harbour) {
-    bsp({ x0: 1, x1: aS - 1, y0: hMaxBot(1, aS - 1) + 1, y1: quay.top - 1 }, 'N', true);
-    bsp({ x0: aS + 2, x1: cols - 2, y0: hMaxBot(aS + 2, cols - 2) + 1, y1: quay.top - 1 }, 'N', true);
+    bsp({ ...SWr, y0: hMaxBot(1, AS.min - 1) + 1, y1: quay.top - 1 }, 'N', true);
+    bsp({ ...SEr, y0: hMaxBot(AS.max + 2, cols - 2) + 1, y1: quay.top - 1 }, 'N', true);
   } else {
-    bsp({ x0: 1, x1: aS - 1, y0: hMaxBot(1, aS - 1) + 1, y1: rows - 2 }, 'S', true);
-    bsp({ x0: aS + 2, x1: cols - 2, y0: hMaxBot(aS + 2, cols - 2) + 1, y1: rows - 2 }, 'S', true);
+    bsp({ ...SWr, y0: hMaxBot(1, AS.min - 1) + 1, y1: rows - 2 }, 'S', true);
+    bsp({ ...SEr, y0: hMaxBot(AS.max + 2, cols - 2) + 1, y1: rows - 2 }, 'S', true);
   }
 
-  // ---- 小さな広場: 南北の通りが東西の通りに上から突き当たる所の、いくつかの角を舗装する
+  // ---- ずれた通りのせいで1〜3マス届かなくなった通りの端は、届くまでのばす（行き止まりにしない）
+  {
+    const walk0 = (x, y) => isRoad(x, y) || (inG(x, y) && plazaM[id(x, y)]);
+    const n0 = pieces.length;
+    for (let i = 0; i < n0; i++) {
+      const pc = pieces[i];
+      if (pc.kind === 'square' || pc.kind === 'court' || pc.kind === 'quay' || pc.kind === 'high' || pc.kind === 'plaza') continue;
+      for (const [dx, dy] of pc.dir === 'v' ? [[0, 1], [0, -1]] : [[1, 0], [-1, 0]]) {
+        const cells = [];
+        if (pc.dir === 'v') { const y = dy > 0 ? pc.y1 : pc.y0; for (let x = pc.x0; x <= pc.x1; x++) cells.push([x, y]); }
+        else { const x = dx > 0 ? pc.x1 : pc.x0; for (let y = pc.y0; y <= pc.y1; y++) cells.push([x, y]); }
+        if (cells.some(([x, y]) => walk0(x + dx, y + dy))) continue;
+        let reach = 0;
+        for (let k = 2; k <= 4 && !reach; k++) if (cells.some(([x, y]) => walk0(x + dx * k, y + dy * k))) reach = k;
+        if (!reach) continue;
+        const xs = cells.map(([x]) => x + dx), ys = cells.map(([, y]) => y + dy);
+        const ex0 = Math.min(...xs, ...xs.map((x) => x + dx * (reach - 2))), ex1 = Math.max(...xs, ...xs.map((x) => x + dx * (reach - 2)));
+        const ey0 = Math.min(...ys, ...ys.map((y) => y + dy * (reach - 2))), ey1 = Math.max(...ys, ...ys.map((y) => y + dy * (reach - 2)));
+        if (hitsPin(ex0, ey0, ex1, ey1)) continue;
+        addPiece(pc.dir, ex0, ey0, ex1, ey1, pc.code, pc.kind, pc.grp);
+      }
+    }
+  }
+
+  // ---- 小さな広場: 南北の通りが東西の通りに上から突き当たる所の、いくつかの角を舗装する（同じ通りの段差は除く）
   const squares = [];
-  for (const pc of pieces.filter((p) => p.dir === 'v' && (p.kind === 'street' || p.kind === 'alley' || p.kind === 'avenue'))) {
+  const bottoms = new Map();
+  for (const p of pieces) if (p.dir === 'v' && (p.kind === 'street' || p.kind === 'alley' || p.kind === 'avenue') && (!bottoms.has(p.grp) || p.y1 > bottoms.get(p.grp).y1)) bottoms.set(p.grp, p);
+  for (const pc of bottoms.values()) {
     const hy = pc.y1 + 1;
-    if (!isRoad(pc.x0, hy) || pieces[road[id(pc.x0, hy)]].dir !== 'h' || pieces[road[id(pc.x0, hy)]].kind === 'quay') continue;
-    if (!chance(pc.kind === 'alley' ? 0.2 : 0.35)) continue;
+    const below = isRoad(pc.x0, hy) ? pieces[road[id(pc.x0, hy)]] : null;
+    if (!below || below.dir !== 'h' || below.kind === 'quay' || below.grp === pc.grp || below.kind === 'court') continue;
+    if (!chance(squares.length ? (pc.kind === 'alley' ? 0.2 : 0.35) : 0.8)) continue;
     const k = ri(2, 3), d = ri(2, 3);
     const x0 = pc.x0 - k, x1 = pc.x1 + k, y0 = hy - d, y1 = hy - 1;
     if (hitsPin(x0 - 1, y0 - 1, x1 + 1, y1)) continue;
     let ok = true;
-    for (let y = y0; y <= y1 && ok; y++) for (let x = x0; x <= x1; x++) if ((isRoad(x, y) && (x < pc.x0 || x > pc.x1)) || plazaM[id(x, y)]) { ok = false; break; }
+    // 角の中に入ってよいのは、突き当たる2本の通りだけ（段差の分）
+    for (let y = y0; y <= y1 && ok; y++) for (let x = x0; x <= x1; x++) {
+      const r = isRoad(x, y) ? pieces[road[id(x, y)]].grp : -1;
+      if ((r >= 0 && r !== pc.grp && r !== below.grp) || plazaM[id(x, y)]) { ok = false; break; }
+    }
     if (!ok) continue;
     const k2 = addPiece('h', x0, y0, x1, y1, STREET, 'square');
     if (k2 >= 0) squares.push(pieces[k2]);
@@ -492,15 +589,29 @@ function generate(C, scale) {
   // ---- 小さな緑地: 狭い街区のいくつかと、広場の近くにひとつ
   const pcx = cx, pcy = (py0 + py1) / 2;
   const distOf = (L) => Math.hypot((L.x0 + L.x1) / 2 - pcx, ((L.y0 + L.y1) / 2 - pcy) * Y_WEIGHT);
-  for (const L of leaves) {
-    if (L.flank) continue;
-    const w = L.x1 - L.x0 + 1, h = L.y1 - L.y0 + 1;
-    if (w <= 11 && h <= 11 && chance(0.5) && !hitsPin(L.x0, L.y0, L.x1, L.y1)) L.green = true;
+  // 緑地は建物 15 棟に1つほど（狭い街区のうち、広場に近いものから）。増やしすぎると街が森に食われる
+  {
+    const cap = Math.max(1, Math.round(C.count / 15));
+    const small = leaves.filter((L) => !L.flank && L.x1 - L.x0 + 1 >= 6 && L.x1 - L.x0 + 1 <= 11 && L.y1 - L.y0 + 1 <= 11 && !hitsPin(L.x0, L.y0, L.x1, L.y1))
+      .map((L) => [distOf(L) + 25 * rng(), L]).sort((a, b) => a[0] - b[0]);
+    for (const [, L] of small.slice(0, cap)) L.green = true;
   }
   if (!leaves.some((L) => L.green && distOf(L) < 36)) {
     const c = leaves.filter((L) => !L.flank && L.x1 - L.x0 + 1 >= 8 && L.x1 - L.x0 + 1 <= 16 && distOf(L) < 36 && !hitsPin(L.x0, L.y0, L.x1, L.y1))
       .sort((a, b) => distOf(a) - distOf(b));
     if (c.length) c[Math.min(c.length - 1, ri(0, 2))].green = true;
+  }
+
+  // ---- 段（terrace）: 役場は広場の北の段の上に立ち、段の前の壁（face）は広場に向く。階段は扉の前（あとで版の扉に合わせる）。
+  // ほかに、下に通りのある小さな緑地をひとつ段にする（壁は緑地の下の端、階段は真ん中）
+  const terraces = [];
+  if (hall) terraces.push({ x: hall.x - 1, y: hall.y - 2, w: hall.w + 2, h: plaza.y0 - (hall.y - 2) + 1, hall: true });
+  {
+    const cand = leaves.filter((L) => L.green && L.x1 - L.x0 + 1 >= 6 && L.y1 - L.y0 + 1 >= 5 && L.y1 - L.y0 + 1 <= 11)
+      .filter((L) => { for (let x = L.x0; x <= L.x1; x++) if (!isRoad(x, L.y1 + 1)) return false; return true; })
+      .sort((a, b) => distOf(a) - distOf(b));
+    const L = cand[0];
+    if (L) terraces.push({ x: L.x0, y: L.y0, w: L.x1 - L.x0 + 1, h: L.y1 - L.y0, green: L, stair: { x: L.x0 + Math.floor((L.x1 - L.x0 - 1) / 2), w: 2 } });
   }
 
   // ---- 建物を置く面（街区の下の端）
@@ -520,7 +631,9 @@ function generate(C, scale) {
     }
     if (!any) continue;
     const dir = L.flank ? L.flank : (L.x0 + L.x1) / 2 < cx ? -1 : 1;
-    tracks.push({ L, sd, dir, x0: L.x0, x1: L.x1, cursor: dir < 0 ? L.x1 : L.x0, items: [], high: false });
+    // 並びのはじめを 0〜2 マスずらす（上下に重なる街区で家と路地が同じ列にそろわないように）
+    const off = L.flank ? 0 : hash32(`start:${seed}:${L.x0},${L.y0}`) % 2;
+    tracks.push({ L, sd, dir, x0: L.x0, x1: L.x1, cursor: dir < 0 ? L.x1 - off : L.x0 + off, items: [], high: false });
   }
   for (const t of tracks) {
     // H に面しているか（宿屋の場所）: 面のどこかの下が大通り
@@ -539,6 +652,8 @@ function generate(C, scale) {
     if (y < t.L.y0 + (t.L.closedTop ? 2 : 0) || y - 3 < 1) return null;
     for (let x = x0; x < x0 + w; x++) {
       for (let yy = y; yy <= yb; yy++) { const k = id(x, yy); if (road[k] >= 0 || plazaM[k] || foot[k] >= 0 || front[k] || roofZ[k] || green[k]) return null; }
+      // 裏は2行あける: すぐ上（2行以内）に通り・路地・広場があれば置かない（屋根が通りを隠す）
+      for (let yy = y - 2; yy < y; yy++) { const k = id(x, yy); if (inG(x, yy) && (road[k] >= 0 || plazaM[k])) return null; }
       for (let yy = y - 3; yy < y; yy++) if (foot[id(x, yy)] >= 0) return null;
       for (let yy = yb + 1; yy < t.sd[x - t.x0]; yy++) { const k = id(x, yy); if (foot[k] >= 0 || road[k] >= 0) return null; }
     }
@@ -574,7 +689,7 @@ function generate(C, scale) {
     return { r: Math.hypot(x - pcx, (y - pcy) * Y_WEIGHT) / (1 + 0.16 * noise(theta)), theta };
   };
   // 隣とは1マス（ときどき2マスで路地、まれに3マスで小さな横庭）
-  const nextGap = () => { const r = rng(); return r < 0.66 ? 1 : r < 0.9 ? 2 : 3; };
+  const nextGap = () => { const r = rng(); return r < 0.75 ? 1 : r < 0.95 ? 2 : 3; };
   const advance = (t, pos) => {
     const gap = nextGap();
     t.cursor = t.dir < 0 ? pos.x - gap - 1 : pos.x + pos.w + gap;
@@ -691,25 +806,32 @@ function generate(C, scale) {
       // この地区の建物のうち、カーソルにいちばん近く置けるもの（隙間を残さない）。同じ近さなら並び順の先
       const tried = new Set();
       let best = null;
+      const last = t.last;
       for (let i = 0; i < q[phase].length; i++) {
         const s = q[phase][i];
         if (tried.has(s.w * 64 + s.h)) continue;
         tried.add(s.w * 64 + s.h);
-        // 低い家は、ときどき1〜2行下がる（2行なら柵のある小さな前庭）。通りぎわの線を崩す
+        // 隣と同じ並びにしない: 低い家は 0〜2 行下がる（2行なら柵のある前庭）。直前の家と違う下がり方を先に試す
         const sr = rng();
-        const setback = s.h < maxH ? (sr < 0.24 ? 2 : sr < 0.55 ? 1 : 0) : (sr < 0.2 ? 1 : 0);
-        for (let k = 0; k <= WINDOW && (!best || k < best.k); k++) {
+        let setback = s.h < maxH ? (sr < 0.3 ? 2 : sr < 0.65 ? 1 : 0) : (sr < 0.35 ? 1 : 0);
+        if (last && setback === last.sb) setback = last.sb === 0 ? (s.h < maxH && rng() < 0.5 ? 2 : 1) : 0;
+        for (let k = 0; k <= WINDOW && (!best || k <= best.k); k++) {
           const x0 = t.dir < 0 ? t.cursor - k - s.w + 1 : t.cursor + k;
           if (t.dir < 0 ? x0 < t.x0 : x0 + s.w - 1 > t.x1) break;
           let pos = null;
           for (let sb = setback; sb >= 0 && !pos; sb--) pos = fit(t, x0, s.w, s.h, sb);
-          if (pos) { best = { i, s, pos, k }; break; }
+          if (!pos) continue;
+          // 同じ近さなら、直前の家と幅か下がり方が違うほう
+          const same = last && last.w === s.w && last.yb === pos.yb;
+          if (!best || k < best.k || (k === best.k && best.same && !same)) best = { i, s, pos, k, same };
+          break;
         }
-        if (best && best.k === 0) break;
+        if (best && best.k === 0 && !best.same) break;
       }
       if (!best) continue;
       q[phase].splice(best.i, 1);
       commit(best.s, t, best.pos, q.g.key);
+      t.last = { sb: Math.min(...t.sd.slice(best.pos.x - t.x0, best.pos.x - t.x0 + best.pos.w)) - 1 - best.pos.yb, w: best.s.w, yb: best.pos.yb };
       advance(t, best.pos);
       done = true;
       break;
@@ -720,7 +842,7 @@ function generate(C, scale) {
     }
   }
   if (queues.some((q) => q.items.length || q.ruins.length) || pending.late.length || pending.early.length) return null;
-  return { cols, rows, N, id, inG, cx, aN, aS, Htop, road, pieces, plazaM, plaza, hall, quay, leaves, tracks, placed, foot, roofZ, front, green, pcx, pcy, kx0, kx1, U, squares };
+  return { cols, rows, N, id, inG, cx, aN, aS, aSdir: dirS, Htop, road, pieces, plazaM, plaza, hall, quay, leaves, tracks, placed, foot, roofZ, front, green, pcx, pcy, kx0, kx1, U, squares: [...squares, ...courts], terraces };
 }
 
 // ---------- 地面を塗る: 使った所だけ通りを残し、切り出し、外を「街の外」にする ----------
@@ -775,18 +897,34 @@ function finalize(P, maxH, opt = {}) {
   };
   widen();
   // 輪: 両端が残した通りにつながる短い通りは残す（行き止まりばかりにしない）
+  // ひとつながりの通り（曲がり・段差の piece をまとめて）ごとに見る
   const K = (x, y) => inG(x, y) && (kept[id(x, y)] || plazaM[id(x, y)]) === 1;
+  const groups = new Map();
+  for (const pc of pieces) { if (!groups.has(pc.grp)) groups.set(pc.grp, []); groups.get(pc.grp).push(pc); }
   for (let it = 0; it < 2; it++) {
-    for (const pc of pieces) {
-      if (pc.keep && pc.keep[0] === (pc.dir === 'h' ? pc.x0 : pc.y0) && pc.keep[1] === (pc.dir === 'h' ? pc.x1 : pc.y1)) continue;
-      if (pc.kind === 'quay' || pc.kind === 'high') continue;
-      const len = pc.dir === 'h' ? pc.x1 - pc.x0 + 1 : pc.y1 - pc.y0 + 1;
-      if (len > 26) continue;
+    for (const list of groups.values()) {
+      const kind = list[0].kind;
+      if (kind === 'quay' || kind === 'high' || kind === 'square' || kind === 'court') continue;
+      const horiz = list[0].dir === 'h';
+      let a0 = Infinity, a1 = -Infinity, full = true;
+      for (const pc of list) {
+        a0 = Math.min(a0, horiz ? pc.x0 : pc.y0); a1 = Math.max(a1, horiz ? pc.x1 : pc.y1);
+        if (!pc.keep || pc.keep[0] !== (pc.dir === 'h' ? pc.x0 : pc.y0) || pc.keep[1] !== (pc.dir === 'h' ? pc.x1 : pc.y1)) full = false;
+      }
+      if (full || a1 - a0 + 1 > 30) continue;
+      // 両端（はじめと終わりの 2 マス）が、ほかの通りの残した所か広場に触れているか
       let e0 = false, e1 = false;
-      if (pc.dir === 'h') for (let y = pc.y0; y <= pc.y1; y++) { e0 ||= K(pc.x0 - 1, y); e1 ||= K(pc.x1 + 1, y); }
-      else for (let x = pc.x0; x <= pc.x1; x++) { e0 ||= K(x, pc.y0 - 1); e1 ||= K(x, pc.y1 + 1); }
+      for (const pc of list) for (let y = pc.y0; y <= pc.y1; y++) for (let x = pc.x0; x <= pc.x1; x++) {
+        const v = horiz ? x : y;
+        if (v > a0 + 1 && v < a1 - 1) continue;
+        for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
+          if (!K(nx, ny) || (road[id(nx, ny)] >= 0 && pieces[road[id(nx, ny)]].grp === list[0].grp)) continue;
+          if (v <= a0 + 1) e0 = true;
+          if (v >= a1 - 1) e1 = true;
+        }
+      }
       if (!e0 || !e1) continue;
-      for (let y = pc.y0; y <= pc.y1; y++) for (let x = pc.x0; x <= pc.x1; x++) kept[id(x, y)] = 1;
+      for (const pc of list) for (let y = pc.y0; y <= pc.y1; y++) for (let x = pc.x0; x <= pc.x1; x++) kept[id(x, y)] = 1;
     }
     widen();
   }
@@ -839,10 +977,18 @@ function finalize(P, maxH, opt = {}) {
       const lanes = w === 1 ? (works ? [] : [gx0]) : w === 2 ? (a.group !== b.group && !works ? [gx0, gx1] : [hash32(`${a.x}:${b.x}`) % 2 ? gx1 : gx0]) : [gx0 + 1];
       const yTop = Math.min(a.y, b.y);
       for (let x = gx0; x <= gx1; x++) {
-        if (lanes.includes(x)) {
-          // 下の通りから上へ。上に残した通りがあればそこまで、無ければ裏庭の途中まで（行き止まり）
+        // 通りの向こう側に同じ列で路地が続くなら、ここは路地にしない（十字路を一直線に抜ける線を作らない）
+        let across = false;
+        {
+          const y0 = Math.max(a.sd[0], b.sd[0]), g0 = inG(x, y0) && road[id(x, y0)] >= 0 ? pieces[road[id(x, y0)]].grp : -1;
+          let y = y0;
+          while (g0 >= 0 && inG(x, y) && road[id(x, y)] >= 0 && pieces[road[id(x, y)]].grp === g0) y++;
+          across = y > y0 && inG(x, y) && road[id(x, y)] >= 0 && kept[id(x, y)] === 1;
+        }
+        if (lanes.includes(x) && !across) {
+          // 下の通りから上へ。上に残した通りがあれば半分はそこまで抜け、残りは裏庭の途中まで（行き止まり）
           let top = yTop - 2;
-          for (let y = yTop - 1; y >= Math.max(1, yTop - 4); y--) if (g[id(x, y)] === STREET || g[id(x, y)] === DIRT) { top = y + 1; break; }
+          if (hash32(`gap:${x},${yTop}`) % 2) for (let y = yTop - 1; y >= Math.max(1, yTop - 4); y--) if (g[id(x, y)] === STREET || g[id(x, y)] === DIRT) { top = y + 1; break; }
           let y0 = Math.max(a.sd[0], b.sd[0]);
           for (let y = y0 - 1; y >= top; y--) {
             const k2 = id(x, y);
@@ -862,9 +1008,17 @@ function finalize(P, maxH, opt = {}) {
     const w = L.x1 - L.x0 + 1, h = L.y1 - L.y0 + 1;
     if (w < 7 || h < 5 || placed.some((p) => p.x <= L.x1 && p.x + p.w - 1 >= L.x0 && p.y <= L.y1 && p.yb >= L.y0)) continue;
     const hs = hash32(`path:${L.x0},${L.y0}`);
-    let x = L.x0 + 2 + (hs % Math.max(1, w - 4));
-    let from = -1;
-    for (let y = L.y1 + 1; y <= L.y1 + 3; y++) if (inG(x, y) && kept[id(x, y)]) { from = y; break; }
+    let x = -1, from = -1;
+    // 入口: 下の通りに出る列。通りの向こう側に同じ列で路地が続く所は避ける
+    for (let t2 = 0; t2 < w - 4 && x < 0; t2++) {
+      const c = L.x0 + 2 + ((hs + t2 * 5) % Math.max(1, w - 4));
+      let f = -1;
+      for (let y = L.y1 + 1; y <= L.y1 + 3; y++) if (inG(c, y) && kept[id(c, y)]) { f = y; break; }
+      if (f < 0) continue;
+      let y = f; while (inG(c, y) && kept[id(c, y)]) y++;
+      if (inG(c, y) && road[id(c, y)] >= 0) continue;
+      x = c; from = f;
+    }
     if (from < 0) continue;
     const through = inG(x, L.y0 - 1) && kept[id(x, L.y0 - 1)] || (hs >> 8) % 3 > 0;
     const stop = through ? L.y0 : L.y0 + Math.floor(h / 2);
@@ -873,7 +1027,8 @@ function finalize(P, maxH, opt = {}) {
       if (foot[id(x, y)] >= 0 || g[id(x, y)] !== GRASS) break;
       g[id(x, y)] = DIRT;
       if (k >= next) {
-        const nx = clamp(x + (hash32(`w:${x},${y}`) % 2 ? 1 : -1), L.x0 + 1, L.x1 - 1);
+        let nx = clamp(x + (hash32(`w:${x},${y}`) % 2 ? 1 : -1), L.x0 + 1, L.x1 - 1);
+        if (nx === x) nx = clamp(x + (x <= L.x0 + 1 ? 1 : -1), L.x0 + 1, L.x1 - 1);     // 端なら内側へ
         if (nx !== x && g[id(nx, y)] === GRASS && foot[id(nx, y)] < 0) { g[id(nx, y)] = DIRT; x = nx; }
         next = k + 2 + (hash32(`n:${x},${y}`) % 3);
       }
@@ -897,18 +1052,19 @@ function finalize(P, maxH, opt = {}) {
   const crop = { x0: Math.max(0, x0), y0: Math.max(0, y0), x1: Math.min(cols - 1, x1), y1: Math.min(rows - 1, y1) };
   // 岸の通りは、使った区間を少しのばす。その下は水（街の幅いっぱい）
   if (quay) {
-    const pc = pieces[quay.piece];
-    if (pc.keep) {
-      const a = Math.max(crop.x0, pc.keep[0] - 6), b = Math.min(crop.x1, pc.keep[1] + 6);
-      for (let y = quay.top; y <= quay.bottom; y++) for (let x = a; x <= b; x++) { g[id(x, y)] = STREET; kept[id(x, y)] = 1; }
-      pc.keep = [a, b];
+    let ka = Infinity, kb = -Infinity;
+    for (const pc of pieces) if (quay.grps.includes(pc.grp) && pc.keep) { ka = Math.min(ka, pc.keep[0]); kb = Math.max(kb, pc.keep[1]); }
+    if (ka <= kb) {
+      const a = Math.max(crop.x0, ka - 6), b = Math.min(crop.x1, kb + 6);
+      for (let x = a; x <= b; x++) for (let y = quay.qt[x]; y <= quay.qt[x] + 1; y++) { g[id(x, y)] = STREET; kept[id(x, y)] = 1; }
+      quay.keep = [a, b];
     }
-    for (let y = quay.water0; y <= crop.y1; y++) for (let x = crop.x0; x <= crop.x1; x++) setG(x, y, WATER);
+    for (let x = crop.x0; x <= crop.x1; x++) for (let y = (quay.qt[x] || quay.top) + 2; y <= crop.y1; y++) setG(x, y, WATER);
   }
 
   // 街の外へ続く土の道（北・南・西・東）。ゆるく揺れる
   const wob = makeRng(P.cx * 131 + plaza.x0);
-  const path = (x, y, dx, dy, w = 1) => {
+  const path = (x, y, dx, dy, w = 1, stair = 0) => {
     let off = 0, next = 3 + Math.floor(wob() * 4);
     for (let s = 0; ; s++) {
       const px = dx ? x + dx * s : x + off, py = dy ? y + dy * s : y + off;
@@ -920,8 +1076,8 @@ function finalize(P, maxH, opt = {}) {
       }
       if (s >= next) {
         const prev = off;
-        if (wob() < 0.6) off = clamp(off + (wob() < 0.5 ? -1 : 1), -2, 2);
-        next = s + 4 + Math.floor(wob() * 5);
+        if (stair) { off += stair; next = s + 2 + Math.floor(wob() * 2); }      // 斜めの通りの続き（段々）
+        else { if (wob() < 0.6) off = clamp(off + (wob() < 0.5 ? -1 : 1), -2, 2); next = s + 4 + Math.floor(wob() * 5); }
         if (off !== prev) {                             // 段差はつなぐ
           const qx = dx ? x + dx * s : x + off, qy = dy ? y + dy * s : y + off;
           if (inG(qx, qy) && foot[id(qx, qy)] < 0 && g[id(qx, qy)] === GRASS) g[id(qx, qy)] = DIRT;
@@ -932,10 +1088,11 @@ function finalize(P, maxH, opt = {}) {
       }
     }
   };
-  const avN = pieces.find((p) => p.kind === 'avenue' && p.y1 < plaza.y0), avS = pieces.find((p) => p.kind === 'avenue' && p.y0 > plaza.y0);
-  if (avN?.keep) path(avN.x0, avN.keep[0] - 1, 0, -1, 1);
-  else path(avN.x0, plaza.y0 - 1, 0, -1, 1);
-  if (!quay) { if (avS?.keep) path(avS.x0 + 1, avS.keep[1] + 1, 0, 1, 1); else path(avS.x0 + 1, P.Htop[avS.x0] + 3, 0, 1, 1); }
+  const avNs = pieces.filter((p) => p.kind === 'avenue' && p.dir === 'v' && p.y1 < plaza.y0), avSs = pieces.filter((p) => p.kind === 'avenue' && p.dir === 'v' && p.y0 > plaza.y0);
+  const topN = avNs.filter((p) => p.keep).sort((a, b) => a.keep[0] - b.keep[0])[0] || avNs.sort((a, b) => b.y1 - a.y1)[0];
+  if (topN) path(topN.x0, (topN.keep ? topN.keep[0] : topN.y1 + 1) - 1, 0, -1, 1);
+  const botS = avSs.filter((p) => p.keep).sort((a, b) => b.keep[1] - a.keep[1])[0] || avSs.sort((a, b) => a.y0 - b.y0)[0];
+  if (!quay && botS) path(botS.x0 + 1, (botS.keep ? botS.keep[1] : botS.y0 - 1) + 1, 0, 1, 1, P.aSdir);
   // 大通りの両端から西と東へ。宿屋のある側は2行の街道
   let hw = Infinity, he = -Infinity;
   for (const pc of pieces) if (pc.kind === 'high' && pc.keep) { hw = Math.min(hw, pc.keep[0]); he = Math.max(he, pc.keep[1]); }
@@ -994,7 +1151,8 @@ function placeProps(P, F, rng, spawn, extra) {
   const out = { props, landmarks: [] };
 
   // footprint のすぐ下の2行（扉の位置は絵で決まるので幅いっぱい）と前庭、開始位置のまわりは空ける
-  for (const p of placed) for (let x = p.x; x < p.x + p.w; x++) for (let y = p.yb + 1; y <= p.yb + 2; y++) reserved[id(x, y)] = 1;
+  const doorRow = new Uint8Array(N);                       // 建物の扉の前の2行（どんな小物でもふさがない）
+  for (const p of placed) for (let x = p.x; x < p.x + p.w; x++) for (let y = p.yb + 1; y <= p.yb + 2; y++) { reserved[id(x, y)] = 1; doorRow[id(x, y)] = 1; }
   for (let t = 0; t < N; t++) if (front[t]) reserved[t] = 1;
   for (let dx = -1; dx <= 1; dx++) for (let dy = 0; dy <= 1; dy++) reserved[id(spawn.x + dx, spawn.y + dy)] = 1;
   // 施設の扉の前（扉の列の左右2、5行）には何も置かない。まわりには木を置かない（主要施設を隠さない）
@@ -1007,6 +1165,14 @@ function placeProps(P, F, rng, spawn, extra) {
     mark(noTree, p.x - 2, p.y - 1, p.x + p.w + 1, p.yb + 5);
   }
 
+  // 段の前の壁（face）は歩けない（階段の所だけ）。階段とその上下の1マスはあける
+  for (const t of P.terraces) {
+    const fy = t.y + t.h;
+    for (let x = t.x; x < t.x + t.w; x++) {
+      if (x >= t.stair.x && x < t.stair.x + t.stair.w) mark(reserved, x, fy - 1, x, fy + 1);
+      else if (inC(x, fy)) blocked[id(x, fy)] = 1;
+    }
+  }
   const flood = () => {
     const seen = new Uint8Array(N);
     const q = [id(spawn.x, spawn.y)];
@@ -1095,21 +1261,22 @@ function placeProps(P, F, rng, spawn, extra) {
       const look = piers[used.filter((u) => u[2]).length % piers.length];
       const d = propArt[look].deck;
       // 板は岸壁の石の上の 4px を見せて始める（歩けるつながりは web/world.js が岸の行につなぐ）
-      const fx = spots[i] * 16 + 8, fy = quay.water0 * 16 + 4 - d[1];
+      const qb = quay.qt[spots[i]] + 1;                // その列の岸の通りの下の行
+      const fx = spots[i] * 16 + 8, fy = (qb + 1) * 16 + 4 - d[1];
       const dx0 = Math.floor((fx + d[0]) / 16), dx1 = Math.floor((fx + d[0] + d[2] - 1) / 16);
       const dy1 = Math.floor((fy + d[1] + d[3] - 1) / 16);
       if (dy1 > crop.y1 - 1 || dx0 < crop.x0 + 1 || dx1 > crop.x1 - 1) continue;
       let ok = true;
-      for (let x = dx0 - 1; x <= dx1 + 1 && ok; x++) if (g[id(x, quay.bottom)] !== STREET || used.some(([a, b]) => x >= a - 1 && x <= b + 1)) ok = false;
+      for (let x = dx0 - 1; x <= dx1 + 1 && ok; x++) if (quay.qt[x] + 1 !== qb || g[id(x, qb)] !== STREET || used.some(([a, b]) => x >= a - 1 && x <= b + 1)) ok = false;
       if (!ok) continue;
       used.push([dx0, dx1, true]);
       props.push({ type: 'pier', x: fx / 16, y: fy / 16, look });
-      for (let x = dx0; x <= dx1; x++) reserved[id(x, quay.bottom)] = 1;
-      lampAt([[dx0 - 1, quay.bottom], [dx1 + 1, quay.bottom]], 3);
+      for (let x = dx0; x <= dx1; x++) reserved[id(x, qb)] = 1;
+      lampAt([[dx0 - 1, qb], [dx1 + 1, qb]], 3);
       // 舟: 最初の桟橋の杭にぴったりもやう（板の中ほどの高さ）
       if (!boatDone) {
         const bs = propArt.boat?.solid || [-24, -17, 48, 18];
-        const side = rng() < 0.5 ? -1 : 1;
+        const side = spots[1] < spots[0] ? 1 : -1;                    // 次の桟橋と反対の側
         const half = Math.round(propArt[look].deck[2] / 2) + 7;        // 板の幅の半分 + 杭
         // 舟の絵の船体は絵の幅より細いので、杭に少しかかるまで寄せる
         const bx = side < 0 ? fx - half - (bs[0] + bs[2]) + 9 : fx + half - bs[0] - 9;
@@ -1123,8 +1290,7 @@ function placeProps(P, F, rng, spawn, extra) {
       }
     }
     // 岸の通りの街灯: 桟橋から離れた所に少しだけ
-    const qp = pieces[quay.piece];
-    if (qp.keep) for (let x = qp.keep[0] + 3; x <= qp.keep[1] - 3; x += 3) lampAt([[x, quay.bottom]], 13);
+    if (quay.keep) for (let x = quay.keep[0] + 3; x <= quay.keep[1] - 3; x += 3) lampAt([[x, quay.qt[x] + 1]], 18);
   }
 
   // 前庭（2行下がった家）: 通りぎわの行に柵と鉢。扉の列のまわり（左1〜右2）は木戸として空ける
@@ -1141,60 +1307,125 @@ function placeProps(P, F, rng, spawn, extra) {
     }
   }
 
-  // 広場: 掲示板・井戸小屋（井戸の施設があるとき）・縁の植え込み・ベンチ・縁の街灯
+  // 段の東西の端は縁石: 外側の歩ける草地・広場は柵・茂み・プランターでふさぐ（通り・路地は同じ高さで段につながってよい）
+  for (const t of P.terraces) for (const side of [-1, 1]) {
+    const x = side < 0 ? t.x - 1 : t.x + t.w;
+    for (let y = t.y; y < t.y + t.h; y++) {
+      if (!inC(x, y)) continue;
+      const k = id(x, y);
+      if (foot[k] >= 0 || blocked[k] || doorRow[k] || g[k] === STREET || g[k] === DIRT || g[k] === OUT || g[k] === WATER) continue;
+      tryProp(g[k] === PLAZA ? 'planter' : y === t.y + t.h - 1 ? 'bush' : 'fence', x, y, true);
+    }
+  }
+
+  // 広場は舞台: まん中の飾り（井戸小屋か花壇、無ければ花の島）に向いたベンチ、縁に樽と鉢、南の縁に低い柵、縁の街灯。
+  // 役場の段の階段から大通りまでと、飾りのまわり1マスは歩けるようにあけておく
   const { x0: px0, x1: px1, y0: py0, y1: py1 } = plaza, pc = P.cx;
-  [[pc - 1, py1 - 1], [pc - 4, py1 - 1], [pc + 2, py1 - 1], [pc - 1, py1 - 2]].find(([x, y]) => tryProp('noticeboard', x, y));
-  // 井戸小屋: 広場の真ん中（掲示板・開始位置）はあけて、左か右の寄り。番人は外側に立つ
+  const ht = P.terraces.find((t) => t.hall);
+  const sq0 = ht ? ht.y + ht.h + 1 : py0;                               // 段の壁の下から広場
+  const feature = { x0: 0, x1: -1, y0: 0, y1: -1 };
+  const ring = (x0, y0, x1, y1) => mark(reserved, x0 - 1, y0 - 1, x1 + 1, y1 + 1);
+  const placeFeature = (type, look, spots, withKeeper) => {
+    const [fw, fh] = propTiles(look || type, propArt);
+    for (const [tx, ty, side] of spots) {
+      if (tx < px0 || tx + fw - 1 > px1 || ty < sq0 || ty + fh - 1 > py1) continue;
+      const before = props.length;
+      if (!tryProp(type, tx, ty, false, look)) continue;
+      let keeper = null;
+      if (withKeeper) {
+        // 番人の立つ所（井戸小屋の外側の下の段、なければ反対側）の歩ける1マスを確かめる
+        const ox = side < 0 ? tx - 1 : tx + fw, ix = side < 0 ? tx + fw : tx - 1;
+        for (const [kx, ky] of [[ox, ty + fh - 1], [ox, ty + fh], [ix, ty + fh - 1], [ix, ty + fh]]) {
+          if (!walk(kx, ky) || reserved[id(kx, ky)]) continue;
+          blocked[id(kx, ky)] = 1;
+          if (flood().count === reach - 1) { keeper = { x: kx + 0.5, y: ky + 0.6875 }; reach--; break; }
+          blocked[id(kx, ky)] = 0;
+        }
+        if (!keeper) {                                   // 番人が立てない → 置き直す
+          props.splice(before, 1);
+          for (let dy = 0; dy < fh; dy++) for (let dx = 0; dx < fw; dx++) blocked[id(tx + dx, ty + dy)] = 0;
+          reach = flood().count;
+          continue;
+        }
+        const kx = Math.floor(keeper.x), ky = Math.floor(keeper.y);
+        mark(reserved, kx - 1, ky - 1, kx + 1, ky + 1);
+        mark(noTree, kx - 1, ky - 1, kx + 1, ky + 1);
+      }
+      ring(tx, ty, tx + fw - 1, ty + fh - 1);
+      mark(noTree, tx - 2, ty - 2, tx + fw + 1, ty + fh + 1);
+      Object.assign(feature, { x0: tx, x1: tx + fw - 1, y0: ty, y1: ty + fh - 1 });
+      return { prop: props[before], keeper };
+    }
+    return null;
+  };
+  const centreSpots = (fw, fh) => {
+    const ty = py1 - fh, tx = pc - Math.floor(fw / 2);
+    return [[tx, ty, 1], [tx - 1, ty, -1], [tx + 1, ty, 1], [tx, ty - 1, 1], [tx - 2, ty, -1], [tx + 2, ty, 1]];
+  };
+  const hasBed = has('flowerbed');
+  let wellAtCentre = false;
   for (const lm of landmarks) {
     const [fw, fh] = propTiles(lm.prop, propArt);
-    const spots = [];
-    const yy = py1 - fh - 1;
+    // 井戸小屋が広場のまん中の飾り。置けなければ左右の寄り、広場に近い緑地
+    const spots = centreSpots(fw, fh);
     const side0 = hash32(`well:${lm.data.id}:${pc}`) % 2 ? 1 : -1;
-    for (const side of [side0, -side0]) for (const off of [3, 1, 5]) spots.push([side < 0 ? pc - 1 - off - fw : pc + 1 + off, yy, side]);
-    // 広場で置けなければ、広場の近くの緑地
-    for (const L of P.leaves.filter((L) => L.green).sort((a, b) => Math.hypot(a.x0 - pc, a.y0 - py0) - Math.hypot(b.x0 - pc, b.y0 - py0))) {
-      spots.push([Math.floor((L.x0 + L.x1 - fw) / 2), L.y1 - fh - 1, 1]);
+    for (const side of [side0, -side0]) for (const off of [3, 1, 5]) spots.push([side < 0 ? pc - 1 - off - fw : pc + 1 + off, py1 - fh - 1, side]);
+    let got = placeFeature(lm.prop, null, spots, true);
+    if (got) wellAtCentre = Math.abs((feature.x0 + feature.x1) / 2 - pc) <= 2;
+    if (!got) {
+      for (const L of P.leaves.filter((L) => L.green).sort((a, b) => Math.hypot(a.x0 - pc, a.y0 - py0) - Math.hypot(b.x0 - pc, b.y0 - py0))) {
+        const [tx, ty] = [Math.floor((L.x0 + L.x1 - fw) / 2), L.y1 - fh - 1];
+        const before = props.length;
+        if (!tryProp(lm.prop, tx, ty)) continue;
+        let keeper = null;
+        for (const [kx, ky] of [[tx + fw, ty + fh - 1], [tx - 1, ty + fh - 1]]) {
+          if (!walk(kx, ky) || reserved[id(kx, ky)]) continue;
+          blocked[id(kx, ky)] = 1;
+          if (flood().count === reach - 1) { keeper = { x: kx + 0.5, y: ky + 0.6875 }; reach--; break; }
+          blocked[id(kx, ky)] = 0;
+        }
+        if (!keeper) { props.splice(before, 1); for (let dy = 0; dy < fh; dy++) for (let dx = 0; dx < fw; dx++) blocked[id(tx + dx, ty + dy)] = 0; reach = flood().count; continue; }
+        got = { prop: props[before], keeper };
+        mark(noTree, tx - 2, ty - 2, tx + fw + 1, ty + fh + 1);
+        break;
+      }
     }
-    for (const [tx, ty, side] of spots) {
-      // 番人の立つ所（井戸小屋の外側の下の段、なければ反対側）の歩ける1マスを確かめる
-      const ox = side < 0 ? tx - 1 : tx + fw, ix = side < 0 ? tx + fw : tx - 1;
-      const kspots = [[ox, ty + fh - 1], [ox, ty + fh], [ix, ty + fh - 1], [ix, ty + fh]];
-      const before = props.length;
-      if (!tryProp(lm.prop, tx, ty)) continue;
-      let keeper = null;
-      for (const [kx, ky] of kspots) {
-        if (!walk(kx, ky) || reserved[id(kx, ky)]) continue;
-        blocked[id(kx, ky)] = 1;
-        if (flood().count === reach - 1) { keeper = { x: kx + 0.5, y: ky + 0.6875 }; reach--; break; }
-        blocked[id(kx, ky)] = 0;
+    if (got) out.landmarks.push({ ...lm.data, x: got.prop.x, y: got.prop.y, keeper: got.keeper });
+  }
+  // 井戸小屋がまん中に無ければ、花壇（あれば）か花の島をまん中に
+  if (!wellAtCentre) {
+    if (hasBed) { const [fw, fh] = propTiles('flowerbed', propArt); placeFeature('flowerbed', null, centreSpots(fw, fh), false); }
+    else {
+      const tx = pc - 1, ty = py1 - 1;
+      if (tryProp('planter', tx, ty) | tryProp('planter', tx + 1, ty)) {
+        tryProp('flowerpot', tx - 1, ty); tryProp('flowerpot', tx + 2, ty);
+        Object.assign(feature, { x0: tx - 1, x1: tx + 2, y0: ty, y1: ty });
+        ring(tx - 1, ty, tx + 2, ty);
       }
-      if (!keeper) {                                   // 番人が立てない → 置き直す
-        props.splice(before, 1);
-        for (let dy = 0; dy < fh; dy++) for (let dx = 0; dx < fw; dx++) blocked[id(tx + dx, ty + dy)] = 0;
-        reach = flood().count;
-        continue;
-      }
-      // 番人のまわり（話しかける所）は空け、井戸小屋と番人のまわり1マスには木を植えない
-      const kx = Math.floor(keeper.x), ky = Math.floor(keeper.y);
-      mark(reserved, kx - 1, ky - 1, kx + 1, ky + 1);
-      mark(noTree, tx - 2, ty - 2, tx + fw + 1, ty + fh + 1);
-      mark(noTree, kx - 1, ky - 1, kx + 1, ky + 1);
-      const pr = props[before];
-      out.landmarks.push({ ...lm.data, x: pr.x, y: pr.y, keeper });
-      break;
     }
   }
-  // 角の植え込み: 大きい角には木と茂み、小さい角には花
-  for (const [x, y, n] of plaza.cuts) {
-    const corner = (x === px0 || x === px1) && (y === py0 || y === py1);
-    (corner && n >= 3 && tryProp('tree', x, y)) || tryProp(n >= 3 ? 'bush' : pick(['planter', 'flowerpot', 'bush']), x, y);
+  // まん中の飾りに向いたベンチ（左右）
+  if (feature.x1 >= feature.x0) {
+    for (const [x, y] of [[feature.x0 - 3, feature.y1], [feature.x0 - 3, feature.y1 - 1]]) if (tryProp('bench', x, y)) break;
+    for (const [x, y] of [[feature.x1 + 2, feature.y1], [feature.x1 + 2, feature.y1 - 1]]) if (tryProp('bench', x, y)) break;
   }
-  tryProp('bench', px0 + 1, py1 - 2) || tryProp('bench', px0 + 1, py1 - 3);
-  tryProp('bench', px1 - 2, py1 - 2) || tryProp('bench', px1 - 2, py1 - 3);
-  lampAt([[px0 + 1, py1], [px0, py1 - 1], [px0 + 1, py1 - 1]], 5);
-  lampAt([[px1 - 1, py1], [px1, py1 - 1], [px1 - 1, py1 - 1]], 5);
-  lampAt([[px0, py0 + 2], [px0 + 1, py0 + 2], [px0, py0 + 3]], 5);
-  lampAt([[px1, py0 + 2], [px1 - 1, py0 + 2], [px1, py0 + 3]], 5);
+  // 掲示板: 段の下、階段の脇
+  const sx = ht?.stair ? ht.stair.x : pc - 1, sw2 = ht?.stair ? ht.stair.w : 2;
+  [[sx - 4, sq0], [sx + sw2 + 2, sq0], [px0 + 1, sq0 + 1], [px1 - 2, sq0 + 1], [pc - 1, py1 - 1]].find(([x, y]) => tryProp('noticeboard', x, y));
+  // 角の植え込み: 大きい角には茂み、小さい角には花
+  for (const [x, y, n] of plaza.cuts) tryProp(n >= 3 ? 'bush' : pick(['planter', 'flowerpot', 'bush']), x, y);
+  // 縁: 樽と鉢（2行おき、出入りできる切れ目を残す）。南の縁の両わきに低い柵
+  for (const [x, list] of [[px0, ['barrel', 'flowerpot', 'barrel', 'planter']], [px1, ['flowerpot', 'barrel', 'planter', 'barrel']]]) {
+    let n = 0;
+    for (let y = sq0 + 2; y <= py1 - 2; y += 2) if (rng() < 0.75) tryProp(list[n++ % list.length], x, y);
+  }
+  for (const x of [px0 + 1, px0 + 2, px1 - 2, px1 - 1]) tryProp('fence', x, py1);
+  // 縁の街灯: 階段の両わき、広場の四隅
+  if (ht?.stair) for (const x of [ht.stair.x - 1, ht.stair.x + ht.stair.w]) if (inC(x, sq0) && !doorRow[id(x, sq0)]) tryProp('lamp', x, sq0, true);
+  lampAt([[px0, py1 - 1], [px0 + 1, py1 - 1], [px0, py1 - 2]], 4);
+  lampAt([[px1, py1 - 1], [px1 - 1, py1 - 1], [px1, py1 - 2]], 4);
+  lampAt([[px0, sq0 + 1], [px0 + 1, sq0], [px0, sq0 + 2]], 4);
+  lampAt([[px1, sq0 + 1], [px1 - 1, sq0], [px1, sq0 + 2]], 4);
 
   // 工事中（作業中の変更がある建物）: 横の壁に足場、そばに工事中の札、余地があれば材木
   for (const p of placed) {
@@ -1262,7 +1493,7 @@ function placeProps(P, F, rng, spawn, extra) {
   for (const sq of P.squares) {
     if (!sq.keep) continue;
     const w = sq.x1 - sq.x0 + 1;
-    lampAt([[sq.x0, sq.y0], [sq.x1, sq.y0]], 9);
+    lampAt([[sq.x0, sq.y0], [sq.x1, sq.y0]], 12);
     const r = rng();
     if (r < 0.3 && w >= 7) tryProp('cart', sq.x1 - 3, sq.y0);
     else if (r < 0.7) tryProp('bench', sq.x1 - 1, sq.y0);
@@ -1282,10 +1513,12 @@ function placeProps(P, F, rng, spawn, extra) {
     if (pc2.dir !== 'v' || !pc2.keep) continue;
     for (const [ey, by] of [[pc2.keep[1], pc2.keep[1] + 1], [pc2.keep[0], pc2.keep[0] - 1]]) {
       if (!kept(pc2.x0, by)) continue;                 // 突き当たる通りが無い（行き止まり）
+      if (P.road[id(pc2.x0, by)] >= 0 && pieces[P.road[id(pc2.x0, by)]].grp === pc2.grp) continue;   // 同じ通りの段差
+      const mainCorner = pc2.code === STREET && g[id(pc2.x0, by)] === STREET;                       // 路地・裏道の角には街灯を立てない
       const ys = by > ey ? [ey, ey - 1] : [ey, ey + 1];
       const cands = [];
       for (const y of ys) for (const x of [pc2.x0 - 1, pc2.x1 + 1]) if (isGrass(x, y)) cands.push([x, y]);
-      if (!lampAt(cands, 12) && cands.length && rng() < 0.6) {
+      if (!(mainCorner && lampAt(cands, 16)) && cands.length && rng() < 0.6) {
         // 角の花壇（鉢と植え込みを2〜3つ）
         const [fx, fy] = cands[Math.floor(rng() * cands.length)];
         for (const [dx, dy] of [[0, 0], [fx < pc2.x0 ? -1 : 1, 0], [0, fy > ey ? 1 : -1]]) if (isGrass(fx + dx, fy + dy) && rng() < 0.8) tryProp(pick(['planter', 'flowerpot', 'planter', 'bush']), fx + dx, fy + dy);
@@ -1346,7 +1579,7 @@ function placeProps(P, F, rng, spawn, extra) {
     if (!L.green || !inC(L.x0, L.y1) || g[id(L.x0, L.y1)] === OUT) continue;
     const cxL = L.x0 + Math.floor((L.x1 - L.x0 + 1) / 2);
     tryProp('bench', cxL - 1, L.y1) || tryProp('bench', cxL, L.y1 - 1);
-    lampAt([[L.x0, L.y1], [L.x1, L.y1]], 10);
+    lampAt([[L.x0, L.y1], [L.x1, L.y1]], 14);
     for (const [x, y] of [[L.x1 - 1, L.y1], [L.x0 + 2, L.y1 - 1]]) tryProp(pick(['bush', 'planter', 'flowerpot', 'bush']), x, y);
   }
 
@@ -1522,6 +1755,7 @@ export function layoutTown(repo, opts = {}) {
   }
   if (!P) throw new Error('layoutTown: 建物を配置できなかった');
   const F = finalize(P, maxH, { scaffold: !!(propArt.scaffold || propArt['scaffold-2']) });
+  if (opts.debug) opts.debug.P = P;                  // 調べる道具のため（通り・街区の中身）
   const spawn = { x: P.cx, y: P.plaza.y0 + 2 };
 
   // 見た目の版: 近くに同じ archetype の同じ版が並ばないように選ぶ（同じ入力からは同じ選び方）
@@ -1549,6 +1783,15 @@ export function layoutTown(repo, opts = {}) {
     p.doorCol = p.x + clamp(variantOf.get(p)?.doorX ?? p.spec.doorDx, 0, p.w - 1);
     p.wall = variantOf.get(p)?.wall || [0, 0];                // 絵の壁が footprint の端から内側にある幅（px、左・右）
   }
+  // 役場の段の階段: 版の扉の前に、扉の幅（2〜3マス、1マスの扉なら3マスで真ん中）
+  for (const t of P.terraces) {
+    if (!t.hall) continue;
+    const hp = P.placed.find((p) => p.spec.archetype === 'town_hall');
+    if (!hp) { t.drop = true; continue; }
+    const dw = variantOf.get(hp)?.doorW ?? 1;
+    t.stair = dw >= 2 ? { x: hp.doorCol, w: Math.min(3, dw) } : { x: hp.doorCol - 1, w: 3 };
+  }
+  P.terraces = P.terraces.filter((t) => !t.drop);
   const dock = P.placed.find((p) => p.spec.archetype === 'dock');
   const placedProps = placeProps(P, F, makeRng(seed ^ 0x9e3779b9), spawn, { propArt, landmarks, dock });
 
@@ -1611,6 +1854,9 @@ export function layoutTown(repo, opts = {}) {
     buildings,
     props: placedProps.props.map(shift).sort((a, b) => a.y - b.y || a.x - b.x || cmp(a.type, b.type)),
     landmarks: placedProps.landmarks.map((l) => ({ ...shift(l), keeper: shift(l.keeper) })),
+    // 段: 上の面（歩ける）は x..x+w-1 × y..y+h-1、前の壁は y+h 行（階段の所だけ歩ける）
+    terraces: P.terraces.map((t) => ({ x: t.x - x0, y: t.y - y0, w: t.w, h: t.h })),
+    stairs: P.terraces.map((t) => ({ x: t.stair.x - x0, y: t.y + t.h - y0, w: t.stair.w })),
     residents,
     crowd,
     spawn: { x: spawn.x - x0, y: spawn.y - y0 },

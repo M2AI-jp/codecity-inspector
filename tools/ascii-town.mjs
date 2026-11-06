@@ -4,7 +4,7 @@
 // 建物: W 工房 / S 商店 / H 住宅 / R 廃屋 / G 役場 / Y 宿屋 / P 酒場 / K 倉庫 / M 見張り台 / D 道場 / Q 船着場（扉は小文字）。
 // 地面: . 草地 # 石畳 : 土の路地 + 広場 ~ 水（空白は街の外）
 // 小物: T 木 * 茂み o 樽 x 木箱 % 袋 f 鉢 v プランター c 荷車 = 柵 n ベンチ i 街灯 O 井戸 N 掲示板 & 井戸小屋 | 桟橋 ^ 舟
-//       ! 足場 $ 工事中の札 _ 材木 / k 外に立つ番人 / @ 開始位置
+//       ! 足場 $ 工事中の札 _ 材木 / k 外に立つ番人 / " 段の前の壁 ; 階段 / @ 開始位置
 // --districts: 建物を種類ではなく地区（最上位ディレクトリ）ごとの文字で描く
 // --check: 重なり・隙間・屋根の余白・footprint の下の行（幅いっぱい歩けて広場から届く）・同じ入力で同じ出力になるか。問題があれば終了コード1
 import { readFileSync } from 'node:fs';
@@ -50,6 +50,11 @@ const propTilesOf = (p) => {
 };
 if (!args.includes('--no-props')) for (const p of town.props) for (const [x, y] of propTilesOf(p)) if (grid[y]?.[x] !== undefined) grid[y][x] = PROP[p.type] || '?';
 for (const l of town.landmarks || []) if (l.keeper && grid[Math.floor(l.keeper.y - 0.01)]?.[Math.floor(l.keeper.x)] !== undefined) grid[Math.floor(l.keeper.y - 0.01)][Math.floor(l.keeper.x)] = 'k';
+// 段の前の壁（階段の所を除く）
+const stairAt = new Set((town.stairs || []).flatMap((s) => Array.from({ length: s.w }, (_, i) => `${s.x + i},${s.y}`)));
+const faceCells = (town.terraces || []).flatMap((t) => Array.from({ length: t.w }, (_, i) => [t.x + i, t.y + t.h])).filter(([x, y]) => !stairAt.has(`${x},${y}`));
+for (const [x, y] of faceCells) if (grid[y]?.[x] !== undefined) grid[y][x] = '"';
+for (const k of stairAt) { const [x, y] = k.split(',').map(Number); if (grid[y]?.[x] !== undefined) grid[y][x] = ';'; }
 const districts = [...new Set(town.buildings.map((b) => b.district))].sort();
 const DL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 const byDistrict = args.includes('--districts');
@@ -114,6 +119,7 @@ if (args.includes('--check')) {
     if (!'.#:+'.includes(town.ground[ky]?.[kx] ?? ' ') || foot[t] >= 0 || blocked[t]) problems.push(`${l.id} の番人 (${kx},${ky}) が歩けない所に立つ`);
     if (!town.props.some((p) => p.type === l.prop && Math.abs(p.x - l.x) < 0.01 && Math.abs(p.y - l.y) < 0.01)) problems.push(`${l.id} の ${l.prop} が props に無い`);
   }
+  for (const [x, y] of faceCells) if (x >= 0 && y >= 0 && x < cols && y < rows) blocked[y * cols + x] = 1;    // 段の壁は歩けない
   const walk = (x, y) => x >= 0 && y >= 0 && x < cols && y < rows && ('.#:+'.includes(town.ground[y][x]) || deckT[y * cols + x]) && foot[y * cols + x] < 0 && !blocked[y * cols + x];
   const s = town.spawn;
   if (!walk(s.x, s.y)) problems.push('開始位置が歩けない');

@@ -39,6 +39,20 @@ export class World {
       const m = grid[i];
       if (m === MAT.OUT || m === MAT.WATER) this.tileSolid[i] = 1;
     }
+    // terraces (town.terraces): the row in front of a terrace (its retaining wall, y + h) is not
+    // walkable except where town.stairs puts steps; the raised top itself is ordinary ground
+    this.stairTile = new Uint8Array(n);
+    for (const st of Array.isArray(town.stairs) ? town.stairs : []) {
+      for (let x = st.x | 0; x < (st.x | 0) + (st.w | 0); x++) if (this.inGrid(x, st.y | 0)) this.stairTile[(st.y | 0) * this.cols + x] = 1;
+    }
+    for (const t of Array.isArray(town.terraces) ? town.terraces : []) {
+      const fy = (t.y | 0) + (t.h | 0);
+      for (let x = t.x | 0; x < (t.x | 0) + (t.w | 0); x++) {
+        if (!this.inGrid(x, fy)) continue;
+        const k = fy * this.cols + x;
+        if (!this.stairTile[k]) this.tileSolid[k] = 1;
+      }
+    }
     (town.buildings || []).forEach((b, i) => this.addBuilding(b, i));
     this.decks = [];
     this.deckTile = new Uint8Array(n);
@@ -285,7 +299,7 @@ export class World {
         }
         this.nav[k] = free ? 0 : 1;
         const m = this.grid[k];
-        this.cost[k] = this.buildingMap[k] >= 0 ? 1.1 : m === MAT.STREET || m === MAT.PLAZA ? 1 : m === MAT.DIRT || this.deckTile[k] ? 1.35 : 2.4;
+        this.cost[k] = this.buildingMap[k] >= 0 ? 1.1 : this.stairTile[k] ? 1.2 : m === MAT.STREET || m === MAT.PLAZA ? 1 : m === MAT.DIRT || this.deckTile[k] ? 1.35 : 2.4;
       }
     }
     const edges = this.edges;
