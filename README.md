@@ -14,7 +14,7 @@ Node.js 22以上だけで動きます（npmパッケージは不要）。製品�
 
 - `node tools/check-play.mjs <repo>` — すべての建物に扉から入れて、番人と話せるかを、ゲームと同じ当たり判定で調べる
 - `node codecity.mjs <repo> --json town.json` と `node tools/ascii-town.mjs town.json --check` — 街の配置を文字で見る・検査する
-- `node tools/lawn.mjs town.json` — 何も無い芝生のつながりの広さを数える（10マスを超えないように小物を置いている）
+- `node tools/lawn.mjs town.json` — 何も無い芝生の長方形の広さを測る（8マスを超えないように小物の組を置いている）
 - `node tools/build-manifest.mjs` — `art/game/` の画像と注釈から manifest.json を作り直す
 - `node tools/gallery.mjs gallery.html` — 素材のレビュー用ページを作る
 

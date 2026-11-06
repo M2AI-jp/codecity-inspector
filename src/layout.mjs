@@ -153,7 +153,9 @@ export function loadArt(manifest) {
     // 版ごとの扉（同じ footprint の版だけ。版の名前は town.json の building.variant に書く）
     const variants = defs.filter((d) => d?.id && (!d.footprint || (d.footprint[0] === fp[0] && d.footprint[1] === fp[1])))
       .map((d) => ({ id: d.id, doorX: Number.isInteger(d.door?.x) ? d.door.x : undefined, doorW: Number.isInteger(d.door?.w) ? d.door.w : 1,
-        wall: Array.isArray(d.wall) && d.wall.length === 2 && d.wall.every(Number.isFinite) ? d.wall : [0, 0] }));
+        wall: Array.isArray(d.wall) && d.wall.length === 2 && d.wall.every(Number.isFinite) ? d.wall : [0, 0],
+        // 絵が footprint の上にかぶさる行の数（列ごと）。その行の草地は屋根の陰で見えない
+        cover: Array.isArray(d.cover) && d.cover.length === fp[0] && d.cover.every((n) => Number.isInteger(n) && n >= 0) ? d.cover : null }));
     const roof = Math.max(0, ...defs.map((d) => Number(d?.exterior?.origin?.[1]) || 0));     // 屋根の高さ（px）
     out[k] = { footprint: fp, doorX: Number.isInteger(dx) ? dx : undefined, variants, roof };
   }
@@ -1194,13 +1196,16 @@ function placeProps(P, F, rng, spawn, extra) {
   for (const p of placed) for (let x = p.x; x < p.x + p.w; x++) for (let y = p.yb + 1; y <= p.yb + 2; y++) { reserved[id(x, y)] = 1; doorRow[id(x, y)] = 1; }
   for (let t = 0; t < N; t++) if (front[t]) reserved[t] = 1;
   for (let dx = -1; dx <= 1; dx++) for (let dy = 0; dy <= 1; dy++) reserved[id(spawn.x + dx, spawn.y + dy)] = 1;
-  // 施設の扉の前（扉の列の左右2、5行）には何も置かない。まわりには木を置かない（主要施設を隠さない）
+  // 施設の扉の前（扉の列の左右2、扉の列の通りが続く所まで 2〜5行）には何も置かない。まわりには木を置かない（主要施設を隠さない）
   const noTree = new Uint8Array(N);
   const mark = (arr, x0, y0, x1, y1) => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (inC(x, y)) arr[id(x, y)] = 1; };
   for (const p of placed) {
     if (!p.spec.facility) continue;
     const dc = p.doorCol ?? p.x + p.spec.doorDx;
-    mark(reserved, dc - 2, p.yb + 1, dc + 3, p.yb + 5);
+    // 扉の前は、扉の列の通り（石畳・土・広場）が続く所まで（2〜5行）。通りの向こうの草地まではあけない（何も無い芝生になる）
+    let ye = p.yb + 1;
+    while (ye < p.yb + 5 && inC(dc, ye + 1) && [STREET, DIRT, PLAZA].includes(g[id(dc, ye + 1)])) ye++;
+    mark(reserved, dc - 2, p.yb + 1, dc + 3, Math.max(p.yb + 2, ye));
     mark(noTree, p.x - 2, p.y - 1, p.x + p.w + 1, p.yb + 5);
   }
 
@@ -1863,59 +1868,68 @@ function placeProps(P, F, rng, spawn, extra) {
     if (lattice ? r < (shore ? 0.5 : 0.9) : r < 0.16) tryProp(lattice || r < 0.06 ? 'tree' : 'bush', x, y);
   }
 
-  // 何も無い芝生を割る: 基準 target-town.png の町の緑はほとんどが茂み・花・木で、何も無い芝生はいちばん大きい所でも 7 マスほど。
-  // 建物・小物とその周り1マスにかからない草地（建物のすぐ上2行は屋根の陰なので数えない）の4近傍のつながりが LAWN_MAX を超えたら、
-  // つながりの縁（通り・柵・建物の壁ぎわの側）から、茂み・花・低い木をひとつずつ置いていく
+  // 何も無い芝生を割る: 基準 target-town.png の町の緑はほとんどが茂み・花・木・樽で埋まり、何も無い芝生はいちばん大きい所でも 7 マスほど。
+  // 見える芝生（草地で、物が無く、建物の絵の屋根の陰（版の cover）でない所）の中で、何も無い長方形（縦横とも2マス以上）の
+  // いちばん大きいものが LAWN_MAX を超えるあいだ、その長方形のまん中に2〜3個の組（建物の近くは樽・鉢・茂み、離れた所は茂み・花・木）を置く
   {
-    const LAWN_MAX = 10;
-    const objAt = (x, y) => inC(x, y) && (foot[id(x, y)] >= 0 || (blocked[id(x, y)] && g[id(x, y)] !== WATER && g[id(x, y)] !== OUT));
-    const underRoof = (x, y) => (inC(x, y + 1) && foot[id(x, y + 1)] >= 0) || (inC(x, y + 2) && foot[id(x, y + 2)] >= 0);
-    const lawnAt = (x, y) => {
-      if (!isGrass(x, y) || blocked[id(x, y)] || underRoof(x, y)) return false;
-      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (objAt(x + dx, y + dy)) return false;
-      return true;
+    const LAWN_MAX = 8;
+    const shade = new Uint8Array(N);
+    for (const p of placed) for (let tx = 0; tx < p.w; tx++) {
+      const k = p.cover ? p.cover[tx] : 2;
+      for (let j = 1; j <= k; j++) if (inC(p.x + tx, p.y - j)) shade[id(p.x + tx, p.y - j)] = 1;
+    }
+    const skip = new Uint8Array(N);
+    const W0 = crop.x1 - crop.x0 + 1, Hh = new Int32Array(W0), lawnM = new Uint8Array(N);
+    const nearBuilding = (x, y) => { for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (inC(x + dx, y + dy) && foot[id(x + dx, y + dy)] >= 0) return true; return false; };
+    const GROUPS = {
+      house: [['barrel', 'flowerpot', 'bush'], ['planter', 'bush', 'crate'], ['bush', 'flowerpot', 'barrel'], ['sacks', 'planter', 'bush']],
+      open: [['bush', 'flowerpot', 'bush'], ['tree', 'bush', 'planter'], ['bush', 'planter', 'flowerpot'], ['tree', 'bush', 'bush']],
     };
-    const LOOKS = ['bush', 'bush', 'bush', 'planter', 'flowerpot', 'tree', 'tree', 'bush'];
-    const gaveUp = new Set();
-    for (let iter = 0; iter < 2000; iter++) {
-      // いちばん大きい（あきらめていない）つながり
-      const seen = new Uint8Array(N);
-      let big = null;
+    const SHAPES = [[[0, 0], [1, 0], [0, 1]], [[0, 0], [-1, 0], [0, 1]], [[0, 0], [1, 0], [1, 1]], [[0, 0], [0, 1], [-1, 1]]];
+    for (let iter = 0; iter < 3000; iter++) {
       for (let y = crop.y0; y <= crop.y1; y++) for (let x = crop.x0; x <= crop.x1; x++) {
-        const t0 = id(x, y);
-        if (seen[t0] || !lawnAt(x, y)) continue;
-        const cells = [t0];
-        seen[t0] = 1;
-        for (let h = 0; h < cells.length; h++) {
-          const t = cells[h], cx2 = t % cols, cy2 = (t / cols) | 0;
-          for (const [nx, ny] of [[cx2 + 1, cy2], [cx2 - 1, cy2], [cx2, cy2 + 1], [cx2, cy2 - 1]]) {
-            if (!inC(nx, ny)) continue;
-            const n = id(nx, ny);
-            if (!seen[n] && lawnAt(nx, ny)) { seen[n] = 1; cells.push(n); }
+        const t = id(x, y);
+        lawnM[t] = isGrass(x, y) && !blocked[t] && !shade[t] && !skip[t] ? 1 : 0;
+      }
+      // いちばん大きい何も無い長方形（縦横とも2マス以上）
+      Hh.fill(0);
+      let best = null;
+      for (let y = crop.y0; y <= crop.y1; y++) {
+        for (let i = 0; i < W0; i++) Hh[i] = lawnM[id(crop.x0 + i, y)] ? Hh[i] + 1 : 0;
+        const st = [];
+        for (let i = 0; i <= W0; i++) {
+          const h = i < W0 ? Hh[i] : 0;
+          let from = i;
+          while (st.length && st[st.length - 1][1] >= h) {
+            const [s0, hh] = st.pop(), w = i - s0;
+            if (hh >= 2 && w >= 2 && (!best || hh * w > best.a)) best = { a: hh * w, x0: crop.x0 + s0, x1: crop.x0 + i - 1, y0: y - hh + 1, y1: y };
+            from = s0;
           }
+          st.push([from, h]);
         }
-        if (cells.length > LAWN_MAX && !gaveUp.has(t0) && (!big || cells.length > big.length)) big = cells;
       }
-      if (!big) break;
-      // 縁のマス（つながりの外に接する所）から。通り・土の道に接する所、建物に近い所を先に。同じ点数なら決まった並び
-      const inBig = new Set(big);
-      const score = (t) => {
-        const x = t % cols, y = (t / cols) | 0;
-        let edge = 0, paved = 0, nearB = 0;
-        for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
-          if (!inBig.has(id(nx, ny))) edge = 1;
-          if (isPavedAt(nx, ny)) paved = 1;
+      if (!best || best.a <= LAWN_MAX) break;
+      // まん中に近いマスから、組を置ける所を探す
+      const mx = (best.x0 + best.x1) / 2, my = (best.y0 + best.y1) / 2;
+      const cells = [];
+      for (let y = best.y0; y <= best.y1; y++) for (let x = best.x0; x <= best.x1; x++) cells.push([Math.abs(x - mx) + Math.abs(y - my) + (hash32(`lawn:${x},${y}`) % 100) / 1000, x, y]);
+      cells.sort((a, b) => a[0] - b[0]);
+      let got = 0;
+      for (const [, x, y] of cells) {
+        const h = hash32(`lawng:${x},${y}`);
+        const set = (nearBuilding(x, y) ? GROUPS.house : GROUPS.open)[h % 4];
+        const shape = SHAPES[(h >>> 3) % SHAPES.length];
+        const n = 2 + ((h >>> 6) % 2);
+        for (let k = 0; k < n; k++) {
+          const [dx, dy] = shape[k], type = set[k];
+          const px = x + dx, py = y + dy;
+          if (!isGrass(px, py)) continue;
+          if (tryProp(type, px, py) || (type !== 'bush' && tryProp('bush', px, py))) got++;
+          else if (k === 0) break;                        // 組の最初が置けなければ次のマスへ
         }
-        for (let dy = -2; dy <= 2 && !nearB; dy++) for (let dx = -2; dx <= 2; dx++) if (objAt(x + dx, y + dy)) { nearB = 1; break; }
-        return (edge ? 0 : 4) + (paved || nearB ? 0 : 2) + (hash32(`lawn:${x},${y}`) % 1000) / 1000;
-      };
-      let placedOne = false;
-      for (const t of [...big].sort((a, b) => score(a) - score(b))) {
-        const x = t % cols, y = (t / cols) | 0;
-        const want = LOOKS[hash32(`lawnk:${x},${y}`) % LOOKS.length];
-        if (tryProp(want, x, y) || (want !== 'bush' && tryProp('bush', x, y))) { placedOne = true; break; }
+        if (got) break;
       }
-      if (!placedOne) gaveUp.add(big[0]);
+      if (!got) for (let y = best.y0; y <= best.y1; y++) for (let x = best.x0; x <= best.x1; x++) skip[id(x, y)] = 1;   // 置けない（扉の前など）: あきらめる
     }
   }
   return out;
@@ -2062,6 +2076,7 @@ export function layoutTown(repo, opts = {}) {
   for (const p of P.placed) {
     p.doorCol = p.x + clamp(variantOf.get(p)?.doorX ?? p.spec.doorDx, 0, p.w - 1);
     p.wall = variantOf.get(p)?.wall || [0, 0];                // 絵の壁が footprint の端から内側にある幅（px、左・右）
+    p.cover = variantOf.get(p)?.cover || null;                // 屋根が footprint の上にかぶさる行の数（列ごと）
   }
   // 役場の段の階段: 版の扉の前に、扉の幅（2〜3マス、1マスの扉なら3マスで真ん中）
   for (const t of P.terraces) {

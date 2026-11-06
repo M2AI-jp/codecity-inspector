@@ -74,6 +74,26 @@ function wallInset(abs, footH) {
     return [med(L), med(R)];
   } catch { return null; }
 }
+// How many whole tile rows above the footprint's top the exterior image hides, per footprint tile
+// column (the lowest opaque top over the column's 16 px). The roof of a workshop is drawn inside
+// its footprint (0 rows); a watchtower hides 3. Layout does not count those rows as open lawn.
+function roofCover(abs, origin, footW) {
+  try {
+    const im = decodePNG(fs.readFileSync(abs));
+    const W = im.width, H = im.height, out = [];
+    for (let tx = 0; tx < footW; tx++) {
+      let hid = 99;
+      for (let px = origin[0] + tx * 16; px < origin[0] + tx * 16 + 16; px++) {
+        if (px < 0 || px >= W) { hid = 0; continue; }
+        let top = H;
+        for (let y = 0; y < H; y++) if (im.data[(y * W + px) * 4 + 3] > 128) { top = y; break; }
+        hid = Math.min(hid, Math.floor(Math.max(0, origin[1] - top) / 16));
+      }
+      out.push(hid === 99 ? 0 : hid);
+    }
+    return out;
+  } catch { return null; }
+}
 const isLight = (a) => Array.isArray(a) && a.length >= 3 && a.slice(0, 3).every(Number.isFinite);
 const isPt = (a) => Array.isArray(a) && a.length >= 2 && a.slice(0, 2).every(Number.isFinite);
 
@@ -103,12 +123,14 @@ function buildings() {
     const fp = isPt(s.footprint) ? s.footprint.slice(0, 2) : null;
     if (!fp) warn(`${rel(file)}: footprint がありません`);
     const wall = fp ? wallInset(path.join(dir, s.exterior.src), fp[1]) : null;
+    const cover = fp ? roofCover(path.join(dir, s.exterior.src), exterior.origin, fp[0]) : null;
     const variant = {
       id,
       footprint: fp,
       exterior,
       cutaway,
       ...(wall ? { wall } : {}),
+      ...(cover ? { cover } : {}),
       door: s.door && Number.isFinite(s.door.x) ? { x: s.door.x, w: Number.isFinite(s.door.w) ? s.door.w : 1 } : null,
       floor: isBox(s.floor) ? s.floor.slice(0, 4) : null,
       blockers: (s.blockers || []).filter(isBox),
