@@ -33,6 +33,9 @@ const SHOP_DIRS = new Set(['components', 'component', 'ui', 'views', 'view', 'pa
   'widgets', 'theme', 'themes', 'icons', 'fonts', 'images', 'img']);
 const BUILD_FILES = /^(makefile|gnumakefile|dockerfile|containerfile|docker-compose\.ya?ml|compose\.ya?ml|jenkinsfile|procfile|justfile|taskfile\.ya?ml|rakefile|gemfile|build\.gradle(\.kts)?|settings\.gradle(\.kts)?|pom\.xml|cmakelists\.txt|meson\.build|build\.zig|cargo\.toml|go\.mod|pyproject\.toml|setup\.py|setup\.cfg|requirements(-[\w]+)?\.txt|tox\.ini|noxfile\.py|flake\.nix|shell\.nix|\.gitlab-ci\.yml|\.travis\.yml|azure-pipelines\.yml|netlify\.toml|vercel\.json|wrangler\.toml|tsconfig(\.[\w-]+)?\.json|jsconfig\.json|(vite|vitest|webpack|rollup|esbuild|babel|jest|playwright|eslint|prettier|tailwind|postcss|svelte|next|nuxt|astro)\.config\.[cm]?[jt]s|\.eslintrc(\.\w+)?|\.prettierrc(\.\w+)?|\.babelrc|\.nvmrc|\.node-version|\.tool-versions|\.editorconfig|\.dockerignore|\.npmrc|\.env\.example|\.devcontainer\.json)$/i;
 
+// 本物の env ファイル（.env・.env.local・.env.production など。見本の .env.example などは除く）
+const SECRET_FILE = { test: (b) => /^\.env(\.[\w.-]+)?$/i.test(b) && !/[.-](example|sample|template|dist|tmpl|tpl|defaults?)$/i.test(b) && !/^\.env\.vault$/i.test(b) };
+
 const EMAIL = /[\w.+-]+@[\w-]+(\.[\w-]+)+/g;
 const scrub = (s) => String(s ?? '').replace(EMAIL, '').replace(/<\s*>/g, '').replace(/\s+/g, ' ').trim();
 
@@ -117,6 +120,7 @@ function readFiles(root, paths) {
     if (!st.isFile()) continue;                                       // submodule・symlink
     const ext = extOf(p);
     const f = { path: p, ext, bytes: st.size, lines: 0, binary: false };
+    if (SECRET_FILE.test(basename(p))) { files.push(f); continue; }  // 秘密が入っているかもしれないファイルは開かない（行数も数えない）
     if (BINARY_EXT.has(ext) || st.size > MAX_TEXT_BYTES) f.binary = true;
     else if (read >= MAX_READ_FILES) unread.push(f);
     else {
@@ -198,12 +202,50 @@ function groupModules(tree) {
   return groups;
 }
 
+// ---------- 外部のコード生成エージェント（外部工務店） ----------
+// コミットの作者・trailer（Co-Authored-By など）・定型の印だけで見分ける。本文に名前が出てくるだけ
+// （「Codex の箱では…」のような話題）は数えない。
+// [名前, 作者名だけで分かる bot の名前, 作者名とメールの両方で分かるもの [名前, メール], メッセージ]
+// （「Claude」という名前の人もいるので、名前だけの作者はメールがエージェントのものであるときだけ）
+const AGENTS = [
+  ['Claude Code', /^claude\[bot\]$/i, [/^claude$/i, /@anthropic\.com$/i],
+    /^co-authored-by:\s*claude\b[^\n<]*<noreply@anthropic\.com>|^co-authored-by:\s*claude\s+(code|opus|sonnet|haiku|fable|\d)|generated with \[claude code\]|^claude-session:\s*https:\/\/claude\.ai\/code/im],
+  ['Codex', /^chatgpt-codex-connector(\[bot\])?$/i, [/^codex$/i, /@openai\.com$/i], /^co-authored-by:\s*codex\b|^co-authored-by:[^\n]*<codex@openai\.com>/im],
+  ['GitHub Copilot', /^copilot-swe-agent(\[bot\])?$|^copilot\[bot\]$/i, [/^copilot$/i, /copilot@users\.noreply\.github\.com$/i], /^co-authored-by:\s*copilot\b/im],
+  ['Cursor', /^cursor(-agent)?\[bot\]$/i, [/^cursor( agent)?$/i, /@cursor\.(com|sh)$/i], /^co-authored-by:\s*cursor( agent)?\s*</im],
+  ['Devin', /^devin-ai-integration(\[bot\])?$/i, null, /^co-authored-by:\s*devin\b[^\n]*<[^>\n]*(devin|cognition)/im],
+  ['Aider', /\(aider\)$/i, null, /^co-authored-by:\s*aider\b/im],
+  ['Gemini', /^(gemini-code-assist|google-labs-jules)(\[bot\])?$/i, null, /^co-authored-by:\s*(gemini-code-assist|jules)\b/im],
+  ['Amp', /^amp\[bot\]$/i, [/^amp$/i, /@ampcode\.com$/i], /^co-authored-by:\s*amp\s*<[^>\n]*ampcode\.com>|^amp-thread(-id)?:/im],
+  ['OpenHands', /^openhands(-agent)?(\[bot\])?$/i, null, /^co-authored-by:\s*openhands\b/im],
+];
+// 作者名だけでエージェントだと分かる（copilot-swe-agent[bot] など）なら、その名前。犬（bot）や住人にはしない
+export function agentForAuthor(name) {
+  const n = String(name ?? '').trim();
+  for (const [agent, bot] of AGENTS) if (bot.test(n)) return agent;
+  return null;
+}
+// 作者そのものがエージェント（名前だけ、または名前とメール）なら、その名前
+function authorAgent(name, email) {
+  for (const [agent, bot, pair] of AGENTS) if (bot.test(name) || (pair && pair[0].test(name) && pair[1].test(email))) return agent;
+  return null;
+}
+function agentsOfCommit(author, email, subject, body) {
+  const out = [];
+  const byAuthor = authorAgent(author, email);
+  for (const [agent, , , msg] of AGENTS) {
+    if (byAuthor === agent || msg.test(body) || (agent === 'Aider' && /^aider: /.test(subject))) out.push(agent);
+  }
+  return { agents: out, byAuthor };
+}
+
 // ---------- git 履歴 ----------
 // grafts: 浅いクローンの境界コミット（完全なハッシュ）。親が無いように見えるだけなので、ファイル一覧は使わない
+// 本文（%b）は外部エージェントの印を探すためだけに読み、持ち続けない
 function readHistory(root, extra = ['-n', String(MAX_COMMITS), '--', '.'], timeout = 0, grafts = []) {
   // 時間切れでも、それまでに読めた分は使う
   const r = spawnSync('git', ['-C', root, '-c', 'core.quotepath=false', 'log', '--no-merges', '--no-renames',
-    '--format=%x1e%h%x1f%cI%x1f%aN%x1f%s', '--name-only', '--relative', ...extra],
+    '--format=%x1e%h%x1f%cI%x1f%aN%x1f%aE%x1f%s%x1f%b%x1f', '--name-only', '--relative', ...extra],
   { encoding: 'utf8', maxBuffer: 1 << 30, stdio: ['ignore', 'pipe', 'ignore'], timeout });
   const out = r.stdout || '';
   const commits = [];
@@ -211,15 +253,39 @@ function readHistory(root, extra = ['-n', String(MAX_COMMITS), '--', '.'], timeo
   if (r.error && recs.length > 1) recs.pop();      // 途中で切れた最後の1件は捨てる
   for (const rec of recs) {
     if (!rec) continue;
-    const nl = rec.indexOf('\n');
-    const head = nl === -1 ? rec : rec.slice(0, nl);
-    const [hash, date, author, subject] = head.split('\x1f');
+    // ファイル名に生の \x1f は出てこない（制御文字は git が引用する）ので、最後の \x1f の後ろがファイル一覧
+    const end = rec.lastIndexOf('\x1f');
+    if (end < 0) continue;
+    const f = rec.split('\x1f', 5);
+    const [hash, date, author = '', email = '', subject = ''] = f;
     if (!date) continue;
+    const bodyStart = f.reduce((n, s) => n + s.length + 1, 0);
+    const body = bodyStart <= end ? rec.slice(bodyStart, end) : '';
     const cut = grafts.length && grafts.some((h) => h.startsWith(hash));
-    const files = nl === -1 || cut ? [] : rec.slice(nl + 1).split('\n').filter(Boolean).map(unquote);
-    commits.push({ hash, date, author: author ?? '', subject: subject ?? '', files });
+    const files = cut ? [] : rec.slice(end + 1).split('\n').filter(Boolean).map(unquote);
+    // メールアドレスはエージェントを見分けるためだけに使い、持ち続けない
+    const { agents, byAuthor } = agentsOfCommit(author, email, subject, body);
+    commits.push({ hash, date, author, subject, files, ...(agents.length ? { agents } : {}), ...(byAuthor ? { byAgent: byAuthor } : {}) });
   }
   return commits;
+}
+
+// 作業ツリーで HEAD と違うファイル（変更・追加・削除・無視されていない未追跡）。解析したディレクトリからの相対パス。
+// bare リポジトリ・作業ツリーでないときは null。git status は索引を書きかえないよう --no-optional-locks で読む
+function dirtyFiles(root, bare) {
+  if (bare) return null;
+  const prefix = git(root, ['rev-parse', '--show-prefix'])?.trim() ?? '';
+  const out = git(root, ['--no-optional-locks', 'status', '--porcelain=v1', '-z', '--no-renames', '--untracked-files=all', '--', '.']);
+  if (out == null) return null;
+  const paths = [];
+  for (const rec of out.split('\0')) {
+    if (rec.length < 4) continue;
+    let p = rec.slice(3);                       // "XY path"（porcelain のパスはリポジトリのルートから）
+    if (prefix) { if (!p.startsWith(prefix)) continue; p = p.slice(prefix.length); }
+    if (p.endsWith('/')) p = p.slice(0, -1);    // 中身ごと変わった submodule など
+    if (p) paths.push(p);
+  }
+  return paths;
 }
 
 // 名前の表記ゆれ（大文字小文字）をまとめ、メールアドレスは取り除く
@@ -393,15 +459,24 @@ export function analyzeRepository(rootPath) {
   // 「最近」は今日ではなくリポジトリの最新コミットから90日（同じコミットなら同じ結果）
   const latestTime = history.length ? Date.parse(history[0].date) : 0;
   const people = new Map();   // key -> { commits, touches: Map(moduleIdx -> n), last: 最新のコミット }
+  const crews = new Map();    // 外部エージェントの名前 -> { commits, recent, touches, last }
   for (const c of history) {
     const k = keyer.key(c.author);
     c.key = k;
-    if (!people.has(k)) people.set(k, { commits: 0, touches: new Map(), last: c });   // 履歴は新しい順なので最初の1件が最新
+    if (!people.has(k)) people.set(k, { commits: 0, touches: new Map(), last: c, agentCommits: 0, agent: null });   // 履歴は新しい順なので最初の1件が最新
     const person = people.get(k);
     person.commits++;
+    if (c.byAgent) { person.agentCommits++; person.agent = c.byAgent; }
     const mods = new Set();
     for (const f of c.files) { const i = ownerOf(f); if (i !== undefined) mods.add(i); }
     const recent = latestTime - Date.parse(c.date) <= 90 * DAY;
+    for (const a of c.agents || []) {
+      if (!crews.has(a)) crews.set(a, { commits: 0, recent: 0, touches: new Map(), last: c });
+      const w = crews.get(a);
+      w.commits++;
+      if (recent) w.recent++;
+      for (const i of mods) w.touches.set(i, (w.touches.get(i) || 0) + 1);
+    }
     for (const i of mods) {
       const s = stats[i];
       s.commits++;
@@ -475,7 +550,26 @@ export function analyzeRepository(rootPath) {
       commits: p.commits,
       modules: [...p.touches.entries()].sort((a, b) => b[1] - a[1] || a[0] - b[0]).map(([i]) => groups[i].path),
       lastCommit: { subject: scrub(p.last.subject), date: p.last.date },
+      // この名前のコミットがぜんぶエージェント自身の作（作者名とメールで分かる）なら、その名前（住人・犬にしない）
+      ...(p.agent && p.agentCommits === p.commits ? { agent: p.agent } : {}),
     }));
+
+  // 外部工務店: コミットの多い順に最大3つ（同じ数なら名前順）
+  const agents = [...crews.entries()]
+    .sort((a, b) => b[1].commits - a[1].commits || (a[0] < b[0] ? -1 : 1)).slice(0, 3)
+    .map(([n, w]) => ({
+      name: n, commits: w.commits, recent: w.recent,
+      modules: [...w.touches.entries()].sort((a, b) => b[1] - a[1] || a[0] - b[0]).map(([i]) => groups[i].path),
+      last: { subject: scrub(w.last.subject), date: w.last.date },
+    }));
+
+  // 工事中: 作業ツリーで HEAD と違うファイルの数（モジュールごと）。bare・git でないときは数えない
+  const dirty = isGit && head ? dirtyFiles(root, bare) : null;
+  if (dirty) {
+    const n = new Map();
+    for (const p of dirty) { const i = ownerOf(p); if (i !== undefined) n.set(i, (n.get(i) || 0) + 1); }
+    for (const [i, c] of n) modules[i].works = { dirty: c };
+  }
 
   let facilities = [];
   try {
@@ -483,6 +577,8 @@ export function analyzeRepository(rootPath) {
       root, isGit, head, keyer, refTime, shallow, bare,
       git: (args) => git(root, args),
       rootFiles: tree.files.map((f) => f.path),
+      dirty: dirty ? dirty.length : null,
+      agents: agents.map((a) => ({ name: a.name, commits: a.commits, recent: a.recent })),
     });
   } catch (e) { console.warn(`施設の判定に失敗した（施設なしで続ける）: ${e.message}`); }
   for (const f of facilities) {
@@ -497,5 +593,6 @@ export function analyzeRepository(rootPath) {
     modules,
     facilities,
     contributors,
+    agents,
   };
 }

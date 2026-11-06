@@ -109,6 +109,85 @@ const HOSTS = [
 ];
 const IGNORE_HOST = /(^|\.)(example\.(com|org|net)|localhost|schema\.org|w3\.org|json-schema\.org|github\.io|googleapis\.com\/css)$/;
 
+// ---------- 井戸（env・secrets・config） ----------
+// コードが読む環境変数の名前（値は読まない・出さない）。大文字の名前だけ
+const ENV_REF = new RegExp([
+  /process\.env\.([A-Z_][A-Z0-9_]*)/.source,
+  /process\.env\[\s*['"`]([A-Z_][A-Z0-9_]*)['"`]\s*\]/.source,
+  /import\.meta\.env\.([A-Z_][A-Z0-9_]*)/.source,
+  /Bun\.env\.([A-Z_][A-Z0-9_]*)/.source,
+  /(?:Deno\.env\.get|os\.getenv|os\.environ\.get|os\.Getenv|os\.LookupEnv|env::var(?:_os)?|System\.getenv|System\.get_env|Environment\.GetEnvironmentVariable|\bgetenv|ENV\.fetch|ENV\.key\?)\s*\(\s*['"]([A-Z_][A-Z0-9_]*)['"]/.source,
+  /(?:os\.environ|\bENV|\$_ENV|\$_SERVER|\benvironment)\[\s*['"]([A-Z_][A-Z0-9_]*)['"]\s*\]/.source,
+  /\benv!\(\s*"([A-Z_][A-Z0-9_]*)"/.source,
+].join('|'), 'g');
+// OS や実行環境がもともと持っている名前（街が用意する設定ではない）
+const SYSTEM_ENV = new Set(('HOME PATH USER USERNAME SHELL TERM TERM_PROGRAM PWD OLDPWD TMPDIR TMP TEMP LANG LANGUAGE LC_ALL LC_CTYPE ' +
+  'LC_MESSAGES LOGNAME HOSTNAME EDITOR VISUAL PAGER COLUMNS LINES SHLVL USERPROFILE APPDATA LOCALAPPDATA PROGRAMFILES SYSTEMROOT ' +
+  'WINDIR COMSPEC DISPLAY TZ CI NO_COLOR FORCE_COLOR NODE_TEST_CONTEXT GITHUB_ACTIONS GITHUB_WORKSPACE RUNNER_OS RUNNER_TEMP SSH_AUTH_SOCK').split(' '));
+// GitHub Actions が自動で渡す名前（GITHUB_OUTPUT・GITHUB_SHA など）も、街が用意する設定ではない
+const isSystemEnv = (n) => SYSTEM_ENV.has(n) || /^(XDG_|RUNNER_|npm_)/.test(n) ||
+  /^GITHUB_(OUTPUT|ENV|PATH|STEP_SUMMARY|STATE|REPOSITORY(_OWNER|_ID)?|RUN_(ID|NUMBER|ATTEMPT)|SHA|REF(_NAME|_TYPE)?|BASE_REF|HEAD_REF|EVENT_(NAME|PATH)|ACTOR(_ID)?|TRIGGERING_ACTOR|WORKFLOW(_REF|_SHA)?|JOB|ACTION(_PATH|_REPOSITORY)?|ACTIONS|SERVER_URL|API_URL|GRAPHQL_URL|WORKSPACE|RETENTION_DAYS)$/.test(n);
+const ENV_EXAMPLE = /^(\.env([.-][\w-]+)*[.-](example|sample|template|dist|tmpl|tpl)|(example|sample|template)\.env|env\.(example|sample|template))$/i;
+const isSecretEnv = (b) => /^\.env(\.[\w.-]+)?$/i.test(b) && !/[.-](example|sample|template|dist|tmpl|tpl|defaults?)$/i.test(b) && !/^\.env\.vault$/i.test(b);
+const LOADER = [
+  [/^dotenv$|^dotenv-expand$|^dotenv-flow$|^dotenv-rails$|^dotenvy$|^github\.com\/joho\/godotenv$/, 'dotenv'],
+  [/^@dotenvx\/dotenvx$|^dotenvx$/, 'dotenvx'], [/^python-dotenv$/, 'python-dotenv'], [/^env-cmd$/, 'env-cmd'],
+  [/^environs$/, 'environs'], [/^django-environ$/, 'django-environ'], [/^pydantic-settings$/, 'pydantic-settings'],
+  [/^figaro$/, 'figaro'], [/^envalid$/, 'envalid'], [/^@t3-oss\/env-/, 't3-env'], [/^config$|^node-config$/, 'node-config'],
+];
+const CONFIG_FILE = /^(config|settings|appsettings([.-][\w-]+)?|application([.-][\w-]+)?)\.(json|jsonc|ya?ml|toml|ini|properties|[cm]?js|ts|py|rb)$/i;
+const CONFIG_DIR = /^(config|configs|settings|conf)$/i;
+// 鍵らしい名前（API キー・トークン・秘密）と、その相手
+const KEY_TOKEN = new Set('KEY APIKEY TOKEN SECRET PASSWORD PASSWD PASS CREDENTIAL CREDENTIALS PAT DSN'.split(' '));
+const isKeyName = (n) => { const t = n.split('_').filter(Boolean); return t.some((x) => KEY_TOKEN.has(x)) && !/^(PATH|DIR|URL|NAME|FILE)$/.test(t[t.length - 1]); };
+const KEY_FOR = {
+  OPENAI: 'OpenAI', ANTHROPIC: 'Anthropic', CLAUDE: 'Anthropic', STRIPE: 'Stripe', SUPABASE: 'Supabase', RESEND: 'Resend',
+  TWILIO: 'Twilio', AWS: 'AWS', FIREBASE: 'Firebase', SLACK: 'Slack', DISCORD: 'Discord', GITHUB: 'GitHub', GH: 'GitHub',
+  GITLAB: 'GitLab', GEMINI: 'Google Gemini', GOOGLE: 'Google', SENDGRID: 'SendGrid', NOTION: 'Notion', LINEAR: 'Linear',
+  MISTRAL: 'Mistral', GROQ: 'Groq', COHERE: 'Cohere', REPLICATE: 'Replicate', TELEGRAM: 'Telegram', LINE: 'LINE',
+  ALGOLIA: 'Algolia', OPENROUTER: 'OpenRouter', SENTRY: 'Sentry', CLOUDFLARE: 'Cloudflare', VERCEL: 'Vercel', AZURE: 'Azure',
+  HUGGINGFACE: 'Hugging Face', HF: 'Hugging Face', PINECONE: 'Pinecone', CODECOV: 'Codecov', NPM: 'npm', DOCKER: 'Docker',
+  DOCKERHUB: 'Docker', APPLE: 'Apple', INFLUXDB: 'InfluxDB', DEEPSEEK: 'DeepSeek', XAI: 'xAI', PERPLEXITY: 'Perplexity',
+  ELEVENLABS: 'ElevenLabs', MAILGUN: 'Mailgun', POSTMARK: 'Postmark', SHOPIFY: 'Shopify', PAYPAL: 'PayPal', DATADOG: 'Datadog',
+};
+const keyFor = (n, known) => {
+  const t = n.split('_');
+  for (const x of t) if (KEY_FOR[x]) return KEY_FOR[x];
+  for (const k of known) {
+    // 名前（Linear）か、住所のいちばん大事な部分（www.patreon.com → PATREON）
+    const c = (k.includes('.') ? k.split('.').slice(-2, -1)[0] : k).toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (c.length >= 3 && t.includes(c)) return k;
+  }
+  return null;
+};
+
+// ---------- 酒場の名簿: 受付（街が受ける道）・取り決めの書類・AI への頼み方 ----------
+const SERVERISH = /\b(createServer|express\s*\(|fastify\s*\(|new\s+Koa|new\s+Hono|Router\s*\(|APIRouter|Blueprint\s*\(|Flask\s*\(|FastAPI\s*\(|gin\.(Default|New)\s*\(|echo\.New\s*\(|fiber\.New\s*\(|chi\.NewRouter|mux\.NewRouter|http\.HandleFunc|http\.NewServeMux|(req|request)\.(url|method|path)\b|Rails\.application\.routes)/;
+const ROUTE_CALL = /\b(?:app|router|server|api|fastify|routes?|hono|srv|admin|v\d)\.(get|post|put|patch|delete|all|options|head)\s*\(\s*['"`](\/[^'"`\s]*)['"`]/gi;
+const PY_ROUTE = /@\w+\.(get|post|put|patch|delete|route|api_route)\(\s*['"](\/[^'"]*)['"]([^)\n]*)\)/g;
+const GO_ROUTE = /\.(?:HandleFunc|Handle)\(\s*"(?:(GET|POST|PUT|PATCH|DELETE) )?(\/[^"\s]*)"|\.(GET|POST|PUT|PATCH|DELETE|Get|Post|Put|Patch|Delete)\(\s*"(\/[^"\s]*)"/g;
+const RB_ROUTE = /^\s*(get|post|put|patch|delete)\s+['"](\/?[^'"]+)['"]/gm;
+const API_LITERAL = /['"`](\/api(?:\/[A-Za-z0-9_\-:{}.]+)*\/?)['"`]/g;
+const SPEC_FILE = /^((openapi|swagger|asyncapi)([-_.][\w-]+)*\.(ya?ml|json)|[\w.-]+\.(graphql|graphqls|gql)|[\w.-]+\.proto)$/i;
+const PROMPT_FILE = /(\.prompt(\.(md|txt|ya?ml|json))?|\.prompty)$|^((system|user)[-_]?)?prompts?([-_.][\w-]+)*\.(md|txt|ya?ml|json|j2|jinja2?|hbs|mustache|tmpl|tpl)$/i;
+
+// ---------- 船着場（アプリ・パッケージの配布） ----------
+const PUBLISH_CMD = new RegExp([
+  /\b(?:npm|pnpm|yarn|bun)\s+(?:npm\s+)?publish\b|\bchangesets?\s+publish\b|changesets\/action|\bsemantic-release\b/.source,
+  /\btwine\s+upload\b|\bpoetry\s+publish\b|\buv\s+publish\b|\bflit\s+publish\b|\bhatch\s+publish\b|pypa\/gh-action-pypi-publish/.source,
+  /\bcargo\s+publish\b|\bgem\s+push\b|rubygems\/release-gem|\bgoreleaser\b|softprops\/action-gh-release|actions\/create-release/.source,
+  /ncipollo\/release-action|\bgh\s+release\s+(?:create|upload)\b|\beas\s+submit\b|\bfastlane\s+(?:deliver|pilot|supply|release|beta|upload_to)/.source,
+  /\bvsce\s+publish\b|\bovsx\s+publish\b|electron-builder[^\n]*--publish|tauri-apps\/tauri-action|\b(?:dart|flutter)\s+pub\s+publish\b/.source,
+  /\bmvn\s+deploy\b|\bgradlew?\s+publish|\bdocker\s+push\b/.source,
+].join('|'), 'i');
+const RELEASE_CONFIG = /^(\.goreleaser\.ya?ml|\.releaserc(\.\w+)?|release\.config\.[cm]?js|release-please-config\.json|electron-builder\.(json|ya?ml|toml)|forge\.config\.[cm]?[jt]s|eas\.json|Fastfile)$/;
+const APP_KIND_JA = {
+  iOS: 'iPhone のアプリ', macOS: 'Mac のアプリ', Apple: 'Apple の機械のアプリ', Android: 'Android のアプリ', Expo: 'スマホのアプリ（Expo）',
+  'React Native': 'スマホのアプリ（React Native）', Electron: 'パソコンのアプリ（Electron）', Tauri: 'パソコンのアプリ（Tauri）',
+  Capacitor: 'スマホのアプリ（Capacitor）', Flutter: 'スマホのアプリ（Flutter）', 'Browser extension': 'ブラウザの拡張機能',
+  'VS Code extension': 'VS Code の拡張機能',
+};
+
 const nameIn = (table, dep) => { for (const [re, n] of table) if (re.test(dep)) return n; return null; };
 const uniq = (a) => [...new Set(a)];
 // 名前（github など）をファイル名に含むものを先に
@@ -191,7 +270,16 @@ const MANIFEST = /^(package\.json|requirements[\w.\-]*\.txt|pipfile|pyproject\.t
 // groups: モジュール [{path, files}], extra: { root, isGit, head, git, keyer, refTime, rootFiles }
 export function detectFacilities(files, history, groups, extra) {
   const { root, isGit, head, git, keyer, refTime } = extra;
-  const read = makeReader(root, isGit && !!head, !!extra.bare);
+  // 同じファイルは1度だけ読む（git なら cat-file --batch の1回にまとめる）
+  const rawRead = makeReader(root, isGit && !!head, !!extra.bare);
+  const cache = new Map();
+  const read = (paths) => {
+    const miss = uniq(paths.filter((p) => !cache.has(p)));
+    if (miss.length) { const got = rawRead(miss); for (const p of miss) cache.set(p, got.has(p) ? got.get(p) : null); }
+    const out = new Map();
+    for (const p of paths) { const t = cache.get(p); if (t != null) out.set(p, t); }
+    return out;
+  };
   const prod = (p) => !SKIP_DIR.test(p) && !NOT_PRODUCT.test(p);
   const byBase = new Map();
   for (const f of files) {
@@ -204,6 +292,13 @@ export function detectFacilities(files, history, groups, extra) {
   // 依存の一覧
   const manifests = files.filter((f) => MANIFEST.test(basename(f.path)) && !SKIP_DIR.test(f.path) && f.bytes < (1 << 20)).map((f) => f.path).slice(0, 300);
   const deps = [];   // { dep, path }
+  // 井戸・船着場・道場が読む小さなファイル（見本の env・workflow・package.json・配布の manifest）も、ここで一緒に読んでおく
+  const examples = sortPaths(files.filter((f) => !f.binary && prod(f.path) && ENV_EXAMPLE.test(basename(f.path)) && f.bytes < (256 << 10)).map((f) => f.path)).slice(0, 8);
+  const workflows = files.filter((f) => /^\.github\/workflows\/[^/]+\.ya?ml$/.test(f.path) && f.bytes < (1 << 20)).map((f) => f.path).slice(0, 80);
+  const dockManifests = files.filter((f) => !f.binary && prod(f.path) && f.bytes < (1 << 20) && f.path.split('/').length <= 4 &&
+    /^(package\.json|pyproject\.toml|setup\.py|cargo\.toml|[\w.-]+\.gemspec|go\.mod|composer\.json|pubspec\.yaml|package\.swift|info\.plist|app\.json|app\.config\.[cm]?[jt]s|manifest\.json|androidmanifest\.xml|tauri\.conf\.json|capacitor\.config\.(json|[jt]s)|project\.pbxproj)$/i.test(basename(f.path))).map((f) => f.path).slice(0, 40);
+  const pkgJsons = (byBase.get('package.json') || []).filter((p) => !SKIP_DIR.test(p)).slice(0, 20);
+  read([...manifests, ...examples, ...workflows, ...dockManifests, ...pkgJsons]);
   for (const [p, text] of read(manifests)) for (const dep of depsOf(p, text)) deps.push({ dep, path: p });
   const depHits = (table) => {
     const hits = new Map();   // name -> paths
@@ -229,6 +324,7 @@ export function detectFacilities(files, history, groups, extra) {
   const sources = read(chosen);
 
   const servers = [], hostsSeen = new Map(), webhooks = [], sqliteSrc = [];
+  const envInCode = new Map(), loaderSrc = new Set(), routeList = [];   // 環境変数の名前 -> そのファイル、読み込む仕組み、受付の道
   for (const [p, s] of sources) {
     let how = null;
     if (/\bcreateServer\s*\(/.test(s) && /(?:from\s+|require\(\s*)['"](?:node:)?https?['"]/.test(s)) how = 'Node の http サーバー';
@@ -250,6 +346,46 @@ export function detectFacilities(files, history, groups, extra) {
     }
     for (const m of s.matchAll(/(?:\.(?:post|get|put|all|route|use)\s*\(\s*|@\w+\.(?:post|route)\s*\(\s*)['"`]([^'"`\s]*webhooks?[^'"`\s]*)['"`]/gi)) webhooks.push({ route: m[1], path: p });
     if (/(?:from\s+|require\(\s*)['"]node:sqlite['"]|^\s*import\s+sqlite3\b|\bsqlite3\.connect\s*\(/m.test(s)) sqliteSrc.push(p);
+    // 環境変数の名前（値は読まない）
+    for (const m of s.matchAll(ENV_REF)) {
+      const n = m.slice(1).find(Boolean);
+      if (!n || isSystemEnv(n)) continue;
+      if (!envInCode.has(n)) envInCode.set(n, new Set());
+      envInCode.get(n).add(p);
+    }
+    if (/\bprocess\.loadEnvFile\s*\(/.test(s)) loaderSrc.add('process.loadEnvFile');
+    if (/\bload_dotenv\s*\(/.test(s)) loaderSrc.add('python-dotenv');
+    // 受付（この街が外から受ける道）。サーバーらしいファイルだけ
+    if (how || SERVERISH.test(s)) {
+      const ext = p.slice(p.lastIndexOf('.') + 1);
+      const put = (method, route) => routeList.push({ method: method && !/^(all|route|api_route)$/i.test(method) ? method.toUpperCase() : null, route, path: p });
+      if (/^[cm]?[jt]sx?$/.test(ext)) for (const m of s.matchAll(ROUTE_CALL)) put(m[1], m[2]);
+      if (ext === 'py') for (const m of s.matchAll(PY_ROUTE)) {
+        const ms = m[1] === 'route' ? (/methods\s*=\s*[[(]\s*['"](\w+)['"]/.exec(m[3])?.[1] || 'GET') : m[1];   // Flask の route は既定で GET
+        put(ms, m[2]);
+      }
+      if (ext === 'go') for (const m of s.matchAll(GO_ROUTE)) put(m[1] || m[3] || null, m[2] || m[4]);
+      if (ext === 'rb' && /(^|\/)config\/routes\.rb$/.test(p)) for (const m of s.matchAll(RB_ROUTE)) put(m[1], m[2].startsWith('/') ? m[2] : `/${m[2]}`);
+      for (const m of s.matchAll(API_LITERAL)) {
+        const ls = s.lastIndexOf('\n', m.index) + 1, le = s.indexOf('\n', m.index);
+        const line = s.slice(ls, m.index) + s.slice(m.index + m[0].length, le < 0 ? s.length : le);   // 道の名前そのもの（/api/posts）は見ない
+        put(/\bpost(Routes?|Handlers?)?\b|\.post\s*\(|['"]POST['"]/i.test(line) ? 'POST' : null, m[1]);
+      }
+    }
+  }
+  // Next.js の道（app/**/route.* と pages/api/**）
+  for (const f of files) {
+    if (!prod(f.path)) continue;
+    let m = /^(?:(.*\/)?src\/|(.*\/)?)app\/(.*\/)?route\.[cm]?[jt]sx?$/.exec(f.path);
+    if (m) {
+      const segs = (m[3] || '').split('/').filter((x) => x && !/^\(.*\)$/.test(x));
+      const text = sources.get(f.path) || '';
+      const methods = [...text.matchAll(/export\s+(?:async\s+)?(?:function|const)\s+(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\b/g)].map((x) => x[1]);
+      for (const mm of methods.length ? methods : [null]) routeList.push({ method: mm, route: `/${segs.join('/')}`, path: f.path });
+      continue;
+    }
+    m = /^(?:(?:.*\/)?src\/|(?:.*\/)?)pages\/(api(?:\/.*)?)\.[cm]?[jt]sx?$/.exec(f.path);
+    if (m) routeList.push({ method: null, route: `/${m[1].replace(/\/index$/, '')}`, path: f.path });
   }
 
   const facilities = [];
@@ -291,6 +427,8 @@ export function detectFacilities(files, history, groups, extra) {
     const changelog = extra.rootFiles.find((p) => /^(changelog|changes|history|news|releases?)(\.(md|markdown|txt|rst))?$/i.test(p)) || null;
     const people = new Set(history.map((c) => c.key));
     const facts = {
+      dirty: extra.dirty ?? null,                       // 作業ツリーで HEAD と違うファイルの数（bare・作業ツリーなしは null）
+      agents: extra.agents || [],                       // 外部工務店（コード生成エージェント）の工事報告 [{ name, commits, recent }]
       commits: total,
       contributors: people.size,
       contributorsWindow: history.length >= 5000 || shallow ? history.length : null,     // 履歴を上限まで（浅いクローンなら手元の分だけ）読んだときは、数えた範囲（直近のコミット数）
@@ -336,6 +474,29 @@ export function detectFacilities(files, history, groups, extra) {
     }
   }
 
+  // --- 井戸と酒場の名簿で使う: 設定の名前（env）。値は読まない・出さない ---
+  // 見本（.env.example など、公開してよい書き方の見本）は名前だけ読む。本物の .env は開かない
+  const exampleNames = [];
+  for (const [, text] of read(examples)) {
+    for (const l of text.split('\n')) {
+      const m = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=/.exec(l);
+      if (m && !exampleNames.includes(m[1])) exampleNames.push(m[1]);
+    }
+  }
+  const exampleSet = new Set(exampleNames);
+  const committedEnv = isGit ? sortPaths(files.filter((f) => !SKIP_DIR.test(f.path) && isSecretEnv(basename(f.path))).map((f) => f.path)) : [];
+  // 見本に書いてある名前を先に、残りはそれを読むファイルの多い順
+  const codeNames = [...envInCode.entries()].sort((a, b) => b[1].size - a[1].size || (a[0] < b[0] ? -1 : 1)).map(([n]) => n);
+  const envNames = uniq([...exampleNames, ...codeNames]);
+  // CI（GitHub Actions）が使う鍵の名前（GITHUB_TOKEN は GitHub が自動で渡すので数えない）
+  const workflowText = read(workflows);
+  const ciSecrets = new Map();
+  for (const [p, text] of workflowText) for (const m of text.matchAll(/\bsecrets\.([A-Za-z_][A-Za-z0-9_]*)/g)) {
+    if (m[1] === 'GITHUB_TOKEN') continue;
+    if (!ciSecrets.has(m[1])) ciSecrets.set(m[1], new Set());
+    ciSecrets.get(m[1]).add(p);
+  }
+
   // --- 酒場: API・外部接続・LLM・webhook ---
   {
     const sdk = depHits(SDK);
@@ -343,16 +504,38 @@ export function detectFacilities(files, history, groups, extra) {
     for (const [n, ps] of sdk) connectors.set(n, { via: 'dep', paths: ps });
     for (const [n, ps] of hostsSeen) if (!connectors.has(n)) connectors.set(n, { via: 'url', paths: ps });
     const hooks = uniq(webhooks.map((w) => w.route)).slice(0, 6);
-    if (connectors.size || hooks.length) {
+    // 取り決めの書類（OpenAPI・GraphQL など）と、AI への頼み方の書き置き（prompt のファイル）
+    const specs = sortPaths(files.filter((f) => !SKIP_DIR.test(f.path) && !/(^|\/)(tests?|__tests__|fixtures?|spec)\//.test(f.path) && SPEC_FILE.test(basename(f.path))).map((f) => f.path));
+    const prompts = sortPaths(files.filter((f) => !f.binary && prod(f.path) && !/(^|\/)\./.test(f.path) &&
+      (PROMPT_FILE.test(basename(f.path)) || (/(^|\/)prompts?\//i.test(f.path) && /\.(md|txt|ya?ml|json|j2|jinja2?|hbs|mustache|tmpl|tpl)$/i.test(f.path)))).map((f) => f.path));
+    const apiSpecs = specs.filter((p) => !/\.proto$/i.test(p));
+    if (connectors.size || hooks.length || apiSpecs.length) {
       // 既知の名前（依存・有名な住所）を先に、知らない住所はその後に
       const names = [...connectors.keys()].sort((a, b) => (a.includes('.') - b.includes('.')) || (connectors.get(b).paths.size - connectors.get(a).paths.size) || (a < b ? -1 : 1));
       const parts = [];
       if (names.length) parts.push(`外とつながる相手: ${names.slice(0, 5).join('、')}${names.length > 5 ? ` ほか ${names.length - 5}` : ''}`);
       if (hooks.length) parts.push(`webhook の受け口「${hooks[0]}」`);
-      const evidence = [...names.flatMap((n) => sortPaths([...connectors.get(n).paths]).slice(0, 3)), ...webhooks.map((w) => w.path)];
+      if (!parts.length) parts.push(`API の取り決めの書類「${apiSpecs[0]}」`);
+      const evidence = [...names.flatMap((n) => sortPaths([...connectors.get(n).paths]).slice(0, 3)), ...webhooks.map((w) => w.path), ...apiSpecs];
+      // 受付: 同じ道は1つに（受け方の分かるものを残す）
+      const seen = new Map();
+      for (const r of routeList) {
+        const k = `${r.method || ''} ${r.route}`;
+        if (seen.has(k)) continue;
+        if (!r.method && [...seen.values()].some((x) => x.route === r.route)) continue;
+        if (r.method) for (const [k2, x] of seen) if (!x.method && x.route === r.route) seen.delete(k2);
+        seen.set(k, r);
+      }
+      const routes = [...seen.values()].sort((a, b) => (a.route < b.route ? -1 : a.route > b.route ? 1 : (a.method || '') < (b.method || '') ? -1 : 1));
+      const known = names;
+      const keys = envNames.filter(isKeyName).slice(0, 20).map((n) => ({ name: n, for: keyFor(n, known), example: exampleSet.has(n) }));
       add('pub', '酒場', parts.join('、'), evidence, {
         connectors: names.map((n) => ({ name: n, via: connectors.get(n).via, paths: byName(n, [...connectors.get(n).paths]).slice(0, 3) })).slice(0, 12),
         webhooks: hooks,
+        routes: routes.slice(0, 30), routesTotal: routes.length,
+        keys, envExamples: examples.slice(0, 3),
+        specs: specs.slice(0, 10),
+        prompts: prompts.slice(0, 10), promptsTotal: prompts.length,
       });
     }
   }
@@ -412,7 +595,7 @@ export function detectFacilities(files, history, groups, extra) {
       if (!runners.includes(n)) runners.push(n);
     }
     // package.json の scripts.test（node --test など）
-    const pkgs = read((byBase.get('package.json') || []).filter((p) => !SKIP_DIR.test(p)).slice(0, 20));
+    const pkgs = read(pkgJsons);
     for (const [, text] of pkgs) {
       try {
         const t = String(JSON.parse(text).scripts?.test || '');
@@ -431,10 +614,168 @@ export function detectFacilities(files, history, groups, extra) {
     }
   }
 
+  // --- 井戸: env・secrets・config（生活インフラ）。外に建物を持たない（広場の井戸と井戸番） ---
+  {
+    const loaders = uniq([...depHits(LOADER).keys(), ...loaderSrc]);
+    // package.json の scripts の node --env-file
+    for (const [, text] of read(pkgJsons.filter((p) => prod(p)))) {
+      try { if (Object.values(JSON.parse(text).scripts || {}).some((v) => /--env-file\b/.test(String(v))) && !loaders.includes('node --env-file')) loaders.push('node --env-file'); } catch {}
+    }
+    const configDirs = new Set(), configFiles = [];
+    for (const f of files) {
+      if (!prod(f.path)) continue;
+      const segs = f.path.split('/');
+      const i = segs.findIndex((x, j) => j < Math.min(2, segs.length - 1) && CONFIG_DIR.test(x));
+      if (i >= 0) configDirs.add(`${segs.slice(0, i + 1).join('/')}/`);
+      else if (segs.length <= 3 && CONFIG_FILE.test(segs[segs.length - 1])) configFiles.push(f.path);
+    }
+    const configs = [...sortPaths([...configDirs]), ...sortPaths(configFiles)].slice(0, 8);
+    const loaderPaths = [...depHits(LOADER).values()].flatMap((x) => [...x]);
+    if (examples.length || committedEnv.length || loaders.length || codeNames.length >= 3) {
+      const parts = [];
+      if (examples.length) parts.push(`設定の見本「${examples[0]}」`);
+      if (codeNames.length) parts.push(`コードが読む設定の名前 ${codeNames.length} 個`);
+      if (committedEnv.length) parts.push(`記録に入った env ファイル「${committedEnv[0]}」`);
+      if (loaders.length) parts.push(`設定を読みこむ道具 ${loaders.slice(0, 2).join('・')}`);
+      const codeFiles = sortPaths(uniq(codeNames.slice(0, 12).flatMap((n) => [...envInCode.get(n)])));
+      add('well', '井戸', parts.join('、'), [...examples, ...committedEnv, ...loaderPaths, ...codeFiles], {
+        examples, names: envNames.slice(0, 40), namesTotal: envNames.length, configs, committed: committedEnv.slice(0, 8), loaders,
+        ciSecrets: [...ciSecrets.entries()].sort((a, b) => b[1].size - a[1].size || (a[0] < b[0] ? -1 : 1)).map(([n]) => n).slice(0, 12),
+      });
+      facilities[facilities.length - 1].noMerge = true;      // 建物が無いので、モジュールをまとめない
+    }
+  }
+
+  // --- 船着場: アプリ・パッケージの配布（外の島へ届ける場所） ---
+  {
+    const packages = [], apps = [], publish = [], bins = [], all = [];
+    const strongPkg = [];          // 外へ出すための荷札だと読めるもの（package.json の main・bin・files など）
+    const text = read(dockManifests);
+    const dir = (p) => (p.includes('/') ? p.slice(0, p.lastIndexOf('/')) : '.');
+    const pkg = (registry, name, version, path, strong) => {
+      if (!name || packages.some((x) => x.registry === registry && x.name === name)) return;
+      packages.push({ registry, name, version: version || null, path });
+      all.push(path);
+      if (strong) strongPkg.push(path);
+    };
+    const app = (kind, path, evidence, ownDir) => {
+      const p = path === '.' ? '.' : `${path}/`;
+      if (apps.some((a) => a.kind === kind && a.path === p)) return;
+      apps.push({ kind, path: p });
+      all.push(...evidence);
+      // 専用のディレクトリ（ios/・mac/ など）なら、その中のファイルも根拠（そのモジュールを船着場にまとめる）
+      if (ownDir && path !== '.') for (const f of files) if (f.path.startsWith(`${path}/`)) all.push(f.path);
+    };
+    for (const [p, t] of text) {
+      const b = basename(p).toLowerCase();
+      try {
+        if (b === 'package.json') {
+          const j = JSON.parse(t);
+          const deps = { ...(j.dependencies || {}), ...(j.devDependencies || {}) };
+          if (j.name && j.version && !j.private) {
+            pkg('npm', String(j.name), String(j.version), p, !!(j.bin || j.main || j.exports || j.module || j.files || j.publishConfig || j.types || j.typings));
+            if (j.bin) bins.push(...(typeof j.bin === 'string' ? [String(j.name).replace(/^@[^/]+\//, '')] : Object.keys(j.bin)));
+          }
+          if (j.engines && j.engines.vscode) app('VS Code extension', dir(p), [p], false);
+          if (deps.electron) app('Electron', dir(p), [p], false);
+          else if (deps['react-native'] && !deps.expo) app('React Native', dir(p), [p], false);
+          for (const v of Object.values(j.scripts || {})) if (PUBLISH_CMD.test(String(v)) && !publish.includes(p)) publish.push(p);
+        } else if (b === 'pyproject.toml') {
+          if (/^\[tool\.uv\][^[]*^\s*package\s*=\s*false/m.test(t)) continue;      // パッケージにしないと書いてある
+          const sec = (name) => { const m = new RegExp(`^\\[${name.replaceAll('.', '\\.')}\\]([\\s\\S]*?)(?=^\\[|(?![\\s\\S]))`, 'm').exec(t); return m ? m[1] : null; };
+          const proj = sec('project') ?? sec('tool.poetry');
+          const name = proj && /^\s*name\s*=\s*["']([^"']+)["']/m.exec(proj)?.[1];
+          const version = proj && /^\s*version\s*=\s*["']([^"']+)["']/m.exec(proj)?.[1];
+          if (name) pkg('PyPI', name, version, p, /^\[build-system\]/m.test(t));
+          const scripts = sec('project.scripts') ?? sec('tool.poetry.scripts');
+          if (name && scripts) for (const m of scripts.matchAll(/^\s*["']?([\w.-]+)["']?\s*=/gm)) bins.push(m[1]);
+        } else if (b === 'setup.py') {
+          const name = /\bname\s*=\s*["']([^"']+)["']/.exec(t)?.[1];
+          if (name) pkg('PyPI', name, /\bversion\s*=\s*["']([^"']+)["']/.exec(t)?.[1], p, true);
+        } else if (b === 'cargo.toml') {
+          const m = /^\[package\]([\s\S]*?)(?=^\[|(?![\s\S]))/m.exec(t);
+          if (!m || /^\s*publish\s*=\s*false/m.test(m[1])) continue;
+          const name = /^\s*name\s*=\s*"([^"]+)"/m.exec(m[1])?.[1];
+          pkg('crates.io', name, /^\s*version\s*=\s*"([^"]+)"/m.exec(m[1])?.[1], p, true);
+          for (const bm of t.matchAll(/^\[\[bin\]\][^[]*?^\s*name\s*=\s*"([^"]+)"/gm)) bins.push(bm[1]);
+        } else if (b.endsWith('.gemspec')) {
+          const name = /\.name\s*=\s*["']([^"']+)["']/.exec(t)?.[1];
+          pkg('RubyGems', name, /\.version\s*=\s*["']([^"']+)["']/.exec(t)?.[1], p, true);
+        } else if (b === 'go.mod') {
+          const mod = /^module\s+(\S+)/m.exec(t)?.[1];
+          if (mod && /^[a-z0-9.-]+\.[a-z]{2,}\//.test(mod) && !/^example\.(com|org)\//.test(mod)) pkg('Go', mod, null, p, false);
+        } else if (b === 'composer.json') {
+          const j = JSON.parse(t);
+          if (j.name && String(j.name).includes('/') && j.type !== 'project') pkg('Packagist', String(j.name), j.version || null, p, j.type === 'library');
+        } else if (b === 'pubspec.yaml') {
+          if (/^flutter:/m.test(t) || /^\s{2}flutter:\s*$/m.test(t) && /sdk:\s*flutter/.test(t)) app('Flutter', dir(p), [p], false);
+          else if (!/^publish_to:\s*["']?none/m.test(t)) {
+            const name = /^name:\s*(\S+)/m.exec(t)?.[1];
+            pkg('pub.dev', name, /^version:\s*(\S+)/m.exec(t)?.[1], p, !!name);
+          }
+        } else if (b === 'package.swift') {
+          pkg('SwiftPM', /\bname:\s*"([^"]+)"/.exec(t)?.[1], null, p, false);
+        } else if (b === 'info.plist') {
+          if (!/CFBundleIdentifier|CFBundleExecutable/.test(t) || /(^|\/)[^/]+\.(framework|bundle|appex|xctest)\//.test(p) || /(^|\/)(tests?|ui-?tests?)\//i.test(p)) continue;
+          const kind = /LSRequiresIPhoneOS|UIDeviceFamily|UILaunchStoryboardName|UISupportedInterfaceOrientations|UIApplicationSceneManifest/.test(t) ? 'iOS'
+            : /LSMinimumSystemVersion|NSPrincipalClass|LSUIElement|NSHighResolutionCapable|LSApplicationCategoryType/.test(t) ? 'macOS' : 'Apple';
+          app(kind, dir(p), [p], true);
+        } else if (b === 'project.pbxproj') {
+          const proj = dir(dir(p));                       // Foo.xcodeproj の置き場所
+          const kind = /SDKROOT = iphoneos/.test(t) ? 'iOS' : /SDKROOT = macosx/.test(t) ? 'macOS' : 'Apple';
+          app(kind, proj, [p], proj !== '.');
+        } else if (b === 'androidmanifest.xml') {
+          if (!/<application\b/.test(t)) continue;
+          const segs = p.split('/');
+          const ai = segs.findIndex((x) => x.toLowerCase() === 'android');
+          const where = ai >= 0 ? segs.slice(0, ai + 1).join('/') : p.replace(/(\/app)?\/src\/main\/AndroidManifest\.xml$/i, '') || '.';
+          app('Android', where === p ? dir(p) : where, [p], true);
+        } else if (b === 'app.json' || /^app\.config\./.test(b)) {
+          if (b === 'app.json' ? /"expo"\s*:/.test(t) : /\bexpo\b/.test(t)) app('Expo', dir(p), [p], false);
+        } else if (b === 'manifest.json') {
+          const j = JSON.parse(t);
+          if (j.manifest_version && (j.background || j.content_scripts || j.action || j.browser_action || j.permissions)) app('Browser extension', dir(p), [p], false);
+        } else if (b === 'tauri.conf.json') {
+          app('Tauri', dir(p), [p], /(^|\/)src-tauri$/.test(dir(p)));
+        } else if (/^capacitor\.config\./.test(b)) {
+          app('Capacitor', dir(p), [p], false);
+        }
+      } catch { /* 読めない manifest は飛ばす */ }
+    }
+    // 出港の手順: 公開・配布する workflow と、配布の設定ファイル
+    for (const [p, t] of workflowText) {
+      const docker = /docker\/build-push-action/.test(t) && /^\s*push:\s*(true|\$\{\{)/m.test(t);
+      if ((PUBLISH_CMD.test(t) || docker) && !publish.includes(p)) publish.push(p);
+    }
+    for (const f of files) if (!SKIP_DIR.test(f.path) && RELEASE_CONFIG.test(basename(f.path)) && f.path.split('/').length <= 3 && !publish.includes(f.path)) publish.push(f.path);
+    // 名前に release・publish・deploy を含むものを先に
+    const pubs = sortPaths(publish).sort((a, b) => (!/release|publish|deploy/i.test(basename(a))) - (!/release|publish|deploy/i.test(basename(b))));
+    all.push(...pubs);
+    // 荷札だけ（main も bin もない package.json、go.mod の module 名など）では船着場にしない
+    if (apps.length || pubs.length || strongPkg.length) {
+      const parts = [];
+      if (apps.length) {
+        const what = APP_KIND_JA[apps[0].kind] || `${apps[0].kind} のアプリ`;
+        parts.push(`「${apps[0].path}」に${/^[A-Za-z]/.test(what) ? ' ' : ''}${what}${apps.length > 1 ? ` ほか ${apps.length - 1}` : ''}`);
+      }
+      const p0 = packages[0];
+      if (p0) parts.push(`荷札「${p0.name}${p0.version ? ` ${p0.version}` : ''}」（${p0.path}）`);
+      if (pubs.length) parts.push(`出港の手順「${pubs[0]}」`);
+      add('dock', '船着場', parts.join('、'), all, {
+        packages: packages.slice(0, 6), apps: apps.slice(0, 6), publish: pubs.slice(0, 6), bins: uniq(bins).slice(0, 6),
+      });
+    }
+  }
+
+  // 酒場の名簿の「じょうたい」: 記録・見張り（見張り台）があるか
+  const pubF = facilities.find((f) => f.archetype === 'pub'), tower = facilities.find((f) => f.archetype === 'watchtower');
+  if (pubF) Object.assign(pubF.facts, { watchtower: !!tower, watchTools: tower ? tower.facts.tools.slice(0, 4) : [] });
+
   // 施設が丸ごと覆うモジュール（全ファイルがその施設の証拠）は、施設の建物にまとめる
   const taken = new Set();
   for (const f of facilities) {
-    const set = new Set(f.all);
+    const set = new Set(f.noMerge ? [] : f.all);
+    delete f.noMerge;
     f.merged = [];
     for (const g of groups) {
       if (g.path === '.' || taken.has(g.path) || !g.files.length) continue;

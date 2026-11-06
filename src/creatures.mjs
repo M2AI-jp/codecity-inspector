@@ -15,6 +15,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { agentForAuthor } from './analyze.mjs';
 
 const MAX_PIGEONS = 14, MAX_DOGS = 3, MAX_CATS = 4;
 const MAX_FILES = 300000, MAX_READ = 256 * 1024;
@@ -183,7 +184,8 @@ function findBots(files, contributors, win) {
   const bots = new Map();       // key -> { name, commits, config }
   for (const c of contributors || []) {
     const name = String(c.name || '').trim();
-    if (!name || !BOT_NAME.test(name)) continue;
+    // コードを書く外部エージェント（copilot-swe-agent[bot] など）は犬ではなく外部工務店（town.contractors）
+    if (!name || !BOT_NAME.test(name) || c.agent || agentForAuthor(name)) continue;
     const k = botKey(name);
     const b = bots.get(k) || { name: botName(name), commits: 0, config: null };
     b.commits += c.commits | 0;
@@ -274,14 +276,16 @@ function strHash(s) {
   return h >>> 0;
 }
 
+const WALKABLE = new Set(['.', ':', '#', '+']);
+
 function townGrid(town) {
   const { cols, rows } = town;
   const ch = (x, y) => (x >= 0 && y >= 0 && x < cols && y < rows ? (town.ground[y] || '')[x] || ' ' : ' ');
   const blocked = new Uint8Array(cols * rows);      // not a place to stand
   const hidden = new Uint8Array(cols * rows);       // behind a roof / canopy (would not be seen)
+  // 立てるのは歩ける地面（草地・土・石畳・広場）だけ。水・岸・街の外、知らない記号の地面には置かない
   for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
-    const c = ch(x, y);
-    if (c === ' ' || c === '~') blocked[y * cols + x] = 1;
+    if (!WALKABLE.has(ch(x, y))) blocked[y * cols + x] = 1;
   }
   const mark = (arr, x0, y0, w, h) => {
     for (let y = Math.max(0, y0); y < Math.min(rows, y0 + h); y++) for (let x = Math.max(0, x0); x < Math.min(cols, x0 + w); x++) arr[y * cols + x] = 1;
@@ -292,6 +296,8 @@ function townGrid(town) {
     mark(blocked, x, y, 1, 1);
     if (p.type === 'tree') mark(hidden, x - 1, y - 2, 3, 2);
   }
+  // 外に立つ番人（井戸番など）の足もと
+  for (const l of town.landmarks || []) if (l.keeper) mark(blocked, Math.floor(l.keeper.x), Math.floor(l.keeper.y - 0.01), 1, 1);
   const ok = (x, y) => x >= 0 && y >= 0 && x < cols && y < rows && !blocked[y * cols + x] && !hidden[y * cols + x];
   return { ch, ok, cols, rows };
 }

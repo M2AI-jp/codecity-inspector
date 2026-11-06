@@ -2,7 +2,7 @@
 // bubble, noticeboard. Everything opens and closes by proximity; no key is needed.
 
 import { KIND_JA, fmtInt, langName } from './util.js';
-import { keeperLines, residentBubble, whenJa, shortSubject } from './dialogue.js';
+import { keeperLines, keeperOffer, residentBubble, contractorBubble, rosterPages, whenJa, shortSubject } from './dialogue.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -28,8 +28,15 @@ export class UI {
     this.town = town;
     this.el = {
       repo: $('repo'), stats: $('stats'), dialogue: $('dialogue'), dlgName: $('dlg-name'),
-      dlgText: $('dlg-text'), notice: $('notice'), bubble: $('bubble'), hint: $('hint'), fps: $('fps'),
+      dlgText: $('dlg-text'), dlgChoice: $('dlg-choice'), notice: $('notice'), bubble: $('bubble'), hint: $('hint'), fps: $('fps'),
+      roster: $('roster'),
     };
+    this.input = null;            // web/input.js, set by main.js (the roster borrows ← / → while it is open)
+    this.rosterOpen = false;
+    this.rosterTab = 0;
+    this.offerReady = false;
+    this.initRoster();
+    window.addEventListener('keydown', (e) => this.onKey(e));
     this.curBuilding = null;
     this.curKeeper = null;
     this.dlg = null;
@@ -116,7 +123,7 @@ export class UI {
   factsHTML(b, t) {
     const m = b.module;
     const fac = b.data && b.data.facility;
-    const kind = KIND_JA[m.kind] || '建物';
+    const kind = KIND_JA[m.kind] || (fac && fac.name) || '建物';
     const rows = [];
     if (m.reason && (!b.keeper || fac)) rows.push(['なぜ' + kind + '？', esc(m.reason)]);   // the keeper says it otherwise
     if (fac && fac.evidence && fac.evidence.length && t < 10) {
@@ -151,10 +158,11 @@ export class UI {
     const b = keeper.building;
     let st = this.dlgStates.get(b.id);
     if (!st) {
-      st = { lines: keeperLines(b, keeper, this.town), line: 0, chars: 0, wait: 0.35 };
+      st = { lines: keeperLines(b, keeper, this.town), line: 0, chars: 0, wait: 0.35, offer: keeperOffer(b) };
       this.dlgStates.set(b.id, st);
     }
     this.dlg = st;
+    this.dlgKeeper = keeper;
     this.el.dlgName.textContent = keeper.name;
     this.el.dialogue.classList.add('show');
     this.renderDialogue(true);
@@ -162,7 +170,104 @@ export class UI {
 
   closeDialogue() {
     this.dlg = null;
+    this.dlgKeeper = null;
+    this.setOffer(false);
+    this.closeRoster();
     this.el.dialogue.classList.remove('show');
+  }
+
+  // The keeper's last line offers something (the pub master: 「名簿を見ていくかい？」): a button
+  // under the text, or Enter / Space. Walking away simply closes it.
+  setOffer(on) {
+    if (on === this.offerReady) return;
+    this.offerReady = on;
+    const c = this.el.dlgChoice;
+    if (!c) return;
+    c.innerHTML = on ? '<button type="button" class="choice">▶ 名簿をみる</button><span class="key">Enter</span>' : '';
+    c.classList.toggle('show', on);
+  }
+
+  // Keys: Enter / Space read on (or take the offer); with the roster open, ← → / Q E turn the pages
+  // and Esc closes it. Arrow keys left and right are lent to the roster only while it is open (see
+  // main.js input.blockKey); ↑ ↓ and WASD always walk, and walking away closes the roster.
+  onKey(e) {
+    if (this.rosterOpen) {
+      const n = (this.rosterPagesList || []).length || 1;
+      if (e.code === 'ArrowLeft' || e.code === 'KeyQ') { this.rosterTab = (this.rosterTab + n - 1) % n; this.renderRoster(); e.preventDefault(); }
+      else if (e.code === 'ArrowRight' || e.code === 'KeyE') { this.rosterTab = (this.rosterTab + 1) % n; this.renderRoster(); e.preventDefault(); }
+      else if (e.code === 'Escape') { this.closeRoster(); e.preventDefault(); }
+      return;
+    }
+    if (e.code !== 'Enter' && e.code !== 'NumpadEnter' && e.code !== 'Space') return;
+    if (this.offerReady && this.dlgKeeper) { this.openRoster(this.dlgKeeper); e.preventDefault(); }
+    else if (this.dlg) { this.skip(); e.preventDefault(); }
+  }
+
+  // --- 接続者ギルドの名簿（an SFC-style window over the town） ------------------------
+  initRoster() {
+    const r = this.el.roster;
+    if (!r) return;
+    r.innerHTML = '<div class="roster-head"><div class="roster-title">接続者ギルドの名簿</div>' +
+      '<button type="button" class="roster-close" aria-label="とじる">×</button></div>' +
+      '<div class="roster-tabs" role="tablist"></div><div class="roster-body"></div>' +
+      '<div class="roster-foot"><span class="keys">← → か Q・E でページをめくる　Esc でとじる</span><span class="touch">上の札を押すとページが変わります</span></div>';
+    // clicks inside the window never walk the player or skip the dialogue
+    r.addEventListener('pointerdown', (e) => e.stopPropagation());
+    // buttons give the focus back, so Space / Enter never "click" a button left focused
+    r.addEventListener('click', (e) => {
+      const t = e.target.closest('[data-tab]');
+      if (t) { this.rosterTab = Number(t.dataset.tab) || 0; this.renderRoster(); return; }
+      if (e.target.closest('.roster-close')) this.closeRoster();
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    const c = this.el.dlgChoice;
+    if (c) {
+      c.addEventListener('pointerdown', (e) => e.stopPropagation());
+      c.addEventListener('click', (e) => {
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        if (e.target.closest('.choice') && this.dlgKeeper) this.openRoster(this.dlgKeeper);
+      });
+    }
+  }
+
+  openRoster(keeper) {
+    const b = keeper && keeper.building;
+    const fac = b && ((b.data && b.data.facility) || b.facility);
+    if (!fac || !this.el.roster) return;
+    this.rosterPagesList = rosterPages(fac, this.town);
+    if (this.rosterTab >= this.rosterPagesList.length) this.rosterTab = 0;
+    this.rosterOpen = true;
+    if (this.input) {                  // a held ← / → stops here instead of running on under the window
+      const h = this.input.held, l = this.input.latched;
+      h.left = h.right = l.left = l.right = false;
+    }
+    this.renderRoster();
+    this.el.roster.classList.add('show');
+    (this.root || $('ui')).classList.add('roster-open');
+  }
+
+  closeRoster() {
+    if (!this.rosterOpen) return;
+    this.rosterOpen = false;
+    this.el.roster.classList.remove('show');
+    (this.root || $('ui')).classList.remove('roster-open');
+  }
+
+  renderRoster() {
+    const pages = this.rosterPagesList || [];
+    const i = Math.max(0, Math.min(pages.length - 1, this.rosterTab));
+    const r = this.el.roster;
+    r.querySelector('.roster-tabs').innerHTML = pages.map((p, k) =>
+      `<button type="button" class="tab${k === i ? ' on' : ''}" data-tab="${k}" role="tab" aria-selected="${k === i}">${esc(p.label)}</button>`).join('');
+    const pg = pages[i];
+    const body = r.querySelector('.roster-body');
+    if (!pg) { body.innerHTML = ''; return; }
+    const rows = pg.rows.length ? pg.rows.map((x) => `<div class="row${x.badge ? '' : ' nobadge'}${x.dim ? ' dim' : ''}${pg.stack ? ' stack' : ''}">` +
+      (x.badge ? `<span class="badge">${esc(x.badge)}</span>` : '') +
+      `<div class="t">${esc(x.title)}</div>${x.sub ? `<div class="s">${esc(x.sub)}</div>` : ''}</div>`).join('')
+      : `<div class="empty">${esc(pg.empty)}</div>`;
+    body.innerHTML = `${pg.intro ? `<div class="intro">${esc(pg.intro)}</div>` : ''}<div class="rows">${rows}</div>`;
+    body.scrollTop = 0;
   }
 
   skip() {
@@ -204,6 +309,7 @@ export class UI {
     const done = st.line >= st.lines.length - 1 && st.chars >= (st.lines[st.line] || '').length;
     html += `<div class="more ${done ? 'done' : ''}">${st.line + 1} / ${st.lines.length}</div>`;
     this.el.dlgText.innerHTML = html;
+    this.setOffer(!!st.offer && done);
     this.panelH = this.el.dialogue.offsetHeight;
   }
 
@@ -226,9 +332,10 @@ export class UI {
     if (w !== this.bubbleFor) {
       this.bubbleFor = w;
       if (w) {
-        const t = residentBubble(w.local ? w : (w.def || w), this.town);
+        const t = w.contractor ? contractorBubble(w.def, this.town) : residentBubble(w.local ? w : (w.def || w), this.town);
         bub.innerHTML = `<div><span class="who">${esc(t.name)}</span><span class="sep">─</span>${esc(t.line)}</div>` +
-          (t.more ? `<div class="more">${esc(t.more)}</div>` : '');
+          (t.more ? `<div class="more">${esc(t.more)}</div>` : '') + (t.note ? [].concat(t.note).map((n) => `<div class="note">${esc(n)}</div>`).join('') : '');
+        bub.classList.toggle('wrap', !!t.note);
         bub.classList.add('show');
         this.bubbleW = bub.offsetWidth;
       } else bub.classList.remove('show');

@@ -182,9 +182,10 @@ export class Walker extends Character {
 export const KEEPER_ROLE = {
   workshop: '工房の親方', shop: '商店の主人', house: '家の人', ruin: '廃屋の管理人',
   town_hall: '役場の書記', inn: '宿屋の番頭', pub: '酒場の主人', warehouse: '倉庫番', watchtower: '見張り台の番人', dojo: '道場の検査官',
+  dock: '船頭', well: '井戸番',
 };
 // 施設の番人の絵がまだ無いときに代わりに立てる、いちばん近い番人
-export const KEEPER_STAND_IN = { town_hall: 'house', inn: 'shop', pub: 'shop', warehouse: 'workshop', watchtower: 'house', dojo: 'house' };
+export const KEEPER_STAND_IN = { town_hall: 'house', inn: 'shop', pub: 'shop', warehouse: 'workshop', watchtower: 'house', dojo: 'house', dock: 'workshop', well: 'house' };
 
 export function kindOf(b) {
   const k = (b.data && b.data.facility && b.data.facility.archetype) || (b.module && b.module.kind);
@@ -223,25 +224,84 @@ export class Keeper extends Character {
   }
 }
 
-// Every building with room inside gets the keeper of its kind; every contributor walks the
-// streets once, as townsfolk[look % count]. Missing art means nobody is drawn for that slot —
-// except with ?debug=1, where outlines stand in so the layout can be inspected.
+// The keeper of an outdoor facility (town.landmarks: the well's 井戸番) stands beside its prop and
+// talks like a building keeper. `building` is a stand-in so the dialogue code treats both alike.
+export class LandmarkKeeper extends Keeper {
+  constructor(kind, sheet, landmark, world, seed) {
+    let x = landmark.keeper.x * T, y = landmark.keeper.y * T;
+    if (world.feetHit(x, y)) {
+      const f = world.nearestFree(Math.floor(x / T), Math.floor((y - 3) / T), 3);
+      if (f) ({ x, y } = world.navPoint(f[0], f[1]));
+    }
+    const spot = { x, y, tx: Math.floor(x / T), ty: Math.floor((y - 3) / T) };
+    const fac = landmark.facility || { archetype: landmark.archetype, name: landmark.name, facts: {} };
+    super(kind, sheet, { id: landmark.id, keeperSpot: spot, data: { facility: fac }, facility: fac, module: landmark.module || null, landmark, inside: false }, seed);
+    this.outdoor = true;
+  }
+
+  update(dt, player) {
+    this.beginStep();
+    const dx = player.x - this.x, dy = player.y - this.y;
+    if (dx * dx + dy * dy < (NEAR_KEEPER + 30) ** 2) this.facing = facingFrom(dx, dy, this.facing);
+    else {
+      this.lookTimer -= dt;
+      if (this.lookTimer <= 0) {
+        this.lookTimer = 1.5 + this.rng() * 3;
+        const r = this.rng();
+        this.facing = r < 0.6 ? 'down' : r < 0.8 ? 'left' : 'right';
+      }
+    }
+    this.animate(dt);
+  }
+}
+
+// The keeper's picture: their own, else the nearest kind's (KEEPER_STAND_IN), else none.
+function keeperSheet(art, kind) {
+  if (art.keepers[kind]) return art.keepers[kind];
+  const standIn = art.keepers[KEEPER_STAND_IN[kind]] || art.keepers.house || null;
+  if (standIn) console.info(`[codecity] ${KEEPER_ROLE[kind]}の絵がないので、${art.keepers[KEEPER_STAND_IN[kind]] ? KEEPER_STAND_IN[kind] : 'house'} の番人の絵で立てる`);
+  return standIn;
+}
+
+// Every building with room inside gets the keeper of its kind; every outdoor facility
+// (town.landmarks) its keeper beside it; every contributor walks the streets once, as
+// townsfolk[look % count]; every external agent (town.contractors) sends one agent who walks
+// among the buildings it worked on. Missing art means nobody is drawn for that slot — except
+// with ?debug=1, where outlines stand in so the layout can be inspected.
 export function createResidents(town, world, art, debug) {
-  const out = { walkers: [], keepers: [], locals: [] };
+  const out = { walkers: [], keepers: [], locals: [], contractors: [] };
   for (const b of world.buildings) {
     if (!b.keeperSpot || !b.module) continue;
     const kind = kindOf(b);
-    const standIn = !art.keepers[kind] && (art.keepers[KEEPER_STAND_IN[kind]] || art.keepers.house) || null;
-    if (standIn) console.info(`[codecity] ${KEEPER_ROLE[kind]}の絵がないので、${KEEPER_STAND_IN[kind] || 'house'} の番人の絵で立てる`);
-    const sheet = art.keepers[kind] || standIn;
+    const sheet = keeperSheet(art, kind);
     if (!sheet && !debug) continue;
     const k = new Keeper(kind, sheet, b, strHash(`keeper:${b.id}`));
     b.keeper = k;
     out.keepers.push(k);
   }
+  for (const l of Array.isArray(town.landmarks) ? town.landmarks : []) {
+    const kind = l && (l.archetype || (l.facility && l.facility.archetype));
+    if (!kind || !KEEPER_ROLE[kind] || !l.keeper || !Number.isFinite(l.keeper.x) || !Number.isFinite(l.keeper.y)) continue;
+    const sheet = keeperSheet(art, kind);
+    if (!sheet && !debug) continue;
+    out.keepers.push(new LandmarkKeeper(kind, sheet, l, world, strHash(`keeper:${l.id}`)));
+  }
   const folk = art.townsfolk.filter(Boolean);
-  if (!folk.length && !debug) return out;
   const byId = new Map(world.buildings.map((b) => [b.id, b]));
+  // 外部工務店の代理人: its own picture, else a townsperson's look (warned once)
+  const cs = Array.isArray(town.contractors) ? town.contractors : [];
+  if (cs.length && !art.contractor && folk.length) console.info('[codecity] 外部工務店の代理人の絵がないので、町の人の姿で歩かせる');
+  for (const def of cs) {
+    const homes = (def.homes || []).map((id) => byId.get(id)).filter((b) => b && b.doorOutside);
+    const sheet = art.contractor || (folk.length ? folk[strHash(`contractor:${def.name}`) % folk.length] : null);
+    if (!homes.length || (!sheet && !debug)) continue;
+    const w = new Walker(def, sheet, world, homes, strHash(`contractor:${def.id}:${def.name}`));
+    w.contractor = true;
+    w.agentName = def.name;
+    w.name = '外部工務店の代理人';
+    out.contractors.push(w);
+  }
+  if (!folk.length && !debug) return out;
   const defs = Array.isArray(town.residents) ? town.residents : [];
   for (const def of defs) {
     const homes = (def.homes || []).map((id) => byId.get(id)).filter(Boolean);

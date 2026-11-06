@@ -2,7 +2,7 @@
 
 import { TILE, SIM_DT, MAX_FRAME_DT, CUTAWAY_FADE, CAMERA_OMEGA, CAMERA_LOOK_UP, CAMERA_LEAD, NATIVE_TARGET_W,
   NEAR_RESIDENT, NEAR_KEEPER, NEAR_NOTICE, KEEPER_BOX } from './config.js';
-import { loadJSON, loadArt, loadImage, warnOnce } from './assets.js';
+import { loadJSON, loadArt, loadImage, warnOnce, toCanvas, cleanMagenta, buildSheet } from './assets.js';
 import { parseGround, composeGround } from './ground.js';
 import { World } from './world.js';
 import { Player } from './player.js';
@@ -49,6 +49,12 @@ async function boot() {
   }
   const art = await loadArt(manifest, MANIFEST_URL, { playerOverride: params.get('player'), needGround: !groundImg });
   if (!art.player) warnOnce('player', 'プレイヤーの画像がありません');
+  // 外部工務店の代理人の絵（manifest の characters.contractor）。無ければ町の人の姿で歩く（web/residents.js）
+  const cdef = manifest && manifest.characters && manifest.characters.contractor;
+  if (!art.contractor && cdef && cdef.src) {
+    const img = await loadImage(new URL(cdef.src, new URL(MANIFEST_URL, location.href)).href);
+    if (img) { const c = toCanvas(img); cleanMagenta(c); art.contractor = buildSheet(c, cdef, null); }
+  }
 
   const grid = parseGround(town);
   let ground;
@@ -80,7 +86,8 @@ async function boot() {
     const b = k.building, d = b.doorInside ? Math.hypot(k.x - b.doorInside.x, k.y - b.doorInside.y) + 6 : 0;
     b.talkR = Math.min(72, Math.max(NEAR_KEEPER, d));
   }
-  const movers = [...npcs.walkers, ...npcs.locals];     // named contributors + ambient townsfolk
+  const movers = [...npcs.walkers, ...npcs.locals, ...npcs.contractors];     // named contributors + ambient townsfolk + external agents
+  const outdoorKeepers = npcs.keepers.filter((k) => k.outdoor);              // the well's 井戸番 and other landmark keepers
   // Walking townsfolk never block the player: brushing through a crowd must not stall or jolt the
   // run (they still step aside on their own). Keepers stay solid via their world rects above.
   player.blockers = null;
@@ -90,6 +97,9 @@ async function boot() {
   const input = new Input(canvas);
   const smoke = new Smoke(world);
   const ui = new UI(town);
+  ui.input = input;
+  // while the guild roster is open, ← / → turn its pages instead of walking (↑ ↓ and WASD still walk)
+  input.blockKey = (code) => ui.rosterOpen && (code === 'ArrowLeft' || code === 'ArrowRight');
   document.getElementById('loading').classList.add('hide');
 
   const noticeboards = world.props.filter((p) => p.type === 'noticeboard');
@@ -266,6 +276,12 @@ async function boot() {
     uiState.keeper = current && current.keeper &&
       Math.hypot(current.keeper.x - player.x, current.keeper.y - player.y) < (current.talkR || NEAR_KEEPER) + (ui.curKeeper === current.keeper ? 24 : 0)
       ? current.keeper : null;
+    // outdoors: the keeper of a landmark (the well) answers when you walk up to them
+    if (!uiState.keeper && !current) {
+      for (const k of outdoorKeepers) {
+        if (Math.hypot(k.x - player.x, k.y - player.y) < (k.building.talkR || NEAR_KEEPER) + (ui.curKeeper === k ? 24 : 0)) { uiState.keeper = k; break; }
+      }
+    }
     uiState.walker = uiState.keeper ? null : nearest(movers, NEAR_RESIDENT);   // one speaker at a time: the keeper's dialogue wins
     uiState.notice = readme && noticeboards.length && nearest(noticeboards, NEAR_NOTICE) ? readme : null;
     uiState.dt = frameDt;

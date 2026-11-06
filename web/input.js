@@ -14,8 +14,10 @@ export class Input {
     this.clicks = [];         // queued { x, y } in client px
     this.anyKeyThisFrame = false;
     this.touched = false;     // user has interacted at all
+    this.blockKey = null;     // (code) => true when another UI borrows the key (the guild roster's ← / →)
     window.addEventListener('keydown', (e) => {
       this.slow = e.shiftKey;
+      if (this.blockKey && this.blockKey(e.code)) return;
       const d = KEYMAP[e.code];
       if (d) { this.held[d] = true; this.latched[d] = true; this.touched = true; this.keyEvents++; e.preventDefault(); }
     });

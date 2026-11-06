@@ -238,6 +238,7 @@ function meaningOf(m, kind, info) {
 // P: place name; W: what this place is; parts are filled in by keeperLines.
 const VOICE = {
   workshop: {
+    works: (n) => `いまは工事中だ。まだ記録していない変更が${n}個ある。`,
     greet: [(P) => `おう、来たか。ここは${P}の工房だ。`, (P) => `よう、いらっしゃい。${P}の工房へようこそ。`, (P) => `おっ、見学かい。ここは${P}の工房さ。`],
     what: [(W) => `ここじゃ、${W}をこしらえてる。`, (W) => `${W}を、ここで手入れしてるのさ。`, (W) => `ここは${W}の仕事場だ。`],
     part: (X, W) => `「${X}」は、${W}の仲間だ。`,
@@ -261,6 +262,7 @@ const VOICE = {
     close: ['まあ、ゆっくり見ていきな。', '用があったら、また寄ってくれ。', '足もとに気をつけて、見ていきな。'],
   },
   shop: {
+    works: (n) => `ただいま改装中でございます。まだ記録していない変更が${n}個ございます。`,
     greet: [(P) => `いらっしゃいませ。${P}のお店へようこそ。`, (P) => `これはこれは、ようこそ${P}の店へ。`, (P) => `いらっしゃいまし。こちらは${P}の店でございます。`],
     what: [(W) => `ここは、${W}をあつかう店です。`, (W) => `${W}を、こしらえて並べております。`, (W) => `うちは${W}の専門店でございます。`],
     part: (X, W) => `「${X}」は、${W}の一角でございます。`,
@@ -280,6 +282,7 @@ const VOICE = {
     close: ['どうぞ、ごゆっくりご覧くださいませ。', 'またのお越しを、お待ちしております。', '気になる品があれば、いつでもどうぞ。'],
   },
   house: {
+    works: (n) => `いま工事中なの。まだ記録していない変更が${n}個あるのよ。`,
     greet: [(P) => `あら、いらっしゃい。ここは${P}の家よ。`, (P) => `まあ、よく来たわね。${P}の家へようこそ。`, (P) => `はいはい、どうぞ上がって。${P}の家よ。`],
     what: [(W) => `ここでは、${W}を預かってるの。`, (W) => `うちには、${W}が住んでるのよ。`, (W) => `${W}の家なの。`],
     part: (X, W) => `「${X}」は、${W}の仲間なの。`,
@@ -299,6 +302,7 @@ const VOICE = {
     close: ['ゆっくりしていってね。', 'またいつでも寄ってちょうだい。', '夜道は暗いから、気をつけて帰ってね。'],
   },
   ruin: {
+    works: (n) => `おや、久しぶりに工事の音がしておる。まだ記録しておらん変更が${n}個じゃ。`,
     greet: [(P) => `おや、旅のお方かね。ここは${P}の古い家じゃ。`, (P) => `よう来なすった。ここは${P}の廃屋じゃよ。`, (P) => `ほう、こんな所まで珍しい。${P}の家へようこそ。`],
     what: [(W) => `ここには、${W}が眠っておる。`, (W) => `${W}が、ひっそり残っておる所じゃ。`],
     part: (X, W) => `「${X}」は、${W}の仲間じゃ。今は静かに眠っておる。`,
@@ -421,6 +425,10 @@ export function keeperLines(building, keeper, town) {
     }
   }
 
+  // construction in progress: files of this place changed in the working tree, not yet committed
+  const dirty = m.works && m.works.dirty > 0 ? m.works.dirty : 0;
+  if (dirty) facts.unshift({ p: 6, t: v.works(fmtInt(dirty)) });
+
   // order: the ruin's keeper starts from history; the others vary between two orders
   const F = (p, t) => (t ? { p, t } : null);
   const ordered = kind === 'ruin'
@@ -448,7 +456,7 @@ const FACILITY_VOICE = {
   town_hall: {
     greet: ['ようこそ、役場へ。わたしは書記をしております。', 'いらっしゃいませ。こちらは役場の受付です。'],
     what: ['この街の記録は、ぜんぶここで預かっています。', 'この街の歩みを、一件ずつ帳面につけております。'],
-    facts(f) {
+    facts(f, town) {
       const out = [];
       if (f.commits) {
         const ppl = f.contributors ? (f.contributorsWindow ? `直近の${fmtInt(f.contributorsWindow)}件では${nPeople(f.contributors)}が手を入れています` : `手を入れた人は${nPeople(f.contributors)}です`) : '';
@@ -463,9 +471,21 @@ const FACILITY_VOICE = {
       }
       if (f.tags > 0 && f.latestTag) out.push(`節目の印（タグ）は${fmtInt(f.tags)}個。いちばん新しいのは${q(f.latestTag.name)}です。`);
       else if (f.tags === 0) out.push('節目の印（タグ）は、まだひとつもついていません。');
+      // works in progress in the working tree (not yet committed)
+      if (f.dirty > 0) out.push(`まだ記録していない変更が${fmtInt(f.dirty)}個あります。`);
+      // 工事報告: commits made with an external code-generating agent. A self-report, never a reward.
+      const ag = (Array.isArray(f.agents) ? f.agents : []).filter((a) => a && a.name && a.commits > 0);
+      if (ag.length) {
+        const list = ag.slice(0, 2).map((a) => `${a.name}から${fmtInt(a.commits)}件`);
+        const win = f.contributorsWindow ? `直近の${fmtInt(f.contributorsWindow)}件のうち、` : '';
+        out.push(`外部工務店からの工事報告も届いています。${win}${list.join('、')}${ag.length > 2 ? `、ほか${ag.length - 2}社` : ''}です。`);
+        const dojo = town && (town.buildings || []).some((b) => b.facility && b.facility.archetype === 'dojo');
+        out.push(`工事報告は、工務店の自己申告です。本当に動くかは、${dojo ? '道場で' : '動かして'}確かめましょう。`);
+      }
       if (f.changelog) out.push(`変更の記録帳${q(f.changelog)}も、ここに保管しています。`);
       return out;
     },
+    max: 6,
     close: ['記録のことなら、いつでもお尋ねください。', '帳面は、きちんとつけておきますね。'],
   },
   inn: {
@@ -485,7 +505,7 @@ const FACILITY_VOICE = {
   },
   pub: {
     greet: ['おう、酒場へようこそ。', 'いらっしゃい。まあ、座んな。'],
-    what: ['ここは、外とつながる連中のギルドだ。', 'この街と外をつなぐ連中が、ここに集まってる。'],
+    what: ['この街と外をつなぐ連中が、ここに集まってる。', '外とつながる連中は、みんなここに顔を出すのさ。'],
     facts(f) {
       const out = [];
       const cs = Array.isArray(f.connectors) ? f.connectors : [];
@@ -504,7 +524,9 @@ const FACILITY_VOICE = {
       if (f.webhooks && f.webhooks[0]) out.push(`外からの知らせは${q(f.webhooks[0])}で受けてる。`);
       return out;
     },
-    close: ['外の連中とうまくやるのも、ここの仕事さ。', '新しい顔が来たら、名簿に書いとくよ。'],
+    // the last line offers the guild roster (web/ui.js shows the choice under it)
+    close: ['ここは接続者ギルドだ。名簿を見ていくかい？'],
+    offer: 'roster',
   },
   warehouse: {
     greet: ['……倉庫だ。', 'ん。倉庫に用か。'],
@@ -549,13 +571,84 @@ const FACILITY_VOICE = {
     },
     close: ['動くと言うなら、確かめてからにしましょう。', '確かめたことだけが、本当のことです。'],
   },
+
+  // 井戸番: the settings (env) the town draws from its well. Names only; values are never read.
+  well: {
+    greet: ['やあ、井戸へようこそ。わたしは井戸番だよ。', 'こんばんは。井戸の番をしているよ。'],
+    what: ['この井戸から、街が動くのに使う「設定」をくんでいるんだ。', 'この街は、ここから「設定」の水をくんで動いているんだよ。'],
+    facts(f) {
+      const out = [];
+      const names = Array.isArray(f.names) ? f.names : [];
+      const total = Math.max(f.namesTotal | 0, names.length);
+      if (names.length) {
+        const shown = names.slice(0, names.length > 3 ? 2 : 3);
+        out.push(total > shown.length
+          ? `この街が使う設定の名前は、${shown.join('、')}など、見つかっただけで${fmtInt(total)}個だよ。`
+          : `この街が使う設定の名前は、${listJa(shown)}だよ。`);
+      }
+      if (f.examples && f.examples[0]) out.push(`書き方の見本は${q(f.examples[0])}にあるよ。`);
+      else if (names.length) out.push('書き方の見本（.env.example）は、見当たらないね。');
+      if (f.committed && f.committed[0]) {
+        out.push(`秘密の鍵が入っているかもしれないファイル（${base(f.committed[0])}）が記録に入っています。`);
+        out.push('わたしは中身をのぞいていないよ。気になったら、確かめてみてね。');
+      }
+      if (f.loaders && f.loaders.length) out.push(`水をくみ上げる道具は ${f.loaders.slice(0, 2).join('、')} だよ。`);
+      if (f.ciSecrets && f.ciSecrets.length) out.push(`自動の仕事（CI）は、${f.ciSecrets[0]}${f.ciSecrets.length > 1 ? 'などの' : 'という'}鍵を使うよ。`);
+      if (f.configs && f.configs[0] && out.length < 4) out.push(`設定のファイルは${q(f.configs[0])}にもあるよ。`);
+      return out;
+    },
+    max: 5,
+    close: ['水の味（設定の中身）は、わたしも知らないんだ。名前だけ知ってるのさ。'],
+  },
+  // 船頭: what is ready to ship out to other islands. Never says it was published (we have no evidence).
+  dock: {
+    greet: ['おう、船着場へようこそ。おれは船頭だ。', 'よう、旅の人。ここは船着場だ。'],
+    what: ['ここから、この街でこしらえたものを、外の島へ運ぶんだ。', 'この街でこしらえたものは、ここから船で外へ出ていく。'],
+    facts(f) {
+      const out = [];
+      const apps = Array.isArray(f.apps) ? f.apps : [];
+      if (apps[0]) out.push(`${apps[0].path === '.' ? '街のおおもと' : q(apps[0].path)}に、${APP_JA[apps[0].kind] || `${apps[0].kind}のアプリ`}が積んである${apps.length > 1 ? `。ほかに${apps.length - 1}つ` : ''}。`);
+      const pk = Array.isArray(f.packages) ? f.packages : [];
+      if (pk[0]) {
+        const label = `${pk[0].name}${pk[0].version ? ` ${pk[0].version}` : ''}`;
+        out.push(`荷札には『${label}』と書いてある（${base(pk[0].path)}）。${pk.length > 1 ? `荷札はほかに${pk.length - 1}枚。` : ''}`);
+      }
+      if (f.bins && f.bins.length) out.push(`荷を開けると、${f.bins.slice(0, 2).map(q).join('と')}というコマンドが使えるようになる。`);
+      if (f.publish && f.publish[0]) out.push(`出港の手順は${q(f.publish[0])}に書いてある。`);
+      out.push(pk.length || (f.publish && f.publish.length)
+        ? 'ただ、本当に船が出たかどうかは、ここからは分からねえ。'
+        : 'ただ、まだ船を出す手順は見当たらねえな。');
+      return out;
+    },
+    max: 5,
+    close: ['届いたかどうかは、向こうの島で確かめてくれ。'],
+  },
+};
+
+const APP_JA = {
+  iOS: 'iPhone のアプリ', macOS: 'Mac のアプリ', Apple: 'Apple の機械のアプリ', Android: 'Android のアプリ', Expo: 'スマホのアプリ（Expo）',
+  'React Native': 'スマホのアプリ（React Native）', Electron: 'パソコンのアプリ（Electron）', Tauri: 'パソコンのアプリ（Tauri）',
+  Capacitor: 'スマホのアプリ（Capacitor）', Flutter: 'スマホのアプリ（Flutter）', 'Browser extension': 'ブラウザの拡張機能',
+  'VS Code extension': 'VS Code の拡張機能',
+};
+
+// (the town hall already reports the whole town's unrecorded changes)
+const FACILITY_WORKS = {
+  inn: (n) => `ただいま改装中でございます。まだ記録していない変更が${n}個ございます。`,
+  pub: (n) => `いま店の手入れ中でな。まだ記録していない変更が${n}個ある。`,
+  warehouse: (n) => `棚を組みかえてる最中だ。まだ記録していない変更が${n}個。`,
+  watchtower: (n) => `見張り台は修理中だ。まだ記録していない変更が${n}個ある。`,
+  dojo: (n) => `いま、道場は手入れの最中です。まだ記録していない変更が${n}個あります。`,
+  dock: (n) => `桟橋を直してる最中だ。まだ記録していない変更が${n}個ある。`,
 };
 
 function facilityLines(building, fac, town) {
   const v = FACILITY_VOICE[fac.archetype];
   const rng = mulberry32(strHash(`facility:${building.id}:${fac.archetype}`));
   const pick = (arr) => arr[Math.floor(rng() * arr.length)];
-  const facts = v.facts(fac.facts || {}).filter(Boolean);
+  const facts = v.facts(fac.facts || {}, town).filter(Boolean);
+  const dirty = building.module && building.module.works && building.module.works.dirty > 0 ? building.module.works.dirty : 0;
+  if (dirty && FACILITY_WORKS[fac.archetype]) facts.unshift(FACILITY_WORKS[fac.archetype](fmtInt(dirty)));
   // 足りなければ、よく手を入れる人（施設の証拠に触れたコミット）
   const m = building.module || {};
   const a = (m.authors || []).filter((x) => x && x.name && x.commits > 0);
@@ -564,7 +657,13 @@ function facilityLines(building, fac, town) {
     const end = { pub: 'だ', warehouse: 'だ', watchtower: 'だ' }[fac.archetype] || 'です';
     facts.push(`よく顔を出すのは${san(a[0].name)}${end}（${fmtInt(a[0].commits)}回）。`);
   }
-  return [pick(v.greet), pick(v.what), ...facts.slice(0, 4), pick(v.close)].map(spaceOut);
+  return [pick(v.greet), pick(v.what), ...facts.slice(0, v.max || 4), pick(v.close)].map(spaceOut);
+}
+
+// The keeper's last line offers something (the pub master: the guild roster). web/ui.js shows the choice.
+export function keeperOffer(building) {
+  const fac = (building && building.data && building.data.facility) || (building && building.facility);
+  return fac && FACILITY_VOICE[fac.archetype] && FACILITY_VOICE[fac.archetype].offer || null;
 }
 
 // ---------- townsfolk bubble ----------
@@ -610,4 +709,86 @@ function localBubble(loc, town) {
     more = `${w ? whenLead(w) : ''}${lc.author ? san(lc.author) : 'だれか'}が『${shortSubject(lc.subject, 20)}』と手を入れた`;
   }
   return { name: '町の人', line: spaceOut(line), more: spaceOut(more) };
+}
+
+// ---------- 外部工務店の代理人（town.contractors） ----------
+// An external code-generating agent named in this town's commits. Its "done" is a self-report.
+export function contractorBubble(def, town) {
+  const days = (town && town.repo && town.repo.recentDays) || 90;
+  const latest = town && town.repo && Date.parse(town.repo.latestCommitDate);
+  const fresh = Number.isFinite(latest) && Date.now() - latest < 14 * 86400e3;
+  const hall = town && (town.buildings || []).find((b) => b.facility && b.facility.archetype === 'town_hall');
+  const win = hall && hall.facility.facts && hall.facility.facts.contributorsWindow;
+  const n = def.commits | 0, r = def.recent | 0;
+  const more = r > 0
+    ? `この街で${fresh ? `最近${days}日` : `最後のコミットまでの${days}日`}に${fmtInt(r)}件の工事に名前があります`
+    : n > 0 ? `${win ? `直近${fmtInt(win)}件の記録のうち` : 'この街の'}${fmtInt(n)}件の工事に名前があります` : '';
+  const dojo = town && (town.buildings || []).some((b) => b.facility && b.facility.archetype === 'dojo');
+  const note = ['工事の報告は自己申告です', `動くかどうかは${dojo ? '道場で' : '、動かして'}確かめてください`];
+  return { name: def.name || '外部工務店', line: '外部工務店の代理人です', more: spaceOut(more), note };
+}
+
+// ---------- 接続者ギルドの名簿（酒場の主人が見せる） ----------
+// Five pages built from pub facts only. Each row: { badge?, title, sub? }. Empty pages say so plainly.
+// what the town does with each kind of request, in plain words (GET: shows something, POST: receives something)
+const METHOD_JA = { GET: 'みせる', POST: 'うけとる', PUT: 'なおす', PATCH: 'なおす', DELETE: 'けす', HEAD: 'たしかめる', OPTIONS: 'たしかめる' };
+const ROSTER_ROWS = 10;
+// a long path keeps its end (the file name): "Library/Homebrew/utils/github.rb" -> "…/utils/github.rb"
+const shortPath = (p, max = 30) => {
+  p = String(p || '');
+  if (p.length <= max) return p;
+  const segs = p.split('/');
+  let out = segs.pop();
+  while (segs.length && out.length + segs[segs.length - 1].length + 3 <= max) out = `${segs.pop()}/${out}`;
+  return segs.length ? `…/${out}` : out;
+};
+export function rosterPages(fac, town) {
+  const f = (fac && fac.facts) || {};
+  const arr = (x) => (Array.isArray(x) ? x : []);
+  const cs = arr(f.connectors), routes = arr(f.routes), hooks = arr(f.webhooks), keys = arr(f.keys);
+  const specs = arr(f.specs), prompts = arr(f.prompts), examples = arr(f.envExamples);
+  const more = (shown, total, unit = '件') => (total > shown ? [{ title: `ほか ${fmtInt(total - shown)} ${unit}`, dim: true }] : []);
+  const pages = [];
+
+  const where = (c) => (c.paths && c.paths[0] ? shortPath(c.paths[0]) : '');
+  const nakama = cs.slice(0, ROSTER_ROWS).map((c) => ({
+    title: c.name,
+    sub: c.via === 'dep' ? `道具の名簿に名前がある（${where(c)}）` : `コードに住所がある（${where(c)}）`,
+  }));
+  pages.push({ key: 'nakama', label: 'なかま', intro: 'この街と外をつなぐ相手と、そうだと分かったわけです。',
+    rows: [...nakama, ...more(nakama.length, cs.length)], empty: '名簿に載っているなかまは、まだいません。' });
+
+  const shownR = routes.slice(0, ROSTER_ROWS).map((r) => ({ badge: METHOD_JA[r.method] || 'うける', title: r.route, sub: shortPath(r.path) }));
+  pages.push({ key: 'uketsuke', label: 'うけつけ', intro: '外から来た頼みごとを受ける窓口です。',
+    rows: [...shownR, ...more(shownR.length, Math.max(f.routesTotal | 0, routes.length))], empty: '外から頼みごとを受ける窓口は、見つかりませんでした。' });
+
+  const irai = [
+    ...hooks.map((h) => ({ badge: 'うける', title: h, sub: '外からの知らせ（webhook）を受ける口' })),
+    ...cs.filter((c) => c.via === 'url').map((c) => ({ badge: 'だす', title: c.name, sub: `${where(c) || 'コード'}から使いを出す` })),
+  ];
+  pages.push({ key: 'irai', label: 'いらい', intro: '外とのやりとりです。受ける知らせと、こちらから出す使い。',
+    rows: [...irai.slice(0, ROSTER_ROWS), ...more(Math.min(ROSTER_ROWS, irai.length), irai.length)], empty: '外とのやりとりは、見つかりませんでした。' });
+
+  const items = [
+    ...keys.map((k) => ({ badge: 'かぎ', title: k.name, sub: `${k.for ? `${k.for}の鍵` : '鍵'}${k.example ? '・見本に名前がある' : ''}` })),
+    ...specs.map((p) => ({ badge: 'しょるい', title: base(p), sub: `やりとりの取り決め（${shortPath(p)}）` })),
+    ...prompts.map((p) => ({ badge: 'たのみかた', title: base(p), sub: `AIへの頼み方の書き置き（${shortPath(p)}）` })),
+  ];
+  const itemsTotal = keys.length + specs.length + Math.max(f.promptsTotal | 0, prompts.length);
+  pages.push({ key: 'mochimono', label: 'もちもの', intro: '鍵は名前だけを書いています。中身（値）は見ていません。',
+    rows: [...items.slice(0, ROSTER_ROWS), ...more(Math.min(ROSTER_ROWS, items.length), itemsTotal)], empty: 'もちものは、見つかりませんでした。' });
+
+  const st = [{ title: 'つながるか確かめたことはありません（未確認）', sub: '名簿は、コードに書いてあることから作りました。' }];
+  if (keys.length) {
+    const inEx = keys.filter((k) => k.example).length;
+    if (!examples.length) st.push({ title: '鍵の名前を書いた見本（.env.example）は、ありません' });
+    else if (inEx === keys.length) st.push({ title: `鍵の名前は、ぜんぶ見本に書いてあります`, sub: examples[0] });
+    else st.push({ title: `鍵の名前${fmtInt(keys.length)}個のうち、見本に書いてあるのは${fmtInt(inEx)}個です`, sub: examples[0] });
+  } else st.push({ title: '鍵の名前は、見つかりませんでした' });
+  if (f.watchtower) st.push({ title: '見張り台（記録と見張り）があります', sub: arr(f.watchTools).length ? arr(f.watchTools).slice(0, 3).join('、') : null });
+  else st.push({ title: '見張り台（記録と見張り）は、この街にはありません' });
+  pages.push({ key: 'joutai', label: 'じょうたい', intro: '分かっていることだけを書いています。', rows: st, empty: '', stack: true });
+
+  for (const pg of pages) for (const r of pg.rows) { r.title = spaceOut(String(r.title || '')); if (r.sub) r.sub = spaceOut(String(r.sub)); }
+  return pages;
 }

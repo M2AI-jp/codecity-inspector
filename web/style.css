@@ -50,6 +50,7 @@ html, body {
 #stats .kind-warehouse { background: #33302a; color: #e6d8b8; }
 #stats .kind-watchtower { background: #23343e; color: #bfe3ff; }
 #stats .kind-dojo { background: #2e2a40; color: #d8ccff; }
+#stats .kind-dock { background: #1e3442; color: #b6e2f2; }
 #stats .path { font-size: 21px; font-weight: 700; word-break: break-all; }
 #stats .grid { display: grid; grid-template-columns: max-content 1fr; column-gap: 12px; }
 #stats .k, #stats .v { padding: 3px 0; border-top: 1px solid rgba(214, 186, 128, 0.16); }
@@ -146,4 +147,111 @@ html, body {
   #stats .grid { grid-template-columns: 1fr; }
   #stats .k { border-top: 1px solid rgba(214, 186, 128, 0.16); padding-bottom: 0; }
   #stats .v { border-top: none; padding-top: 0; }
+}
+
+/* the keeper's offer under the last line (the pub master: 「名簿を見ていくかい？」) */
+#dlg-choice { display: none; margin-top: 8px; align-items: center; gap: 12px; }
+#dlg-choice.show { display: flex; }
+#dlg-choice .choice {
+  font: inherit; font-size: 21px; font-weight: 700; color: #ffe2a0; cursor: pointer;
+  background: rgba(255, 226, 160, 0.12); border: 2px solid rgba(255, 226, 160, 0.7); border-radius: 3px;
+  padding: 4px 16px;
+}
+#dlg-choice .choice:hover, #dlg-choice .choice:focus-visible { background: rgba(255, 226, 160, 0.24); outline: none; }
+#dlg-choice .key { font-size: 16px; color: #a79e8d; border: 1px solid #6d6556; border-radius: 3px; padding: 0 6px; }
+#dlg-choice .choice, #dlg-choice .key { white-space: nowrap; }
+
+/* phones: the dialogue takes the full width; the facts panel sits on top and steps aside while
+   someone is talking (the keeper says the same facts in words) */
+@media (max-width: 560px) {
+  #dialogue, #notice, #ui.side-left #dialogue, #ui.side-left #notice { left: 8px; right: 8px; width: auto; }
+  #dialogue { padding: 16px 14px 12px; }
+  #dlg-text p { font-size: 20px; }
+  #dlg-text p.old { font-size: 17px; }
+  #stats, #ui.side-left #stats { left: 8px; right: 8px; width: auto; top: 8px; max-height: 44vh; }
+  #ui.talking #stats { opacity: 0; pointer-events: none; }
+  #ui:has(#stats.show) #repo { opacity: 0; }
+  #hint { right: 8px; left: 8px; }
+}
+
+/* external agent's bubble (外部工務店の代理人): three short lines that may wrap on narrow screens */
+#bubble.wrap { white-space: normal; width: max-content; max-width: min(480px, calc(100vw - 24px)); }
+#bubble .note { color: #ffd59a; }
+
+/* 接続者ギルドの名簿: an SFC-style window over the town (web/ui.js openRoster). Big text, five pages. */
+#roster {
+  left: 50%; top: 50%; transform: translate(-50%, calc(-50% + 8px));
+  width: min(800px, calc(100vw - 20px)); max-height: min(calc(100vh - 24px), 660px);
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 14px 20px 10px;
+  background: linear-gradient(180deg, rgba(34, 42, 102, 0.97), rgba(15, 19, 52, 0.97));
+  border: 3px solid #efe7cf; border-radius: 6px;
+  box-shadow: 0 0 0 3px #10122a, inset 0 0 0 2px rgba(10, 12, 30, 0.85), 0 8px 0 rgba(0, 0, 0, 0.4);
+  visibility: hidden; pointer-events: none;
+  transition: opacity 160ms ease-out, transform 160ms ease-out, visibility 0s linear 160ms;
+}
+#roster.show { transform: translate(-50%, -50%); visibility: visible; pointer-events: auto; transition-delay: 0s; }
+#roster .roster-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+#roster .roster-title { font-size: 25px; font-weight: 700; color: #ffe9b0; letter-spacing: 0.04em; }
+#roster .roster-close {
+  font: inherit; font-size: 26px; line-height: 1; width: 40px; height: 40px; flex: none; cursor: pointer;
+  color: #efe7cf; background: rgba(255, 255, 255, 0.06); border: 2px solid rgba(239, 231, 207, 0.6); border-radius: 4px;
+}
+#roster .roster-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+#roster .tab {
+  font: inherit; font-size: 21px; font-weight: 700; cursor: pointer; color: #d9d6ea;
+  background: rgba(255, 255, 255, 0.05); border: 2px solid rgba(239, 231, 207, 0.25); border-radius: 4px;
+  padding: 3px 14px;
+}
+#roster .tab.on { color: #fff6dc; background: rgba(255, 226, 160, 0.2); border-color: #ffe2a0; }
+#roster .tab.on::before { content: '▶'; font-size: 0.8em; margin-right: 4px; color: #ffe2a0; }
+#roster .roster-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(239, 231, 207, 0.45) transparent; }
+#roster .intro { font-size: 19px; color: #c8cdf2; margin-bottom: 6px; }
+/* one line per entry on wide windows (badge, name, where); two lines on narrow ones */
+#roster .row {
+  display: grid; grid-template-columns: max-content minmax(0, max-content) minmax(0, 1fr); column-gap: 14px; align-items: baseline;
+  padding: 6px 0; border-top: 1px dashed rgba(239, 231, 207, 0.2);
+}
+#roster .row.nobadge { grid-template-columns: minmax(0, max-content) minmax(0, 1fr); }
+#roster .row .badge {
+  font-size: 17px; font-weight: 700; color: #1a1e4a; background: #efe7cf; border-radius: 3px; padding: 0 8px;
+  min-width: 5.2em; box-sizing: border-box; text-align: center;
+}
+/* statements (じょうたい): the note goes under the statement */
+#roster .row.stack { grid-template-columns: minmax(0, 1fr); }
+#roster .row.stack .s { grid-column: 1; }
+#roster .row .t { font-size: 22px; font-weight: 700; color: #fbf6e6; overflow-wrap: anywhere; }
+#roster .row .s { font-size: 17px; color: #bfc3e2; overflow-wrap: anywhere; }
+#roster .row.dim .t { font-size: 18px; font-weight: 400; color: #bfc3e2; }
+#roster .empty { font-size: 21px; color: #e8e4d4; padding: 12px 0; }
+#roster .roster-foot { font-size: 16px; color: #aeb3d8; border-top: 2px solid rgba(239, 231, 207, 0.25); padding-top: 6px; }
+#roster .roster-foot .touch { display: none; }
+/* touch screens: no keyboard hints */
+@media (hover: none) and (pointer: coarse) {
+  #roster .roster-foot .keys, #dlg-choice .key { display: none; }
+  #roster .roster-foot .touch { display: inline; }
+}
+/* while the roster is open, the other panels step back */
+#ui.roster-open #dialogue, #ui.roster-open #stats, #ui.roster-open #bubble, #ui.roster-open #hint,
+#ui.roster-open #notice, #ui.roster-open #creature-bubble { opacity: 0 !important; pointer-events: none !important; }
+@media (max-width: 720px) {
+  #roster .row { grid-template-columns: max-content minmax(0, 1fr); }
+  #roster .row .badge { grid-row: span 2; align-self: start; margin-top: 3px; }
+  #roster .row .s { grid-column: 2; }
+  #roster .row.nobadge { grid-template-columns: minmax(0, 1fr); }
+  #roster .row.nobadge .s { grid-column: 1; }
+}
+@media (max-width: 560px) {
+  #roster { padding: 10px 12px 8px; gap: 8px; }
+  #roster .roster-title { font-size: 21px; }
+  #roster .tab { font-size: 18px; padding: 2px 9px; }
+  #roster .intro { font-size: 17px; }
+  #roster .row .t { font-size: 19px; }
+  #roster .row .s, #roster .row .badge { font-size: 16px; }
+  #roster .roster-foot { font-size: 15px; }
+  #dlg-choice .choice { font-size: 19px; }
+}
+@media (max-height: 520px) {
+  #roster .intro { display: none; }
+  #roster .roster-foot { display: none; }
 }

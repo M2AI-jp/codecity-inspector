@@ -2,7 +2,7 @@
 // node codecity.mjs <repoPath> [--port N] [--json out.json] [--ground out.png]
 import { writeFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { analyzeRepository } from './src/analyze.mjs';
+import { analyzeRepository, agentForAuthor } from './src/analyze.mjs';
 import { layoutTown } from './src/layout.mjs';
 import { findCreatures } from './src/creatures.mjs';
 
@@ -36,6 +36,30 @@ catch (e) { town.creatures = []; console.warn(`生き物を探せなかった: $
 // 犬になった bot は、人の姿では歩かせない（同じ bot が二重に現れない）
 const dogNames = new Set(town.creatures.filter((c) => c.kind === 'dog').map((c) => String(c.name).replace(/-preview$/i, '').toLowerCase()));
 if (dogNames.size) town.residents = town.residents.filter((r) => !dogNames.has(String(r.name).replace(/\[bot\]$/i, '').replace(/-preview$/i, '').toLowerCase()));
+// 外部工務店（コードを書く外部エージェント）: 工事した建物（モジュール・施設がそのモジュールを含む建物）を歩く代理人。
+// 作者そのものがエージェント（copilot-swe-agent[bot] など）の住人は、代理人と二重に現れないよう歩かせない
+{
+  const idOf = new Map();
+  for (const b of town.buildings) {
+    if (!b.facility && b.module) idOf.set(b.module.path, b.id);
+    for (const m of (b.module && b.module.merged) || []) if (!idOf.has(m)) idOf.set(m, b.id);
+    for (const m of (b.facility && b.facility.merged) || []) if (!idOf.has(m)) idOf.set(m, b.id);
+  }
+  const hall = town.buildings.find((b) => b.facility && b.facility.archetype === 'town_hall');
+  town.contractors = (model.agents || []).map((a, i) => {
+    const homes = [];
+    for (const m of a.modules || []) {
+      const id = idOf.get(m);
+      if (id && !homes.includes(id)) homes.push(id);
+      if (homes.length >= 4) break;
+    }
+    // 工事した建物が街に無ければ、工事報告を届ける役場のまわり
+    if (!homes.length && hall) homes.push(hall.id);
+    return { id: `a${i + 1}`, name: a.name, commits: a.commits, recent: a.recent, homes, last: a.last || null };
+  }).filter((c) => c.homes.length);
+  const agentNames = new Set((model.contributors || []).filter((c) => c.agent).map((c) => c.name));
+  if (town.contractors.length) town.residents = town.residents.filter((r) => !agentNames.has(r.name) && !agentForAuthor(r.name));
+}
 // 住人の数は bot を犬にしたあとの数（街を歩く人の数）
 const kinds = {};
 for (const b of town.buildings) kinds[b.module.kind] = (kinds[b.module.kind] || 0) + 1;
@@ -44,6 +68,7 @@ console.log(`${model.name}${model.head ? ` @ ${model.head}` : ''}: モジュー�
   + `（解析 ${t1 - t0}ms、配置 ${t2 - t1}ms）`);
 const ck = {};
 for (const c of town.creatures) ck[c.kind] = (ck[c.kind] || 0) + 1;
+if (town.contractors.length) console.log(`外部工務店 ${town.contractors.map((c) => `${c.name} ${c.commits}件`).join('、')}`);
 console.log(`生き物 ${town.creatures.length}${town.creatures.length ? ` (${Object.entries(ck).map(([k, n]) => `${k} ${n}`).join(', ')})` : ''}（${Date.now() - t3}ms）`);
 
 // 地面の画像（キャッシュがあれば読むだけ）

@@ -83,4 +83,5 @@ export function langName(ext) {
 }
 
 export const KIND_JA = { workshop: '工房', shop: '商店', house: '住宅', ruin: '廃屋',
-  town_hall: '役場', inn: '宿屋', pub: '酒場', warehouse: '倉庫', watchtower: '見張り台', dojo: '道場' };
+  town_hall: '役場', inn: '宿屋', pub: '酒場', warehouse: '倉庫', watchtower: '見張り台', dojo: '道場',
+  dock: '船着場', well: '井戸' };
