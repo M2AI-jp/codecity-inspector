@@ -13,11 +13,11 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { decodePNG, encodePNG } from '../tools/png.mjs';
 
-export const GROUND_VERSION = 3;          // 見た目を変えたら上げる（キャッシュの鍵に入る）
+export const GROUND_VERSION = 4;          // 見た目を変えたら上げる（キャッシュの鍵に入る）
 const T = 16;
 const DEFAULT_ART = path.resolve(import.meta.dirname, '../art/game');
 const TEX_NAMES = ['street', 'grass', 'dirt', 'plaza', 'moss'];
-const OPT_TEX = ['water', 'quay'];          // 無くてもよい texture
+const OPT_TEX = ['water', 'quay', 'wall'];  // 無くてもよい texture（wall: 段の石垣の前面。高さ 16px、横に継ぎ目なし、上 4px が笠石）
 
 // tile の種別
 const TG = 0, TS = 1, TD = 2, TP = 3, TW = 4, TO = 5;
@@ -233,9 +233,9 @@ function loadTextures(artDir) {
   }
   const grass = prepareGrass(GRS);
   const opt = (n) => { const f = path.join(artDir, 'ground', `${n}.png`); try { return fs.existsSync(f) ? decodePNG(fs.readFileSync(f)) : null; } catch { return null; } };
-  const WAT = opt('water'), QUAY = opt('quay');
+  const WAT = opt('water'), QUAY = opt('quay'), WALL = opt('wall');
   const t = {
-    COB, GRS, DRT, PLZ, MOSS, GBASE: grass.base, sprites: grass.sprites, WAT, QUAY, WMEAN: WAT ? stats(WAT).m : null,
+    COB, GRS, DRT, PLZ, MOSS, GBASE: grass.base, sprites: grass.sprites, WAT, QUAY, WALL, WMEAN: WAT ? stats(WAT).m : null,
     segC: segment(COB, 4), segP: segment(PLZ, 0),
     CMEAN: stats(COB).m, PMEAN: stats(PLZ).m, DMEAN: stats(DRT).m,
     GLUM: b.m[0] * 0.299 + b.m[1] * 0.587 + b.m[2] * 0.114,
@@ -275,7 +275,7 @@ function poisson(W, H, r, rnd) {
 // ---------------------------------------------------------------- 本体
 export function renderGround(town, artDir = DEFAULT_ART) {
   const X = loadTextures(artDir);
-  const { COB, GRS, DRT, PLZ, MOSS, GBASE, segC, segP, CMEAN, PMEAN, DMEAN, GLUM, WAT, QUAY } = X;
+  const { COB, GRS, DRT, PLZ, MOSS, GBASE, segC, segP, CMEAN, PMEAN, DMEAN, GLUM, WAT, QUAY, WALL } = X;
   const cols = town.cols, rows = town.rows, W = cols * T, H = rows * T, N = W * H;
   const SEED = hashStr(`${town.repo?.name ?? ''}\n${town.ground.join('\n')}`) & 0xffffff;
   const rng = makeRng(SEED ^ 0x5bd1e995);
@@ -875,6 +875,120 @@ export function renderGround(town, artDir = DEFAULT_ART) {
     }
   }
 
+  // ---- 4c. 段（town.terraces / town.stairs）: 一段高い面の南の行（y+h）は石垣の前面、両端に柱。
+  //      前面は 16px: 笠石 5px（光る上の縁・明るい上面・前の面・下の影）と、切り石 2 段（1 個ずつ、左上が明るく右下が暗い）、足もとの影。
+  //      階段の列は石段 4 段（踏み面・段鼻・蹴上げ）と両脇の袖柱。東西の縁は笠石の縁石で、東の低い地面へ影を落とす。
+  //      石の地の色と粒は wall.png（無ければ広場の石）。どの地面の文字の上でも描く（歩けるかどうかは web/world.js）。
+  if ((town.terraces || []).length) {
+    const inMap = (x, y) => x >= 0 && y >= 0 && x < W && y < H;
+    const mul = (x, y, k) => { if (!inMap(x, y) || flg[y * W + x] & F_FOOT) return; const o = (y * W + x) * 4; out[o] *= k; out[o + 1] *= k; out[o + 2] *= k; };
+    const put = (x, y, c, k) => { if (!inMap(x, y) || flg[y * W + x] & F_FOOT) return; const o = (y * W + x) * 4; out[o] = c[0] * k; out[o + 1] = c[1] * k; out[o + 2] = c[2] * k; };
+    // 石の地の色（平均）と粒（明るさの比、弱め）
+    const SRC = WALL ?? PLZ, SM = stats(SRC).m, SL = 0.299 * SM[0] + 0.587 * SM[1] + 0.114 * SM[2];
+    const BASE = [PMEAN[0] * 0.8, PMEAN[1] * 0.79, PMEAN[2] * 0.78];         // 石垣の石は広場の石と同じ色の系統（粒は wall.png）
+    const grain = (x, y) => {
+      const o = ((((y % SRC.height) + SRC.height) % SRC.height) * SRC.width + (((x % SRC.width) + SRC.width) % SRC.width)) * 4;
+      return 1 + 0.55 * (lumOf(SRC.data, o) / SL - 1);
+    };
+    const grimeAt = (x, y) => 1 + 0.16 * (samp(GRIME, x, y) - 0.5);
+    const tone = (key) => 0.72 + 0.42 * hash2(key, 7, SEED + 611);            // 石ごとの明るさ
+    const warm = (key) => hash2(key, 8, SEED + 612);
+    // 1 段の切り石: 世界の x を、長さ 7〜15px の石に区切る（段ごとにずらす）
+    const blockAt = (x, course) => {
+      x = Math.floor(x);
+      const L = 11, sh = course * 37, cell = Math.floor((x + sh) / L);
+      const st = (c) => c * L - sh + ((hash2(c, course, SEED + 613) * 8) | 0) - 4;   // 継ぎ目の位置を前後にずらす
+      let c = cell; if (x < st(c)) c--; else if (x >= st(c + 1)) c++;
+      const a = st(c), b = st(c + 1);
+      return { key: c * 7 + course, lx: x - a, len: b - a };
+    };
+    const STONE = (x, y, key, k) => { const w = warm(key) * 0.5; put(x, y, [BASE[0] * (1 + 0.05 * w), BASE[1], BASE[2] * (1 - 0.08 * w)], k * tone(key) * grain(x, y) * grimeAt(x, y)); };
+    const MORTAR = [BASE[0] * 0.26, BASE[1] * 0.245, BASE[2] * 0.23];
+    // 前面の 1 画素（ly 0..15）
+    const wallPx = (x, y, ly) => {
+      if (ly <= 4) {                                                            // 笠石
+        const b = blockAt(x * 0.62, 9);
+        if (b.lx === 0 && ly <= 3) { put(x, y, MORTAR, 1.2); return; }
+        const k = ly === 0 ? 1.42 : ly <= 2 ? 1.22 : ly === 3 ? 0.72 : 0.26;
+        STONE(x, y, b.key + 900, k * (b.lx === 1 && ly < 3 ? 1.08 : 1));
+        return;
+      }
+      if (ly === 15) { STONE(x, y, 5, 0.34); return; }                          // 足もとの暗い線
+      const course = ly < 10 ? 0 : 1, r = ly - (course ? 10 : 5);              // 段の中の行 0..4
+      const b = blockAt(x, course);
+      if (r === 4 || b.lx === 0) { put(x, y, MORTAR, grimeAt(x, y)); return; }  // 目地
+      let k = 1.0;
+      if (r === 0) k = 1.32;                                                    // 上の縁
+      else if (r === 3) k = 0.86;                                               // 下の縁
+      if (b.lx === 1) k *= 1.18;                                                // 左の縁
+      else if (b.lx === b.len - 1) k *= 0.82;                                   // 右の縁
+      STONE(x, y, b.key, k * (course ? 0.92 : 1.0));
+    };
+    // 石段の 1 画素: 石垣から手前へ 8px 張り出す 4 段（6px ごとに 踏み面 3px・段鼻 1px・蹴上げ 2px）。ly は 0..23
+    const SD = 24;
+    const stairPx = (x, y, ly, sx0, sx1) => {
+      const step = (ly / 6) | 0, k6 = ly % 6, b = blockAt((x - sx0) * 0.55 + step * 5, 20 + step);
+      if (k6 < 4 && b.lx === 0) { put(x, y, MORTAR, 1.3); return; }
+      let k = k6 < 3 ? 1.16 + 0.04 * k6 : k6 === 3 ? 1.4 : k6 === 4 ? 0.5 : 0.32;
+      if (x - sx0 < 2 && ly < T) k *= 0.78;                                    // 左の袖柱の影
+      if (ly >= T && (x === sx0 || x === sx1 - 1)) k *= 0.6;                   // 張り出した段の両端
+      STONE(x, y, b.key + 400, k * (1 - 0.025 * step));
+    };
+    // 柱: 上に 4px 突き出た笠石、左の面は明るく右の面は暗い
+    const post = (px0, w, fy) => {
+      const key = px0 * 13 + 3;
+      for (let y = fy - 4; y < fy + T; y++) for (let i = 0; i < w; i++) {
+        const x = px0 + i, ly = y - fy;
+        let k;
+        if (ly < 0) k = (ly === -4 ? 1.45 : ly === -1 ? 0.9 : 1.26) * (i === 0 ? 1.06 : i === w - 1 ? 0.84 : 1);
+        else if (ly === 0) k = 0.42;
+        else if (ly === 15) k = 0.34;
+        else { k = i === 0 ? 1.28 : i === w - 1 ? 0.6 : 1.04; if (ly === 7 || ly === 11) k *= 0.5; }
+        if ((i === w - 1 && ly < 0) || (i === w - 1 && ly > 0)) k *= 0.85;
+        STONE(x, y, key, k);
+      }
+      for (let y = fy - 3; y < fy + T; y++) mul(px0 + w, y, 0.66);         // 柱の右の影
+    };
+    const STAIRS = town.stairs || [];
+    for (const t of town.terraces) {
+      const fy = (t.y + t.h) * T, x0 = t.x * T, x1 = (t.x + t.w) * T;
+      // 東西の縁（一段高い面の内側 3px の縁石）と、外の低い地面の影（光は左上から: 東へ落ちる）
+      for (let y = t.y * T; y < fy + T; y++) {
+        if (y < fy) for (let j = 0; j < 3; j++) {
+          const bw = blockAt(y * 0.8, 30), be = blockAt(y * 0.8, 31);
+          if (bw.lx === 0) put(x0 + j, y, MORTAR, 1.3); else STONE(x0 + j, y, bw.key + 700, [1.36, 1.2, 1.0][j]);
+          if (be.lx === 0) put(x1 - 1 - j, y, MORTAR, 1.3); else STONE(x1 - 1 - j, y, be.key + 800, [0.62, 0.95, 1.15][j]);
+        }
+        mul(x0 - 1, y, 0.82);
+        for (let d = 0; d < 4; d++) mul(x1 + d, y, [0.56, 0.66, 0.78, 0.9][d]);
+      }
+      // 前面の行
+      const stairsHere = STAIRS.filter((s) => s.y === t.y + t.h && s.x < t.x + t.w && s.x + s.w > t.x);
+      for (let x = x0; x < x1; x++) {
+        const s = stairsHere.find((q) => x >= q.x * T && x < (q.x + q.w) * T);
+        for (let ly = 0; ly < (s ? SD : T); ly++) {
+          const y = fy + ly;
+          if (!inMap(x, y)) continue;
+          if (s) stairPx(x, y, ly, s.x * T, (s.x + s.w) * T); else wallPx(x, y, ly);
+        }
+        // 足もとの影（低い地面）
+        const fb = fy + (s ? SD : T);
+        mul(x, fb, 0.55); mul(x, fb + 1, 0.72); mul(x, fb + 2, 0.88);
+      }
+      for (let x = x1; x < x1 + 3; x++) { mul(x, fy + T, 0.55); mul(x, fy + T + 1, 0.72); mul(x, fy + T + 2, 0.88); }
+      // 張り出した石段の右の影
+      for (const s of stairsHere) for (let y = fy + T; y < fy + SD + 2; y++) { mul((s.x + s.w) * T, y, 0.6); mul((s.x + s.w) * T + 1, y, 0.8); }
+      // 柱: 前面の両端と、階段の両脇
+      post(x0, 5, fy);
+      post(x1 - 5, 5, fy);
+      for (const s of stairsHere) {
+        const sx0 = s.x * T, sx1 = (s.x + s.w) * T;
+        if (sx0 - 5 >= x0) post(sx0 - 5, 5, fy);
+        if (sx1 + 5 <= x1) post(sx1, 5, fy);
+      }
+    }
+  }
+
   // ---- 5. 建物の接地影（footprint の下辺と右辺、右下へ 2〜3px）
   for (const bd of town.buildings || []) {
     const x0 = bd.x * T, x1 = (bd.x + bd.w) * T, y0 = bd.y * T, y1 = (bd.y + bd.h) * T;
@@ -921,6 +1035,7 @@ export function groundCacheFile(town, { artDir = DEFAULT_ART, cacheDir = path.jo
   h.update(JSON.stringify({
     v: GROUND_VERSION, tex: textureDigest(artDir), cols: town.cols, rows: town.rows, ground: town.ground,
     b: (town.buildings || []).map((b) => [b.x, b.y, b.w, b.h]),
+    t: town.terraces || [], s: town.stairs || [],
   }));
   const safe = (s) => String(s ?? 'repo').replace(/[^A-Za-z0-9._-]+/g, '_').slice(0, 60);
   return path.join(cacheDir, `${safe(town.repo?.name)}-${safe(town.repo?.head ?? 'worktree')}-${h.digest('hex').slice(0, 12)}.png`);

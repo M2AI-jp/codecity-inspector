@@ -177,7 +177,7 @@ manifest.json は手で編集しない。画像を作る人は、画像の隣に
 - 小物 `art/game/props/<type>.png` と `<type>.json`: `{ "origin": [ox,oy], "solid": [x,y,w,h] | null, "light": [x,y,r] | null, "flicker": true, "layer": "ground", "deck": [x,y,w,h] }`（座標は小物の足元＝town.jsonの(x,y)×16 を原点としたpx。`layer` と `deck` は省略可）
   `layer: "ground"` の小物は地面のすぐ上・人物の下に描く（y でならべない）。`deck` は水の上で歩ける板: そこに掛かる水の tile は板の矩形だけ歩けて、残りは水のまま（web/world.js）。layout は板の上端を岸壁の行の上から4px下に置く。
   layout が場所を取る大きさは tile 単位で、幅 = round(solid.w / 16)、奥行き = ceil(solid.h / 16)（最小 1×1、足元は下辺の中央）。井戸小屋 `wellhouse`・足場 `scaffold`（`scaffold-2`）・工事中の札 `sign-works`・材木 `lumber`・桟橋 `pier`（`pier-2`）・舟 `boat` は、絵があるときだけ置く。
-- 地面 `art/game/ground/<name>.png`（継ぎ目なし）: street・grass・dirt・plaza・moss は必須。`water.png` は水面（128×128 前後、縦横に継ぎ目なし）、`quay.png` は岸壁の帯（横に継ぎ目なし、上端 = 岸の通りの下端。16px より高ければ下の水の行に続けて描く。透明な所は水が見える）。水辺は船着場の絵と water.png の両方があるときだけつくる。
+- 地面 `art/game/ground/<name>.png`（継ぎ目なし）: street・grass・dirt・plaza・moss は必須。`water.png` は水面（128×128 前後、縦横に継ぎ目なし）、`quay.png` は岸壁の帯（横に継ぎ目なし、上端 = 岸の通りの下端。16px より高ければ下の水の行に続けて描く。透明な所は水が見える）。水辺は船着場の絵と water.png の両方があるときだけつくる。`wall.png` は段（town.terraces）の石垣の前面の石の粒（高さ 16px、横に継ぎ目なし。石の形と明暗は src/ground.mjs が描く）。無ければ広場の石の粒を使う。
 
 ## 施設の置き場所（src/layout.mjs）
 
