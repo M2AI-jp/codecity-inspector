@@ -33,6 +33,8 @@ html, body {
 /* facts panel: a side column on the side away from the player */
 #stats { right: 14px; top: 14px; width: min(340px, 30vw); max-height: calc(100vh - 28px); overflow: hidden; background: rgba(12, 13, 22, 0.78); }
 #ui.side-left #stats { right: auto; left: 14px; }
+/* last resort when even the trimmed facts do not fit (web/ui.js showBuilding): scroll inside */
+#stats.scroll { overflow-y: auto; pointer-events: auto; scrollbar-width: thin; scrollbar-color: rgba(214, 186, 128, 0.5) transparent; }
 /* on the left the facts panel takes the top-left corner (full height, so its last rows are not cut
    off); the repo badge steps aside while it is shown */
 #ui.side-left:has(#stats.show) #repo { opacity: 0; }

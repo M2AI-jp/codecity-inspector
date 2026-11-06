@@ -25,7 +25,7 @@
   facilities: [{                       // src/facilities.mjs。証拠があるものだけ（控えめに判定）
     archetype: "town_hall" | "inn" | "pub" | "warehouse" | "watchtower" | "dojo",
     name: "役場",                      // 役場・宿屋・酒場・倉庫・見張り台・道場
-    reason: "git リポジトリ（コミット 164 件・タグ 1 個）",   // 日本語、事実のみ
+    reason: "git リポジトリ（マージを除くコミット 115 件・タグ 1 個）",   // 日本語、事実のみ。コミット数はどこでもマージを除く
     evidence: ["CHANGELOG.md", ...],   // 根拠のパス（最大20件、ディレクトリは末尾 "/"、役場は ".git"）
     evidenceCount: 131,                // 根拠の総数
     merged: ["tests", "tests/e2e"],    // 全ファイルがこの施設の根拠であるモジュール（家を建てず、施設の建物にまとめる）

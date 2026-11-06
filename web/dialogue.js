@@ -452,7 +452,7 @@ const FACILITY_VOICE = {
       const out = [];
       if (f.commits) {
         const ppl = f.contributors ? (f.contributorsWindow ? `直近の${fmtInt(f.contributorsWindow)}件では${nPeople(f.contributors)}が手を入れています` : `手を入れた人は${nPeople(f.contributors)}です`) : '';
-        out.push(`記録されたコミットは${fmtInt(f.commits)}件。${ppl ? `${ppl}。` : ''}`);
+        out.push(`記録されたコミットは、マージを除いて${fmtInt(f.commits)}件。${ppl ? `${ppl}。` : ''}`);
       }
       if (f.firstCommit && f.lastCommit) {
         out.push(dateJa(f.firstCommit) === dateJa(f.lastCommit)
@@ -570,7 +570,10 @@ function facilityLines(building, fac, town) {
 export function residentBubble(def, town) {
   if (def && def.local) return localBubble(def, town);
   const n = def.commits | 0;
-  const line = n > 0 ? `この街に ${fmtInt(n)} 回手を入れた人` : 'この街に手を入れた人';
+  // 回数は役場と同じ数え方（マージを除く）。履歴を上限まで読んだ街では、その範囲で数えたと言う
+  const hall = town && (town.buildings || []).find((b) => b.facility && b.facility.archetype === 'town_hall');
+  const win = hall && hall.facility.facts && hall.facility.facts.contributorsWindow;
+  const line = n > 0 ? (win ? `直近 ${fmtInt(win)} 件のうち ${fmtInt(n)} 回手を入れた人` : `この街に ${fmtInt(n)} 回手を入れた人`) : 'この街に手を入れた人';
   let more = '';
   const lc = def.lastCommit;
   if (lc && lc.subject) {

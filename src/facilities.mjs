@@ -277,7 +277,10 @@ export function detectFacilities(files, history, groups, extra) {
 
   // --- 役場: git リポジトリ ---
   if (isGit && head) {
-    const total = Number(git(['rev-list', '--count', 'HEAD'])?.trim()) || history.length;
+    // コミット数はどこでも同じ数え方: マージを除く（解析が読んだ git log --no-merges と同じ）。
+    // 解析が上限で読み切れなかったときだけ、全体をマージを除いて数え直す
+    const total = history.length < 5000 ? history.length
+      : Number(git(['rev-list', '--count', '--no-merges', 'HEAD'])?.trim()) || history.length;
     const roots = (git(['log', '--max-parents=0', '--format=%cI', 'HEAD']) || '').split('\n').filter(Boolean).sort();
     const tagLines = (git(['for-each-ref', 'refs/tags', '--sort=-creatordate', '--format=%(refname:short)%09%(creatordate:iso-strict)']) || '').split('\n').filter(Boolean);
     const latestTag = tagLines.length ? { name: tagLines[0].split('\t')[0], date: tagLines[0].split('\t')[1] || null } : null;
@@ -292,7 +295,7 @@ export function detectFacilities(files, history, groups, extra) {
       tags: tagLines.length, latestTag, changelog,
     };
     const st = stats(null);
-    add('town_hall', '役場', `git リポジトリ（コミット ${total} 件${tagLines.length ? `・タグ ${tagLines.length} 個` : ''}${changelog ? `・${changelog}` : ''}）`,
+    add('town_hall', '役場', `git リポジトリ（マージを除くコミット ${total.toLocaleString('en-US')} 件${tagLines.length ? `・タグ ${tagLines.length} 個` : ''}${changelog ? `・${changelog}` : ''}）`,
       ['.git', ...(changelog ? [changelog] : [])], facts, { ...st, commits: total });
   }
 

@@ -24,18 +24,19 @@ const t1 = Date.now();
 const town = layoutTown(model);
 town.groundImage = '/ground.png';          // 地面の1枚画像（cols*16 × rows*16 px、serve.mjs が配信）
 const t2 = Date.now();
-const kinds = {};
-for (const b of town.buildings) kinds[b.module.kind] = (kinds[b.module.kind] || 0) + 1;
-console.log(`${model.name}${model.head ? ` @ ${model.head}` : ''}: モジュール ${model.modules.length}、建物 ${town.buildings.length}`
-  + ` (${Object.entries(kinds).map(([k, n]) => `${k} ${n}`).join(', ')})、住人 ${town.residents.length}、${town.cols}×${town.rows} tiles`
-  + `（解析 ${t1 - t0}ms、配置 ${t2 - t1}ms）`);
 // 小さな生き物（鳩＝依存、犬＝bot、猫＝決まった時間・裏で動く仕事と廃屋）。根拠が無ければ置かない
 const t3 = Date.now();
 try { town.creatures = findCreatures(resolve(repoPath), model, town); }
 catch (e) { town.creatures = []; console.warn(`生き物を探せなかった: ${e.message}`); }
 // 犬になった bot は、人の姿では歩かせない（同じ bot が二重に現れない）
-const dogNames = new Set(town.creatures.filter((c) => c.kind === 'dog').map((c) => String(c.name).toLowerCase()));
-if (dogNames.size) town.residents = town.residents.filter((r) => !dogNames.has(String(r.name).replace(/\[bot\]$/i, '').toLowerCase()));
+const dogNames = new Set(town.creatures.filter((c) => c.kind === 'dog').map((c) => String(c.name).replace(/-preview$/i, '').toLowerCase()));
+if (dogNames.size) town.residents = town.residents.filter((r) => !dogNames.has(String(r.name).replace(/\[bot\]$/i, '').replace(/-preview$/i, '').toLowerCase()));
+// 住人の数は bot を犬にしたあとの数（街を歩く人の数）
+const kinds = {};
+for (const b of town.buildings) kinds[b.module.kind] = (kinds[b.module.kind] || 0) + 1;
+console.log(`${model.name}${model.head ? ` @ ${model.head}` : ''}: モジュール ${model.modules.length}、建物 ${town.buildings.length}`
+  + ` (${Object.entries(kinds).map(([k, n]) => `${k} ${n}`).join(', ')})、住人 ${town.residents.length}、${town.cols}×${town.rows} tiles`
+  + `（解析 ${t1 - t0}ms、配置 ${t2 - t1}ms）`);
 const ck = {};
 for (const c of town.creatures) ck[c.kind] = (ck[c.kind] || 0) + 1;
 console.log(`生き物 ${town.creatures.length}${town.creatures.length ? ` (${Object.entries(ck).map(([k, n]) => `${k} ${n}`).join(', ')})` : ''}（${Date.now() - t3}ms）`);

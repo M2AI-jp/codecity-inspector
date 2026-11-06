@@ -91,9 +91,11 @@ export class Player extends Character {
     const sx = mx / n, sy = my / n;
     // (corner correction always applies while following a path: a path that grazes a door jamb or
     // a wall corner by a fraction of a pixel must slide past it, not stall against it)
+    // The corner-nudge budget is per sub-step (not per frame), so sliding round a corner never
+    // moves the player faster than the intended speed (it briefly ran at up to 2x before).
     for (let i = 0; i < n; i++) {
-      if (sx) this.moveAxis(world, sx, 0, dirY === 0 || following, Math.max(Math.abs(this.vx), following ? Math.abs(this.vy) : 0) * dt);
-      if (sy) this.moveAxis(world, 0, sy, dirX === 0 || following, Math.max(Math.abs(this.vy), following ? Math.abs(this.vx) : 0) * dt);
+      if (sx) this.moveAxis(world, sx, 0, dirY === 0 || following, Math.max(Math.abs(this.vx), following ? Math.abs(this.vy) : 0) * dt / n);
+      if (sy) this.moveAxis(world, 0, sy, dirX === 0 || following, Math.max(Math.abs(this.vy), following ? Math.abs(this.vx) : 0) * dt / n);
     }
 
     if (this.path) {

@@ -13,11 +13,11 @@
 // Node 22+ 標準ライブラリだけ。git ls-files と git log（作者名）を1回ずつ読むだけにして、速く保つ。
 
 import { execFileSync } from 'node:child_process';
-import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const MAX_PIGEONS = 14, MAX_DOGS = 3, MAX_CATS = 4;
-const MAX_FILES = 300000, MAX_LOG = 20000, MAX_READ = 256 * 1024;
+const MAX_FILES = 300000, MAX_READ = 256 * 1024;
 const SKIP_DIR = /(^|\/)(node_modules|vendor|third_party|\.git|dist|build|out|target|__fixtures__|fixtures|testdata|\.venv|venv|site-packages)(\/|$)/;
 
 // --- files ------------------------------------------------------------------------------
@@ -177,20 +177,17 @@ const BOT_CONFIGS = [
   [/^\.github\/\.?kodiak\.toml$|^\.kodiak\.toml$/, 'kodiak'],
 ];
 
-function findBots(root, files, isGit) {
+// コミット数は解析（src/analyze.mjs）の contributors から数える: 住人・役場と同じくマージを除いた数
+// （解析が履歴を上限まで読んだときは、その範囲 win を添える）
+function findBots(files, contributors, win) {
   const bots = new Map();       // key -> { name, commits, config }
-  if (isGit) {
-    const log = git(root, ['log', '-n', String(MAX_LOG), '--format=%an']);
-    if (log) {
-      for (const n of log.split('\n')) {
-        const name = n.trim();
-        if (!name || !BOT_NAME.test(name)) continue;
-        const k = botKey(name);
-        const b = bots.get(k) || { name: botName(name), commits: 0, config: null };
-        b.commits++;
-        bots.set(k, b);
-      }
-    }
+  for (const c of contributors || []) {
+    const name = String(c.name || '').trim();
+    if (!name || !BOT_NAME.test(name)) continue;
+    const k = botKey(name);
+    const b = bots.get(k) || { name: botName(name), commits: 0, config: null };
+    b.commits += c.commits | 0;
+    bots.set(k, b);
   }
   for (const f of files) {
     if (depth(f) > 1) continue;
@@ -206,7 +203,7 @@ function findBots(root, files, isGit) {
     .slice(0, MAX_DOGS)
     .map((b) => ({
       name: b.name,
-      reason: [b.commits ? `git の履歴に ${b.name} のコミットが ${b.commits} 件` : null, b.config ? `${b.config} がある` : null].filter(Boolean).join('・'),
+      reason: [b.commits ? `${win ? `直近の ${win.toLocaleString('en-US')} 件のうち` : 'git の履歴に'} ${b.name} のコミットが ${b.commits.toLocaleString('en-US')} 件（マージを除く）` : null, b.config ? `${b.config} がある` : null].filter(Boolean).join('・'),
       evidence: b.config || null,
     }));
 }
@@ -302,10 +299,10 @@ function townGrid(town) {
 const feet = (tx, ty) => ({ x: Math.round((tx + 0.5) * 100) / 100, y: Math.round((ty + 0.7) * 100) / 100 });
 
 export function findCreatures(repoRoot, repoModel, town) {
-  const isGit = !!(repoModel && repoModel.head) || existsSync(join(repoRoot, '.git'));
   const files = listFiles(repoRoot);
   const deps = findDependencies(repoRoot, files);
-  const bots = findBots(repoRoot, files, isGit);
+  const hall = ((repoModel && repoModel.facilities) || []).find((f) => f.archetype === 'town_hall');
+  const bots = findBots(files, repoModel && repoModel.contributors, hall && hall.facts && hall.facts.contributorsWindow);
   const work = findWork(repoRoot, files, deps);
 
   const g = townGrid(town);
