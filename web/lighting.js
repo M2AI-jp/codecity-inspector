@@ -1,7 +1,7 @@
 // Night lighting: a light buffer filled with a cool dark ambient, warm lights added on top,
 // multiplied over the scene, followed by a subtle additive glow pass.
 
-import { AMBIENT, AMBIENT_TINT, LIGHT_WARM, PLAYER_LIGHT_RADIUS } from './config.js';
+import { AMBIENT, AMBIENT_TINT, LIGHT_WARM, PLAYER_LIGHT_RADIUS, PLAZA_WARM, PLAZA_GLOW, TILE } from './config.js';
 import { noise1 } from './util.js';
 
 const FL = { i: 1, r: 1 };
@@ -57,6 +57,42 @@ export class Lighting {
     this.poolGlow = poolSprite(64, [255, 178, 96]);
   }
 
+  // 広場の面の光: town.ground の '+' のマスを 1 マス 1 画素で塗って 2 回ぼかした絵（描くときに TILE 倍に引き伸ばす）
+  plazaLight(world) {
+    if (this.plazaFor === world) return this.plaza;
+    this.plazaFor = world; this.plaza = null;
+    const rows = world.town && world.town.ground, cols = world.cols, nr = world.rows;
+    if (!Array.isArray(rows) || !cols || !nr) return null;
+    let m = new Float32Array(cols * nr), any = false;
+    for (let y = 0; y < nr; y++) for (let x = 0; x < cols; x++) if ((rows[y] || '')[x] === '+') { m[y * cols + x] = 1; any = true; }
+    if (!any) return null;
+    // ぼかしは広場の外 1 マスまで（通りに光がにじまない）
+    const near = new Uint8Array(cols * nr);
+    for (let y = 0; y < nr; y++) for (let x = 0; x < cols; x++) if (m[y * cols + x]) for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const X = x + dx, Y = y + dy; if (X >= 0 && Y >= 0 && X < cols && Y < nr) near[Y * cols + X] = 1; }
+    for (let pass = 0; pass < 2; pass++) {
+      const o = new Float32Array(cols * nr);
+      for (let y = 0; y < nr; y++) for (let x = 0; x < cols; x++) {
+        let sum = 0, n = 0;
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+          const X = x + dx, Y = y + dy;
+          if (X >= 0 && Y >= 0 && X < cols && Y < nr) { sum += m[Y * cols + X]; n++; }
+        }
+        o[y * cols + x] = sum / n;
+      }
+      m = o;
+    }
+    const c = document.createElement('canvas');
+    c.width = cols; c.height = nr;
+    const cx = c.getContext('2d'), img = cx.createImageData(cols, nr);
+    for (let i = 0; i < cols * nr; i++) {
+      img.data[i * 4] = PLAZA_WARM[0]; img.data[i * 4 + 1] = PLAZA_WARM[1]; img.data[i * 4 + 2] = PLAZA_WARM[2];
+      img.data[i * 4 + 3] = near[i] ? Math.round(255 * Math.min(1, m[i] * 1.15)) : 0;
+    }
+    cx.putImageData(img, 0, 0);
+    this.plaza = c;
+    return c;
+  }
+
   resize(w, h) {
     if (this.canvas.width !== w || this.canvas.height !== h) { this.canvas.width = w; this.canvas.height = h; }
   }
@@ -84,6 +120,14 @@ export class Lighting {
     g.fillStyle = this.ambient;
     g.fillRect(0, 0, vw, vh);
     g.globalCompositeOperation = 'lighter';
+
+    // the square as a whole (under the lamps): soft, even and warm, while the streets keep the moonlight
+    const pl = this.plazaLight(world);
+    if (pl && PLAZA_GLOW > 0) {
+      g.globalAlpha = PLAZA_GLOW;
+      g.imageSmoothingEnabled = true;
+      g.drawImage(pl, -camX, -camY, pl.width * TILE, pl.height * TILE);
+    }
 
     // interior light of open buildings
     for (const b of world.buildings) {

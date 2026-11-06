@@ -33,6 +33,9 @@ export const CUTAWAY_FADE = 0.18;       // s, exterior <-> cutaway cross-fade
 export const AMBIENT = 0.70;
 export const AMBIENT_TINT = [0.74, 0.82, 1.0];   // cool blue moonlit night (warm windows and lamps stand out against it)
 export const LIGHT_WARM = [255, 196, 120];
+// 広場（town.ground の '+'）は一面がやわらかく暖かく照らされる。基準 target-town.png の広場は街灯の輪の外も明るく暖かく、通りは青いまま
+export const PLAZA_WARM = [255, 200, 110];
+export const PLAZA_GLOW = 0.18;
 export const PLAYER_LIGHT_RADIUS = 46;
 
 // Residents
