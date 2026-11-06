@@ -13,7 +13,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { decodePNG, encodePNG } from '../tools/png.mjs';
 
-export const GROUND_VERSION = 14;          // 見た目を変えたら上げる（キャッシュの鍵に入る）
+export const GROUND_VERSION = 15;          // 見た目を変えたら上げる（キャッシュの鍵に入る）
 const T = 16;
 const DEFAULT_ART = path.resolve(import.meta.dirname, '../art/game');
 const TEX_NAMES = ['street', 'grass', 'dirt', 'plaza', 'moss'];
@@ -331,18 +331,20 @@ export function renderGround(town, artDir = DEFAULT_ART) {
   const nmask = (tx, ty, pred) =>
     (pred(tx, ty - 1) ? 1 : 0) | (pred(tx, ty + 1) ? 2 : 0) | (pred(tx - 1, ty) ? 4 : 0) | (pred(tx + 1, ty) ? 8 : 0) |
     (pred(tx - 1, ty - 1) ? 16 : 0) | (pred(tx + 1, ty - 1) ? 32 : 0) | (pred(tx - 1, ty + 1) ? 64 : 0) | (pred(tx + 1, ty + 1) ? 128 : 0);
-  const kerbable = (x, y) => { const t = tcl(x, y); return (t === TG || t === TO || t === TW) && !footAt(x, y); };
+  // 縁石は街の外と水の縁だけ。草地との境は縁石を置かず、石が草へ不ぞろいに消えていく（基準 target-town.png の通りの縁）
+  const kerbable = (x, y) => { const t = tcl(x, y); return (t === TO || t === TW) && !footAt(x, y); };
+  const isGrassT = (x, y) => tcl(x, y) === TG && !footAt(x, y);
   const notPlaza = (x, y) => tcl(x, y) !== TP;
   const isDirt = (x, y) => tcl(x, y) === TD;
   const isStreet = (x, y) => tcl(x, y) === TS && !footAt(x, y);
   const isWater = (x, y) => tcl(x, y) === TW;
   const kerbM = new Uint8Array(cols * rows), plazaM = new Uint8Array(cols * rows), dirtM = new Uint8Array(cols * rows);
-  const streetM = new Uint8Array(cols * rows), waterM = new Uint8Array(cols * rows);
+  const streetM = new Uint8Array(cols * rows), waterM = new Uint8Array(cols * rows), grassM = new Uint8Array(cols * rows);
   for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
     const i = y * cols + x;
     if (tc[i] === TS) kerbM[i] = nmask(x, y, kerbable);
     if (tc[i] === TP) plazaM[i] = nmask(x, y, notPlaza);
-    dirtM[i] = nmask(x, y, isDirt); streetM[i] = nmask(x, y, isStreet); waterM[i] = nmask(x, y, isWater);
+    dirtM[i] = nmask(x, y, isDirt); streetM[i] = nmask(x, y, isStreet); waterM[i] = nmask(x, y, isWater); grassM[i] = nmask(x, y, isGrassT);
   }
   // tile 内の (lx, ly) から、bit の立った隣 tile までの距離。ED: 距離、ES: 0N 1S 2W 3E 4角
   let ED = 0, ES = 0;
@@ -401,6 +403,8 @@ export function renderGround(town, artDir = DEFAULT_ART) {
   };
   // 通りと土の境目: 石の重心で判定するので、石は丸ごと残るか丸ごと土になる
   const xField = (x, y) => samp(Sm, x, y) - 1.6 * samp(Dm, x, y) + 0.7 * (fbm(x / 9, y / 9, SEED + 11) - 0.5) + 0.2 * (vnoise(x / 3, y / 3, SEED + 12) - 0.5);
+  // 通りと草の境: 正なら石、負なら草。境は 1 マスの半分ほどうねり、草が通りへせり出し、石が草へこぼれる
+  const gField = (x, y) => samp(Sm, x, y) - samp(Gm, x, y) + 0.55 * (fbm(x / 9, y / 9, SEED + 15) - 0.5) + 0.18 * (vnoise(x / 3, y / 3, SEED + 16) - 0.5);
   // 1 そのまま, 0 向き違い（継ぎ目）, 2 側溝（縁石の帯・草地に重心）, 3 土に呑まれた, 4 ばらけた石
   const cobIn = (v) => {
     const ctx = Math.floor(SX / T), cty = Math.floor(SY / T);
@@ -410,6 +414,12 @@ export function renderGround(town, artDir = DEFAULT_ART) {
       if (orient[ti] !== v) return 0;
       const km = kerbM[ti];
       if (km) { edge(km, SX - ctx * T, SY - cty * T); if (ED < KW - 0.5) return 2; }
+      if (grassM[ti]) {
+        const gv = gField(SX, SY);
+        if (gv > 0.04) return 1;
+        if (gv > -0.08) return hash2(Math.round(SX), Math.round(SY), SEED + 17) < 0.45 ? 4 : 3;
+        return 3;
+      }
       if (dirtM[ti]) {
         const xv = xField(SX, SY);
         if (xv > 0) return 1;
@@ -423,6 +433,7 @@ export function renderGround(town, artDir = DEFAULT_ART) {
       return xv > -0.12 && hash2(Math.round(SX), Math.round(SY), SEED + 14) < 0.3 ? 4 : 3;
     }
     if (t === TP || footT[ti] >= 0) return 1;
+    if (t === TG && streetM[ti]) { const gv = gField(SX, SY); return gv > 0.1 ? 1 : gv > 0.02 && hash2(Math.round(SX), Math.round(SY), SEED + 18) < 0.4 ? 4 : 3; }
     return 2;
   };
   const setStone = (i, k, salt) => {
@@ -490,6 +501,7 @@ export function renderGround(town, artDir = DEFAULT_ART) {
           else { cls[i] = COBBLE; flg[i] = (v ? F_V : 0) | (r === 2 ? F_GUTTER : 0); }
         } else {
           cls[i] = COBBLE; flg[i] = v ? F_V : 0;
+          if (grassM[ti] && gField(x, y) < -0.02) { cls[i] = soft(x, y); continue; }
           if (nearDirt) {
             const xv = xField(x, y);
             if (xv < -0.06) cls[i] = soft(x, y);
@@ -546,6 +558,14 @@ export function renderGround(town, artDir = DEFAULT_ART) {
         }
         cls[i] = soft(x, y);
         continue;
+      }
+      if (t === TG && streetM[ti]) {
+        const v = streetM[ti] & 3 ? orient[cy_(ty + (streetM[ti] & 1 ? -1 : 1)) * cols + tx] : orient[ty * cols + cx_(tx + (streetM[ti] & 4 ? -1 : 1))];
+        cob(x, y, v);
+        if (SL >= 0) {
+          const r = cobIn(v);
+          if (r === 1 || r === 4) { cls[i] = COBBLE; setStone(i, SL + (v ? 100000 : 0), 82); flg[i] = (v ? F_V : 0) | (r === 4 ? F_LOOSE : 0); continue; }
+        } else if (gField(x, y) > 0.12) { cls[i] = COBBLE; flg[i] = v ? F_V : 0; continue; }
       }
       if (t === TD || t === TW || nearDirt || nearWater) cls[i] = soft(x, y);
       else cls[i] = GRASS;
