@@ -7,6 +7,7 @@ import { parseGround, composeGround } from './ground.js';
 import { World } from './world.js';
 import { Player } from './player.js';
 import { createResidents } from './residents.js';
+import { loadCreatureArt, createCreatures } from './creatures.js';
 import { Renderer } from './render.js';
 import { Input } from './input.js';
 import { Smoke } from './effects.js';
@@ -69,10 +70,12 @@ async function boot() {
   player.facing = 'down';
 
   const npcs = createResidents(town, world, art, DEBUG);
+  const creatures = createCreatures(town, world, await loadCreatureArt(manifest, MANIFEST_URL));   // pass-through, never solid
   // keepers stand still: make them solid for everyone and refresh navigation around them
   for (const k of npcs.keepers) world.addRect(k.x + KEEPER_BOX[0], k.y + KEEPER_BOX[1], KEEPER_BOX[2], KEEPER_BOX[3], 'npc');
   if (npcs.keepers.length) world.computeNav();
-  player.blockers = npcs.walkers;
+  const movers = [...npcs.walkers, ...npcs.locals];     // named contributors + ambient townsfolk
+  player.blockers = movers;
 
   const canvas = document.getElementById('view');
   const renderer = new Renderer(canvas, world, ground, DEBUG);
@@ -155,8 +158,16 @@ async function boot() {
         if (!best || b.bottomPx > best.bottomPx) best = b;
       }
     }
+    // standing inside a building whose floor the tile graph does not link to its door: leave
+    // straight through the door first (the way pathInto() comes in), then route from outside
+    const cur = world.buildingAtPx(player.x, player.y);
+    const exit = cur ? [{ x: cur.doorPx, y: Math.min(player.y, cur.bottomPx - 6) }, { x: cur.doorPx, y: cur.bottomPx + 9 }] : null;
     if (best && !(best.inside && wy >= best.py)) {
-      const route = world.pathInto(best, player.x, player.y);
+      let route = world.pathInto(best, player.x, player.y);
+      if (!route && exit && best !== cur) {
+        const r2 = world.pathInto(best, cur.doorOutside.x, cur.doorOutside.y);
+        if (r2) route = { target: r2.target, points: [...exit, ...r2.points] };
+      }
       if (route) player.setPath(route.points, route.target);
       return;
     }
@@ -167,6 +178,12 @@ async function boot() {
     const exact = f[0] === Math.floor(wx / T) && f[1] === Math.floor((wy - 3) / T) && !world.feetHit(wx, wy);
     const target = exact ? { x: wx, y: wy } : world.navPoint(tx, ty);
     const tiles = world.findPath(Math.floor(player.x / T), Math.floor((player.y - 3) / T), Math.floor(target.x / T), Math.floor((target.y - 3) / T), { useCost: false });
+    if (!tiles && exit) {
+      const o = cur.doorOutside;
+      const t2 = world.findPath(Math.floor(o.x / T), Math.floor((o.y - 3) / T), Math.floor(target.x / T), Math.floor((target.y - 3) / T), { useCost: false });
+      if (t2) player.setPath([...exit, ...world.smoothPath(o.x, o.y, t2, target.x, target.y)], target);
+      return;
+    }
     if (!tiles) return;
     player.setPath(world.smoothPath(player.x, player.y, tiles, target.x, target.y), target);
   }
@@ -175,8 +192,8 @@ async function boot() {
   let time = 0;
   let current = null;
   const viewRect = { x: 0, y: 0, w: 0, h: 0 };
-  const characters = [player, ...npcs.keepers, ...npcs.walkers];
-  const npcList = [...npcs.keepers, ...npcs.walkers];
+  const characters = [player, ...npcs.keepers, ...movers, ...creatures.list];
+  const npcList = [...npcs.keepers, ...movers];
   let playerMoved = false;
 
   function update(dt) {
@@ -184,6 +201,12 @@ async function boot() {
     while (input.clicks.length) handleClick(input.clicks.shift());
     player.update(dt, input, world);
     playerMoved = player.moving;
+    // someone standing in the player's way steps aside for a moment (the town is crowded; a click
+    // path or a held key should never stall against a townsperson)
+    const h = input.held;
+    if ((player.path || h.up || h.down || h.left || h.right) && Math.hypot(player.x - player.prevX, player.y - player.prevY) < 0.05) {
+      for (const w of movers) if (Math.abs(w.x - player.x) < 20 && Math.abs(w.y - player.y) < 16) w.yieldT = 1.2;
+    }
 
     // which building are the player's feet in? (door gap or interior)
     const b = world.buildingAtPx(player.x, player.y);
@@ -197,11 +220,13 @@ async function boot() {
       }
     }
     for (const k of npcs.keepers) k.update(dt, player);
-    for (const w of npcs.walkers) {
+    creatures.update(dt, player);
+    for (const w of movers) {
       w.update(dt, player);
       // residents are solid on the street, but never while pausing at / passing through a door or
       // inside, and not once they have waited a while for the player
-      w.solid = w.state !== 'door' && w.state !== 'inside' && !world.buildingAtPx(w.x, w.y) && w.wait < 0.5;
+      if (w.yieldT > 0) w.yieldT -= dt;
+      w.solid = w.state !== 'door' && w.state !== 'inside' && !world.buildingAtPx(w.x, w.y) && w.wait < 0.5 && !(w.yieldT > 0);
     }
     viewRect.x = view.camX; viewRect.y = view.camY; viewRect.w = view.vw; viewRect.h = view.vh;
     smoke.update(dt, time, viewRect);
@@ -233,11 +258,14 @@ async function boot() {
     uiState.keeper = current && current.keeper &&
       Math.hypot(current.keeper.x - player.x, current.keeper.y - player.y) < NEAR_KEEPER + (ui.curKeeper === current.keeper ? 24 : 0)
       ? current.keeper : null;
-    uiState.walker = nearest(npcs.walkers, NEAR_RESIDENT);
+    uiState.walker = nearest(movers, NEAR_RESIDENT);
     uiState.notice = readme && noticeboards.length && nearest(noticeboards, NEAR_NOTICE) ? readme : null;
     uiState.dt = frameDt;
     uiState.playerMoved = playerMoved;
+    const pet = uiState.keeper ? null : creatures.pick(player, uiState.walker);   // a creature nearer than the resident
+    if (pet) uiState.walker = null;
     ui.update(uiState);
+    creatures.bubble(view, player, pet);
   }
 
   // ---- loop: fixed timestep, clamped dt, rAF with a setTimeout fallback -------------------
@@ -276,7 +304,7 @@ async function boot() {
 
   // Inspection handle for development and automated checks.
   window.__codecity = {
-    town, art, world, ground, player, npcs, view, cam, ui, input,
+    town, art, world, ground, player, npcs, creatures, view, cam, ui, input,
     step(seconds = 1) { const n = Math.round(seconds / SIM_DT); for (let i = 0; i < n; i++) update(SIM_DT); render(1, SIM_DT); last = performance.now(); },
     renderNow() { render(1, 0); },
     // run n frames with synthetic timestamps (hz) and report on-screen player x/y and camera

@@ -4,6 +4,7 @@ import { writeFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { analyzeRepository } from './src/analyze.mjs';
 import { layoutTown } from './src/layout.mjs';
+import { findCreatures } from './src/creatures.mjs';
 
 const args = process.argv.slice(2);
 const opt = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : undefined; };
@@ -28,6 +29,13 @@ for (const b of town.buildings) kinds[b.module.kind] = (kinds[b.module.kind] || 
 console.log(`${model.name}${model.head ? ` @ ${model.head}` : ''}: モジュール ${model.modules.length}、建物 ${town.buildings.length}`
   + ` (${Object.entries(kinds).map(([k, n]) => `${k} ${n}`).join(', ')})、住人 ${town.residents.length}、${town.cols}×${town.rows} tiles`
   + `（解析 ${t1 - t0}ms、配置 ${t2 - t1}ms）`);
+// 小さな生き物（鳩＝依存、犬＝bot、猫＝決まった時間・裏で動く仕事と廃屋）。根拠が無ければ置かない
+const t3 = Date.now();
+try { town.creatures = findCreatures(resolve(repoPath), model, town); }
+catch (e) { town.creatures = []; console.warn(`生き物を探せなかった: ${e.message}`); }
+const ck = {};
+for (const c of town.creatures) ck[c.kind] = (ck[c.kind] || 0) + 1;
+console.log(`生き物 ${town.creatures.length}${town.creatures.length ? ` (${Object.entries(ck).map(([k, n]) => `${k} ${n}`).join(', ')})` : ''}（${Date.now() - t3}ms）`);
 
 // 地面の画像（キャッシュがあれば読むだけ）
 const loadGround = async () => {

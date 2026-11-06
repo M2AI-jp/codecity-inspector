@@ -72,7 +72,7 @@ export class Renderer {
     for (let i = 0; i < chars.length; i++) {
       const c = chars[i];
       if (c.rx < x0 - 32 || c.rx > x1 + 32 || c.ry < y0 || c.ry > y1 + 8) continue;
-      this.push(c.ry, C_KIND, c, 2);
+      this.push(c.sortY !== undefined ? c.sortY : c.ry, C_KIND, c, 2);   // flying creatures sort above roofs
     }
     const list = this.drawList;
     list.length = this.count;
@@ -86,6 +86,7 @@ export class Renderer {
         this.drawBuilding(ctx, e.obj, camX, camY);
         if (playerKey >= 0 && !occluded && this.covers(e.obj, s.player)) occluded = true;
       } else if (e.kind === P_KIND) this.drawProp(ctx, e.obj, camX, camY);
+      else if (e.obj.draw) e.obj.draw(ctx, camX, camY);          // creatures draw themselves (web/creatures.js)
       else {
         this.drawCharacter(ctx, e.obj, camX, camY);
         if (e.obj === s.player) playerKey = e.key;

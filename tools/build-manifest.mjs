@@ -7,6 +7,7 @@
 //   art/game/residents/townsfolk-<n>.png                            -> characters.townsfolk[] (by n)
 //   art/game/props/<type>.png (+ <type>.json)                       -> props[type]
 //   art/game/ground/<name>.png                                      -> ground[name]
+//   art/game/creatures/<name>.png (+ <name>.json)                   -> creatures[name]
 //
 // Node 22+, standard library only.
 
@@ -167,6 +168,21 @@ function ground() {
   return out;
 }
 
+// --- creatures (art/game/creatures/<name>.png + <name>.json: frame, pivot, anims) --------
+function creatures() {
+  const dir = path.join(GAME, 'creatures');
+  const out = {};
+  for (const f of list(dir, '.png')) {
+    const name = f.replace(/\.png$/, '');
+    const abs = path.join(dir, f);
+    const side = path.join(dir, `${name}.json`);
+    const s = fs.existsSync(side) ? readJSON(side) : null;
+    if (!s || !isPt(s.frame) || !s.anims) { warn(`creatures/${name}.json に frame と anims がないので使いません`); continue; }
+    out[name] = { src: rel(abs), frame: s.frame.slice(0, 2), pivot: isPt(s.pivot) ? s.pivot.slice(0, 2) : [Math.floor(s.frame[0] / 2), s.frame[1] - 1], anims: s.anims };
+  }
+  return out;
+}
+
 const { keepers, townsfolk } = people();
 const manifest = {
   _generated: 'tools/build-manifest.mjs が art/game/ の画像と sidecar から作ったファイル。手で編集しない。',
@@ -175,6 +191,7 @@ const manifest = {
   archetypes: buildings(),
   props: props(),
   ground: ground(),
+  creatures: creatures(),
 };
 // keep short number arrays on one line so the file stays readable
 const text = JSON.stringify(manifest, null, 2).replace(/\[\s+([-\d.,\s]+?)\s+\]/g, (_, inner) => `[${inner.trim().split(/\s*,\s*/).join(', ')}]`);
@@ -183,5 +200,5 @@ fs.writeFileSync(OUT, `${text}\n`);
 const nv = Object.values(manifest.archetypes).reduce((n, a) => n + a.variants.length, 0);
 console.log(`wrote ${path.relative(ROOT, OUT)}: ${Object.keys(manifest.archetypes).length} archetypes (${nv} variants), ` +
   `${Object.keys(keepers).length} keepers, ${townsfolk.length} townsfolk, ${Object.keys(manifest.props).length} props, ` +
-  `${Object.keys(manifest.ground).length} ground textures`);
+  `${Object.keys(manifest.ground).length} ground textures, ${Object.keys(manifest.creatures).length} creatures`);
 for (const w of warnings) console.warn(`  ! ${w}`);
