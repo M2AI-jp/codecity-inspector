@@ -13,7 +13,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { decodePNG, encodePNG } from '../tools/png.mjs';
 
-export const GROUND_VERSION = 5;          // 見た目を変えたら上げる（キャッシュの鍵に入る）
+export const GROUND_VERSION = 6;          // 見た目を変えたら上げる（キャッシュの鍵に入る）
 const T = 16;
 const DEFAULT_ART = path.resolve(import.meta.dirname, '../art/game');
 const TEX_NAMES = ['street', 'grass', 'dirt', 'plaza', 'moss'];
@@ -433,7 +433,8 @@ export function renderGround(town, artDir = DEFAULT_ART) {
     if (d < 0.004 && w < 0.004) return GRASS;
     if (g < 0.004 && w < 0.004) return DIRT;
     const gg = g + 0.42 * (fbm(x / 8, y / 8, SEED + 31) - 0.5) + 0.07 * (vnoise(x / 2.2, y / 2.2, SEED + 32) - 0.5);
-    const dd = d + 0.42 * (fbm(x / 8, y / 8, SEED + 41) - 0.5) + 0.07 * (vnoise(x / 2.2, y / 2.2, SEED + 42) - 0.5);
+    // 土の小道の縁は大きくうねる（草が道へせり出し、道が草へ食い込む）
+    const dd = d + 0.62 * (fbm(x / 11, y / 11, SEED + 41) - 0.5) + 0.1 * (vnoise(x / 2.2, y / 2.2, SEED + 42) - 0.5);
     const ww = w > 0.004 ? w + 0.22 * (fbm(x / 10, y / 10, SEED + 45) - 0.5) : -1;
     return ww > gg && ww > dd ? WATER : dd > gg ? DIRT : GRASS;
   };
@@ -671,9 +672,10 @@ export function renderGround(town, artDir = DEFAULT_ART) {
       r *= grime; g *= grime; b *= grime;
     } else if (m === DIRT) {
       const o = ((y % DH) * DW + (x % DW)) * 4;
-      r = DMEAN[0] + (DD[o] - DMEAN[0]) * 1.5; g = DMEAN[1] + (DD[o + 1] - DMEAN[1]) * 1.5; b = DMEAN[2] + (DD[o + 2] - DMEAN[2]) * 1.5;
+      // 踏み固めた土は草地より明るい（基準 target-town.png の土の小道）。texture の細かさはそのまま、明暗は少しだけ強める
+      r = DMEAN[0] + (DD[o] - DMEAN[0]) * 1.2; g = DMEAN[1] + (DD[o + 1] - DMEAN[1]) * 1.2; b = DMEAN[2] + (DD[o + 2] - DMEAN[2]) * 1.2;
       r *= 0.96; g *= 0.95; b *= 0.93;
-      const k = 0.8 * (1 + 0.24 * (samp(DTONE, x, y) - 0.5));
+      const k = 1 + 0.24 * (samp(DTONE, x, y) - 0.5);
       r *= k; g *= k; b *= k;
       if (!foot) {
         const d = dGrass[i];
