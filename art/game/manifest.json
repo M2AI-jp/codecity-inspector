@@ -538,6 +538,38 @@
           ],
           "lights": [],
           "smoke": []
+        },
+        {
+          "id": "ruin-2",
+          "footprint": [6, 4],
+          "exterior": {
+            "src": "buildings/ruin-2.exterior.png",
+            "origin": [0, 40],
+            "size": [96, 104]
+          },
+          "cutaway": {
+            "src": "buildings/ruin-2.cutaway.png",
+            "origin": [0, 40],
+            "size": [96, 104]
+          },
+          "door": {
+            "x": 2,
+            "w": 2
+          },
+          "floor": [7, 20, 82, 29],
+          "blockers": [
+            [17, 24, 16, 8],
+            [53, 24, 18, 9],
+            [70, 26, 8, 7],
+            [47, 31, 8, 5],
+            [18, 39, 22, 7],
+            [70, 38, 18, 9],
+            [55, 43, 10, 5]
+          ],
+          "lights": [
+            [75, 41, 18]
+          ],
+          "smoke": []
         }
       ]
     },
@@ -611,6 +643,82 @@
           ],
           "smoke": [
             [15, -37]
+          ]
+        }
+      ]
+    },
+    "workshop": {
+      "variants": [
+        {
+          "id": "workshop-1",
+          "footprint": [7, 5],
+          "exterior": {
+            "src": "buildings/workshop-1.exterior.png",
+            "origin": [0, 48],
+            "size": [112, 128]
+          },
+          "cutaway": {
+            "src": "buildings/workshop-1.cutaway.png",
+            "origin": [0, 48],
+            "size": [112, 128]
+          },
+          "door": {
+            "x": 4,
+            "w": 1
+          },
+          "floor": [9, 40, 95, 35],
+          "blockers": [
+            [10, 40, 32, 3],
+            [15, 48, 15, 8],
+            [32, 51, 10, 8],
+            [48, 50, 12, 9],
+            [69, 44, 32, 12],
+            [9, 64, 47, 11],
+            [89, 60, 15, 15]
+          ],
+          "lights": [
+            [27, 53, 24],
+            [41, 47, 22],
+            [74, 28, 22],
+            [76, 58, 60]
+          ],
+          "smoke": [
+            [24, -18]
+          ]
+        },
+        {
+          "id": "workshop-2",
+          "footprint": [7, 5],
+          "exterior": {
+            "src": "buildings/workshop-2.exterior.png",
+            "origin": [0, 48],
+            "size": [112, 128]
+          },
+          "cutaway": {
+            "src": "buildings/workshop-2.cutaway.png",
+            "origin": [0, 48],
+            "size": [112, 128]
+          },
+          "door": {
+            "x": 5,
+            "w": 1
+          },
+          "floor": [7, 38, 96, 29],
+          "blockers": [
+            [8, 38, 40, 6],
+            [91, 36, 13, 6],
+            [14, 50, 35, 12],
+            [60, 46, 29, 10],
+            [56, 56, 7, 5],
+            [98, 50, 6, 16]
+          ],
+          "lights": [
+            [20, 50, 24],
+            [46, 50, 24],
+            [84, 50, 30]
+          ],
+          "smoke": [
+            [96, -12]
           ]
         }
       ]
