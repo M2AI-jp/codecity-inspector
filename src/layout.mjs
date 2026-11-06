@@ -1983,7 +1983,10 @@ export function layoutTown(repo, opts = {}) {
     const hp = P.placed.find((p) => p.spec.archetype === 'town_hall');
     if (!hp) { t.drop = true; continue; }
     const dw = variantOf.get(hp)?.doorW ?? 1;
-    t.stair = dw >= 2 ? { x: hp.doorCol, w: Math.min(3, dw) } : { x: hp.doorCol - 1, w: 3 };
+    // 基準の絵のように幅の広い階段: 2マスの扉なら左右に1マスずつ広げた4マス、1マスの扉なら3マス（扉が真ん中）
+    t.stair = dw >= 3 ? { x: hp.doorCol, w: dw } : dw === 2 ? { x: hp.doorCol - 1, w: 4 } : { x: hp.doorCol - 1, w: 3 };
+    if (t.stair.x < t.x) t.stair.x = t.x;
+    if (t.stair.x + t.stair.w > t.x + t.w) t.stair.x = t.x + t.w - t.stair.w;
   }
   P.terraces = P.terraces.filter((t) => !t.drop);
   const dock = P.placed.find((p) => p.spec.archetype === 'dock');
