@@ -7,7 +7,8 @@
 //   art/game/residents/keeper-<kind>.png                            -> characters.keepers[kind]
 //   art/game/residents/townsfolk-<n>.png                            -> characters.townsfolk[] (by n)
 //   art/game/residents/contractor.png                               -> characters.contractor (外部工務店の代理人)
-//   art/game/props/<type>.png (+ <type>.json)                       -> props[type] (solid, light, flicker, layer, deck)
+//   art/game/props/<type>.png (+ <type>.json)                       -> props[type] (solid, light, flicker, layer, deck,
+//                                                                      solids, lights, opening)
 //   art/game/ground/<name>.png                                      -> ground[name]
 //   art/game/creatures/<name>.png (+ <name>.json)                   -> creatures[name]
 //
@@ -186,6 +187,15 @@ function props() {
     // deck: walkable floor over water, [x, y, w, h] px relative to the foot
     if (isBox(d.deck)) out[type].deck = d.deck.slice(0, 4);
     else if (d.deck !== undefined && d.deck !== null) warn(`props/${type}.json: deck は [x, y, w, h] の数の配列にする`);
+    // solids: several collision boxes (a gate's pillars), lights: several lights (its lanterns),
+    // opening: the walkable gap under the lintel [x, y, w, h]. All px relative to the foot
+    if (Array.isArray(d.solids) && d.solids.length && d.solids.every(isBox)) out[type].solids = d.solids.map((b) => b.slice(0, 4));
+    else if (d.solids !== undefined && d.solids !== null) warn(`props/${type}.json: solids は [[x, y, w, h], ...] にする`);
+    if (Array.isArray(d.lights) && d.lights.length && d.lights.every(isLight)) out[type].lights = d.lights.map((l) => l.slice(0, 3));
+    else if (d.lights !== undefined && d.lights !== null) warn(`props/${type}.json: lights は [[x, y, r], ...] にする`);
+    if (isBox(d.opening)) out[type].opening = d.opening.slice(0, 4);
+    else if (d.opening !== undefined && d.opening !== null) warn(`props/${type}.json: opening は [x, y, w, h] の数の配列にする`);
+    if (out[type].solids || out[type].opening) out[type].size = size.slice(0, 2);       // 絵の大きさ（layout が絵のかかる範囲を測る）
   }
   for (const f of list(dir, '.json')) {
     if (!fs.existsSync(path.join(dir, f.replace(/\.json$/, '.png')))) warn(`props/${f}: 対応する png がありません`);

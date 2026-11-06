@@ -60,6 +60,25 @@
           }
         }
       },
+      "gate": {
+        "src": "residents/keeper-gate.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      },
       "house": {
         "src": "residents/keeper-house.png",
         "frame": [32, 32],
@@ -1492,6 +1511,23 @@
       "solid": [-3, -3, 6, 3],
       "light": null,
       "flicker": false
+    },
+    "gate": {
+      "src": "props/gate.png",
+      "origin": [48, 87],
+      "solid": null,
+      "light": [-33, -33, 26],
+      "flicker": true,
+      "solids": [
+        [-48, -12, 24, 12],
+        [24, -12, 24, 12]
+      ],
+      "lights": [
+        [-33, -33, 26],
+        [33, -33, 26]
+      ],
+      "opening": [-24, -12, 48, 12],
+      "size": [96, 88]
     },
     "lamp": {
       "src": "props/lamp.png",

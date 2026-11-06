@@ -14,8 +14,9 @@
 //            as a player would, for 1.5 s. Passes when the feet reach the floor.
 //   click  : clicking the building from the spawn (the runtime's path to doorInside), followed with
 //            the Player physics. Passes when the feet reach the floor.
-// Also: every building has a keeper; every outdoor keeper (town.landmarks, e.g. the well's 井戸番)
-// can be walked up to and talked to (a reachable feet spot within NEAR_KEEPER - 4 px); every pier
+// Also: every building has a keeper; every outdoor keeper (town.landmarks, e.g. the well's 井戸番, the
+// gate's 門番) can be walked up to and talked to (a reachable feet spot within NEAR_KEEPER - 4 px); every
+// gate (a prop with an `opening`) can be walked under north -> south and south -> north; every pier
 // deck (a prop with `deck`) can be stepped onto from the spawn; every terrace top (town.terraces) can
 // be reached and every stair (town.stairs) stood on, with the terrace wall solid as in web/world.js.
 // Exit code 1 if anything fails. Prints why (what blocks the door corridor).
@@ -71,7 +72,9 @@ function artFrom(m) {
   }
   for (const [key, p] of Object.entries(m.props || {})) {
     art.props[key] = { key, image: null, origin: p.origin || [0, 0], solid: p.solid || null, light: p.light || null, flicker: p.flicker !== false,
-      deck: Array.isArray(p.deck) ? p.deck : null, layer: p.layer === 'ground' ? 'ground' : null };
+      deck: Array.isArray(p.deck) ? p.deck : null, layer: p.layer === 'ground' ? 'ground' : null,
+      ...(Array.isArray(p.solids) ? { solids: p.solids } : {}), ...(Array.isArray(p.lights) ? { lights: p.lights } : {}),
+      ...(Array.isArray(p.opening) ? { opening: p.opening } : {}) };
   }
   return art;
 }
@@ -180,6 +183,27 @@ function reachOf(world, seen, b) {
   return { inside, floor, talk, nearest: best };
 }
 
+// a prop with an opening (the gate): the player walks under it north -> south and south -> north,
+// holding one key, with the runtime's Player physics; both ends must be reachable from the spawn
+function throughGate(world, seen, p) {
+  const op = p.def.opening;
+  const cx = Math.round(p.x + op[0] + op[2] / 2), top = p.y + op[1], bottom = p.y + op[1] + op[3];
+  const south = { x: cx, y: Math.round(bottom + 10) }, north = { x: cx, y: Math.round(top - 8) };
+  const run = (from, dy, done) => {
+    const pl = new Player(from.x, from.y, null);
+    if (world.feetHit(pl.x, pl.y)) return false;
+    const input = { slow: false, axis(o) { o.x = 0; o.y = dy; return o; } };
+    for (let t = 0; t < 2; t += SIM_DT) { pl.update(SIM_DT, input, world); if (done(pl)) return true; }
+    return false;
+  };
+  const r = {
+    southReach: nearSeen(world, seen, south.x, south.y, 6), northReach: nearSeen(world, seen, north.x, north.y, 6),
+    up: run(south, -1, (pl) => pl.y < top - 2), down: run(north, 1, (pl) => pl.y > bottom + 4),
+  };
+  r.ok = r.southReach && r.northReach && r.up && r.down;
+  return r;
+}
+
 // the player holding "up" from just outside the door, with the runtime's Player physics
 function walkIn(world, b, dx) {
   const p = new Player(b.doorPx + dx, b.bottomPx + 9, null);
@@ -264,16 +288,21 @@ for (const target of targets) {
   // pier decks: some reachable feet box stands fully on each deck
   const decks = world.decks || [];
   const dryDecks = decks.filter((d) => !onDeckSeen(world, seen, d));
-  failed += noKeeper.length + farKeepers.length + dryDecks.length + Math.max(0, lmCount - outdoor.length);
+  // gates (a prop with an opening): walk under it both ways
+  const gates = world.props.filter((p) => p.def && Array.isArray(p.def.opening)).map((p) => ({ p, r: throughGate(world, seen, p) }));
+  const shutGates = gates.filter((x) => !x.r.ok);
+  failed += noKeeper.length + farKeepers.length + dryDecks.length + Math.max(0, lmCount - outdoor.length) + shutGates.length;
   const ms = Math.round(performance.now() - t0);
   console.log(`${town.repo?.name ?? target}: ${world.buildings.length} buildings, ${bad.length} not enterable, ` +
     `${soft.length} only from part of the door front, ${noKeeper.length} without a keeper; ` +
     `outdoor keepers ${outdoor.length - farKeepers.length}/${outdoor.length} reachable; piers ${decks.length - dryDecks.length}/${decks.length} walkable; ` +
+    `gates ${gates.length - shutGates.length}/${gates.length} passable both ways; ` +
     `terraces ${ters.length - dryTer.length}/${ters.length} reachable, stairs ${strs.length - dryStair.length}/${strs.length} climbable; ` +
     `reachable feet px ${count} (${ms} ms)`);
   for (const b of noKeeper) console.log(`  x ${b.id} ${b.arch ? b.arch.id : b.archetype} at (${b.x},${b.y}) has no keeper (no spot inside)`);
   for (const k of farKeepers) console.log(`  x outdoor keeper ${k.name} of ${k.building.id} at (${(k.x / T).toFixed(2)},${(k.y / T).toFixed(2)}) cannot be reached for a talk`);
   for (const d of dryDecks) console.log(`  x pier deck at px (${d.x},${d.y},${d.w},${d.h}) cannot be stepped onto`);
+  for (const { p, r } of shutGates) console.log(`  x ${p.type} at (${(p.x / T).toFixed(2)},${(p.y / T).toFixed(2)}): reach south=${r.southReach} north=${r.northReach}, walk south->north=${r.up} north->south=${r.down}`);
   for (const t of dryTer) console.log(`  x terrace top (${t.x},${t.y},${t.w},${t.h}) cannot be reached`);
   for (const s2 of dryStair) console.log(`  x stair (${s2.x},${s2.y},${s2.w}) cannot be stood on`);
   for (const x of [...bad, ...(verbose ? soft : [])]) {

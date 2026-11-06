@@ -182,10 +182,10 @@ export class Walker extends Character {
 export const KEEPER_ROLE = {
   workshop: '工房の親方', shop: '商店の主人', house: '家の人', ruin: '廃屋の管理人',
   town_hall: '役場の書記', inn: '宿屋の番頭', pub: '酒場の主人', warehouse: '倉庫番', watchtower: '見張り台の番人', dojo: '道場の検査官',
-  dock: '船頭', well: '井戸番',
+  dock: '船頭', well: '井戸番', gate: '門番',
 };
 // 施設の番人の絵がまだ無いときに代わりに立てる、いちばん近い番人
-export const KEEPER_STAND_IN = { town_hall: 'house', inn: 'shop', pub: 'shop', warehouse: 'workshop', watchtower: 'house', dojo: 'house', dock: 'workshop', well: 'house' };
+export const KEEPER_STAND_IN = { town_hall: 'house', inn: 'shop', pub: 'shop', warehouse: 'workshop', watchtower: 'house', dojo: 'house', dock: 'workshop', well: 'house', gate: 'watchtower' };
 
 export function kindOf(b) {
   const k = (b.data && b.data.facility && b.data.facility.archetype) || (b.module && b.module.kind);
@@ -224,7 +224,7 @@ export class Keeper extends Character {
   }
 }
 
-// The keeper of an outdoor facility (town.landmarks: the well's 井戸番) stands beside its prop and
+// The keeper of an outdoor facility (town.landmarks: the well's 井戸番, the gate's 門番) stands beside its prop and
 // talks like a building keeper. `building` is a stand-in so the dialogue code treats both alike.
 export class LandmarkKeeper extends Keeper {
   constructor(kind, sheet, landmark, world, seed) {

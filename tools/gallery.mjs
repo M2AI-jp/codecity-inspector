@@ -26,11 +26,13 @@ const KEEPER = {
   'keeper-smith': '工房の親方', 'keeper-shop': '商店の主人', 'keeper-house': '家の人', 'keeper-ruin': '廃屋の管理人',
   'keeper-town_hall': '役場の書記', 'keeper-inn': '宿屋の番頭', 'keeper-pub': '酒場の主人', 'keeper-warehouse': '倉庫番',
   'keeper-watchtower': '見張り台の番人', 'keeper-dojo': '道場の検査官', 'keeper-dock': '船頭', 'keeper-well': '井戸番',
-  contractor: '外部工務店の代理人',
+  'keeper-gate': '門番', contractor: '外部工務店の代理人',
 };
 const PROP_MEANING = {
   wellhouse: '井戸小屋 — env・secrets・設定（外に立つ施設）', pier: '桟橋（歩ける板）', 'pier-2': '桟橋（歩ける板）', boat: 'もやった舟',
   scaffold: '足場 — 作業中の変更がある建物', 'scaffold-2': '足場 — 作業中の変更がある建物', 'sign-works': '工事中の札', lumber: '材木',
+  gate: '門 — 外から人が入る入口（public web・API。外に立つ施設）',
+  flowerbed: '花壇 — 広場の飾り', lowwall: '低い石垣 — 広場の縁',
 };
 
 const sections = [];
