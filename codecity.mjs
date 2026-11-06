@@ -13,6 +13,11 @@ if (!repoPath) {
   console.error('使い方: node codecity.mjs <リポジトリ> [--port 4317] [--json town.json] [--ground ground.png]');
   process.exit(2);
 }
+const port = Number(opt('--port') ?? 4317);
+if (!Number.isInteger(port) || port < 0 || port > 65535) {
+  console.error(`--port は 0〜65535 の整数: ${opt('--port')}`);
+  process.exit(2);
+}
 try { if (!statSync(repoPath).isDirectory()) throw new Error(); } catch {
   console.error(`ディレクトリが見つからない: ${repoPath}`);
   process.exit(2);
@@ -64,6 +69,6 @@ if (groundOut || out) {                    // 書き出して終わる
   let ground;
   try { ground = await loadGround(); } catch (e) { console.warn(`地面の画像を作れなかった: ${e.message}`); }
   const { serveTown } = await import('./src/serve.mjs');
-  const { url } = await serveTown(town, { port: Number(opt('--port') ?? 4317), ground });
+  const { url } = await serveTown(town, { port, ground });
   console.log(`街を開く: ${url}`);
 }

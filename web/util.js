@@ -79,7 +79,7 @@ const LANG_NAMES = {
 };
 export function langName(ext) {
   const k = String(ext || '').replace(/^\./, '').toLowerCase();
-  return LANG_NAMES[k] || (k ? `.${k}` : 'その他');
+  return (Object.hasOwn(LANG_NAMES, k) && LANG_NAMES[k]) || (k ? `.${k}` : 'その他');
 }
 
 export const KIND_JA = { workshop: '工房', shop: '商店', house: '住宅', ruin: '廃屋',

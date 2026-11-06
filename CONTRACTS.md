@@ -41,7 +41,7 @@ facts の形:
 
 | archetype | facts |
 |---|---|
-| town_hall | `{ commits, contributors, contributorsWindow /* 履歴を上限まで読んだときの範囲 */, firstCommit, lastCommit, tags, latestTag: {name,date}, changelog }` |
+| town_hall | `{ commits, contributors, contributorsWindow /* 履歴を上限まで読んだとき・浅いクローンのときの範囲 */, firstCommit /* 浅いクローンでは null */, lastCommit, tags /* 浅いクローンでタグが無ければ null（不明） */, latestTag: {name,date}, changelog, shallow }` |
 | inn | `{ servers: [{path, how}], deploy: [paths], domains: ["docs.brew.sh"], frameworks: ["Next.js"], configs: [paths], pages: [paths] }` |
 | pub | `{ connectors: [{ name: "OpenAI", via: "dep" \| "url", paths }], webhooks: ["/api/webhook"] }` |
 | warehouse | `{ kinds: ["SQLite", ...], sqlFiles, migrations, configs, dataFiles, sqliteCode }` |

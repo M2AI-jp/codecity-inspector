@@ -199,7 +199,8 @@ function groupModules(tree) {
 }
 
 // ---------- git 履歴 ----------
-function readHistory(root, extra = ['-n', String(MAX_COMMITS), '--', '.'], timeout = 0) {
+// grafts: 浅いクローンの境界コミット（完全なハッシュ）。親が無いように見えるだけなので、ファイル一覧は使わない
+function readHistory(root, extra = ['-n', String(MAX_COMMITS), '--', '.'], timeout = 0, grafts = []) {
   // 時間切れでも、それまでに読めた分は使う
   const r = spawnSync('git', ['-C', root, '-c', 'core.quotepath=false', 'log', '--no-merges', '--no-renames',
     '--format=%x1e%h%x1f%cI%x1f%aN%x1f%s', '--name-only', '--relative', ...extra],
@@ -214,7 +215,8 @@ function readHistory(root, extra = ['-n', String(MAX_COMMITS), '--', '.'], timeo
     const head = nl === -1 ? rec : rec.slice(0, nl);
     const [hash, date, author, subject] = head.split('\x1f');
     if (!date) continue;
-    const files = nl === -1 ? [] : rec.slice(nl + 1).split('\n').filter(Boolean).map(unquote);
+    const cut = grafts.length && grafts.some((h) => h.startsWith(hash));
+    const files = nl === -1 || cut ? [] : rec.slice(nl + 1).split('\n').filter(Boolean).map(unquote);
     commits.push({ hash, date, author: author ?? '', subject: subject ?? '', files });
   }
   return commits;
@@ -311,7 +313,7 @@ function classify(mod, files, ctx) {
 
   const ev = [];
   const cat = { build: 0, config: 0, docs: 0, ui: 0, code: 0, images: 0, data: 0, binary: 0 };
-  const catExt = {};
+  const catExt = Object.create(null);   // 拡張子をキーにする（constructor・__proto__ という拡張子でも壊れない）
   for (const f of files) {
     const b = basename(f.path);
     let c;
@@ -327,7 +329,7 @@ function classify(mod, files, ctx) {
     else if (f.binary) c = 'binary';
     else c = 'code';
     cat[c]++;
-    (catExt[c] ??= {})[f.ext] = (catExt[c][f.ext] || 0) + 1;
+    (catExt[c] ??= Object.create(null))[f.ext] = (catExt[c][f.ext] || 0) + 1;
   }
   const { build, config, ui, code } = cat;
   if (build > 0 && build + config >= code + ui) return ['workshop', `${ev.join('、')} を含む（ビルド・開発環境の設定が中心）`];
@@ -348,7 +350,9 @@ function classify(mod, files, ctx) {
 export function analyzeRepository(rootPath) {
   const root = resolve(rootPath);
   const name = basename(root);
-  const isGit = git(root, ['rev-parse', '--is-inside-work-tree'])?.trim() === 'true';
+  // bare リポジトリ（作業ツリーなし）も HEAD から読む（objects/ などの git の中身を街にしない）
+  const bare = git(root, ['rev-parse', '--is-bare-repository'])?.trim() === 'true';
+  const isGit = bare || git(root, ['rev-parse', '--is-inside-work-tree'])?.trim() === 'true';
   const head = isGit ? git(root, ['rev-parse', '--short', 'HEAD'])?.trim() || null : null;
   let branch = isGit ? git(root, ['rev-parse', '--abbrev-ref', 'HEAD'])?.trim() || null : null;
   if (branch === 'HEAD') branch = null;
@@ -357,7 +361,7 @@ export function analyzeRepository(rootPath) {
   const files = fromGit ?? walkFiles(root);
   // 中身を読むのは README と package.json だけ。git なら HEAD の内容を読む
   const readText = (p) => {
-    if (fromGit) return git(root, ['show', `HEAD:./${p}`]);
+    if (fromGit) return git(root, ['show', `HEAD:${bare ? '' : './'}${p}`]);
     try { return readFileSync(join(root, p), 'utf8'); } catch { return null; }
   };
   const tree = buildTree(files);
@@ -376,7 +380,14 @@ export function analyzeRepository(rootPath) {
     return undefined;
   };
 
-  const history = isGit && head ? readHistory(root) : [];
+  // 浅いクローン（git clone --depth）: 境界のコミットは全ファイルを足したように見えるので、ファイルの帰属に使わない
+  const shallow = !!head && git(root, ['rev-parse', '--is-shallow-repository'])?.trim() === 'true';
+  let grafts = [];
+  if (shallow) {
+    const sp = git(root, ['rev-parse', '--git-path', 'shallow'])?.trim();
+    try { grafts = readFileSync(resolve(root, sp), 'utf8').split('\n').map((x) => x.trim()).filter(Boolean); } catch {}
+  }
+  const history = isGit && head ? readHistory(root, undefined, 0, grafts) : [];
   const keyer = authorKeyer();
   const stats = groups.map(() => ({ commits: 0, recent: 0, last: null, authors: new Map() }));
   // 「最近」は今日ではなくリポジトリの最新コミットから90日（同じコミットなら同じ結果）
@@ -405,7 +416,7 @@ export function analyzeRepository(rootPath) {
     const missing = groups.map((g, i) => i).filter((i) => !stats[i].last);
     const paths = missing.flatMap((i) => (groups[i].path === '.' ? groups[i].files.map((f) => f.path) : [groups[i].path])).slice(0, 400);
     if (paths.length) {
-      for (const c of readHistory(root, ['--skip', String(MAX_COMMITS), '--', ...paths], 1500)) {
+      for (const c of readHistory(root, ['--skip', String(MAX_COMMITS), '--', ...paths], 1500, grafts)) {
         const k = keyer.key(c.author);
         const mods = new Set();
         for (const f of c.files) { const i = ownerOf(f); if (i !== undefined && missing.includes(i)) mods.add(i); }
@@ -420,7 +431,7 @@ export function analyzeRepository(rootPath) {
   }
 
   const modules = groups.map((g, i) => {
-    const languages = {};
+    const languages = Object.create(null);
     let lines = 0, bytes = 0;
     for (const f of g.files) { languages[f.ext] = (languages[f.ext] || 0) + 1; lines += f.lines; bytes += f.bytes; }
     const s = stats[i];
@@ -469,7 +480,7 @@ export function analyzeRepository(rootPath) {
   let facilities = [];
   try {
     facilities = detectFacilities(files, history, groups, {
-      root, isGit, head, keyer, refTime,
+      root, isGit, head, keyer, refTime, shallow, bare,
       git: (args) => git(root, args),
       rootFiles: tree.files.map((f) => f.path),
     });

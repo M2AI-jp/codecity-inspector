@@ -56,7 +56,7 @@ const parentOf = (p) => (p.includes('/') ? p.slice(0, p.lastIndexOf('/')) : null
 function absorb(dst, src) {
   dst.merged = [...(dst.merged || []), ...(src.orig ? [src.path] : []), ...(src.merged || [])];
   dst.files += src.files; dst.lines += src.lines; dst.bytes += src.bytes;
-  const langs = { ...dst.languages };
+  const langs = Object.assign(Object.create(null), dst.languages);
   for (const [k, v] of Object.entries(src.languages || {})) langs[k] = (langs[k] || 0) + v;
   dst.languages = Object.fromEntries(Object.entries(langs).sort((a, b) => b[1] - a[1] || cmp(a[0], b[0])));
   dst.commits = Math.max(dst.commits, src.commits);           // 正確な和集合は出せないので「少なくとも」の値
@@ -866,7 +866,7 @@ export function layoutTown(repo, opts = {}) {
     const a = art[f.archetype];
     const [w, h] = a.footprint;
     const merged = (f.merged || []).map((p) => byPath.get(p)).filter(Boolean);
-    const languages = {};
+    const languages = Object.create(null);
     let lines = 0, bytes = 0;
     const top = [];
     for (const m of merged) {

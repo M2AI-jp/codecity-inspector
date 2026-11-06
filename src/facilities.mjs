@@ -116,7 +116,9 @@ const byName = (name, paths) => { const k = name.toLowerCase().replace(/[^a-z0-9
 const sortPaths = (a) => [...a].sort((x, y) => x.split('/').length - y.split('/').length || (x < y ? -1 : x > y ? 1 : 0));
 
 // ---------- 中身を読む ----------
-function makeReader(root, isGit) {
+// パスは解析したディレクトリからの相対。リポジトリの一部のディレクトリを解析したときも、そのディレクトリのファイルを読む
+// （"HEAD:./p" は今いるディレクトリから。bare リポジトリには作業ディレクトリが無いので "HEAD:p"）
+function makeReader(root, isGit, bare) {
   return (paths) => {
     const out = new Map();
     if (!paths.length) return out;
@@ -124,7 +126,7 @@ function makeReader(root, isGit) {
       let buf;
       try {
         buf = execFileSync('git', ['-C', root, 'cat-file', '--batch'], {
-          input: paths.map((p) => `HEAD:${p}`).join('\n') + '\n', maxBuffer: 1 << 30, stdio: ['pipe', 'pipe', 'ignore'],
+          input: paths.map((p) => `HEAD:${bare ? '' : './'}${p}`).join('\n') + '\n', maxBuffer: 1 << 30, stdio: ['pipe', 'pipe', 'ignore'],
         });
       } catch { return out; }
       let pos = 0;
@@ -189,7 +191,7 @@ const MANIFEST = /^(package\.json|requirements[\w.\-]*\.txt|pipfile|pyproject\.t
 // groups: モジュール [{path, files}], extra: { root, isGit, head, git, keyer, refTime, rootFiles }
 export function detectFacilities(files, history, groups, extra) {
   const { root, isGit, head, git, keyer, refTime } = extra;
-  const read = makeReader(root, isGit && !!head);
+  const read = makeReader(root, isGit && !!head, !!extra.bare);
   const prod = (p) => !SKIP_DIR.test(p) && !NOT_PRODUCT.test(p);
   const byBase = new Map();
   for (const f of files) {
@@ -279,7 +281,9 @@ export function detectFacilities(files, history, groups, extra) {
   if (isGit && head) {
     // コミット数はどこでも同じ数え方: マージを除く（解析が読んだ git log --no-merges と同じ）。
     // 解析が上限で読み切れなかったときだけ、全体をマージを除いて数え直す
-    const total = history.length < 5000 ? history.length
+    // 浅いクローンでは、手元にあるのは直近の一部だけ（総数・最初のコミット・タグの有無は分からない）
+    const shallow = !!extra.shallow;
+    const total = history.length < 5000 || shallow ? history.length
       : Number(git(['rev-list', '--count', '--no-merges', 'HEAD'])?.trim()) || history.length;
     const roots = (git(['log', '--max-parents=0', '--format=%cI', 'HEAD']) || '').split('\n').filter(Boolean).sort();
     const tagLines = (git(['for-each-ref', 'refs/tags', '--sort=-creatordate', '--format=%(refname:short)%09%(creatordate:iso-strict)']) || '').split('\n').filter(Boolean);
@@ -289,13 +293,14 @@ export function detectFacilities(files, history, groups, extra) {
     const facts = {
       commits: total,
       contributors: people.size,
-      contributorsWindow: history.length >= 5000 ? history.length : null,     // 履歴を上限まで読んだときは、数えた範囲（直近のコミット数）
-      firstCommit: roots[0] || (history.length ? history[history.length - 1].date : null),
+      contributorsWindow: history.length >= 5000 || shallow ? history.length : null,     // 履歴を上限まで（浅いクローンなら手元の分だけ）読んだときは、数えた範囲（直近のコミット数）
+      firstCommit: shallow ? null : roots[0] || (history.length ? history[history.length - 1].date : null),
       lastCommit: history.length ? history[0].date : null,
-      tags: tagLines.length, latestTag, changelog,
+      tags: shallow && !tagLines.length ? null : tagLines.length, latestTag, changelog,
+      shallow,
     };
     const st = stats(null);
-    add('town_hall', '役場', `git リポジトリ（マージを除くコミット ${total.toLocaleString('en-US')} 件${tagLines.length ? `・タグ ${tagLines.length} 個` : ''}${changelog ? `・${changelog}` : ''}）`,
+    add('town_hall', '役場', `git リポジトリ（${shallow ? '浅いクローンで、手元にあるのは直近の' : ''}マージを除くコミット ${total.toLocaleString('en-US')} 件${tagLines.length ? `・タグ ${tagLines.length} 個` : ''}${changelog ? `・${changelog}` : ''}）`,
       ['.git', ...(changelog ? [changelog] : [])], facts, { ...st, commits: total });
   }
 

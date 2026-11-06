@@ -82,8 +82,8 @@ const daysAgo = (iso, now = Date.now()) => (now - Date.parse(iso)) / 86400e3;
 const whenLead = (w) => (/前$/.test(w) ? `${w}に` : `${w}、`);
 
 // ---------- what a directory name means, in plain words ----------
-const NAMES = {};
-const GROUP = {};            // name -> 'workshop' | 'shop' | 'house'
+const NAMES = Object.create(null);    // ディレクトリ名・拡張子で引く表は、constructor などの名前でも Object の中身を返さない
+const GROUP = Object.create(null);            // name -> 'workshop' | 'shop' | 'house'
 let group = 'workshop';
 const name = (keys, what) => { for (const k of keys.split(' ')) { NAMES[k] = what; GROUP[k] = group; } };
 // workshop
@@ -153,7 +153,7 @@ const RUIN_NAMES = {
 // ---------- files in plain words ----------
 const PROGRAM_EXT = new Set(('js mjs cjs ts mts cts py rb go rs java kt kts swift c h cc cpp hpp cs php lua dart ex exs ' +
   'sh bash zsh ps1 pl r scala clj hs ml fs vb m mm zig nim jl').split(' '));
-const NOUN_OF = {};
+const NOUN_OF = Object.create(null);
 const noun = (exts, n) => { for (const e of exts.split(' ')) NOUN_OF[e] = n; };
 noun('html htm ejs hbs handlebars pug njk liquid twig', '画面');
 noun('jsx tsx vue svelte astro', '画面の部品');
@@ -452,7 +452,9 @@ const FACILITY_VOICE = {
       const out = [];
       if (f.commits) {
         const ppl = f.contributors ? (f.contributorsWindow ? `直近の${fmtInt(f.contributorsWindow)}件では${nPeople(f.contributors)}が手を入れています` : `手を入れた人は${nPeople(f.contributors)}です`) : '';
-        out.push(`記録されたコミットは、マージを除いて${fmtInt(f.commits)}件。${ppl ? `${ppl}。` : ''}`);
+        out.push(f.shallow
+          ? `この写しは浅いクローンで、手元にある記録はマージを除いて直近の${fmtInt(f.commits)}件だけです。${f.contributors ? `その中で手を入れた人は${nPeople(f.contributors)}です。` : ''}`
+          : `記録されたコミットは、マージを除いて${fmtInt(f.commits)}件。${ppl ? `${ppl}。` : ''}`);
       }
       if (f.firstCommit && f.lastCommit) {
         out.push(dateJa(f.firstCommit) === dateJa(f.lastCommit)
