@@ -1,0 +1,379 @@
+{
+  "_generated": "tools/build-manifest.mjs が art/game/ の画像と sidecar から作ったファイル。手で編集しない。",
+  "tile": 16,
+  "characters": {
+    "player": {
+      "src": "../approved/player--default.png",
+      "frame": [32, 32],
+      "pivot": [16, 31],
+      "anims": {
+        "idle": {
+          "up": [0],
+          "down": [12],
+          "right": [24],
+          "left": [36]
+        },
+        "walk": {
+          "up": [2, 3, 4, 5],
+          "down": [14, 15, 16, 17],
+          "right": [26, 27, 28, 29],
+          "left": [38, 39, 40, 41]
+        }
+      }
+    },
+    "keepers": {
+      "house": {
+        "src": "residents/keeper-house.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      },
+      "ruin": {
+        "src": "residents/keeper-ruin.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      },
+      "shop": {
+        "src": "residents/keeper-shop.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      },
+      "workshop": {
+        "src": "residents/keeper-smith.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      }
+    },
+    "townsfolk": [
+      {
+        "src": "residents/townsfolk-1.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      },
+      {
+        "src": "residents/townsfolk-2.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      },
+      {
+        "src": "residents/townsfolk-3.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      },
+      {
+        "src": "residents/townsfolk-4.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      },
+      {
+        "src": "residents/townsfolk-5.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      },
+      {
+        "src": "residents/townsfolk-6.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      },
+      {
+        "src": "residents/townsfolk-7.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      },
+      {
+        "src": "residents/townsfolk-8.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      }
+    ]
+  },
+  "archetypes": {},
+  "props": {
+    "barrel": {
+      "src": "props/barrel.png",
+      "origin": [7, 17],
+      "solid": [-6, -6, 12, 6],
+      "light": null,
+      "flicker": false
+    },
+    "bench": {
+      "src": "props/bench.png",
+      "origin": [16, 17],
+      "solid": [-12, -6, 24, 6],
+      "light": null,
+      "flicker": false
+    },
+    "bush-2": {
+      "src": "props/bush-2.png",
+      "origin": [12, 13],
+      "solid": [-9, -4, 18, 4],
+      "light": null,
+      "flicker": false
+    },
+    "bush": {
+      "src": "props/bush.png",
+      "origin": [12, 13],
+      "solid": [-9, -4, 18, 4],
+      "light": null,
+      "flicker": false
+    },
+    "cart": {
+      "src": "props/cart.png",
+      "origin": [24, 28],
+      "solid": [-20, -8, 40, 8],
+      "light": null,
+      "flicker": false
+    },
+    "crate": {
+      "src": "props/crate.png",
+      "origin": [8, 17],
+      "solid": [-7, -7, 14, 7],
+      "light": null,
+      "flicker": false
+    },
+    "fence": {
+      "src": "props/fence.png",
+      "origin": [8, 17],
+      "solid": [-8, -3, 16, 3],
+      "light": null,
+      "flicker": false
+    },
+    "flowerpot": {
+      "src": "props/flowerpot.png",
+      "origin": [6, 13],
+      "solid": [-3, -3, 6, 3],
+      "light": null,
+      "flicker": false
+    },
+    "lamp": {
+      "src": "props/lamp.png",
+      "origin": [7, 43],
+      "solid": [-2, -4, 4, 4],
+      "light": [0, -33, 70],
+      "flicker": true
+    },
+    "noticeboard": {
+      "src": "props/noticeboard.png",
+      "origin": [16, 31],
+      "solid": [-13, -3, 26, 3],
+      "light": null,
+      "flicker": false
+    },
+    "planter": {
+      "src": "props/planter.png",
+      "origin": [8, 13],
+      "solid": [-7, -3, 14, 3],
+      "light": null,
+      "flicker": false
+    },
+    "sacks": {
+      "src": "props/sacks.png",
+      "origin": [9, 15],
+      "solid": [-7, -4, 14, 4],
+      "light": null,
+      "flicker": false
+    },
+    "tree-2": {
+      "src": "props/tree-2.png",
+      "origin": [15, 63],
+      "solid": [-4, -4, 8, 4],
+      "light": null,
+      "flicker": false
+    },
+    "tree-3": {
+      "src": "props/tree-3.png",
+      "origin": [23, 54],
+      "solid": [-4, -4, 8, 4],
+      "light": null,
+      "flicker": false
+    },
+    "tree": {
+      "src": "props/tree.png",
+      "origin": [33, 53],
+      "solid": [-4, -4, 8, 4],
+      "light": null,
+      "flicker": false
+    },
+    "well": {
+      "src": "props/well.png",
+      "origin": [16, 39],
+      "solid": [-13, -10, 26, 10],
+      "light": null,
+      "flicker": false
+    }
+  },
+  "ground": {
+    "dirt": "ground/dirt.png",
+    "grass": "ground/grass.png",
+    "moss": "ground/moss.png",
+    "plaza": "ground/plaza.png",
+    "street": "ground/street.png"
+  }
+}
