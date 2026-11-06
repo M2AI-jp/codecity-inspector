@@ -1331,14 +1331,14 @@
     },
     "cart": {
       "src": "props/cart.png",
-      "origin": [24, 28],
+      "origin": [24, 29],
       "solid": [-20, -8, 40, 8],
       "light": null,
       "flicker": false
     },
     "crate": {
       "src": "props/crate.png",
-      "origin": [8, 17],
+      "origin": [8, 16],
       "solid": [-7, -7, 14, 7],
       "light": null,
       "flicker": false
@@ -1380,8 +1380,8 @@
     },
     "sacks": {
       "src": "props/sacks.png",
-      "origin": [9, 15],
-      "solid": [-7, -4, 14, 4],
+      "origin": [10, 15],
+      "solid": [-8, -4, 16, 4],
       "light": null,
       "flicker": false
     },
