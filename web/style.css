@@ -96,6 +96,45 @@ html, body {
 #bubble .more { color: #d6ccb8; }
 
 #hint { left: 14px; bottom: 14px; font-size: 18px; padding: 6px 12px; color: #d6ccb8; }
+/* arrival intro (web/ui.js showIntro): the town's name over the town for ~3 s. Only the text has a
+   soft dark vignette behind it; the town stays visible and running around it. */
+#intro {
+  position: absolute; left: 50%; top: 44%; transform: translate(-50%, -50%);
+  box-sizing: border-box; width: max-content; max-width: calc(100vw - 24px);
+  padding: 72px clamp(40px, 12vw, 150px); text-align: center;
+  background: radial-gradient(closest-side, rgba(6, 7, 12, 0.8), rgba(6, 7, 12, 0.72) 55%, rgba(6, 7, 12, 0.45) 80%, rgba(6, 7, 12, 0) 100%);
+  opacity: 0; transition: opacity 0.4s ease-out;
+  display: none;
+}
+#intro.on { display: block; }
+#intro.show { opacity: 1; }
+#intro.out { opacity: 0; transition: opacity 0.8s ease-in; }
+#intro .intro-title {
+  font-family: "DotGothic16", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Noto Sans JP", "Meiryo", system-ui, sans-serif;
+  font-weight: 700; font-synthesis: none;      /* DotGothic16 stays regular; the fallback gothic is bold */
+  font-size: 64px; line-height: 1.15; letter-spacing: 0.06em;
+  color: #ffe2a0; overflow-wrap: anywhere;
+  text-shadow: 0 4px 0 rgba(0, 0, 0, 0.7), 0 0 28px rgba(255, 186, 102, 0.28);
+}
+#intro .intro-sub {
+  margin-top: 14px; font-size: 22px; color: #efe6d2; letter-spacing: 0.04em;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.7);
+}
+#intro .intro-sub:empty { display: none; }
+#intro .intro-keys {
+  margin: 18px auto 0; padding-top: 14px; font-size: 18px; color: #d6ccb8;
+  border-top: 2px solid rgba(214, 186, 128, 0.32);
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.7);
+}
+@media (min-width: 1500px) { #intro .intro-title { font-size: 80px; } }
+@media (max-width: 760px) {
+  #intro { padding: 32px 28px; }
+  #intro .intro-title { font-size: 48px; }
+}
+@media (prefers-reduced-motion: reduce) { #intro, #intro.out { transition: none; } }
+/* speech bubbles wait until the intro is gone, so nothing sits on top of the title */
+#ui.intro #bubble, #ui.intro #creature-bubble { opacity: 0 !important; transition: none; }
+
 #loading { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 20px; color: #b5ab98; }
 #loading.hide { display: none; }
 #error { left: 50%; top: 40%; transform: translate(-50%, -50%); max-width: 640px; }

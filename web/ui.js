@@ -43,6 +43,47 @@ export class UI {
     // the facts panel fits the window it is shown in: refit when the window changes size
     window.addEventListener('resize', () => { if (this.curBuilding) this.showBuilding(this.curBuilding); });
     this.hintShown = null;
+    this.showIntro();
+  }
+
+  // --- arrival intro -------------------------------------------------------------
+  // The town's name, a few true counts from town.json and the controls, centred over the running
+  // town for ~3 s (fade in 0.4 s, hold, fade out 0.8 s). Any key, click or movement removes it at once.
+  showIntro() {
+    const el = $('intro');
+    if (!el) return;
+    const t = this.town, r = t.repo || {};
+    el.querySelector('.intro-title').textContent = r.name ? `${r.name} の街` : 'CodeCity';
+    const hall = (t.buildings || []).find((b) => b.facility && b.facility.archetype === 'town_hall');
+    const commits = hall && hall.facility.facts && hall.facility.facts.commits;
+    const facts = [];
+    if (t.buildings && t.buildings.length) facts.push(`建物 ${fmtInt(t.buildings.length)}`);
+    if (t.residents && t.residents.length) facts.push(`住人 ${fmtInt(t.residents.length)}`);     // named contributors
+    if (t.crowd && t.crowd.length) facts.push(`町の人 ${fmtInt(t.crowd.length)}`);               // ambient townsfolk
+    if (commits > 0) facts.push(`コミット ${fmtInt(commits)}`);                                   // non-merge, as at the town hall
+    el.querySelector('.intro-sub').textContent = facts.join('・');
+
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const timers = [], root = $('ui');
+    const done = () => {
+      if (!this.introOn) return;
+      this.introOn = false;
+      timers.forEach(clearTimeout);
+      window.removeEventListener('keydown', done, true);
+      window.removeEventListener('pointerdown', done, true);
+      el.classList.remove('on', 'show', 'out');
+      root.classList.remove('intro');
+    };
+    this.dismissIntro = done;
+    this.introOn = true;
+    window.addEventListener('keydown', done, true);
+    window.addEventListener('pointerdown', done, true);
+    root.classList.add('intro');
+    el.classList.add('on');
+    void el.offsetWidth;                                        // start the fade from opacity 0
+    el.classList.add('show');
+    timers.push(setTimeout(() => el.classList.add('out'), reduce ? 3000 : 2200));
+    timers.push(setTimeout(done, 3000));
   }
 
   renderRepo() {
@@ -169,6 +210,7 @@ export class UI {
   // --- per-frame update --------------------------------------------------------
   // s: { building, keeper, walker, notice, view:{camX,camY,scale} , dt, playerMoved }
   update(s) {
+    if (this.introOn && s.playerMoved) this.dismissIntro();
     if (s.building !== this.curBuilding) { this.curBuilding = s.building; this.showBuilding(s.building); }
     if (s.keeper !== this.curKeeper) {
       this.curKeeper = s.keeper;
@@ -220,7 +262,7 @@ export class UI {
     // controls hint fades after the player has moved around for a bit; never covers a dialogue
     if (this.el.hint) {
       if (this.hintTime < 6 && s.playerMoved) this.hintTime += s.dt;
-      const want = this.hintTime < 6 && !this.dlg && !this.noticeShown;
+      const want = this.hintTime < 6 && !this.dlg && !this.noticeShown && !this.introOn;   // the intro already shows the controls
       if (want !== this.hintShown) { this.hintShown = want; this.el.hint.classList.toggle('show', want); }
     }
   }

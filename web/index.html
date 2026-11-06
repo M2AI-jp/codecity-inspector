@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>CodeCity</title>
 <link rel="icon" href="data:,">
+<!-- town-name display font; loaded without blocking, so offline the system fallback is used -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" media="print" onload="this.media='all'">
 <link rel="stylesheet" href="/web/style.css">
 </head>
 <body>
@@ -19,6 +23,11 @@
   </div>
   <div id="bubble"></div>
   <div id="hint" class="panel">矢印キー / WASD で移動　Shift でゆっくり歩く　クリックした場所へ歩く</div>
+  <div id="intro">
+    <div class="intro-title"></div>
+    <div class="intro-sub"></div>
+    <div class="intro-keys">矢印キー / WASD で走る　Shift でゆっくり歩く　扉に入ると中が見える</div>
+  </div>
   <div id="loading">街をつくっています…</div>
   <div id="error" class="panel"></div>
   <div id="fps"></div>
