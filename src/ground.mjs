@@ -13,7 +13,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { decodePNG, encodePNG } from '../tools/png.mjs';
 
-export const GROUND_VERSION = 4;          // 見た目を変えたら上げる（キャッシュの鍵に入る）
+export const GROUND_VERSION = 5;          // 見た目を変えたら上げる（キャッシュの鍵に入る）
 const T = 16;
 const DEFAULT_ART = path.resolve(import.meta.dirname, '../art/game');
 const TEX_NAMES = ['street', 'grass', 'dirt', 'plaza', 'moss'];
@@ -26,6 +26,7 @@ const TILE_OF = { '.': TG, '#': TS, ':': TD, '+': TP, '~': TW, ' ': TO };
 const GRASS = 0, COBBLE = 1, DIRT = 2, SLAB = 3, WATER = 4, KERB = 5, FRAME = 6;
 // pixel の印
 const F_FOOT = 1, F_V = 2, F_GUTTER = 4, F_INFILL = 8, F_LOOSE = 16, F_RISER = 32, F_DIRTJ = 64, F_OUT = 128;
+const ROTATE_SETTS = false;   // 南北の通りで石の texture を 90° 回すか
 const KW = 3;          // 縁石の幅（px）
 const FW = 6;          // 広場の縁石の幅（目地1 + 石4 + 目地1）
 
@@ -388,9 +389,11 @@ export function renderGround(town, artDir = DEFAULT_ART) {
   const COX = 7 + (SEED % 131), COY = 3 + ((SEED >>> 8) % 127);
   const CW = COB.width, CH = COB.height, PW = PLZ.width, PH = PLZ.height;
   let SL = -1, SX = 0, SY = 0;
+  // 石の向き: 見下ろし 3/4 の絵では丸い石はどの通りでも横長の楕円に見える（基準 target-town.png も同じ）。
+  // 南北の通りでも texture を回さない（v は継ぎ目と轍の判定にだけ使う）
   const cob = (x, y, v) => {
     let i;
-    if (v) { i = ((x + COY) % CH) * CW + ((y + COX) % CW); SL = segC.label[i]; SX = x + segC.dcy[i]; SY = y + segC.dcx[i]; }
+    if (v && ROTATE_SETTS) { i = ((x + COY) % CH) * CW + ((y + COX) % CW); SL = segC.label[i]; SX = x + segC.dcy[i]; SY = y + segC.dcx[i]; }
     else { i = ((y + COY) % CH) * CW + ((x + COX) % CW); SL = segC.label[i]; SX = x + segC.dcx[i]; SY = y + segC.dcy[i]; }
   };
   // 通りと土の境目: 石の重心で判定するので、石は丸ごと残るか丸ごと土になる
@@ -703,7 +706,7 @@ export function renderGround(town, artDir = DEFAULT_ART) {
       if (m === SLAB) { o = ((y % PH) * PW + (x % PW)) * 4; r = PD[o]; g = PD[o + 1]; b = PD[o + 2]; }
       else if (m === KERB || m === FRAME) { o = (((y + 41) % PH) * PW + ((x + 17) % PW)) * 4; r = PD[o]; g = PD[o + 1]; b = PD[o + 2]; }
       else {
-        o = f & F_V ? (((x + COY) % CH) * CW + ((y + COX) % CW)) * 4 : (((y + COY) % CH) * CW + ((x + COX) % CW)) * 4;
+        o = f & F_V && ROTATE_SETTS ? (((x + COY) % CH) * CW + ((y + COX) % CW)) * 4 : (((y + COY) % CH) * CW + ((x + COX) % CW)) * 4;
         r = CD[o]; g = CD[o + 1]; b = CD[o + 2];
       }
       const rw = rut[i] / 255;
