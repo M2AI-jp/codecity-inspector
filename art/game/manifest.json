@@ -1479,6 +1479,13 @@
       "light": null,
       "flicker": false
     },
+    "flowerbed": {
+      "src": "props/flowerbed.png",
+      "origin": [28, 35],
+      "solid": [-24, -28, 48, 26],
+      "light": null,
+      "flicker": false
+    },
     "flowerpot": {
       "src": "props/flowerpot.png",
       "origin": [6, 13],
