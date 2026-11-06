@@ -16,6 +16,8 @@ const NAV_OFFSETS = [];
 for (let oy = -8; oy <= 7; oy++) for (let ox = -8; ox <= 7; ox++) if (ox || oy) NAV_OFFSETS.push([ox, oy]);
 NAV_OFFSETS.sort((a, b) => a[0] * a[0] + a[1] * a[1] - b[0] * b[0] - b[1] * b[1]);
 const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+const isBox = (a) => Array.isArray(a) && a.length >= 4 && a.slice(0, 4).every(Number.isFinite);
+const isLight = (a) => Array.isArray(a) && a.length >= 3 && a.slice(0, 3).every(Number.isFinite);
 
 export class World {
   constructor(town, art, grid) {
@@ -228,17 +230,21 @@ export class World {
     if (!def) warnOnce(`prop:${p.look || p.type}`, `prop "${p.look || p.type}" が manifest にありません（描画しません）`);
     const ax = Math.round(p.x * T), ay = Math.round(p.y * T);
     const prop = { index, type: p.type, data: p, def, x: ax, y: ay, solid: null, layer: def && def.layer === 'ground' ? 'ground' : null };
-    if (def && def.solid) prop.solid = this.addRect(ax + def.solid[0], ay + def.solid[1], def.solid[2], def.solid[3], 'prop');
+    // `solids` (several boxes: a gate's pillars, its opening left free) wins over the single `solid`
+    const boxes = def && Array.isArray(def.solids) && def.solids.length ? def.solids.filter(isBox) : def && isBox(def.solid) ? [def.solid] : [];
+    boxes.forEach((s, i) => { const r = this.addRect(ax + s[0], ay + s[1], s[2], s[3], 'prop'); if (!i) prop.solid = r; });
     // a deck (pier boards) is walkable floor over water: [x, y, w, h] px relative to the foot
     if (def && Array.isArray(def.deck) && def.deck.length >= 4 && def.deck.slice(0, 4).every(Number.isFinite)) {
       this.decks.push({ x: ax + def.deck[0], y: ay + def.deck[1], w: def.deck[2], h: def.deck[3], prop });
     }
-    if (def && def.light) {
+    // `lights` (several: a gate's two lanterns) wins over the single `light`
+    const lamps = def && Array.isArray(def.lights) && def.lights.length ? def.lights.filter(isLight) : def && isLight(def.light) ? [def.light] : [];
+    lamps.forEach((l, i) => {
       // the glow sits at the light point; the pool it casts is centred lower, toward the
       // ground under it (3/4 view: a lantern on a post lights the street around its foot)
-      const lx = ax + def.light[0], ly = ay + def.light[1];
-      this.lights.push({ x: lx, y: ly, poolY: ly + Math.max(0, ay - ly) * 0.6, footY: ay, r: def.light[2], kind: def.flicker ? 'flame' : 'steady', seed: 1000 + index, building: null });
-    }
+      const lx = ax + l[0], ly = ay + l[1];
+      this.lights.push({ x: lx, y: ly, poolY: ly + Math.max(0, ay - ly) * 0.6, footY: ay, r: l[2], kind: def.flicker ? 'flame' : 'steady', seed: 1000 + index + i * 7919, building: null });
+    });
     this.props.push(prop);
   }
 

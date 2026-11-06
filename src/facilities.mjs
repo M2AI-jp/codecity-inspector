@@ -5,6 +5,9 @@
 //   warehouse 倉庫     : DB・storage（DB の依存、SQL・SQLite、migrations・prisma）
 //   watchtower 見張り台: logs・monitoring（記録・監視の依存、logs ディレクトリ、監視の設定）
 //   dojo      道場     : test・E2E（テストのディレクトリ・ファイル、テストの道具）
+//   well      井戸     : env・secrets・config（外に立つ施設）
+//   dock      船着場   : アプリ・パッケージの配布
+//   gate      門       : 外から人が入る入口（宿屋と同じ証拠＋受付の道・ログインの道具）。外に立つ施設
 // 中身を読むのは依存の一覧と、上限つきのソースの走査だけ（git なら HEAD の内容を cat-file --batch でまとめて読む）。
 import { execFileSync } from 'node:child_process';
 import { openSync, readSync, closeSync } from 'node:fs';
@@ -95,6 +98,23 @@ const TEST_DEP = [
   [/^vitest$/, 'Vitest'], [/^jest$/, 'Jest'], [/^mocha$/, 'Mocha'], [/^@playwright\/test$|^playwright$/, 'Playwright'],
   [/^cypress$/, 'Cypress'], [/^ava$/, 'AVA'], [/^tap$/, 'tap'], [/^uvu$/, 'uvu'], [/^pytest$/, 'pytest'],
   [/^rspec$|^rspec-core$/, 'RSpec'], [/^minitest$/, 'Minitest'],
+];
+// ログイン（本人かどうかを確かめる）の道具。名前だけで分かるものに限る（汎用の SDK・JWT・session は数えない）
+const AUTH_DEP = [
+  [/^next-auth$/, 'NextAuth.js'], [/^@auth\//, 'Auth.js'], [/^better-auth$/, 'Better Auth'],
+  [/^passport$|^passport-[\w-]+$/, 'Passport'], [/^lucia$|^@lucia-auth\//, 'Lucia'], [/^@clerk\//, 'Clerk'],
+  [/^@supabase\/(auth-helpers-[\w-]+|auth-js|auth-ui-react|ssr)$/, 'Supabase Auth'], [/^@auth0\/|^auth0$/, 'Auth0'],
+  [/^@firebase\/auth$|^firebaseui$/, 'Firebase Authentication'], [/^@kinde-oss\//, 'Kinde'], [/^@workos-inc\/authkit/, 'WorkOS AuthKit'],
+  [/^@okta\//, 'Okta'], [/^keycloak-js$|^keycloak-connect$/, 'Keycloak'],
+  [/^devise$/, 'Devise'], [/^omniauth$|^omniauth-[\w-]+$/, 'OmniAuth'], [/^rodauth$|^rodauth-rails$/, 'Rodauth'],
+  [/^django-allauth$/, 'django-allauth'], [/^flask-login$/, 'Flask-Login'], [/^flask-security(-too)?$/, 'Flask-Security'],
+  [/^fastapi-users$/, 'FastAPI Users'], [/^github\.com\/markbates\/goth$/, 'Goth'],
+];
+// 公開の段取りの設定ファイル → 行き先の名前（設定があるだけで、公開した証拠ではない）
+const DEPLOY_TARGET = [
+  [/^(vercel|now)\.json$/i, 'Vercel'], [/^netlify\.toml$/i, 'Netlify'], [/^fly\.toml$/i, 'Fly.io'], [/^render\.yaml$/i, 'Render'],
+  [/^wrangler\.(toml|json|jsonc)$/i, 'Cloudflare Workers'], [/^firebase\.json$/i, 'Firebase Hosting'],
+  [/^(dockerfile|containerfile)(\..*)?$/i, 'Docker'],
 ];
 // 有名な API の住所 → 名前
 const HOSTS = [
@@ -443,6 +463,7 @@ export function detectFacilities(files, history, groups, extra) {
   }
 
   // --- 宿屋: 公開Webサービス ---
+  let entry = null;          // 外から人が入る入口の証拠（門も同じものを見る）
   {
     const deployNames = /^(vercel\.json|netlify\.toml|fly\.toml|procfile|render\.yaml|wrangler\.(toml|json|jsonc)|app\.json|now\.json)$/i;
     const deploy = named(deployNames).filter(prod);
@@ -461,7 +482,7 @@ export function detectFacilities(files, history, groups, extra) {
     if (servers.length || deployAll.length || frameworks.length || fwConfig.length) {
       const parts = [];
       if (servers.length) parts.push(`「${servers[0].path}」が ${servers[0].how}を立てる`);
-      if (domains.length) parts.push(`「${cname[0]}」で ${domains[0]} という住所に公開している`);
+      if (domains.length) parts.push(`「${cname[0]}」に ${domains[0]} という住所の札がある`);     // 公開した証拠ではない
       else if (deployAll.length) parts.push(`公開の設定「${deployAll[0]}」がある`);
       if (frameworks.length) parts.push(`${frameworks.slice(0, 2).join('・')} を使う`);
       else if (fwConfig.length && !servers.length) parts.push(`Webの骨組みの設定「${fwConfig[0]}」がある`);
@@ -471,6 +492,7 @@ export function detectFacilities(files, history, groups, extra) {
       add('inn', '宿屋', parts.join('、'), evidence, {
         servers: servers.slice(0, 6), deploy: deployAll.slice(0, 6), domains, frameworks, configs: fwConfig.slice(0, 4), pages: sortPaths(pages).slice(0, 4),
       });
+      entry = { deployAll, domains, cname: domains.length ? cname[0] : null, frameworks, fwConfig, evidence };
     }
   }
 
@@ -497,6 +519,19 @@ export function detectFacilities(files, history, groups, extra) {
     ciSecrets.get(m[1]).add(p);
   }
 
+  // 受付（この街が外から受ける道）: 同じ道は1つに（受け方の分かるものを残す）。酒場の名簿と門が使う
+  const receptions = () => {
+    const seen = new Map();
+    for (const r of routeList) {
+      const k = `${r.method || ''} ${r.route}`;
+      if (seen.has(k)) continue;
+      if (!r.method && [...seen.values()].some((x) => x.route === r.route)) continue;
+      if (r.method) for (const [k2, x] of seen) if (!x.method && x.route === r.route) seen.delete(k2);
+      seen.set(k, r);
+    }
+    return [...seen.values()].sort((a, b) => (a.route < b.route ? -1 : a.route > b.route ? 1 : (a.method || '') < (b.method || '') ? -1 : 1));
+  };
+
   // --- 酒場: API・外部接続・LLM・webhook ---
   {
     const sdk = depHits(SDK);
@@ -517,16 +552,7 @@ export function detectFacilities(files, history, groups, extra) {
       if (hooks.length) parts.push(`webhook の受け口「${hooks[0]}」`);
       if (!parts.length) parts.push(`API の取り決めの書類「${apiSpecs[0]}」`);
       const evidence = [...names.flatMap((n) => sortPaths([...connectors.get(n).paths]).slice(0, 3)), ...webhooks.map((w) => w.path), ...apiSpecs];
-      // 受付: 同じ道は1つに（受け方の分かるものを残す）
-      const seen = new Map();
-      for (const r of routeList) {
-        const k = `${r.method || ''} ${r.route}`;
-        if (seen.has(k)) continue;
-        if (!r.method && [...seen.values()].some((x) => x.route === r.route)) continue;
-        if (r.method) for (const [k2, x] of seen) if (!x.method && x.route === r.route) seen.delete(k2);
-        seen.set(k, r);
-      }
-      const routes = [...seen.values()].sort((a, b) => (a.route < b.route ? -1 : a.route > b.route ? 1 : (a.method || '') < (b.method || '') ? -1 : 1));
+      const routes = receptions();
       const known = names;
       const keys = envNames.filter(isKeyName).slice(0, 20).map((n) => ({ name: n, for: keyFor(n, known), example: exampleSet.has(n) }));
       add('pub', '酒場', parts.join('、'), evidence, {
@@ -764,6 +790,46 @@ export function detectFacilities(files, history, groups, extra) {
       add('dock', '船着場', parts.join('、'), all, {
         packages: packages.slice(0, 6), apps: apps.slice(0, 6), publish: pubs.slice(0, 6), bins: uniq(bins).slice(0, 6),
       });
+    }
+  }
+
+  // --- 門: 外から旅の人が入ってくる入口（宿屋と同じ証拠に、受付の道とログインの道具を添える）。外に立つ施設 ---
+  // 公開の設定があっても、本当に外に開いているかは分からない（確かめていない）
+  {
+    const routes = receptions();
+    const methodRoutes = routes.filter((r) => r.method);
+    if (entry || methodRoutes.length) {
+      const targets = [];
+      for (const p of entry ? entry.deployAll : []) {
+        if (entry.cname && p === entry.cname) continue;
+        const name = nameIn(DEPLOY_TARGET, basename(p));
+        targets.push({ path: p, name: name || null });
+      }
+      // ログインの道具: 製品の依存（docs・examples・tests の下の manifest は数えない）
+      const auth = [];
+      for (const { dep, path } of deps) {
+        if (!prod(path)) continue;
+        const n = nameIn(AUTH_DEP, dep);
+        if (n && !auth.some((a) => a.name === n)) auth.push({ name: n, path });
+      }
+      const parts = [];
+      if (entry?.domains.length) parts.push(`「${entry.cname}」に ${entry.domains[0]} という住所`);
+      else if (targets.length) parts.push(`公開の設定「${targets[0].path}」${targets[0].name ? `（${targets[0].name}）` : ''}`);
+      if (servers.length) parts.push(`「${servers[0].path}」が ${servers[0].how}を立てる`);
+      if (routes.length) parts.push(`受付の道 ${routes.length} 本`);
+      if (!parts.length && entry?.frameworks.length) parts.push(`${entry.frameworks.slice(0, 2).join('・')} を使う`);
+      if (!parts.length && entry?.fwConfig.length) parts.push(`Webの骨組みの設定「${entry.fwConfig[0]}」`);
+      if (auth.length) parts.push(`ログインの道具 ${auth.slice(0, 2).map((a) => a.name).join('・')}`);
+      add('gate', '門', parts.join('、'), [...(entry ? entry.evidence : []), ...(entry?.cname ? [entry.cname] : []),
+        ...sortPaths(uniq(routes.map((r) => r.path))), ...auth.map((a) => a.path)], {
+        domains: entry ? entry.domains.slice(0, 4) : [],
+        deploy: targets.slice(0, 6),
+        servers: servers.slice(0, 4),
+        frameworks: entry ? entry.frameworks.slice(0, 4) : [],
+        routes: (methodRoutes.length >= 3 ? methodRoutes : routes).slice(0, 8), routesTotal: routes.length,
+        auth: auth.slice(0, 4),
+      });
+      facilities[facilities.length - 1].noMerge = true;      // 建物が無いので、モジュールをまとめない
     }
   }
 

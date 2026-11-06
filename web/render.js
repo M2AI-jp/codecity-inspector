@@ -90,7 +90,10 @@ export class Renderer {
       if (e.kind === B_KIND) {
         this.drawBuilding(ctx, e.obj, camX, camY);
         if (playerKey >= 0 && !occluded && this.covers(e.obj, s.player)) occluded = true;
-      } else if (e.kind === P_KIND) this.drawProp(ctx, e.obj, camX, camY);
+      } else if (e.kind === P_KIND) {
+        this.drawProp(ctx, e.obj, camX, camY);
+        if (playerKey >= 0 && !occluded && this.coversProp(e.obj, s.player)) occluded = true;
+      }
       else if (e.obj.draw) e.obj.draw(ctx, camX, camY);          // creatures draw themselves (web/creatures.js)
       else {
         this.drawCharacter(ctx, e.obj, camX, camY);
@@ -167,6 +170,38 @@ export class Renderer {
     const ix = b.px - a.exteriorOrigin[0], iy = b.py - a.exteriorOrigin[1];
     const x0 = p.rx - 10, x1 = p.rx + 10, y0 = p.ry - 26, y1 = p.ry;
     return x1 > ix && x0 < ix + a.exterior.width && y1 > iy && y0 < iy + a.exterior.height;
+  }
+
+  // a prop with an opening (the gate) hides the player walking behind its lintel or pillars; seen
+  // through the gap under the lintel, they need no ghost
+  coversProp(p, pl) {
+    const d = p.def;
+    if (!d || !d.image || !Array.isArray(d.opening)) return false;
+    const ix = p.x - d.origin[0], iy = p.y - d.origin[1];
+    const x0 = pl.rx - 6, x1 = pl.rx + 6, y0 = pl.ry - 26, y1 = pl.ry;
+    if (!(x1 > ix && x0 < ix + d.image.width && y1 > iy && y0 < iy + d.image.height)) return false;
+    const o = d.opening, ox0 = p.x + o[0], ox1 = ox0 + o[2], oy0 = p.y + this.clearance(d);
+    return !(x0 >= ox0 && x1 <= ox1 && y0 >= oy0);
+  }
+
+  // how high the gap under the lintel is (px above the foot, negative): the first opaque pixel above
+  // the foot in the middle of the opening (the opening box itself is only the walkable floor)
+  clearance(d) {
+    if (d.clearTop !== undefined) return d.clearTop;
+    let top = d.opening[1];
+    try {
+      const c = document.createElement('canvas');
+      c.width = d.image.width; c.height = d.image.height;
+      const g = c.getContext('2d');
+      g.drawImage(d.image, 0, 0);
+      const cx = Math.round(d.origin[0] + d.opening[0] + d.opening[2] / 2);
+      const a = g.getImageData(cx, 0, 1, c.height).data;
+      let y = Math.min(c.height - 1, d.origin[1] + d.opening[1]);
+      while (y > 0 && a[y * 4 + 3] < 128) y--;
+      top = Math.min(top, y + 1 - d.origin[1]);
+    } catch { /* unreadable image: the walkable box is all we know */ }
+    d.clearTop = top;
+    return top;
   }
 
   // a warm silhouette with the sprite faintly inside it: reads at a glance on any roof colour
