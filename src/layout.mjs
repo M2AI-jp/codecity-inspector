@@ -1056,6 +1056,27 @@ function finalize(P, maxH, opt = {}) {
     x0 = Math.min(x0, p.x - 5); x1 = Math.max(x1, p.x + p.w + 4);
     y0 = Math.min(y0, p.y - 6); y1 = Math.max(y1, p.yb + 6);
   }
+  // 門を置く余地: 南北の通りが街の外へ出る所の先に、両わきの建物（と屋根）より外へ、門の絵の高さ＋数行の土の道を残す。
+  // 通りの端のすぐ外まで建物が並ぶ街では、切り出す範囲がその建物で止まり、門の立つ所が無くなっていた
+  if (opt.gateRows) {
+    const near = (p, x) => p.x <= x + 9 && p.x + p.w - 1 >= x - 8;
+    const avN = pieces.filter((p) => p.kind === 'avenue' && p.dir === 'v' && p.y1 < plaza.y0);
+    const tN = avN.filter((p) => p.keep).sort((a, b) => a.keep[0] - b.keep[0])[0] || [...avN].sort((a, b) => b.y1 - a.y1)[0];
+    if (tN) {
+      const end = tN.keep ? tN.keep[0] : tN.y1 + 1;
+      let top = end;
+      for (const p of placed) if (near(p, tN.x0) && p.yb < end + 2) top = Math.min(top, p.y);
+      y0 = Math.min(y0, top - opt.gateRows - 4);
+    }
+    const avS = pieces.filter((p) => p.kind === 'avenue' && p.dir === 'v' && p.y0 > plaza.y0);
+    const bS = avS.filter((p) => p.keep).sort((a, b) => b.keep[1] - a.keep[1])[0] || [...avS].sort((a, b) => a.y0 - b.y0)[0];
+    if (!quay && bS) {
+      const end = bS.keep ? bS.keep[1] : bS.y0 - 1;
+      let bot = end;
+      for (const p of placed) if (near(p, bS.x0) && p.y > end - 2) bot = Math.max(bot, p.yb);
+      y1 = Math.max(y1, bot + opt.gateRows + 4);
+    }
+  }
   if (quay) y1 = quay.water1;
   const crop = { x0: Math.max(0, x0), y0: Math.max(0, y0), x1: Math.min(cols - 1, x1), y1: Math.min(rows - 1, y1) };
   // 岸の通りは、使った区間を少しのばす。その下は水（街の幅いっぱい）
@@ -1375,7 +1396,7 @@ function placeProps(P, F, rng, spawn, extra) {
         trail.set(y, col);
       }
       const pathCol = (e2, y) => trail.get(y) ?? -1;
-      for (const k of [2, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]) {
+      for (const k of [2, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]) {
         const r = e.end + e.dir * k;                    // 門の行（柱の足元の行）
         const out1 = r + e.dir;                         // 門の外の1行
         if (out1 < crop.y0 + 1 || out1 > crop.y1 - 1 || r - Math.ceil(oy / 16) < crop.y0) continue;
@@ -1954,7 +1975,8 @@ export function layoutTown(repo, opts = {}) {
     P = generate({ ...C, groups: g2, fac: { ...fac, early: [...fac.early], late: [...fac.late] } }, scale);
   }
   if (!P) throw new Error('layoutTown: 建物を配置できなかった');
-  const F = finalize(P, maxH, { scaffold: !!(propArt.scaffold || propArt['scaffold-2']) });
+  const gateArt = landmarks.some((l) => l.data.archetype === 'gate') && propArt.gate;
+  const F = finalize(P, maxH, { scaffold: !!(propArt.scaffold || propArt['scaffold-2']), gateRows: gateArt ? Math.ceil((gateArt.origin?.[1] ?? 64) / 16) : 0 });
   if (opts.debug) opts.debug.P = P;                  // 調べる道具のため（通り・街区の中身）
   // 出発点は段の下の広場の最初の行（段の前の壁の上には立たせない）
   const hallT = P.terraces.find((t) => t.hall);
