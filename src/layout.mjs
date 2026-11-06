@@ -1392,6 +1392,20 @@ function placeProps(P, F, rng, spawn, extra) {
     }
     if (got) out.landmarks.push({ ...lm.data, x: got.prop.x, y: got.prop.y, keeper: got.keeper });
   }
+  // 井戸小屋がまん中にあれば、花壇（あれば）は広場の上の方の片側に（ベンチは井戸小屋に向いたまま）
+  if (wellAtCentre && hasBed) {
+    const keep = { ...feature };
+    const [fw, fh] = propTiles('flowerbed', propArt);
+    const left = hash32(`bed:${pc}:${sq0}`) % 2 === 0;
+    // 上の方・中心から離れた所から順に、広場の中のすべての位置を試す
+    const spots = [];
+    for (let y = sq0 + 1; y + fh - 1 <= py1 - 1; y++) for (let x = px0; x + fw - 1 <= px1; x++) spots.push([x, y, 1]);
+    const far = (x) => Math.abs(x + fw / 2 - pc - 0.5);
+    const edge = (x) => (x < px0 + 1 || x + fw - 1 > px1 - 1 ? 1 : 0);    // 広場の縁にかかる所は最後に
+    spots.sort((a, b) => edge(a[0]) - edge(b[0]) || (a[1] - b[1]) * 2 - (far(a[0]) - far(b[0])) || (left ? a[0] - b[0] : b[0] - a[0]));
+    placeFeature('flowerbed', null, spots, false);
+    Object.assign(feature, keep);
+  }
   // 井戸小屋がまん中に無ければ、花壇（あれば）か花の島をまん中に
   if (!wellAtCentre) {
     if (hasBed) { const [fw, fh] = propTiles('flowerbed', propArt); placeFeature('flowerbed', null, centreSpots(fw, fh), false); }
