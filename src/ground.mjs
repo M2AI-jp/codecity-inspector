@@ -13,7 +13,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { decodePNG, encodePNG } from '../tools/png.mjs';
 
-export const GROUND_VERSION = 10;          // 見た目を変えたら上げる（キャッシュの鍵に入る）
+export const GROUND_VERSION = 11;          // 見た目を変えたら上げる（キャッシュの鍵に入る）
 const T = 16;
 const DEFAULT_ART = path.resolve(import.meta.dirname, '../art/game');
 const TEX_NAMES = ['street', 'grass', 'dirt', 'plaza', 'moss'];
@@ -945,12 +945,13 @@ export function renderGround(town, artDir = DEFAULT_ART) {
     // 石段の 1 画素: 石垣から手前へ 8px 張り出す 4 段（6px ごとに 踏み面 3px・段鼻 1px・蹴上げ 2px）。ly は 0..23
     const SD = 24;
     const stairPx = (x, y, ly, sx0, sx1) => {
-      const step = (ly / 6) | 0, k6 = ly % 6, b = blockAt((x - sx0) * 0.55 + step * 5, 20 + step);
-      if (k6 < 4 && b.lx === 0) { put(x, y, MORTAR, 1.3); return; }
-      let k = k6 < 3 ? 1.16 + 0.04 * k6 : k6 === 3 ? 1.4 : k6 === 4 ? 0.5 : 0.32;
-      if (x - sx0 < 2 && ly < T) k *= 0.78;                                    // 左の袖柱の影
-      if (ly >= T && (x === sx0 || x === sx1 - 1)) k *= 0.6;                   // 張り出した段の両端
-      STONE(x, y, b.key + 400, k * (1 - 0.025 * step));
+      // 基準の石段: 踏み面は横に長い一枚石で明るく、蹴上げは濃い影。両脇の石垣より明るく、縞ではなく段に見える
+      const step = (ly / 6) | 0, k6 = ly % 6, b = blockAt((x - sx0) * 0.3 + step * 5, 20 + step);
+      if (k6 < 3 && b.lx === 0) { put(x, y, MORTAR, 1.5); return; }
+      let k = k6 === 0 ? 1.34 : k6 < 3 ? 1.24 : k6 === 3 ? 1.5 : k6 === 4 ? 0.36 : 0.22;
+      if (x - sx0 < 2) k *= 0.72;                                              // 左の袖の影
+      if (sx1 - 1 - x < 1) k *= 0.6;                                           // 右の端
+      STONE(x, y, b.key + 400, k * (1 - 0.02 * step));
     };
     // 柱: 上に 4px 突き出た笠石、左の面は明るく右の面は暗い
     const post = (px0, w, fy) => {
