@@ -34,8 +34,8 @@ const PROP_MEANING = {
 };
 
 const sections = [];
-let n = 0;
-const code = (p) => `${p}-${String(++n).padStart(2, '0')}`;
+// the label is the file's own name, so it never shifts when candidates are added or removed
+const code = (p) => p;
 
 // approved
 const approved = list(path.join(ART, 'approved'), /\.png$/);
@@ -45,7 +45,6 @@ sections.push({
 });
 
 // buildings
-n = 0;
 const bdir = path.join(ART, 'game', 'buildings');
 const bitems = list(bdir, /\.json$/).map((j) => {
   const key = j.replace(/\.json$/, '');
@@ -53,35 +52,31 @@ const bitems = list(bdir, /\.json$/).map((j) => {
   const a = path.join(bdir, `${key}.exterior.png`), b = path.join(bdir, `${key}.cutaway.png`);
   if (!exists(a)) return null;
   const [w, h] = pngSize(a);
-  return { code: code('建'), name: key, sub: MEANING[meta.archetype] || meta.archetype, pair: [uri(a), exists(b) ? uri(b) : null], w, h, scale: 3 };
+  return { code: code('建', key), name: key, sub: MEANING[meta.archetype] || meta.archetype, pair: [uri(a), exists(b) ? uri(b) : null], w, h, scale: 3 };
 }).filter(Boolean);
 sections.push({ id: 'buildings', title: '建物', note: '左が外観、右が中に入ったときの姿（同じ位置で切り替わります）。', items: bitems });
 
 // people
-n = 0;
 const rdir = path.join(ART, 'game', 'residents');
 const people = list(rdir, /\.png$/).map((f) => {
   const key = f.replace(/\.png$/, '');
-  return { code: code('人'), name: key, sub: KEEPER[key] || (key.startsWith('townsfolk') ? '街を歩く住人' : ''), img: uri(path.join(rdir, f)), scale: 3, sheet: true, anim: true };
+  return { code: code('人', key), name: key, sub: KEEPER[key] || (key.startsWith('townsfolk') ? '街を歩く住人' : ''), img: uri(path.join(rdir, f)), scale: 3, sheet: true, anim: true };
 });
 sections.push({ id: 'people', title: '人物', note: '上から 下・左・右・上 向き。右の小窓は歩きの動き。', items: people });
 
 // creatures
-n = 0;
 const cdir = path.join(ART, 'game', 'creatures');
-const creatures = list(cdir, /\.png$/).map((f) => ({ code: code('生'), name: f.replace(/\.png$/, ''), img: uri(path.join(cdir, f)), scale: 4, sheet: true }));
+const creatures = list(cdir, /\.png$/).map((f) => ({ code: code('生', f.replace(/\.png$/, '')), name: f.replace(/\.png$/, ''), img: uri(path.join(cdir, f)), scale: 4, sheet: true }));
 if (creatures.length) sections.push({ id: 'creatures', title: '生き物', note: 'bot・cron・依存などの生活感を表す小さな生き物。', items: creatures });
 
 // props
-n = 0;
 const pdir = path.join(ART, 'game', 'props');
-const props = list(pdir, /\.png$/).map((f) => ({ code: code('物'), name: f.replace(/\.png$/, ''), sub: PROP_MEANING[f.replace(/\.png$/, '')] || '', img: uri(path.join(pdir, f)), scale: 3 }));
+const props = list(pdir, /\.png$/).map((f) => ({ code: code('物', f.replace(/\.png$/, '')), name: f.replace(/\.png$/, ''), sub: PROP_MEANING[f.replace(/\.png$/, '')] || '', img: uri(path.join(pdir, f)), scale: 3 }));
 sections.push({ id: 'props', title: '小物', note: '', items: props });
 
 // ground
-n = 0;
 const gdir = path.join(ART, 'game', 'ground');
-const ground = list(gdir, /\.png$/).map((f) => ({ code: code('地'), name: f.replace(/\.png$/, ''), img: uri(path.join(gdir, f)), scale: 2, tile: true }));
+const ground = list(gdir, /\.png$/).map((f) => ({ code: code('地', f.replace(/\.png$/, '')), name: f.replace(/\.png$/, ''), img: uri(path.join(gdir, f)), scale: 2, tile: true }));
 sections.push({ id: 'ground', title: '地面', note: '継ぎ目なしで敷き詰める地面の素材（2×2で並べて表示）。', items: ground });
 
 const player = approved.length ? uri(path.join(ART, 'approved', approved[0])) : '';
@@ -144,7 +139,7 @@ footer { color: var(--dim); font-size: 14px; }
 <header>
   <h1>CodeCity 素材レビュー</h1>
   <p>リポジトリが夜の街になるゲームの素材です。承認済みは1点だけで、ほかの <span class="count">${total}</span> 点はすべて候補です。</p>
-  <p class="how">OKにする素材の記号（例: 建-03、人-05）を返信してください。OKのものだけを「承認済み」に移します。NGのものは理由を一言もらえると作り直しに使います。</p>
+  <p class="how">OKにする素材の名前（例: dock-1、keeper-well）を返信してください。名前は素材を足しても変わりません。OKのものだけを「承認済み」に移します。NGのものは理由を一言もらえると作り直しに使います。</p>
 </header>
 ${sections.map((s) => `<section id="${s.id}"><h2>${esc(s.title)}</h2>${s.note ? `<p>${esc(s.note)}</p>` : ''}<div class="grid">${s.items.map(card).join('')}</div></section>`).join('\n')}
 <footer>各人物の右の小窓は、そのシートから歩きの動きを再生したものです。建物の右端の人物は、大きさ比べ用の承認済みの主人公です。</footer>
