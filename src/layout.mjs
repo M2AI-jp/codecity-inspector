@@ -612,7 +612,8 @@ function generate(C, scale) {
   // ---- 段（terrace）: 役場は広場の北の段の上に立ち、段の前の壁（face）は広場に向く。階段は扉の前（あとで版の扉に合わせる）。
   // ほかに、下に通りのある小さな緑地をひとつ段にする（壁は緑地の下の端、階段は真ん中）
   const terraces = [];
-  if (hall) terraces.push({ x: hall.x - 1, y: hall.y - 2, w: hall.w + 2, h: plaza.y0 - (hall.y - 2) + 1, hall: true });
+  // 役場の扉の前は段の上の前庭が2行（基準の絵の踊り場。建物が段の上に立っているのが分かる）。前の壁はその下の行
+  if (hall) terraces.push({ x: hall.x - 1, y: hall.y - 2, w: hall.w + 2, h: plaza.y0 - (hall.y - 2) + 2, hall: true });
   {
     const cand = leaves.filter((L) => L.green && L.x1 - L.x0 + 1 >= 6 && L.y1 - L.y0 + 1 >= 5 && L.y1 - L.y0 + 1 <= 11)
       .filter((L) => { for (let x = L.x0; x <= L.x1; x++) if (!isRoad(x, L.y1 + 1)) return false; return true; })
@@ -1615,7 +1616,8 @@ function placeProps(P, F, rng, spawn, extra) {
   if (has('lowwall')) { for (const x of [px0 + 1, px1 - 2]) if (!tryProp('lowwall', x, py1)) { tryProp('fence', x, py1); tryProp('fence', x + 1, py1); } }
   else for (const x of [px0 + 1, px0 + 2, px1 - 2, px1 - 1]) tryProp('fence', x, py1);
   // 縁の街灯: 階段の両わき、広場の四隅
-  if (ht?.stair) for (const x of [ht.stair.x - 1, ht.stair.x + ht.stair.w]) if (inC(x, sq0) && !doorRow[id(x, sq0)]) tryProp('lamp', x, sq0, true);
+  // 階段の両わきの柱が見えるよう、街灯は柱より1マス外
+  if (ht?.stair) for (const x of [ht.stair.x - 2, ht.stair.x + ht.stair.w + 1]) if (inC(x, sq0) && !doorRow[id(x, sq0)]) tryProp('lamp', x, sq0, true);
   lampAt([[px0, py1 - 1], [px0 + 1, py1 - 1], [px0, py1 - 2]], 4);
   lampAt([[px1, py1 - 1], [px1 - 1, py1 - 1], [px1, py1 - 2]], 4);
   lampAt([[px0, sq0 + 1], [px0 + 1, sq0], [px0, sq0 + 2]], 4);
@@ -1950,7 +1952,9 @@ export function layoutTown(repo, opts = {}) {
   if (!P) throw new Error('layoutTown: 建物を配置できなかった');
   const F = finalize(P, maxH, { scaffold: !!(propArt.scaffold || propArt['scaffold-2']) });
   if (opts.debug) opts.debug.P = P;                  // 調べる道具のため（通り・街区の中身）
-  const spawn = { x: P.cx, y: P.plaza.y0 + 2 };
+  // 出発点は段の下の広場の最初の行（段の前の壁の上には立たせない）
+  const hallT = P.terraces.find((t) => t.hall);
+  const spawn = { x: P.cx, y: hallT ? hallT.y + hallT.h + 1 : P.plaza.y0 + 2 };
 
   // 見た目の版: 近くに同じ archetype の同じ版が並ばないように選ぶ（同じ入力からは同じ選び方）
   const variantOf = new Map();
@@ -1983,8 +1987,9 @@ export function layoutTown(repo, opts = {}) {
     const hp = P.placed.find((p) => p.spec.archetype === 'town_hall');
     if (!hp) { t.drop = true; continue; }
     const dw = variantOf.get(hp)?.doorW ?? 1;
-    // 基準の絵のように幅の広い階段: 2マスの扉なら左右に1マスずつ広げた4マス、1マスの扉なら3マス（扉が真ん中）
-    t.stair = dw >= 3 ? { x: hp.doorCol, w: dw } : dw === 2 ? { x: hp.doorCol - 1, w: 4 } : { x: hp.doorCol - 1, w: 3 };
+    // 基準の役場の階段は人物の背丈の約1.6倍（約2.6マス）なので3マス: 1マスの扉なら扉が真ん中、2マスの扉なら広場の中心の側へ1マス広げる
+    const towardRight = hp.doorCol + 1 <= P.cx + 0.5;
+    t.stair = dw >= 3 ? { x: hp.doorCol, w: dw } : dw === 2 ? { x: towardRight ? hp.doorCol : hp.doorCol - 1, w: 3 } : { x: hp.doorCol - 1, w: 3 };
     if (t.stair.x < t.x) t.stair.x = t.x;
     if (t.stair.x + t.stair.w > t.x + t.w) t.stair.x = t.x + t.w - t.stair.w;
   }
