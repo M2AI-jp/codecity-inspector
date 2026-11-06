@@ -81,7 +81,9 @@ async function boot() {
     b.talkR = Math.min(72, Math.max(NEAR_KEEPER, d));
   }
   const movers = [...npcs.walkers, ...npcs.locals];     // named contributors + ambient townsfolk
-  player.blockers = movers;
+  // Walking townsfolk never block the player: brushing through a crowd must not stall or jolt the
+  // run (they still step aside on their own). Keepers stay solid via their world rects above.
+  player.blockers = null;
 
   const canvas = document.getElementById('view');
   const renderer = new Renderer(canvas, world, ground, DEBUG);
