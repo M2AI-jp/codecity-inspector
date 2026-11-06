@@ -109,11 +109,11 @@ export class Lighting {
         g.drawImage(this.window, x - r, y - r, r * 2, r * 2);
       } else if (L.footY !== undefined) {
         // street lamp: a softer glow around the lamp, and a bright flattened pool on the ground at its foot
-        g.globalAlpha = Math.min(1, 0.7 * f.i);
+        g.globalAlpha = Math.min(1, 0.5 * f.i);
         const rg = r * 0.75;
         g.drawImage(this.warm, x - rg, y - rg, rg * 2, rg * 2);
         const px = r * 0.95 * f.r, py = r * 0.58 * f.r, fy = L.footY - camY - 3;
-        g.globalAlpha = Math.min(1, 1.0 * f.i);
+        g.globalAlpha = Math.min(1, 0.75 * f.i);
         g.drawImage(this.pool, x - px, fy - py, px * 2, py * 2);
       } else {
         // broad pool + hot core: strong enough to show the stone texture, ambient stays dark
