@@ -1615,13 +1615,17 @@ function placeProps(P, F, rng, spawn, extra) {
   // 南の縁の両わき: 低い石垣（2マス）があればそれ、無ければ低い柵
   if (has('lowwall')) { for (const x of [px0 + 1, px1 - 2]) if (!tryProp('lowwall', x, py1)) { tryProp('fence', x, py1); tryProp('fence', x + 1, py1); } }
   else for (const x of [px0 + 1, px0 + 2, px1 - 2, px1 - 1]) tryProp('fence', x, py1);
-  // 縁の街灯: 階段の両わき、広場の四隅
-  // 階段の両わきの柱が見えるよう、街灯は柱より1マス外
-  if (ht?.stair) for (const x of [ht.stair.x - 2, ht.stair.x + ht.stair.w + 1]) if (inC(x, sq0) && !doorRow[id(x, sq0)]) tryProp('lamp', x, sq0, true);
-  lampAt([[px0, py1 - 1], [px0 + 1, py1 - 1], [px0, py1 - 2]], 4);
-  lampAt([[px1, py1 - 1], [px1 - 1, py1 - 1], [px1, py1 - 2]], 4);
-  lampAt([[px0, sq0 + 1], [px0 + 1, sq0], [px0, sq0 + 2]], 4);
-  lampAt([[px1, sq0 + 1], [px1 - 1, sq0], [px1, sq0 + 2]], 4);
+  // 縁の街灯は2本だけ（基準 target-town.png の広場も、西と東の縁に1本ずつ）: 段の下の舞台の上の方、西と東の縁。
+  // 多いと広場のほとんどが光だまりの明るさになる。階段の明かりは役場の扉の灯と、この2本の光だまりで足りる
+  // 縁の列を上から順に（花壇・樽のまわりで立てられなければ、その下）、だめなら1マス内側
+  const edgeLamp = (x, xi) => {
+    const c = [];
+    for (let y = sq0 + 1; y <= py1 - 1; y++) c.push([x, y]);
+    for (let y = sq0 + 1; y <= py1 - 1; y++) c.push([xi, y]);
+    return lampAt(c, 4);
+  };
+  edgeLamp(px0, px0 + 1);
+  edgeLamp(px1, px1 - 1);
 
   // 工事中（作業中の変更がある建物）: 横の壁に足場、そばに工事中の札、余地があれば材木
   for (const p of placed) {
