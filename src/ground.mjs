@@ -13,7 +13,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { decodePNG, encodePNG } from '../tools/png.mjs';
 
-export const GROUND_VERSION = 12;          // 見た目を変えたら上げる（キャッシュの鍵に入る）
+export const GROUND_VERSION = 13;          // 見た目を変えたら上げる（キャッシュの鍵に入る）
 const T = 16;
 const DEFAULT_ART = path.resolve(import.meta.dirname, '../art/game');
 const TEX_NAMES = ['street', 'grass', 'dirt', 'plaza', 'moss'];
@@ -943,16 +943,17 @@ export function renderGround(town, artDir = DEFAULT_ART) {
       else if (b.lx === b.len - 1) k *= 0.82;                                   // 右の縁
       STONE(x, y, b.key, k * (course ? 0.92 : 1.0));
     };
-    // 石段の 1 画素: 石垣から手前へ 8px 張り出す 4 段（6px ごとに 踏み面 3px・段鼻 1px・蹴上げ 2px）。ly は 0..23
+    // 石段の 1 画素: 石垣から手前へ 8px 張り出す 6 段（4px ごとに 踏み面 2px・段鼻 1px・蹴上げ 1px）。ly は 0..23
+    // 基準の役場の石段は、人物の背丈ほどの高さに 5〜6 段（1 段がゲームの画素で約 3.6px）。6px ごとの 4 段では、厚い板に溝が 2 本ある腰掛けに見えた
     const SD = 24;
     const stairPx = (x, y, ly, sx0, sx1) => {
       // 基準の石段: 踏み面は横に長い一枚石で明るく、蹴上げは濃い影。両脇の石垣より明るく、縞ではなく段に見える
-      const step = (ly / 6) | 0, k6 = ly % 6, b = blockAt((x - sx0) * 0.3 + step * 5, 20 + step);
-      if (k6 < 3 && b.lx === 0) { put(x, y, MORTAR, 1.5); return; }
-      let k = k6 === 0 ? 1.34 : k6 < 3 ? 1.24 : k6 === 3 ? 1.5 : k6 === 4 ? 0.36 : 0.22;
+      const step = (ly / 4) | 0, k4 = ly % 4, b = blockAt((x - sx0) * 0.3 + step * 5, 20 + step);
+      let k = k4 === 0 ? 1.3 : k4 === 1 ? 1.22 : k4 === 2 ? 1.46 : 0.3;
+      if (k4 < 2 && b.lx === 0) k *= 0.72;                                     // 踏み面の継ぎ目は細い影（黒い目地にすると四角い穴に見える）
       if (x - sx0 < 2) k *= 0.72;                                              // 左の袖の影
       if (sx1 - 1 - x < 1) k *= 0.6;                                           // 右の端
-      STONE(x, y, b.key + 400, k * (1 - 0.02 * step));
+      STONE(x, y, b.key + 400, k * (1 - 0.015 * step));
     };
     // 柱: 上に 4px 突き出た笠石、左の面は明るく右の面は暗い
     const post = (px0, w, fy) => {
