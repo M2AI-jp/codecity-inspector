@@ -37,11 +37,13 @@
   buildings: [{
     id: "b12",
     archetype: "house_s" | "house_m" | "shop" | "workshop" | "ruin" | ...,   // art/game/manifest.json のキー
+    variant: "house_s-2",              // 省略可。見た目の版（近くに同じ版が並ばないよう layout が選ぶ）。無ければ hash(id) で選ぶ
     x: 10, y: 8, w: 6, h: 4,           // footprint（壁の外周）。扉は下辺
     door: { x: 12, y: 11 },            // 扉のtile（footprintの最下段）
     module: { ...RepoModel.modules[i] }
   }],
-  props: [{ type: "lamp" | "barrel" | "crate" | "tree" | "bush" | "bench" | "well" | "fence" | "noticeboard", x: 20.5, y: 14 }],
+  props: [{ type: "lamp" | "barrel" | "crate" | "tree" | "bush" | "bench" | "well" | "fence" | "noticeboard"
+                 | "sacks" | "flowerpot" | "planter" | "cart", x: 20.5, y: 14 }],   // manifest に <type>-2 などの別の見た目があれば、位置の hash で選ぶ
   residents: [{ id: "r1", name: "amano", commits: 30, homes: ["b12", "b3"], look: 0,
                 lastCommit: { subject, date } | null }],             // contributors[].lastCommit
   spawn: { x: 48, y: 40 }
@@ -84,9 +86,10 @@ manifest.json は手で編集しない。画像を作る人は、画像の隣に
 
 - 建物 `art/game/buildings/<archetype>-<n>.json`:
   `{ "archetype": "house_s", "footprint": [6,4], "exterior": {"src": "house_s-1.exterior.png", "origin": [ox,oy]}, "cutaway": {"src": "house_s-1.cutaway.png", "origin": [ox,oy]}, "door": {"x":2,"w":2}, "blockers": [...], "lights": [...], "smoke": [...] }`
+  `interiorLights: [[x,y,r], ...]`（footprint基準のpx）は炉・暖炉など室内の光で、建物が開いている（cutaway）間だけ灯る。`lights` は常に灯る（窓など）。
   `floor: [x,y,w,h]`（footprint基準のpx）があれば、室内で歩けるのはその矩形から `blockers` を除いた所だけで、footprintの残りは壁（扉の隙間を除く）。無ければ従来どおり外周1tile（奥は2tile）が壁。
   画像の大きさは「幅 = footprint幅×16」「高さ = footprint奥行×16 + 屋根の高さ」。footprintの下端が画像の下端に来るので、通常 origin = [0, 画像の高さ − footprint奥行×16]。
-  同じarchetypeに複数の `<n>`（見た目の違う版）があってよい。manifestでは `archetypes["house_s"].variants = [...]` になり、町の各建物は `hash(building.id)` で版を選ぶ。
+  同じarchetypeに複数の `<n>`（見た目の違う版）があってよい。manifestでは `archetypes["house_s"].variants = [...]` になり、町の各建物は `building.variant`（無ければ `hash(building.id)`）で版を選ぶ。
 - 人物 `art/game/residents/<name>.png`（4×4、32×32のframe。行は 下・左・右・上、列は 立ち・歩きA・立ち・歩きB）。`keeper-<kind>.png` は建物の中にいる番人（kind は workshop・shop・house・ruin）、`townsfolk-<n>.png` は街を歩く住人。
 - 小物 `art/game/props/<type>.png` と `<type>.json`: `{ "origin": [ox,oy], "solid": [x,y,w,h] | null, "light": [x,y,r] | null, "flicker": true }`（座標は小物の足元＝town.jsonの(x,y)×16 を原点としたpx）
 

@@ -39,4 +39,7 @@ export const PLAYER_LIGHT_RADIUS = 46;
 export const RESIDENT_SPEED = 40;
 export const NEAR_RESIDENT = 30;        // px, speech bubble distance
 export const NEAR_KEEPER = 44;          // px, dialogue distance inside a building
+// a keeper's solid rect [dx, dy, w, h] around their feet: a little personal space, so the player
+// stops about one step away instead of standing inside the keeper's sprite
+export const KEEPER_BOX = [-6, -7, 12, 12];
 export const NEAR_NOTICE = 40;          // px, noticeboard distance

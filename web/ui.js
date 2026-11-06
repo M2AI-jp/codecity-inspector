@@ -2,7 +2,7 @@
 // bubble, noticeboard. Everything opens and closes by proximity; no key is needed.
 
 import { KIND_JA, fmtInt, langName } from './util.js';
-import { keeperLines, residentBubble, whenJa } from './dialogue.js';
+import { keeperLines, residentBubble, whenJa, shortSubject } from './dialogue.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -53,7 +53,7 @@ export class UI {
     const lc = m.lastCommit;
     if (lc) {
       const when = whenJa(lc.date);          // same wording as the keeper, so the two never disagree
-      rows.push(['最近の変更', `「${esc(lc.subject || '')}」<span class="dim">${esc(lc.author || '')}${when ? `・${esc(when)}` : ''}</span>`]);
+      rows.push(['最近の変更', `「${esc(shortSubject(lc.subject || '', 34))}」<span class="dim">${esc(lc.author || '')}${when ? `・${esc(when)}` : ''}</span>`]);
     }
     const authors = (m.authors || []).slice(0, 2);
     if (authors.length) rows.push(['よく触る人', authors.map((a) => `${esc(a.name)} <span class="dim">${fmtInt(a.commits)}回</span>`).join('、')]);

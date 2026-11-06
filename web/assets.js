@@ -194,6 +194,7 @@ export async function loadArt(manifest, manifestUrl, opts) {
         floor: Array.isArray(v.floor) ? v.floor : null,
         blockers: Array.isArray(v.blockers) ? v.blockers : [],
         lights: Array.isArray(v.lights) ? v.lights : [],
+        interiorLights: Array.isArray(v.interiorLights) ? v.interiorLights : [],
         smoke: Array.isArray(v.smoke) ? v.smoke : [],
       };
       if (v.exterior && v.exterior.src) jobs.push(loadImage(resolve(v.exterior.src, base)).then((img) => { entry.exterior = img; }));

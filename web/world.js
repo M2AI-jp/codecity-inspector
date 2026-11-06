@@ -1,11 +1,21 @@
 // Static world model: collision (tiles + px rects), buildings, props, navigation grid, A*.
 
-import { TILE, FEET_W, FEET_H, FEET_UP } from './config.js';
+import { TILE, FEET_W, FEET_H, FEET_UP, KEEPER_BOX, NEAR_KEEPER } from './config.js';
 import { MAT } from './ground.js';
 import { warnOnce } from './assets.js';
 import { strHash } from './util.js';
 
 const T = TILE;
+// 8-neighbour directions; bit d of World.edges[k] = the feet can walk straight from tile k to k+DIRS[d]
+const DIRS = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
+const DIR_AT = new Int8Array(9).fill(-1);
+DIRS.forEach(([dx, dy], d) => { DIR_AT[(dy + 1) * 3 + dx + 1] = d; });
+// where to look for a free feet spot in a tile whose centre is blocked (nearest first). A tile
+// holds the feet positions x in [tx*16, tx*16+16), y in [ty*16+3, ty*16+19) (centre ty*16+11).
+const NAV_OFFSETS = [];
+for (let oy = -8; oy <= 7; oy++) for (let ox = -8; ox <= 7; ox++) if (ox || oy) NAV_OFFSETS.push([ox, oy]);
+NAV_OFFSETS.sort((a, b) => a[0] * a[0] + a[1] * a[1] - b[0] * b[0] - b[1] * b[1]);
+const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 
 export class World {
   constructor(town, art, grid) {
@@ -50,11 +60,14 @@ export class World {
     return r;
   }
 
-  // Stable variant choice: hash(building.id) among the variants whose footprint fits.
+  // Variant: the one town.json names (the layout keeps neighbours from matching), else a stable
+  // hash(building.id) among the variants whose footprint fits.
   pickVariant(b, w, h) {
     const a = this.art.archetypes[b.archetype];
     if (!a || !a.variants.length) return null;
     const fits = a.variants.filter((v) => !v.footprint || (v.footprint[0] === w && v.footprint[1] === h));
+    const named = b.variant && fits.find((v) => v.id === b.variant);
+    if (named) return named;
     const pool = fits.length ? fits : a.variants;
     const v = pool[strHash(String(b.id)) % pool.length];
     if (!fits.length && v.footprint) {
@@ -115,6 +128,10 @@ export class World {
       arch.lights.forEach((l, i) => {
         if (Array.isArray(l) && l.length >= 3) this.lights.push({ x: bld.px + l[0], y: bld.py + l[1], poolY: bld.py + l[1] + 4, r: l[2], kind: 'window', seed: index * 31 + i, building: bld });
       });
+      // hearth / forge light inside: only lit while the building is open (web/lighting.js)
+      (arch.interiorLights || []).forEach((l, i) => {
+        if (Array.isArray(l) && l.length >= 3) this.lights.push({ x: bld.px + l[0], y: bld.py + l[1], poolY: bld.py + l[1] + 4, r: l[2], kind: 'hearth', interior: true, seed: index * 31 + 13 + i, building: bld });
+      });
     }
     // door lantern just outside the door
     this.lights.push({ x: bld.doorPx, y: bld.bottomPx - 10, poolY: bld.bottomPx + 2, r: 34, kind: 'door', seed: index * 31 + 29, building: bld });
@@ -147,8 +164,23 @@ export class World {
     }
   }
 
+  // A prop type may have looks <type>, <type>-2, <type>-3 ... in the manifest; each prop takes
+  // one by a stable hash of where it stands, so a row of trees is not one stamp repeated.
+  propDef(type, ax, ay) {
+    const props = this.art.props;
+    let looks = (this.propLooks || (this.propLooks = new Map())).get(type);
+    if (!looks) {
+      looks = [];
+      if (props[type]) looks.push(props[type]);
+      for (let n = 2; props[`${type}-${n}`]; n++) looks.push(props[`${type}-${n}`]);
+      this.propLooks.set(type, looks);
+    }
+    if (!looks.length) return null;
+    return looks[strHash(`${type}:${ax},${ay}`) % looks.length];
+  }
+
   addProp(p, index) {
-    const def = this.art.props[p.type] || null;
+    const def = this.propDef(p.type, Math.round(p.x * T), Math.round(p.y * T));
     if (!def) warnOnce(`prop:${p.type}`, `prop "${p.type}" が manifest にありません（描画しません）`);
     const ax = Math.round(p.x * T), ay = Math.round(p.y * T);
     const prop = { index, type: p.type, data: p, def, x: ax, y: ay, solid: null };
@@ -196,24 +228,109 @@ export class World {
   }
 
   // --- navigation ------------------------------------------------------------
+  // The nav grid is per tile, but each walkable tile carries a feet point that is really free
+  // (the centre when possible, else the nearest free spot in the tile), and an edge between two
+  // neighbouring tiles exists only when the feet box can travel straight between their points.
+  // So narrow interiors (furniture leaving a 13 px aisle) still connect, and paths never cut
+  // through a corner the player would collide with.
   computeNav() {
+    const cols = this.cols;
     for (let ty = 0; ty < this.rows; ty++) {
-      for (let tx = 0; tx < this.cols; tx++) {
-        const k = ty * this.cols + tx;
-        // a tile is walkable for paths when a feet box centred on it is free
+      for (let tx = 0; tx < cols; tx++) {
+        const k = ty * cols + tx;
         const cx = tx * T + T / 2, cy = ty * T + T / 2 + 3;
-        const blocked = this.tileSolid[k] || this.feetHit(cx, cy);
-        this.nav[k] = blocked ? 1 : 0;
+        let free = false;
+        if (!this.tileSolid[k]) {
+          if (!this.feetHit(cx, cy)) { this.navX[k] = cx; this.navY[k] = cy; free = true; }
+          else {
+            for (let i = 0; i < NAV_OFFSETS.length; i++) {
+              const x = cx + NAV_OFFSETS[i][0], y = cy + NAV_OFFSETS[i][1];
+              if (!this.feetHit(x, y)) { this.navX[k] = x; this.navY[k] = y; free = true; break; }
+            }
+          }
+        }
+        this.nav[k] = free ? 0 : 1;
         const m = this.grid[k];
         this.cost[k] = this.buildingMap[k] >= 0 ? 1.1 : m === MAT.STREET || m === MAT.PLAZA ? 1 : m === MAT.DIRT ? 1.35 : 2.4;
       }
     }
+    const edges = this.edges;
+    edges.fill(0);
+    for (let ty = 0; ty < this.rows; ty++) {
+      for (let tx = 0; tx < cols; tx++) {
+        const k = ty * cols + tx;
+        if (this.nav[k]) continue;
+        for (let d = 0; d < 4; d++) {
+          const nx = tx + DIRS[d][0], ny = ty + DIRS[d][1];
+          if (!this.inGrid(nx, ny)) continue;
+          const n = ny * cols + nx;
+          if (this.nav[n]) continue;
+          if (this.sweepFree(this.navX[k], this.navY[k], this.navX[n], this.navY[n])) {
+            edges[k] |= 1 << d; edges[n] |= 1 << (d + 4);
+          }
+        }
+      }
+    }
+    // a tile whose point sits in a pocket (no way to any neighbour) gets another point in the
+    // same tile that does connect, when there is one
+    for (let ty = 0; ty < this.rows; ty++) {
+      for (let tx = 0; tx < cols; tx++) {
+        const k = ty * cols + tx;
+        if (this.nav[k] || edges[k]) continue;
+        const cx = tx * T + T / 2, cy = ty * T + T / 2 + 3;
+        for (let i = -1; i < NAV_OFFSETS.length; i++) {
+          const x = cx + (i < 0 ? 0 : NAV_OFFSETS[i][0]), y = cy + (i < 0 ? 0 : NAV_OFFSETS[i][1]);
+          if ((i & 1) || this.feetHit(x, y)) continue;            // every other offset is enough here
+          let e = 0;
+          for (let d = 0; d < 8; d++) {
+            const nx = tx + DIRS[d][0], ny = ty + DIRS[d][1];
+            if (!this.inGrid(nx, ny)) continue;
+            const n = ny * cols + nx;
+            if (!this.nav[n] && this.sweepFree(x, y, this.navX[n], this.navY[n])) e |= 1 << d;
+          }
+          if (!e) continue;
+          this.navX[k] = x; this.navY[k] = y; edges[k] = e;
+          for (let d = 0; d < 8; d++) if (e & (1 << d)) edges[(ty + DIRS[d][1]) * cols + tx + DIRS[d][0]] |= 1 << ((d + 4) & 7);
+          break;
+        }
+      }
+    }
+  }
+
+  // Waypoints from feet (x, y) into building b (to just inside its door), or null. When the tile
+  // just inside is not on the nav grid, the path goes to the door gap and straight in from there.
+  pathInto(b, x, y, opts = { useCost: false }) {
+    const target = b.doorInside || b.doorOutside;
+    const sx = Math.floor(x / T), sy = Math.floor((y - 3) / T);
+    let tiles = this.findPath(sx, sy, Math.floor(target.x / T), Math.floor((target.y - 3) / T), opts);
+    if (!tiles && b.doorInside) {
+      let best = null;
+      for (let c = b.doorX0; c < b.doorX1; c++) {
+        const t = this.findPath(sx, sy, c, b.doorY, opts);
+        if (t && (!best || t.length < best.length)) best = t;
+      }
+      if (best) tiles = [...best, [Math.floor(target.x / T), Math.floor((target.y - 3) / T)]];
+    }
+    if (!tiles) return null;
+    return { target, points: this.smoothPath(x, y, tiles, target.x, target.y) };
+  }
+
+  // the feet point of a walkable tile (tile centre for blocked / unknown tiles)
+  navPoint(tx, ty) {
+    if (this.inGrid(tx, ty)) {
+      const k = ty * this.cols + tx;
+      if (!this.nav[k]) return { x: this.navX[k], y: this.navY[k] };
+    }
+    return { x: tx * T + T / 2, y: ty * T + T / 2 + 3 };
   }
 
   buildNav() {
     const n = this.cols * this.rows;
     this.nav = new Uint8Array(n);
     this.cost = new Float32Array(n);
+    this.navX = new Float32Array(n);
+    this.navY = new Float32Array(n);
+    this.edges = new Uint8Array(n);
     this.computeNav();
     this.heap = new Int32Array(n * 8 + 16);
     this.g = new Float32Array(n);
@@ -245,29 +362,109 @@ export class World {
     }
   }
 
-  // Door-inside point and keeper spot for a floor-rect building (px search).
+  // Feet positions reachable from the door gap without leaving the footprint (1 px flood with the
+  // player's own collision, precomputed once per building in `free`), optionally with one extra
+  // solid rect (a keeper being placed).
+  floorReach(b, free, extra) {
+    const x0 = b.px, y0 = b.py, w = b.pw + 1, h = b.ph + 1;
+    const seen = new Uint8Array(w * h);
+    const hw = FEET_W / 2;
+    const open = (lx, ly) => {
+      if (!free[ly * w + lx]) return false;
+      if (!extra) return true;
+      const x = x0 + lx, y = y0 + ly;
+      return !(x - hw < extra.x + extra.w && x + hw > extra.x && y - FEET_UP < extra.y + extra.h && y - FEET_UP + FEET_H > extra.y);
+    };
+    const sx = Math.round(b.doorPx) - x0;
+    let sy = h - 2;
+    while (sy > h - 8 && !open(sx, sy)) sy--;
+    if (!open(sx, sy)) return { seen, count: 0, w, h };
+    const q = new Int32Array(w * h);
+    let qh = 0, qt = 0;
+    seen[sy * w + sx] = 1; q[qt++] = sy * w + sx;
+    while (qh < qt) {
+      const i = q[qh++], lx = i % w, ly = (i / w) | 0;
+      for (let d = 0; d < 4; d++) {
+        const nx = lx + (d === 0 ? 1 : d === 1 ? -1 : 0), ny = ly + (d === 2 ? 1 : d === 3 ? -1 : 0);
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+        const j = ny * w + nx;
+        if (seen[j]) continue;
+        seen[j] = 2;
+        if (!open(nx, ny)) continue;
+        seen[j] = 1; q[qt++] = j;
+      }
+    }
+    return { seen, count: qt, w, h };
+  }
+
+  // Door-inside point and keeper spot for a floor-rect building (px search). The keeper stands
+  // toward the back-centre, but out of the lane the player walks in through the door, where they
+  // shut off as little of the floor as possible and can be reached for a talk.
   floorSpots(b) {
     const f = b.floor;
     const dx = Math.max(f.x0 + 6, Math.min(f.x1 - 6, b.doorPx));
     const dy = f.y1 - 3;
     b.doorInside = !this.feetHit(dx, dy) ? { x: dx, y: dy } : null;
-    // keeper: back-centre of the floor, clear of blockers and walls (with a little elbow room)
     const fcx = (f.x0 + f.x1) / 2;
-    let best = null, bestScore = Infinity;
+    const d0 = b.doorX0 * T, d1 = b.doorX1 * T;
+    // lanes, most generous first: the strip the player's feet sweep walking in from the door gap
+    const lanes = [
+      { pad: { x: -8, y: -8, w: 16, h: 14 }, lane: { x: d0 - 3, y: f.y1 - FEET_H - 16, w: d1 - d0 + 6, h: b.bottomPx - (f.y1 - FEET_H - 16) } },
+      { pad: { x: KEEPER_BOX[0], y: KEEPER_BOX[1], w: KEEPER_BOX[2], h: KEEPER_BOX[3] }, lane: { x: d0, y: f.y1 - FEET_H - 4, w: d1 - d0, h: b.bottomPx - (f.y1 - FEET_H - 4) } },
+    ];
+    // spots where the keeper's sprite stands clear of furniture (the solid rect fits, and the
+    // body has a pixel or two of room around it when "roomy")
+    const all = [];
+    const kx0 = KEEPER_BOX[0], ky0 = KEEPER_BOX[1], kx1 = KEEPER_BOX[0] + KEEPER_BOX[2], ky1 = KEEPER_BOX[1] + KEEPER_BOX[3];
     for (let y = f.y0 + 5; y <= f.y1 - 2; y += 1) {
       for (let x = f.x0 + 6; x <= f.x1 - 6; x += 1) {
-        if (this.boxHits(x - 7, y - 6, x + 7, y + 3)) continue;
-        let s = Math.abs(x - fcx) + (y - f.y0) * 0.7;
-        // on a shallow floor don't stand right in the line of the door
-        if (f.y1 - f.y0 < 30 && x + 7 > b.doorX0 * T && x - 7 < b.doorX1 * T) s += 40;
-        if (s < bestScore) { bestScore = s; best = [x, y]; }
+        if (y + ky0 < f.y0 - 2 || this.boxHits(x + kx0, Math.max(f.y0, y + ky0), x + kx1, y + Math.min(ky1, 3))) continue;
+        all.push([Math.abs(x - fcx) + (y - f.y0) * 0.7, x, y, !this.boxHits(x - 7, y - 6, x + 7, y + 3)]);
       }
+    }
+    all.sort((p, q) => p[0] - q[0]);
+    let cands = [];
+    for (let t = 0; t < lanes.length && !cands.length; t++) {
+      const { pad, lane } = lanes[t];
+      cands = all.filter(([, x, y, roomy]) => (t > 0 || roomy) && !overlap({ x: x + pad.x, y: y + pad.y, w: pad.w, h: pad.h }, lane));
+    }
+    const inLane = !cands.length;
+    if (inLane) cands = all;
+    // free feet positions in the footprint, once; then score up to 40 spread-out candidates
+    const w = b.pw + 1, h = b.ph + 1;
+    const free = new Uint8Array(w * h);
+    for (let ly = 0; ly < h; ly++) for (let lx = 0; lx < w; lx++) free[ly * w + lx] = this.feetHit(b.px + lx, b.py + ly) ? 0 : 1;
+    const base = this.floorReach(b, free, null);
+    const hw = FEET_W / 2;
+    let best = null, bestCost = Infinity, bestInfo = null;
+    const tried = new Set();
+    for (const [score, x, y] of cands) {
+      const cell = ((x / 3) | 0) * 4096 + ((y / 3) | 0);
+      if (tried.has(cell)) continue;
+      tried.add(cell);
+      if (tried.size > 40) break;
+      const kr = { x: x + KEEPER_BOX[0], y: y + KEEPER_BOX[1], w: KEEPER_BOX[2], h: KEEPER_BOX[3] };
+      const r = this.floorReach(b, free, kr);
+      let lost = 0, talk = false;
+      for (let i = 0; i < base.seen.length; i++) {
+        if (base.seen[i] !== 1) continue;
+        const px = b.px + (i % w), py = b.py + ((i / w) | 0);
+        if (r.seen[i] === 1) {
+          if (!talk && Math.hypot(px - x, py - y) < NEAR_KEEPER - 8) talk = true;
+        } else if (!(px - hw < kr.x + kr.w && px + hw > kr.x && py - FEET_UP < kr.y + kr.h && py - FEET_UP + FEET_H > kr.y)) lost++;
+      }
+      const frac = base.count ? lost / base.count : 1;
+      const cost = score + 250 * frac + (talk ? 0 : 1000);
+      if (cost < bestCost) { bestCost = cost; best = [x, y]; bestInfo = { frac, talk }; }
+    }
+    if (best && (inLane || !bestInfo.talk || bestInfo.frac > 0.35)) {
+      warnOnce(`keeper:${b.id}`, `${b.id} (${b.arch ? b.arch.id : b.archetype}): 番人の立つ所が${inLane ? '扉からの通り道にかかる' : !bestInfo.talk ? '話しかけられない' : `床の ${Math.round(bestInfo.frac * 100)}% をふさぐ`}`);
     }
     // the floor (minus everything inside it) that walkers may wander on
     b.interior = [];
     for (let ty = b.y; ty < b.y + b.h; ty++) for (let tx = b.x; tx < b.x + b.w; tx++) {
       const k = ty * this.cols + tx;
-      if (this.inGrid(tx, ty) && !this.nav[k] && (ty + 1) * T <= f.y1 + T / 2) b.interior.push(k);
+      if (this.inGrid(tx, ty) && !this.nav[k] && this.navY[k] <= f.y1) b.interior.push(k);
     }
     if (best) b.keeperSpot = { x: best[0], y: best[1], tx: Math.floor(best[0] / T), ty: Math.floor((best[1] - 3) / T) };
   }
@@ -295,7 +492,7 @@ export class World {
     const start = sy * cols + sx, goal = gy * cols + gx;
     if (start === goal) return [[gx, gy]];
     const gen = ++this.gen;
-    const { g, f, from, stamp, closed, heap, nav, cost } = this;
+    const { g, f, from, stamp, closed, heap, nav, cost, edges } = this;
     const useCost = opts.useCost !== false;
     const avoid = opts.avoid; // optional tile index to treat as blocked
     let hn = 0;
@@ -331,7 +528,7 @@ export class World {
         if (nx < 0 || ny < 0 || nx >= cols || ny >= this.rows) continue;
         const nk = ny * cols + nx;
         if (nav[nk] || nk === avoid || closed[nk] === gen) continue;
-        if (dx && dy && (nav[cy * cols + nx] || nav[ny * cols + cx])) continue;
+        if (!(edges[cur] & (1 << DIR_AT[(dy + 1) * 3 + dx + 1]))) continue;
         const step = (dx && dy ? 1.4142 : 1) * (useCost ? cost[nk] : 1);
         const ng = g[cur] + step;
         if (stamp[nk] !== gen || ng < g[nk]) {
@@ -361,7 +558,7 @@ export class World {
 
   // Tile path -> px waypoints, string-pulled so motion is not grid-bound.
   smoothPath(fromX, fromY, tiles, endX, endY) {
-    const pts = tiles.map(([tx, ty]) => ({ x: tx * T + T / 2, y: ty * T + T / 2 + 3 }));
+    const pts = tiles.map(([tx, ty]) => this.navPoint(tx, ty));
     if (endX !== undefined && pts.length) pts[pts.length - 1] = { x: endX, y: endY };
     const out = [];
     let cx = fromX, cy = fromY, i = 0;

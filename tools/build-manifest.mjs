@@ -90,6 +90,9 @@ function buildings() {
       lights: (s.lights || []).filter(isLight),
       smoke: (s.smoke || []).filter(isPt),
     };
+    // lights inside the building (hearth, forge): lit only while the building is open (cutaway)
+    const inner = (s.interiorLights || []).filter(isLight);
+    if (inner.length) variant.interiorLights = inner;
     if (!variant.door) warn(`${rel(file)}: door がありません（town.json の扉を使う）`);
     (archetypes[key] || (archetypes[key] = { variants: [] })).variants.push(variant);
   }

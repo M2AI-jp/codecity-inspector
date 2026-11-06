@@ -91,14 +91,11 @@ export class Renderer {
         if (e.obj === s.player) playerKey = e.key;
       }
     }
-    // the player stays readable behind roofs: a faint ghost on top of whatever hides them
-    if (occluded && s.player.sheet) {
-      ctx.globalAlpha = 0.34;
-      this.drawCharacter(ctx, s.player, camX, camY, true);
-      ctx.globalAlpha = 1;
-    }
-
     this.lighting.render(ctx, s);
+
+    // the player stays readable behind roofs: a ghost on top of whatever hides them, drawn after
+    // the night grade so it is not darkened twice (the roof under it already is)
+    if (occluded && s.player.sheet) this.drawGhost(ctx, s.player, camX, camY);
 
     // chimney smoke is drawn over the night grade so it reads as pale, moonlit wisps
     if (s.smoke) s.smoke.draw(ctx, camX, camY);
@@ -164,6 +161,26 @@ export class Renderer {
     const ix = b.px - a.exteriorOrigin[0], iy = b.py - a.exteriorOrigin[1];
     const x0 = p.rx - 10, x1 = p.rx + 10, y0 = p.ry - 26, y1 = p.ry;
     return x1 > ix && x0 < ix + a.exterior.width && y1 > iy && y0 < iy + a.exterior.height;
+  }
+
+  // a warm silhouette with the sprite faintly inside it: reads at a glance on any roof colour
+  drawGhost(ctx, c, camX, camY) {
+    const s = c.sheet, f = c.frame();
+    const g = this.ghost || (this.ghost = document.createElement('canvas'));
+    if (g.width !== s.fw || g.height !== s.fh) { g.width = s.fw; g.height = s.fh; }
+    const gc = g.getContext('2d');
+    gc.globalCompositeOperation = 'source-over';
+    gc.clearRect(0, 0, g.width, g.height);
+    gc.drawImage(f.flip ? s.flipped : s.image, f.sx, f.sy, s.fw, s.fh, 0, 0, s.fw, s.fh);
+    gc.globalCompositeOperation = 'source-in';
+    gc.fillStyle = '#ffe6b0';
+    gc.fillRect(0, 0, g.width, g.height);
+    const x = Math.round(c.rx) - camX - s.px, y = Math.round(c.ry) - camY - s.py;
+    ctx.globalAlpha = 0.5;
+    ctx.drawImage(g, x, y);
+    ctx.globalAlpha = 0.45;
+    ctx.drawImage(f.flip ? s.flipped : s.image, f.sx, f.sy, s.fw, s.fh, x, y, s.fw, s.fh);
+    ctx.globalAlpha = 1;
   }
 
   drawCharacter(ctx, c, camX, camY, noShadow) {

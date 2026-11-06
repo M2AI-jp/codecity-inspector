@@ -28,7 +28,7 @@ export class Walker extends Character {
     this.solid = false;
     const b = homes[this.homeIdx];
     const start = world.nearestFree(Math.floor(b.doorOutside.x / T) + Math.floor(this.rng() * 5) - 2, Math.floor(b.doorOutside.y / T) + 1 + Math.floor(this.rng() * 2), 6);
-    if (start) { this.x = start[0] * T + T / 2; this.y = start[1] * T + 11; } else { this.x = b.doorOutside.x; this.y = b.doorOutside.y; }
+    if (start) { const p = world.navPoint(start[0], start[1]); this.x = p.x; this.y = p.y; } else { this.x = b.doorOutside.x; this.y = b.doorOutside.y; }
     this.prevX = this.x; this.prevY = this.y; this.rx = this.x; this.ry = this.y;
     this.facing = DIRS4[Math.floor(this.rng() * 4)];
   }
@@ -56,7 +56,8 @@ export class Walker extends Character {
         const tx = Math.floor(b.doorOutside.x / T) + Math.floor((this.rng() - 0.5) * 20);
         const ty = Math.floor(b.doorOutside.y / T) + Math.floor((this.rng() - 0.5) * 14);
         if (w.navFree(tx, ty) && !w.buildingAtPx(tx * T + 8, ty * T + 8) && w.cost[ty * w.cols + tx] <= 1.35) {
-          if (this.goTo(tx * T + T / 2, ty * T + 11, 'look')) return;
+          const p = w.navPoint(tx, ty);
+          if (this.goTo(p.x, p.y, 'look')) return;
         }
       }
     }
@@ -106,7 +107,8 @@ export class Walker extends Character {
       if (w.nav[t]) continue;
       if (b.keeperSpot && t === b.keeperSpot.ty * w.cols + b.keeperSpot.tx) continue;
       const tx = t % w.cols, ty = (t / w.cols) | 0;
-      if (this.goTo(tx * T + T / 2, ty * T + 11, 'inside')) return;
+      const p = w.navPoint(tx, ty);
+      if (this.goTo(p.x, p.y, 'inside')) return;
     }
     this.state = 'inside'; this.timer = 1.5;
   }
@@ -152,7 +154,7 @@ export class Walker extends Character {
           const tiles = w.findPath(Math.floor(this.x / T), Math.floor((this.y - 3) / T), Math.floor(last.x / T), Math.floor((last.y - 3) / T), { avoid });
           if (tiles) {
             // keep the detour on tile centres (string-pulling would cut straight through the player)
-            this.path = tiles.map(([tx, ty]) => ({ x: tx * T + T / 2, y: ty * T + 11 }));
+            this.path = tiles.map(([tx, ty]) => w.navPoint(tx, ty));
             this.path[this.path.length - 1] = { x: last.x, y: last.y };
             this.pi = 0;
           }

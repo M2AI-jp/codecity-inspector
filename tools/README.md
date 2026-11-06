@@ -8,3 +8,4 @@
 - 見比べ: `node tools/preview.mjs side art/approved/player--default.png out.png cmp.png --scale 4`
 - 拡大表示: `node tools/preview.mjs up out.png out-x4.png --scale 4 --grid 32`
 - manifest: `node tools/build-manifest.mjs`（art/game/ の画像と sidecar の .json から art/game/manifest.json を作る。manifest は手で編集しない）
+- 入れるかの検査: `node tools/check-play.mjs <リポジトリ | town.json> [...] [-v]`（web/ の衝突判定そのもので、開始位置からすべての建物の床まで歩けるか・扉の前から上キーで入れるか・クリックで入れるか・番人に話しかけられるかを確かめる。入れない建物があれば終了コード 1 と、扉まわりをふさいでいる物を出す）

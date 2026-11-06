@@ -1,7 +1,7 @@
 // CodeCity browser runtime entry: boot, view sizing, camera, fixed-timestep loop.
 
 import { TILE, SIM_DT, MAX_FRAME_DT, CUTAWAY_FADE, CAMERA_OMEGA, CAMERA_LOOK_UP, CAMERA_LEAD, NATIVE_TARGET_W,
-  NEAR_RESIDENT, NEAR_KEEPER, NEAR_NOTICE } from './config.js';
+  NEAR_RESIDENT, NEAR_KEEPER, NEAR_NOTICE, KEEPER_BOX } from './config.js';
 import { loadJSON, loadArt, loadImage, warnOnce } from './assets.js';
 import { parseGround, composeGround } from './ground.js';
 import { World } from './world.js';
@@ -63,13 +63,14 @@ async function boot() {
   let [sx, sy] = [Math.floor(spawn.x), Math.floor(spawn.y)];
   const free = world.nearestFree(sx, sy, 20);
   if (free) [sx, sy] = free;
-  const player = new Player(sx * T + T / 2, sy * T + 11, art.player);
+  const sp = world.navPoint(sx, sy);
+  const player = new Player(sp.x, sp.y, art.player);
   player.isPlayer = true;
   player.facing = 'down';
 
   const npcs = createResidents(town, world, art, DEBUG);
   // keepers stand still: make them solid for everyone and refresh navigation around them
-  for (const k of npcs.keepers) world.addRect(k.x - 5, k.y - 4, 10, 6, 'npc');
+  for (const k of npcs.keepers) world.addRect(k.x + KEEPER_BOX[0], k.y + KEEPER_BOX[1], KEEPER_BOX[2], KEEPER_BOX[3], 'npc');
   if (npcs.keepers.length) world.computeNav();
   player.blockers = npcs.walkers;
 
@@ -147,7 +148,6 @@ async function boot() {
   }
   function walkToWorld(wx, wy) {
     // clicking a building (footprint or the roof above it) walks you inside
-    let target = null;
     let best = null;
     for (const b of world.buildings) {
       const up = b.arch ? b.arch.exteriorOrigin[1] : 32;
@@ -156,16 +156,16 @@ async function boot() {
       }
     }
     if (best && !(best.inside && wy >= best.py)) {
-      const p = best.doorInside || best.doorOutside;
-      target = { x: p.x, y: p.y };
-    } else {
-      let tx = Math.floor(wx / T), ty = Math.floor((wy - 3) / T);
-      const f = world.nearestFree(tx, ty, 8);
-      if (!f) return;
-      [tx, ty] = f;
-      const exact = f[0] === Math.floor(wx / T) && f[1] === Math.floor((wy - 3) / T) && !world.feetHit(wx, wy);
-      target = exact ? { x: wx, y: wy } : { x: tx * T + T / 2, y: ty * T + 11 };
+      const route = world.pathInto(best, player.x, player.y);
+      if (route) player.setPath(route.points, route.target);
+      return;
     }
+    let tx = Math.floor(wx / T), ty = Math.floor((wy - 3) / T);
+    const f = world.nearestFree(tx, ty, 8);
+    if (!f) return;
+    [tx, ty] = f;
+    const exact = f[0] === Math.floor(wx / T) && f[1] === Math.floor((wy - 3) / T) && !world.feetHit(wx, wy);
+    const target = exact ? { x: wx, y: wy } : world.navPoint(tx, ty);
     const tiles = world.findPath(Math.floor(player.x / T), Math.floor((player.y - 3) / T), Math.floor(target.x / T), Math.floor((target.y - 3) / T), { useCost: false });
     if (!tiles) return;
     player.setPath(world.smoothPath(player.x, player.y, tiles, target.x, target.y), target);

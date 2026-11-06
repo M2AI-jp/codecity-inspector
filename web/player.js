@@ -51,8 +51,10 @@ export class Player extends Character {
       let wp = this.path[this.pi];
       let dx = wp.x - this.x, dy = wp.y - this.y;
       let dist = Math.hypot(dx, dy);
-      // intermediate waypoints are taken a little early so turns stay smooth
-      while (this.path && dist < (this.pi < this.path.length - 1 ? 5 : 0.6)) {
+      // intermediate waypoints are taken a little early so turns stay smooth, when the way on to
+      // the next one is clear from here (else cutting the turn would catch a wall corner)
+      while (this.path && dist < (this.pi < this.path.length - 1 ? 5 : 0.6) &&
+        (this.pi === this.path.length - 1 || dist < 0.6 || world.sweepFree(this.x, this.y, this.path[this.pi + 1].x, this.path[this.pi + 1].y))) {
         this.pi++;
         if (this.pi >= this.path.length) { this.setPath(null); break; }
         wp = this.path[this.pi]; dx = wp.x - this.x; dy = wp.y - this.y; dist = Math.hypot(dx, dy);
@@ -87,9 +89,11 @@ export class Player extends Character {
     const mx = this.vx * dt, my = this.vy * dt;
     const n = Math.max(1, Math.ceil(Math.max(Math.abs(mx), Math.abs(my))));
     const sx = mx / n, sy = my / n;
+    // (corner correction always applies while following a path: a path that grazes a door jamb or
+    // a wall corner by a fraction of a pixel must slide past it, not stall against it)
     for (let i = 0; i < n; i++) {
-      if (sx) this.moveAxis(world, sx, 0, dirY === 0, Math.abs(this.vx) * dt);
-      if (sy) this.moveAxis(world, 0, sy, dirX === 0, Math.abs(this.vy) * dt);
+      if (sx) this.moveAxis(world, sx, 0, dirY === 0 || following, Math.max(Math.abs(this.vx), following ? Math.abs(this.vy) : 0) * dt);
+      if (sy) this.moveAxis(world, 0, sy, dirX === 0 || following, Math.max(Math.abs(this.vy), following ? Math.abs(this.vx) : 0) * dt);
     }
 
     if (this.path) {

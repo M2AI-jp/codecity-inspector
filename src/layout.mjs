@@ -15,7 +15,7 @@ import { readFileSync } from 'node:fs';
 
 const DEFAULT_FOOT = { house_s: [5, 4], house_m: [6, 4], house_l: [7, 5], shop: [6, 4], workshop: [7, 5], ruin: [6, 4] };
 const DOOR_DX = { house_s: 2, house_m: 2, house_l: 3, shop: 2, workshop: 3, ruin: 2 };
-const PROP_SIZE = { well: [2, 2], noticeboard: [2, 1], bench: [2, 1] };
+const PROP_SIZE = { well: [2, 2], noticeboard: [2, 1], bench: [2, 1], cart: [3, 1] };
 const PLAZA_W = 18, PLAZA_ROWS = 9;
 const MARGIN = 8;
 const CAP = 120;
@@ -121,12 +121,17 @@ function loadArt() {
   let m;
   try { m = JSON.parse(readFileSync(new URL('../art/game/manifest.json', import.meta.url), 'utf8')); } catch { return {}; }
   const out = {};
+  const okFp = (fp) => Array.isArray(fp) && fp.length === 2 && fp.every((n) => Number.isInteger(n) && n >= 2 && n <= 16);
   for (const [k, a] of Object.entries(m?.archetypes || {})) {
-    const v = Array.isArray(a?.variants) && a.variants.length ? a.variants[0] : a;   // 版はすべて同じ footprint
+    const defs = Array.isArray(a?.variants) && a.variants.length ? a.variants : [a];
+    const v = defs[0];                                  // 版はすべて同じ footprint
     const fp = v?.footprint ?? a?.footprint;
-    if (!Array.isArray(fp) || fp.length !== 2 || !fp.every((n) => Number.isInteger(n) && n >= 2 && n <= 16)) continue;
+    if (!okFp(fp)) continue;
     const dx = v?.door?.x ?? a?.door?.x;
-    out[k] = { footprint: fp, doorX: Number.isInteger(dx) ? dx : undefined };
+    // 版ごとの扉（同じ footprint の版だけ。版の名前は town.json の building.variant に書く）
+    const variants = defs.filter((d) => d?.id && (!d.footprint || (d.footprint[0] === fp[0] && d.footprint[1] === fp[1])))
+      .map((d) => ({ id: d.id, doorX: Number.isInteger(d.door?.x) ? d.door.x : undefined }));
+    out[k] = { footprint: fp, doorX: Number.isInteger(dx) ? dx : undefined, variants };
   }
   return out;
 }
@@ -581,7 +586,11 @@ function placeProps(P, F, rng, spawn) {
   for (const s of keptSquares) {
     const yTop = s.road.btop[s.x0] - s.d;
     tryProp('lamp', s.x0, yTop);
-    if (s.x1 - s.x0 >= 6) tryProp(rng() < 0.5 ? 'bench' : 'tree', s.x1 - 1, s.road.btop[s.x1 - 1] - s.d);
+    if (s.x1 - s.x0 >= 6) {
+      const r = rng();
+      if (r < 0.3 && s.x1 - s.x0 >= 7) tryProp('cart', s.x1 - 3, s.road.btop[s.x1 - 3] - s.d);
+      else tryProp(r < 0.65 ? 'bench' : 'tree', s.x1 - 1, s.road.btop[s.x1 - 1] - s.d);
+    }
   }
 
   // 通りの街灯: 6〜8マスごと。建物の間の隙間、通りの南の庭の縁、最後に通りの南端の行
@@ -616,8 +625,12 @@ function placeProps(P, F, rng, spawn) {
     const nb = foot[t - 1] >= 0 ? foot[t - 1] : foot[t + 1];
     const kind = nb >= 0 ? placed[nb].spec.module.kind : 'house';
     const frontRow = g[t + cols] !== GRASS && g[t + cols] !== OUT && !gap[t + cols];
-    if (frontRow && r < 0.6) tryProp(kind === 'workshop' ? pick(['crate', 'barrel', 'crate']) : kind === 'shop' ? pick(['barrel', 'crate']) : pick(['bush', 'barrel', 'bush']), x, y);
-    else if (!frontRow && r < 0.2) tryProp(r < 0.08 ? 'tree' : 'bush', x, y);
+    if (frontRow && r < 0.6) {
+      tryProp(kind === 'workshop' ? pick(['crate', 'barrel', 'sacks', 'crate'])
+        : kind === 'shop' ? pick(['barrel', 'crate', 'sacks', 'flowerpot'])
+          : kind === 'ruin' ? pick(['bush', 'crate', 'bush'])
+            : pick(['bush', 'barrel', 'flowerpot', 'planter', 'bush']), x, y);
+    } else if (!frontRow && r < 0.2) tryProp(r < 0.08 ? 'tree' : 'bush', x, y);
   }
   // 屋根の上にのぞく裏庭の木
   for (const p of placed) if (rng() < 0.35) tryProp('tree', p.x + Math.floor(rng() * p.w), p.y - 3);
@@ -629,12 +642,13 @@ function placeProps(P, F, rng, spawn) {
     const r = rng();
     const edge = g[t - cols] === STREET || g[t - cols] === DIRT;
     if (edge) {
+      // 柵は続けて立て、数マスおきに1マスの切れ目（木戸）を残す。切れ目のあとは数え直す
       run++;
-      if (run % gapAt === 0) { gapAt = 3 + Math.floor(rng() * 5); continue; }
-      if (r < 0.6) tryProp('fence', x, y);
+      if (run > gapAt) { run = 0; gapAt = 4 + Math.floor(rng() * 5); continue; }
+      tryProp('fence', x, y);
     } else if (r < 0.07) tryProp('tree', x, y);
     else if (r < 0.17) tryProp('bush', x, y);
-    else if (r < 0.19) tryProp(pick(['barrel', 'crate']), x, y);
+    else if (r < 0.2) tryProp(pick(['barrel', 'crate', 'planter', 'sacks']), x, y);
   }
   // 街のまわりの森（道のすぐ脇は空ける）
   for (let y = crop.y0; y <= crop.y1; y++) for (let x = crop.x0; x <= crop.x1; x++) {
@@ -699,6 +713,28 @@ export function layoutTown(repo, opts = {}) {
   const spawn = { x: P.cx, y: P.plaza.y0 + 2 };
   const props = placeProps(P, F, makeRng(seed ^ 0x9e3779b9), spawn);
 
+  // 見た目の版: 近くに同じ archetype の同じ版が並ばないように選ぶ（同じ入力からは同じ選び方）
+  const variantOf = new Map();
+  for (const p of [...P.placed].sort((a, b) => a.yb - b.yb || a.x - b.x)) {
+    const vs = art[p.spec.archetype]?.variants || [];
+    if (vs.length < 2) { if (vs.length) variantOf.set(p, vs[0]); continue; }
+    const near = new Map();
+    for (const [q, v] of variantOf) {
+      if (q.spec.archetype !== p.spec.archetype) continue;
+      const dx = Math.max(0, Math.max(q.x, p.x) - Math.min(q.x + q.w, p.x + p.w));
+      const dy = Math.abs(q.yb - p.yb);
+      if (dx > 14 || dy > 12) continue;
+      near.set(v.id, (near.get(v.id) || 0) + (dy <= 1 ? 3 : 1) * (dx <= 3 ? 2 : 1));
+    }
+    const start = hash32(p.spec.id) % vs.length;
+    let best = null, bn = Infinity;
+    for (let k = 0; k < vs.length; k++) {
+      const v = vs[(start + k) % vs.length], n = near.get(v.id) || 0;
+      if (n < bn) { bn = n; best = v; }
+    }
+    variantOf.set(p, best);
+  }
+
   const { x0, y0, x1, y1 } = F.crop;
   const ground = [];
   for (let y = y0; y <= y1; y++) {
@@ -709,8 +745,10 @@ export function layoutTown(repo, opts = {}) {
   const buildings = P.placed.map((p) => ({
     id: p.spec.id,
     archetype: p.spec.archetype,
+    ...(variantOf.get(p) ? { variant: variantOf.get(p).id } : {}),
     x: p.x - x0, y: p.y - y0, w: p.w, h: p.h,
-    door: { x: p.x - x0 + p.spec.doorDx, y: p.yb - y0 },   // 目安。実際の扉の列は絵の版で決まる（下の1行は全部歩ける）
+    // 扉の列は版の絵で決まる（footprint の下の2行は端から端まで歩けるようにしてある）
+    door: { x: p.x - x0 + clamp(variantOf.get(p)?.doorX ?? p.spec.doorDx, 0, p.w - 1), y: p.yb - y0 },
     district: p.spec.district,
     module: p.spec.module,
   })).sort((a, b) => Number(a.id.slice(1)) - Number(b.id.slice(1)));

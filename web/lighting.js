@@ -43,7 +43,7 @@ export class Lighting {
 
   // per-light seeded flicker: ~10 Hz jitter + slow drift (flames/door lanterns), gentle drift for windows
   static flicker(light, t) {
-    if (light.kind === 'flame' || light.kind === 'door') {
+    if (light.kind === 'flame' || light.kind === 'door' || light.kind === 'hearth') {
       const s = light.seed;
       const fast = noise1(t * 10.5 + s * 1.37, s) * 0.06 + noise1(t * 23 + s, s + 3) * 0.025;
       const slow = noise1(t * 0.6 + s * 0.71, s + 9) * 0.06;
@@ -77,6 +77,9 @@ export class Lighting {
     }
 
     for (const L of world.lights) {
+      // interior lights (hearth, forge) burn only while their building is open
+      const on = L.interior ? (L.building ? L.building.open : 0) : 1;
+      if (on <= 0.001) continue;
       const f = Lighting.flicker(L, t);
       const r = L.r * f.r;
       const x = L.x - camX, y = L.poolY - camY;
@@ -86,10 +89,10 @@ export class Lighting {
         g.drawImage(this.window, x - r, y - r, r * 2, r * 2);
       } else {
         // broad pool + hot core: strong enough to show the stone texture, ambient stays dark
-        g.globalAlpha = Math.min(1, (L.kind === 'door' ? 0.8 : 1) * f.i);
+        g.globalAlpha = Math.min(1, (L.kind === 'door' ? 0.8 : 1) * f.i) * on;
         g.drawImage(this.warm, x - r, y - r, r * 2, r * 2);
         const rc = r * 0.55;
-        g.globalAlpha = Math.min(1, (L.kind === 'door' ? 0.35 : 0.55) * f.i);
+        g.globalAlpha = Math.min(1, (L.kind === 'door' ? 0.35 : 0.55) * f.i) * on;
         g.drawImage(this.warm, x - rc, y - rc, rc * 2, rc * 2);
       }
     }
@@ -119,11 +122,13 @@ export class Lighting {
     target.globalCompositeOperation = 'lighter';
     for (const L of world.lights) {
       if (L.kind === 'steady') continue;
+      const on = L.interior ? (L.building ? L.building.open : 0) : 1;
+      if (on <= 0.001) continue;
       const f = Lighting.flicker(L, t);
       const r = L.r * (L.kind === 'window' ? 0.45 : 0.55) * f.r;
       const x = L.x - camX, y = L.y - camY;
       if (x + r < 0 || y + r < 0 || x - r > vw || y - r > vh) continue;
-      target.globalAlpha = (L.kind === 'window' ? 0.14 : L.kind === 'door' ? 0.12 : 0.2) * f.i;
+      target.globalAlpha = (L.kind === 'window' ? 0.14 : L.kind === 'door' ? 0.12 : 0.2) * f.i * on;
       target.drawImage(this.glow, x - r, y - r, r * 2, r * 2);
     }
     target.globalAlpha = 1;
