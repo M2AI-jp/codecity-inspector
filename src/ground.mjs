@@ -13,7 +13,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { decodePNG, encodePNG } from '../tools/png.mjs';
 
-export const GROUND_VERSION = 11;          // 見た目を変えたら上げる（キャッシュの鍵に入る）
+export const GROUND_VERSION = 12;          // 見た目を変えたら上げる（キャッシュの鍵に入る）
 const T = 16;
 const DEFAULT_ART = path.resolve(import.meta.dirname, '../art/game');
 const TEX_NAMES = ['street', 'grass', 'dirt', 'plaza', 'moss'];
@@ -735,12 +735,13 @@ export function renderGround(town, artDir = DEFAULT_ART) {
         } else if (f & F_DIRTJ) {
           const q = ((y % DH) * DW + (x % DW)) * 4;
           r = DD[q] * 0.62; g = DD[q + 1] * 0.6; b = DD[q + 2] * 0.58;
-        } else { r *= 0.8; g *= 0.8; b *= 0.8; }
+        } else { const kj = m === SLAB ? 0.95 : 0.8; r *= kj; g *= kj; b *= kj; }   // 広場の目地は texture の目地の濃さのまま（基準の広場は灰色の目地が線で見える）
         if (rw > 0) { const k = 1 + 0.15 * rw; r *= k; g *= k; b *= k; }      // 轍の目地は泥で埋まる
       } else {
         if (m === SLAB) {
           const k = 0.84 + 0.14 * h - (h2 > 0.88 ? 0.1 : 0);
-          r = (PMEAN[0] + (r - PMEAN[0]) * 1.08) * k; g = (PMEAN[1] + (g - PMEAN[1]) * 1.08) * k; b = (PMEAN[2] + (b - PMEAN[2]) * 1.08) * k;
+          // 広場の石は平らな敷石: 石ごとの色の差を texture より少し抑える。街灯の光だまりの中では、この地の色がそのまま見える
+          r = (PMEAN[0] + (r - PMEAN[0]) * 0.8) * k; g = (PMEAN[1] + (g - PMEAN[1]) * 0.8) * k; b = (PMEAN[2] + (b - PMEAN[2]) * 0.8) * k;
         } else if (m === KERB) {
           const k = 0.95 + 0.09 * h;
           r = (PMEAN[0] + (r - PMEAN[0]) * 0.4) * k * 0.97; g = (PMEAN[1] + (g - PMEAN[1]) * 0.4) * k * 0.96; b = (PMEAN[2] + (b - PMEAN[2]) * 0.4) * k * 0.93;
@@ -765,8 +766,8 @@ export function renderGround(town, artDir = DEFAULT_ART) {
         const lit = other(x - 1, y) || other(x, y - 1), shade = other(x + 1, y) || other(x, y + 1);
         const bev = 1 - 0.6 * rw;
         // 基準の石畳シート（art/references/user-provided/field_cobblestone_roads_sheet.png）の石は、左上の縁がはっきり明るく右下が暗い
-        if (lit && !shade) { const k = 1 + (m === SLAB ? 0.26 : m === FRAME ? 0.2 : 0.22) * bev; r *= k; g *= k; b *= k; }
-        else if (shade && !lit) { const k = 1 - (m === SLAB ? 0.26 : m === FRAME ? 0.22 : 0.24) * bev; r *= k; g *= k; b *= k; }
+        if (lit && !shade) { const k = 1 + (m === SLAB ? 0.12 : m === FRAME ? 0.2 : 0.22) * bev; r *= k; g *= k; b *= k; }
+        else if (shade && !lit) { const k = 1 - (m === SLAB ? 0.12 : m === FRAME ? 0.22 : 0.24) * bev; r *= k; g *= k; b *= k; }
       }
       r *= grime; g *= grime; b *= grime;
       if (!foot) {
@@ -1035,7 +1036,7 @@ export function renderGround(town, artDir = DEFAULT_ART) {
     const c6 = cls[i];
     if (c6 === GRASS) { r = r * 1.2; g = g * 1.13 + 2 * cool; b = b * 1.0 + 8 * cool; }
     else if (c6 === WATER) { r = r * 0.86; g = g * 0.84 + 2 * cool; b = b * 0.8 + 12 * cool; }
-    else if (c6 === SLAB || c6 === FRAME) { r = r * 1.21; g = g * 1.12 + 1 * cool; b = b * 0.95 + 7 * cool; }   // 広場は texture がもともと明るい暖色
+    else if (c6 === SLAB || c6 === FRAME) { r = r * 1.1; g = g * 1.08 + 1 * cool; b = b * 1.06 + 7 * cool; }   // 広場は灰色がかった敷石（基準の広場の平均 113,99,83）。光だまりが暖色を足す
     else { r = r * 1.3; g = g * 1.18 + 1 * cool; b = b * 0.9 + 7 * cool; }
     const dEdge = Math.min(x + 0.5, y + 0.5, W - x - 0.5, H - y - 0.5);
     let k = 0.3 + 0.7 * smooth(0, 44, dEdge);
