@@ -17,8 +17,9 @@
 // Also: every building has a keeper; every outdoor keeper (town.landmarks, e.g. the well's 井戸番, the
 // gate's 門番) can be walked up to and talked to (a reachable feet spot within NEAR_KEEPER - 4 px); every
 // gate (a prop with an `opening`) can be walked under north -> south and south -> north; every pier
-// deck (a prop with `deck`) can be stepped onto from the spawn; every terrace top (town.terraces) can
-// be reached and every stair (town.stairs) stood on, with the terrace wall solid as in web/world.js.
+// deck and canal bridge (a prop with `deck`) can be stepped onto from the spawn, and every bridge can be
+// crossed in both directions with Player physics; every terrace top (town.terraces) can be reached and
+// every stair (town.stairs) stood on, with the terrace wall solid as in web/world.js.
 // Exit code 1 if anything fails. Prints why (what blocks the door corridor).
 
 import { readFileSync, statSync } from 'node:fs';
@@ -205,6 +206,50 @@ function throughGate(world, seen, p) {
   return r;
 }
 
+// 橋の板の長い向きに沿って、通りの片側から反対側へ Player の当たり判定で渡る。
+function throughBridge(world, seen, d) {
+  const type = d.prop?.data?.type || d.prop?.type;
+  const horizontal = type === 'bridge-h';
+  const vertical = type === 'bridge-v';
+  if (!horizontal && !vertical) return { ok: false, reason: 'unknown orientation' };
+  const hw = FEET_W / 2;
+  const findSide = (side) => {
+    const x0 = horizontal ? (side < 0 ? d.x - 22 : d.x + d.w + 22) : d.x + d.w / 2;
+    const y0 = vertical ? (side < 0 ? d.y - 22 : d.y + d.h + 22) : d.y + d.h / 2 + FEET_UP - FEET_H / 2;
+    const xMin = horizontal ? Math.floor(x0 - 10) : Math.floor(d.x + hw + 1);
+    const xMax = horizontal ? Math.ceil(x0 + 10) : Math.floor(d.x + d.w - hw - 1);
+    const yMin = vertical ? Math.floor(y0 - 10) : Math.ceil(d.y + FEET_UP);
+    const yMax = vertical ? Math.ceil(y0 + 10) : Math.floor(d.y + d.h - FEET_H + FEET_UP);
+    const points = [];
+    for (let y = Math.max(0, yMin); y <= Math.min(world.H - 1, yMax); y++) {
+      for (let x = Math.max(0, xMin); x <= Math.min(world.W - 1, xMax); x++) {
+        if (seen[y * world.W + x] !== 1 || world.feetHit(x, y)) continue;
+        points.push({ x, y, score: Math.abs(x - x0) + Math.abs(y - y0) });
+      }
+    }
+    return points.sort((a, b) => a.score - b.score).slice(0, 16);
+  };
+  const run = (from, direction) => {
+    if (!from) return false;
+    const pl = new Player(from.x, from.y, null);
+    if (world.feetHit(pl.x, pl.y)) return false;
+    const input = { slow: false, axis(o) {
+      if (horizontal) { o.x = direction; o.y = 0; }
+      else { o.x = 0; o.y = direction; }
+      return o;
+    } };
+    const crossed = horizontal
+      ? (p) => direction > 0 ? p.x >= d.x + d.w - 3 : p.x <= d.x + 3
+      : (p) => direction > 0 ? p.y >= d.y + d.h - 3 : p.y <= d.y + 3;
+    for (let t = 0; t < 3; t += SIM_DT) { pl.update(SIM_DT, input, world); if (crossed(pl)) return true; }
+    return false;
+  };
+  const sideA = findSide(-1), sideB = findSide(1);
+  const forward = sideA.find((p) => run(p, 1)) || null;
+  const backward = sideB.find((p) => run(p, -1)) || null;
+  return { ok: !!(sideA.length && sideB.length && forward && backward), sideA: !!sideA.length, sideB: !!sideB.length, forward: !!forward, backward: !!backward };
+}
+
 // the player holding "up" from just outside the door, with the runtime's Player physics
 function walkIn(world, b, dx) {
   const p = new Player(b.doorPx + dx, b.bottomPx + 9, null);
@@ -288,7 +333,13 @@ for (const target of targets) {
   failed += dryTer.length + dryStair.length;
   // pier decks: some reachable feet box stands fully on each deck
   const decks = world.decks || [];
-  const dryDecks = decks.filter((d) => !onDeckSeen(world, seen, d));
+  const bridgeDecks = decks.filter((d) => ['bridge-h', 'bridge-v'].includes(d.prop?.data?.type || d.prop?.type));
+  const pierDecks = decks.filter((d) => !['bridge-h', 'bridge-v'].includes(d.prop?.data?.type || d.prop?.type));
+  const dryDecks = pierDecks.filter((d) => !onDeckSeen(world, seen, d));
+  const bridgeRuns = bridgeDecks.map((d) => ({ d, r: throughBridge(world, seen, d) }));
+  const shutBridges = bridgeRuns.filter((x) => !x.r.ok);
+  const expectedBridges = town.canal?.crossings?.length || 0;
+  const bridgePropGap = Math.max(0, expectedBridges - bridgeDecks.length);
   // gates (a prop with an opening): walk under it both ways
   const gates = world.props.filter((p) => p.def && Array.isArray(p.def.opening)).map((p) => ({ p, r: throughGate(world, seen, p) }));
   const shutGates = gates.filter((x) => !x.r.ok);
@@ -309,22 +360,35 @@ for (const target of targets) {
     }
   }
   const gatePropGap = Math.max(0, (town.landmarks || []).filter((lm) => lm.archetype === 'gate').length - gates.length);
+  const canalUnplaced = (town.unplaced || []).filter((u) => u.archetype === 'canal');
+  const wellEvidence = repo
+    ? (repo.facilities || []).some((f) => f.archetype === 'well')
+    : (town.landmarks || []).some((lm) => lm.archetype === 'well') ||
+      (town.unplaced || []).some((u) => u.archetype === 'well');
+  const canalMissing = wellEvidence && !town.canal && !canalUnplaced.length;
   failed += noKeeper.length + farKeepers.length + dryDecks.length + Math.max(0, lmCount - outdoor.length) +
-    shutGates.length + unplacedOutdoor.length + evidenceMissing.length + gatePropGap;
+    shutGates.length + shutBridges.length + bridgePropGap + unplacedOutdoor.length + evidenceMissing.length + gatePropGap +
+    canalUnplaced.length + (canalMissing ? 1 : 0);
   const ms = Math.round(performance.now() - t0);
   console.log(`${town.repo?.name ?? target}: ${world.buildings.length} buildings, ${bad.length} not enterable, ` +
     `${soft.length} only from part of the door front, ${noKeeper.length} without a keeper; ` +
-    `outdoor keepers ${outdoor.length - farKeepers.length}/${outdoor.length} reachable; piers ${decks.length - dryDecks.length}/${decks.length} walkable; ` +
+    `outdoor keepers ${outdoor.length - farKeepers.length}/${outdoor.length} reachable; piers ${pierDecks.length - dryDecks.length}/${pierDecks.length} walkable; ` +
     `gates ${gates.length - shutGates.length}/${gates.length} passable both ways; unplaced outdoor ${unplacedOutdoor.length + evidenceMissing.length + gatePropGap}; ` +
+    `bridges ${bridgeDecks.length - shutBridges.length}/${bridgeDecks.length} passable both ways; ` +
+    `canal ${town.canal ? `${town.canal.cells?.length || 0} cells/${town.canal.crossings?.length || 0} crossings` : 'none'}, unplaced canal ${canalUnplaced.length + (canalMissing ? 1 : 0)}; ` +
     `terraces ${ters.length - dryTer.length}/${ters.length} reachable, stairs ${strs.length - dryStair.length}/${strs.length} climbable; ` +
     `reachable feet px ${count} (${ms} ms)`);
   for (const b of noKeeper) console.log(`  x ${b.id} ${b.arch ? b.arch.id : b.archetype} at (${b.x},${b.y}) has no keeper (no spot inside)`);
   for (const k of farKeepers) console.log(`  x outdoor keeper ${k.name} of ${k.building.id} at (${(k.x / T).toFixed(2)},${(k.y / T).toFixed(2)}) cannot be reached for a talk`);
   for (const d of dryDecks) console.log(`  x pier deck at px (${d.x},${d.y},${d.w},${d.h}) cannot be stepped onto`);
   for (const { p, r } of shutGates) console.log(`  x ${p.type} at (${(p.x / T).toFixed(2)},${(p.y / T).toFixed(2)}): reach south=${r.southReach} north=${r.northReach}, walk south->north=${r.up} north->south=${r.down}`);
+  for (const { d, r } of shutBridges) console.log(`  x ${d.prop?.data?.type || d.prop?.type} at px (${d.x},${d.y},${d.w},${d.h}): sides=${!!r.sideA}/${!!r.sideB}, forward=${r.forward}, backward=${r.backward}`);
+  if (bridgePropGap) console.log(`  x ${bridgePropGap} canal crossing(s) have no bridge deck`);
   for (const u of unplacedOutdoor) console.log(`  x unplaced ${u.archetype} ${u.name || ''}: ${u.reason}`);
   for (const x of evidenceMissing) console.log(`  x missing ${x.archetype}: ${x.reason}`);
   if (gatePropGap) console.log(`  x ${gatePropGap} gate landmark(s) have no passable gate prop`);
+  for (const u of canalUnplaced) console.log(`  x unplaced canal ${u.name || '水路'}: ${u.reason}`);
+  if (canalMissing) console.log('  x well evidence exists, but town.canal and unplaced canal are both missing');
   for (const t of dryTer) console.log(`  x terrace top (${t.x},${t.y},${t.w},${t.h}) cannot be reached`);
   for (const s2 of dryStair) console.log(`  x stair (${s2.x},${s2.y},${s2.w}) cannot be stood on`);
   for (const x of [...bad, ...(verbose ? soft : [])]) {

@@ -597,7 +597,7 @@ const FACILITY_VOICE = {
   well: {
     greet: ['やあ、井戸へようこそ。わたしは井戸番だよ。', 'こんばんは。井戸の番をしているよ。'],
     what: ['この井戸から、街が動くのに使う「設定」をくんでいるんだ。', 'この街は、ここから「設定」の水をくんで動いているんだよ。'],
-    facts(f) {
+    facts(f, town) {
       const out = [];
       const names = Array.isArray(f.names) ? f.names : [];
       const total = Math.max(f.namesTotal | 0, names.length);
@@ -607,6 +607,8 @@ const FACILITY_VOICE = {
           ? `この街が使う設定の名前は、${shown.join('、')}など、見つかっただけで${fmtInt(total)}個だよ。`
           : `この街が使う設定の名前は、${listJa(shown)}だよ。`);
       }
+      const past = Array.isArray(town?.canal?.past) ? town.canal.past.filter(Boolean) : [];
+      if (past.length) out.push(`水路は${past.map(q).join('、')}のそばを通っているよ。そこが、設定の名前をいちばん多く読む所だからだよ。`);
       if (f.examples && f.examples[0]) out.push(`書き方の見本は${q(f.examples[0])}にあるよ。`);
       else if (names.length) out.push('書き方の見本（.env.example）は、見当たらないね。');
       if (f.committed && f.committed[0]) {
