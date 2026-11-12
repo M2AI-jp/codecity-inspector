@@ -2,6 +2,7 @@
 //   '.' 草地  '#' 石畳の通り  ':' 土の路地  '+' 広場  '~' 水  ' ' 街の外（暗い下草 → 地図の端で闇へ）
 // 水は art/game/ground/water.png（あれば。無ければ暗い色）。石畳の通りのすぐ下の水の行には
 // quay.png（岸壁の石の帯、横に継ぎ目なし、上端が通りの下端）を重ねる。
+// Town.canal.cells の水路は tile 全体を水にし、草地・土・通りへにじまない石垣の岸を重ねる。
 // 光は焼き込まない: 石の左上の面取り、一段高い草地が右下に落とす影、夜のゆるい色調だけ。夜の照明はブラウザ側。
 // 建物の footprint は無地の地面のまま（建物の絵が覆う）。footprint の下辺・右辺に薄い接地影を置く。
 //
@@ -13,7 +14,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { decodePNG, encodePNG } from '../tools/png.mjs';
 
-export const GROUND_VERSION = 16;          // 見た目を変えたら上げる（キャッシュの鍵に入る）
+export const GROUND_VERSION = 17;          // 見た目を変えたら上げる（キャッシュの鍵に入る）
 const T = 16;
 const DEFAULT_ART = path.resolve(import.meta.dirname, '../art/game');
 const TEX_NAMES = ['street', 'grass', 'dirt', 'plaza', 'moss'];
@@ -293,6 +294,20 @@ export function renderGround(town, artDir = DEFAULT_ART) {
   const cx_ = (x) => (x < 0 ? 0 : x >= cols ? cols - 1 : x), cy_ = (y) => (y < 0 ? 0 : y >= rows ? rows - 1 : y);
   const tcl = (x, y) => tc[cy_(y) * cols + cx_(x)];
   const footAt = (x, y) => footT[cy_(y) * cols + cx_(x)] >= 0;
+  // 水路のセルは town.canal.cells を正本にする（ground の '~' と一致する入力だけを描く）。
+  // Set と tile mask の両方を持ち、座標判定は描画ループで配列を使って軽くする。
+  const canalCells = new Set();
+  for (const cell of town.canal?.cells || []) {
+    if (!Array.isArray(cell) || cell.length < 2) continue;
+    const [x, y] = cell;
+    if (Number.isInteger(x) && Number.isInteger(y) && x >= 0 && y >= 0 && x < cols && y < rows) canalCells.add(`${x},${y}`);
+  }
+  const canalTile = new Uint8Array(cols * rows);
+  for (const key of canalCells) {
+    const [x, y] = key.split(',').map(Number);
+    if (tc[y * cols + x] === TW) canalTile[y * cols + x] = 1;
+  }
+  const canalAtPx = (x, y) => canalTile[((y / T) | 0) * cols + ((x / T) | 0)] !== 0;
   // 通りの向き: 縦に長く続く通り（南北の大通り）は石の列も縦に揃える
   const orient = new Uint8Array(cols * rows), runAlong = new Int32Array(cols * rows);
   const crossStart = new Int32Array(cols * rows), crossLen = new Int32Array(cols * rows);
@@ -372,12 +387,16 @@ export function renderGround(town, artDir = DEFAULT_ART) {
 
   // ---- tile の所属をぼかした場（2px 格子）
   const tileAtPx = (px, py) => tc[Math.min(rows - 1, (py / T) | 0) * cols + Math.min(cols - 1, (px / T) | 0)];
-  const memb = (pred, radii) => { const F = lattice(W, H, 2, (px, py) => (pred(tileAtPx(px, py)) ? 1 : 0)); for (const r of radii) boxBlur(F, r); return F; };
+  const harbourTileAtPx = (px, py) => {
+    const tx = Math.min(cols - 1, (px / T) | 0), ty = Math.min(rows - 1, (py / T) | 0);
+    return canalTile[ty * cols + tx] ? TO : tc[ty * cols + tx];
+  };
+  const memb = (pred, radii, at = tileAtPx) => { const F = lattice(W, H, 2, (px, py) => (pred(at(px, py)) ? 1 : 0)); for (const r of radii) boxBlur(F, r); return F; };
   const Sm = memb((t) => t === TS, [2, 2]);
   const Dsm = memb((t) => t === TD, [2, 2]);
   const Gm = memb((t) => t === TG || t === TO, [3, 3, 2]);
   const Dm = memb((t) => t === TD, [3, 3, 2]);
-  const Wm = memb((t) => t === TW, [3, 3, 2]);
+  const Wm = memb((t) => t === TW, [3, 3, 2], harbourTileAtPx);
   // 低周波のノイズ場
   const GRIME = lattice(W, H, 4, (x, y) => fbm(x / 46, y / 46, SEED + 51));
   const MOSSY = lattice(W, H, 4, (x, y) => fbm(x / 30, y / 30, SEED + 61));
@@ -462,6 +481,10 @@ export function renderGround(town, artDir = DEFAULT_ART) {
         flg[i] = F_FOOT;
         if (t === TS || t === TP) { cob(x, y, 0); cls[i] = COBBLE; if (SL >= 0) setStone(i, SL, 82); }
         else cls[i] = t === TD ? DIRT : t === TW ? WATER : GRASS;
+        continue;
+      }
+      if (t === TW && canalTile[ti]) {             // 水路は tile 全体を水に固定する
+        cls[i] = WATER;
         continue;
       }
       if (t === TS) {
@@ -595,7 +618,8 @@ export function renderGround(town, artDir = DEFAULT_ART) {
   for (let i = 0; i < N; i++) {
     if (flg[i] & F_FOOT) continue;
     const c = cls[i];
-    if (c === GRASS || c === DIRT || c === WATER) softSrc[i] = c + 1;
+    const tx = ((i % W) / T) | 0, ty = ((i / W) / T) | 0;
+    if ((c === GRASS || c === DIRT || c === WATER) && !(c === WATER && canalTile[ty * cols + tx])) softSrc[i] = c + 1;
     if (c === GRASS) grassSrc[i] = 1;
   }
   const { d: dist, tag: near } = chess(W, H, softSrc);
@@ -719,7 +743,7 @@ export function renderGround(town, artDir = DEFAULT_ART) {
         const X2 = x + dx, Y2 = y + dy;
         if (X2 >= 0 && Y2 >= 0 && X2 < W && Y2 < H && cls[Y2 * W + X2] !== WATER) edgeN++;
       }
-      if (edgeN) { const k2 = 0.72 + 0.28 * (1 - Math.min(1, edgeN / 6)); r *= k2; g *= k2; b *= k2; }
+      if (edgeN && !canalAtPx(x, y)) { const k2 = 0.72 + 0.28 * (1 - Math.min(1, edgeN / 6)); r *= k2; g *= k2; b *= k2; }
     } else {
       // 石: 通り・縁石・広場
       const sid = key[i], h = srnd[i] / 255, h2 = srnd2[i] / 255;
@@ -877,34 +901,8 @@ export function renderGround(town, artDir = DEFAULT_ART) {
     }
   }
 
-  // ---- 4b. 岸壁: 石畳の通りのすぐ下の水の行に quay.png を重ねる（上端を通りの下端にそろえ、横は世界座標で繰り返す）
-  if (QUAY) {
-    const QW = QUAY.width, QH = QUAY.height, QD = QUAY.data;
-    for (let ty = 1; ty < rows; ty++) for (let tx = 0; tx < cols; tx++) {
-      if (tc[ty * cols + tx] !== TW || tc[(ty - 1) * cols + tx] !== TS || footT[(ty - 1) * cols + tx] >= 0) continue;
-      // 岸の端（隣の列が岸でない）は 3px ずつ丸めて、地面へなじませる
-      const endL = !(tx > 0 && tc[ty * cols + tx - 1] === TW && tc[(ty - 1) * cols + tx - 1] === TS);
-      const endR = !(tx < cols - 1 && tc[ty * cols + tx + 1] === TW && tc[(ty - 1) * cols + tx + 1] === TS);
-      for (let ly = 0; ly < QH; ly++) {
-        const y = ty * T + ly;
-        if (y >= H) break;
-        if (ly >= T && tc[Math.min(rows - 1, (y / T) | 0) * cols + tx] !== TW) break;
-        for (let lx = 0; lx < T; lx++) {
-          if ((endL && lx < 3 && ly > QH - 4 + lx) || (endR && lx > 12 && ly > QH - 4 + (15 - lx))) continue;
-          const x = tx * T + lx, q = ((ly * QW) + (x % QW)) * 4, a = QD[q + 3] / 255;
-          if (!a) continue;
-          const o = (y * W + x) * 4;
-          out[o] = out[o] * (1 - a) + QD[q] * a; out[o + 1] = out[o + 1] * (1 - a) + QD[q + 1] * a; out[o + 2] = out[o + 2] * (1 - a) + QD[q + 2] * a;
-        }
-      }
-    }
-  }
-
-  // ---- 4c. 段（town.terraces / town.stairs）: 一段高い面の南の行（y+h）は石垣の前面、両端に柱。
-  //      前面は 16px: 笠石 5px（光る上の縁・明るい上面・前の面・下の影）と、切り石 2 段（1 個ずつ、左上が明るく右下が暗い）、足もとの影。
-  //      階段の列は石段 4 段（踏み面・段鼻・蹴上げ）と両脇の袖柱。東西の縁は笠石の縁石で、東の低い地面へ影を落とす。
-  //      石の地の色と粒は wall.png（無ければ広場の石）。どの地面の文字の上でも描く（歩けるかどうかは web/world.js）。
-  if ((town.terraces || []).length) {
+  // ---- 石垣の共通部品（段と水路の岸で同じ石の色・粒・目地を使う）
+  const masonry = (() => {
     const inMap = (x, y) => x >= 0 && y >= 0 && x < W && y < H;
     const mul = (x, y, k) => { if (!inMap(x, y) || flg[y * W + x] & F_FOOT) return; const o = (y * W + x) * 4; out[o] *= k; out[o + 1] *= k; out[o + 2] *= k; };
     const put = (x, y, c, k) => { if (!inMap(x, y) || flg[y * W + x] & F_FOOT) return; const o = (y * W + x) * 4; out[o] = c[0] * k; out[o + 1] = c[1] * k; out[o + 2] = c[2] * k; };
@@ -929,6 +927,130 @@ export function renderGround(town, artDir = DEFAULT_ART) {
     };
     const STONE = (x, y, key, k) => { const w = warm(key) * 0.5; put(x, y, [BASE[0] * (1 + 0.05 * w), BASE[1], BASE[2] * (1 - 0.08 * w)], k * tone(key) * grain(x, y) * grimeAt(x, y)); };
     const MORTAR = [BASE[0] * 0.26, BASE[1] * 0.245, BASE[2] * 0.23];
+    return { inMap, mul, put, blockAt, STONE, MORTAR, grimeAt };
+  })();
+
+  // ---- 4b. 水路の石垣: 水路セルの境界だけに、陸側の笠石と見える岸を描く
+  const drawCanalBanks = () => {
+    if (!canalCells.size) return;
+    const { inMap, mul, put, blockAt, STONE, MORTAR, grimeAt } = masonry;
+    const N = 0, S = 1, W_ = 2, E = 3;
+    const edges = [];
+    const sideAt = (tx, ty, dir) => {
+      const nx = tx + (dir === W_ ? -1 : dir === E ? 1 : 0);
+      const ny = ty + (dir === N ? -1 : dir === S ? 1 : 0);
+      if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) return false;
+      const ni = ny * cols + nx;
+      if (tc[ni] === TW || footT[ni] >= 0) return false;
+      return true;
+    };
+    for (const key of canalCells) {
+      const [tx, ty] = key.split(',').map(Number);
+      for (const dir of [N, S, W_, E]) if (sideAt(tx, ty, dir)) edges.push({ tx, ty, dir });
+    }
+
+    // 陸側の4px笠石。外側の縁を明るく、水側の1pxを暗くする。
+    const cap = ({ tx, ty, dir }) => {
+      const px = tx * T, py = ty * T, horizontal = dir === N || dir === S;
+      for (let along = 0; along < T; along++) {
+        const q = horizontal ? px + along : py + along;
+        const b = blockAt(q * 0.62, 9 + dir);
+        for (let d = 0; d < 4; d++) {
+          let x, y, depth;
+          if (dir === N) { x = px + along; y = py - 4 + d; depth = d; }
+          else if (dir === S) { x = px + along; y = py + T + d; depth = 3 - d; }
+          else if (dir === W_) { x = px - 4 + d; y = py + along; depth = d; }
+          else { x = px + T + d; y = py + along; depth = 3 - d; }
+          if (b.lx === 0) put(x, y, MORTAR, 1.1);
+          else STONE(x, y, b.key + 1500 + dir * 97, [1.34, 1.12, 0.92, 0.68][depth]);
+        }
+      }
+    };
+
+    // 曲がり角の外側の4×4pxを埋め、縦横の笠石が角で途切れないようにする。
+    const corner = (tx, ty, a, b, salt) => {
+      const dx = a === W_ || b === W_ ? -1 : 1, dy = a === N || b === N ? -1 : 1;
+      const cx = tx * T + (dx < 0 ? -4 : T), cy = ty * T + (dy < 0 ? -4 : T);
+      const qx = tx + dx, qy = ty + dy;
+      if (qx < 0 || qy < 0 || qx >= cols || qy >= rows || tc[qy * cols + qx] === TW || footT[qy * cols + qx] >= 0) return;
+      for (let j = 0; j < 4; j++) for (let i = 0; i < 4; i++) {
+        const x = cx + i, y = cy + j, b0 = blockAt((x + y) * 0.31, 60 + salt);
+        if (b0.lx === 0 || i === 0 || j === 0) put(x, y, MORTAR, 1.0);
+        else STONE(x, y, b0.key + 1600 + salt * 41, (i === 3 || j === 3) ? 0.78 : 1.08);
+      }
+    };
+    const front = ({ tx, ty }) => {
+      const px = tx * T, py = ty * T;
+      for (let along = 0; along < T; along++) {
+        const x = px + along;
+        for (let ly = 0; ly < 10; ly++) {
+          const course = ly < 5 ? 0 : 1, r = ly - (course ? 5 : 0);
+          const b = blockAt(x * 0.62, 40 + course);
+          if (r === 4 || b.lx === 0) { put(x, py + ly, MORTAR, grimeAt(x, py + ly)); continue; }
+          let k = 1.0;
+          if (r === 0) k = 1.32;
+          else if (r === 3) k = 0.86;
+          if (b.lx === 1) k *= 1.18;
+          else if (b.lx === b.len - 1) k *= 0.82;
+          STONE(x, py + ly, b.key + 1700, k * (course ? 0.92 : 1.0));
+        }
+        mul(x, py + 10, 0.58);
+        mul(x, py + 11, 0.74);
+      }
+    };
+    const waterLine = ({ tx, ty, dir }) => {
+      const px = tx * T, py = ty * T;
+      if (dir === S) for (let x = px; x < px + T; x++) mul(x, py + T - 1, 0.56);
+      else if (dir === W_) for (let y = py; y < py + T; y++) { mul(px, y, 0.58); mul(px + 1, y, 0.72); mul(px + 2, y, 0.86); }
+      else if (dir === E) for (let y = py; y < py + T; y++) mul(px + T - 1, y, 0.56);
+    };
+
+    for (const e of edges) cap(e);
+    for (const key of canalCells) {
+      const [tx, ty] = key.split(',').map(Number);
+      const at = (dir) => edges.some((e) => e.tx === tx && e.ty === ty && e.dir === dir);
+      if (at(N) && at(W_)) corner(tx, ty, N, W_, 0);
+      if (at(N) && at(E)) corner(tx, ty, N, E, 1);
+      if (at(S) && at(W_)) corner(tx, ty, S, W_, 2);
+      if (at(S) && at(E)) corner(tx, ty, S, E, 3);
+    }
+    for (const e of edges) {
+      if (e.dir === N) front(e);
+      else waterLine(e);
+    }
+  };
+
+  // ---- 4c. 岸壁: 石畳の通りのすぐ下の水の行に quay.png を重ねる（上端を通りの下端にそろえ、横は世界座標で繰り返す）
+  if (QUAY) {
+    const QW = QUAY.width, QH = QUAY.height, QD = QUAY.data;
+    for (let ty = 1; ty < rows; ty++) for (let tx = 0; tx < cols; tx++) {
+      if (tc[ty * cols + tx] !== TW || tc[(ty - 1) * cols + tx] !== TS || footT[(ty - 1) * cols + tx] >= 0) continue;
+      // 港の水路口では quay の端を丸めない。水路の石垣と岸壁を角でつなぐ。
+      const canalOpening = canalTile[ty * cols + tx] !== 0;
+      const endL = !canalOpening && !(tx > 0 && tc[ty * cols + tx - 1] === TW && tc[(ty - 1) * cols + tx - 1] === TS);
+      const endR = !canalOpening && !(tx < cols - 1 && tc[ty * cols + tx + 1] === TW && tc[(ty - 1) * cols + tx + 1] === TS);
+      for (let ly = 0; ly < QH; ly++) {
+        const y = ty * T + ly;
+        if (y >= H) break;
+        if (ly >= T && tc[Math.min(rows - 1, (y / T) | 0) * cols + tx] !== TW) break;
+        for (let lx = 0; lx < T; lx++) {
+          if ((endL && lx < 3 && ly > QH - 4 + lx) || (endR && lx > 12 && ly > QH - 4 + (15 - lx))) continue;
+          const x = tx * T + lx, q = ((ly * QW) + (x % QW)) * 4, a = QD[q + 3] / 255;
+          if (!a) continue;
+          const o = (y * W + x) * 4;
+          out[o] = out[o] * (1 - a) + QD[q] * a; out[o + 1] = out[o + 1] * (1 - a) + QD[q + 1] * a; out[o + 2] = out[o + 2] * (1 - a) + QD[q + 2] * a;
+        }
+      }
+    }
+  }
+  drawCanalBanks();
+
+  // ---- 4d. 段（town.terraces / town.stairs）: 一段高い面の南の行（y+h）は石垣の前面、両端に柱。
+  //      前面は 16px: 笠石 5px（光る上の縁・明るい上面・前の面・下の影）と、切り石 2 段（1 個ずつ、左上が明るく右下が暗い）、足もとの影。
+  //      階段の列は石段 4 段（踏み面・段鼻・蹴上げ）と両脇の袖柱。東西の縁は笠石の縁石で、東の低い地面へ影を落とす。
+  //      石の地の色と粒は wall.png（無ければ広場の石）。どの地面の文字の上でも描く（歩けるかどうかは web/world.js）。
+  if ((town.terraces || []).length) {
+    const { inMap, mul, put, blockAt, STONE, MORTAR, grimeAt } = masonry;
     // 前面の 1 画素（ly 0..15）
     const wallPx = (x, y, ly) => {
       if (ly <= 4) {                                                            // 笠石
@@ -1068,7 +1190,7 @@ export function groundCacheFile(town, { artDir = DEFAULT_ART, cacheDir = path.jo
   h.update(JSON.stringify({
     v: GROUND_VERSION, tex: textureDigest(artDir), cols: town.cols, rows: town.rows, ground: town.ground,
     b: (town.buildings || []).map((b) => [b.x, b.y, b.w, b.h]),
-    t: town.terraces || [], s: town.stairs || [],
+    c: town.canal?.cells || [], t: town.terraces || [], s: town.stairs || [],
   }));
   const safe = (s) => String(s ?? 'repo').replace(/[^A-Za-z0-9._-]+/g, '_').slice(0, 60);
   return path.join(cacheDir, `${safe(town.repo?.name)}-${safe(town.repo?.head ?? 'worktree')}-${h.digest('hex').slice(0, 12)}.png`);
