@@ -1391,11 +1391,16 @@ function placeProps(P, F, rng, spawn, extra) {
     });
     const paveable = (x, y) => inC(x, y) && foot[id(x, y)] < 0 && g[id(x, y)] !== WATER && g[id(x, y)] !== PLAZA;
     for (const e of exits) {
-      // 街の外へ出る土の道を、通りの端から外へたどる（行ごとの列。段々の道は行ごとにずれる）
+      // 街の外へ出る土の道を、通りの端から外へたどる。土道が草地・外で途切れていても、
+      // 建物・水・舗装で遮られない列を外まで延ばし、門の手前の道にする（段々の道は行ごとにずれる）。
       const trail = new Map();
       for (let y = e.end + e.dir, col = e.col; y >= crop.y0 && y <= crop.y1; y += e.dir) {
         const dxs = [0, -1, 1, -2, 2];
-        const dx = dxs.find((d) => inC(col + d, y) && g[id(col + d, y)] === DIRT && foot[id(col + d, y)] < 0);
+        const dx = dxs.find((d) => {
+          if (!inC(col + d, y) || foot[id(col + d, y)] >= 0) return false;
+          const tile = g[id(col + d, y)];
+          return tile === DIRT || tile === GRASS || tile === OUT;
+        });
         if (dx === undefined) break;
         col += dx;
         trail.set(y, col);
@@ -1982,9 +1987,10 @@ export function layoutTown(repo, opts = {}) {
     const a = art[f.archetype];
     const [w, h] = a.footprint;
     return { id: `f${i + 1}`, archetype: f.archetype, w, h, doorDx: clamp(a.doorX ?? Math.floor((w - 1) / 2), 0, w - 1),
-      module: facModule(f), facility: facilityOf(f, FACILITY_NAME[f.archetype]), district: '\u0000facility', roofRows: Math.ceil((a.roof || 48) / 16) };
+      module: facModule(f), facility: facilityOf(f, FACILITY_NAME[f.archetype]), sourceFacility: f,
+      district: '\u0000facility', roofRows: Math.ceil((a.roof || 48) / 16) };
   });
-  const landmarks = lms.map((f, i) => ({ prop: LANDMARK[f.archetype].prop, data: {
+  const landmarks = lms.map((f, i) => ({ sourceFacility: f, prop: LANDMARK[f.archetype].prop, data: {
     id: `f${facSpecs.length + i + 1}`, archetype: f.archetype, name: LANDMARK[f.archetype].name, prop: LANDMARK[f.archetype].prop,
     facility: facilityOf(f, LANDMARK[f.archetype].name), module: facModule(f) } }));
 
@@ -2093,6 +2099,40 @@ export function layoutTown(repo, opts = {}) {
   P.terraces = P.terraces.filter((t) => !t.drop);
   const dock = P.placed.find((p) => p.spec.archetype === 'dock');
   const placedProps = placeProps(P, F, makeRng(seed ^ 0x9e3779b9), spawn, { propArt, landmarks, dock });
+  const placedFacilitySources = new Set(P.placed.map((p) => p.spec.sourceFacility).filter(Boolean));
+  const placedLandmarkIds = new Set(placedProps.landmarks.map((l) => l.id));
+  const unplaced = [];
+  for (const f of repo.facilities || []) {
+    const facilityName = FACILITY_NAME[f.archetype] || LANDMARK[f.archetype]?.name;
+    if (!facilityName) continue;
+    const landmarkIndex = lms.indexOf(f);
+    const landmarkId = landmarkIndex >= 0 ? `f${facSpecs.length + landmarkIndex + 1}` : null;
+    const placed = LANDMARK[f.archetype]
+      ? landmarkId !== null && placedLandmarkIds.has(landmarkId)
+      : placedFacilitySources.has(f);
+    if (placed) continue;
+    let reason;
+    if (LANDMARK[f.archetype]) {
+      const prop = LANDMARK[f.archetype].prop;
+      if (!propArt[prop]) reason = `小物 ${prop} の絵が manifest にない`;
+      else if (f.archetype === 'gate' && !(F.exits || []).length) reason = '門を置ける南北の出口がない';
+      else if (f.archetype === 'gate') reason = '出口ごとに門の絵・柱・土道・門番を置ける場所がない';
+      else reason = '広場または緑地に井戸小屋と井戸番を置ける場所がない';
+    } else if (!art[f.archetype]?.footprint) {
+      reason = `施設 ${f.archetype} の絵が manifest にない`;
+    } else if (f.archetype === 'dock' && !water) {
+      reason = '水辺の地面がない';
+    } else {
+      reason = '施設を配置できる建物の場所がない';
+    }
+    unplaced.push({
+      archetype: f.archetype,
+      name: f.name || facilityName,
+      reason,
+      evidence: Array.isArray(f.evidence) ? f.evidence.slice(0, 20) : [],
+      evidenceCount: f.evidenceCount ?? (f.evidence || []).length,
+    });
+  }
 
   const { x0, y0, x1, y1 } = F.crop;
   const ground = [];
@@ -2153,6 +2193,7 @@ export function layoutTown(repo, opts = {}) {
     buildings,
     props: placedProps.props.map(shift).sort((a, b) => a.y - b.y || a.x - b.x || cmp(a.type, b.type)),
     landmarks: placedProps.landmarks.map((l) => ({ ...shift(l), keeper: shift(l.keeper) })),
+    ...(unplaced.length ? { unplaced } : {}),
     // 段: 上の面（歩ける）は x..x+w-1 × y..y+h-1、前の壁は y+h 行（階段の所だけ歩ける）
     terraces: P.terraces.map((t) => ({ x: t.x - x0, y: t.y - y0, w: t.w, h: t.h })),
     stairs: P.terraces.map((t) => ({ x: t.stair.x - x0, y: t.y + t.h - y0, w: t.stair.w })),

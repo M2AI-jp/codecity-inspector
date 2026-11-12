@@ -84,9 +84,10 @@ async function townFor(target) {
   if (statSync(abs).isDirectory()) {
     const { analyzeRepository } = await import('../src/analyze.mjs');
     const { layoutTown, loadArt, loadProps, loadGround } = await import('../src/layout.mjs');
-    return layoutTown(analyzeRepository(abs), { art: loadArt(manifest), props: loadProps(manifest), ground: loadGround(manifest) });
+    const repo = analyzeRepository(abs);
+    return { town: layoutTown(repo, { art: loadArt(manifest), props: loadProps(manifest), ground: loadGround(manifest) }), repo };
   }
-  return JSON.parse(readFileSync(abs, 'utf8'));
+  return { town: JSON.parse(readFileSync(abs, 'utf8')), repo: null };
 }
 
 // --- the world as web/main.js builds it ------------------------------------------------------
@@ -255,7 +256,7 @@ const art = artFrom(manifest);
 let failed = 0;
 for (const target of targets) {
   const t0 = performance.now();
-  const town = await townFor(target);
+  const { town, repo } = await townFor(target);
   const { world, npcs, start, warns } = buildWorld(town, art);
   const { seen, count } = flood(world, start);
   const rows = [];
@@ -291,18 +292,39 @@ for (const target of targets) {
   // gates (a prop with an opening): walk under it both ways
   const gates = world.props.filter((p) => p.def && Array.isArray(p.def.opening)).map((p) => ({ p, r: throughGate(world, seen, p) }));
   const shutGates = gates.filter((x) => !x.r.ok);
-  failed += noKeeper.length + farKeepers.length + dryDecks.length + Math.max(0, lmCount - outdoor.length) + shutGates.length;
+  const outdoorKinds = new Set(['gate', 'well']);
+  const unplacedOutdoor = (town.unplaced || []).filter((u) => outdoorKinds.has(u.archetype));
+  const placedOutdoor = new Map();
+  for (const lm of town.landmarks || []) if (outdoorKinds.has(lm.archetype)) placedOutdoor.set(lm.archetype, (placedOutdoor.get(lm.archetype) || 0) + 1);
+  const unplacedCounts = new Map();
+  for (const u of unplacedOutdoor) unplacedCounts.set(u.archetype, (unplacedCounts.get(u.archetype) || 0) + 1);
+  const evidenceMissing = [];
+  for (const f of (repo?.facilities || []).filter((f) => outdoorKinds.has(f.archetype))) {
+    const placed = placedOutdoor.get(f.archetype) || 0;
+    if (placed) placedOutdoor.set(f.archetype, placed - 1);
+    else {
+      const recorded = unplacedCounts.get(f.archetype) || 0;
+      if (recorded) unplacedCounts.set(f.archetype, recorded - 1);
+      else evidenceMissing.push({ archetype: f.archetype, reason: 'RepoModel に証拠があるが town.landmarks にも town.unplaced にも無い' });
+    }
+  }
+  const gatePropGap = Math.max(0, (town.landmarks || []).filter((lm) => lm.archetype === 'gate').length - gates.length);
+  failed += noKeeper.length + farKeepers.length + dryDecks.length + Math.max(0, lmCount - outdoor.length) +
+    shutGates.length + unplacedOutdoor.length + evidenceMissing.length + gatePropGap;
   const ms = Math.round(performance.now() - t0);
   console.log(`${town.repo?.name ?? target}: ${world.buildings.length} buildings, ${bad.length} not enterable, ` +
     `${soft.length} only from part of the door front, ${noKeeper.length} without a keeper; ` +
     `outdoor keepers ${outdoor.length - farKeepers.length}/${outdoor.length} reachable; piers ${decks.length - dryDecks.length}/${decks.length} walkable; ` +
-    `gates ${gates.length - shutGates.length}/${gates.length} passable both ways; ` +
+    `gates ${gates.length - shutGates.length}/${gates.length} passable both ways; unplaced outdoor ${unplacedOutdoor.length + evidenceMissing.length + gatePropGap}; ` +
     `terraces ${ters.length - dryTer.length}/${ters.length} reachable, stairs ${strs.length - dryStair.length}/${strs.length} climbable; ` +
     `reachable feet px ${count} (${ms} ms)`);
   for (const b of noKeeper) console.log(`  x ${b.id} ${b.arch ? b.arch.id : b.archetype} at (${b.x},${b.y}) has no keeper (no spot inside)`);
   for (const k of farKeepers) console.log(`  x outdoor keeper ${k.name} of ${k.building.id} at (${(k.x / T).toFixed(2)},${(k.y / T).toFixed(2)}) cannot be reached for a talk`);
   for (const d of dryDecks) console.log(`  x pier deck at px (${d.x},${d.y},${d.w},${d.h}) cannot be stepped onto`);
   for (const { p, r } of shutGates) console.log(`  x ${p.type} at (${(p.x / T).toFixed(2)},${(p.y / T).toFixed(2)}): reach south=${r.southReach} north=${r.northReach}, walk south->north=${r.up} north->south=${r.down}`);
+  for (const u of unplacedOutdoor) console.log(`  x unplaced ${u.archetype} ${u.name || ''}: ${u.reason}`);
+  for (const x of evidenceMissing) console.log(`  x missing ${x.archetype}: ${x.reason}`);
+  if (gatePropGap) console.log(`  x ${gatePropGap} gate landmark(s) have no passable gate prop`);
   for (const t of dryTer) console.log(`  x terrace top (${t.x},${t.y},${t.w},${t.h}) cannot be reached`);
   for (const s2 of dryStair) console.log(`  x stair (${s2.x},${s2.y},${s2.w}) cannot be stood on`);
   for (const x of [...bad, ...(verbose ? soft : [])]) {
