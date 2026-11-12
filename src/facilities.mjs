@@ -8,6 +8,7 @@
 //   well      井戸     : env・secrets・config（外に立つ施設）
 //   dock      船着場   : アプリ・パッケージの配布
 //   gate      門       : 外から人が入る入口（宿屋と同じ証拠＋受付の道・ログインの道具）。外に立つ施設
+//   repair    修理小屋 : rollback・recovery（切り戻し・復旧の手順やコマンド）
 // 中身を読むのは依存の一覧と、上限つきのソースの走査だけ（git なら HEAD の内容を cat-file --batch でまとめて読む）。
 import { execFileSync } from 'node:child_process';
 import { openSync, readSync, closeSync } from 'node:fs';
@@ -21,10 +22,51 @@ const SCAN_FILE_MAX = 256 << 10;    // これより大きいソースは読ま�
 const NONGIT_HEAD = 96 << 10;       // git でないとき、1ファイルの先頭だけ読む
 
 const CODE_EXT = new Set('js mjs cjs ts mts cts jsx tsx py rb go rs php java kt swift ex exs cs'.split(' '));
+const SCRIPT_EXT = new Set('sh bash zsh fish ps1 bat cmd make'.split(' '));
+const DOC_EXT = new Set('md markdown txt rst adoc org'.split(' '));
 const SKIP_DIR = /(^|\/)(node_modules|vendor|vendored|dist|build|\.next|coverage|third_party|external)\//;
 const NOT_PRODUCT = /(^|\/)(examples?|demos?|samples?|fixtures?|docs?|documentation|tests?|__tests__|specs?|e2e|cypress|playwright|benchmarks?)\//i;
 const TEST_DIR = /^(tests?|__tests__|specs?|e2e|cypress|playwright|testing)$/i;
 const TEST_FILE = /(\.(test|spec)\.[a-z0-9]+$)|(^test_[^/]*\.py$)|(_test\.(py|go|rb|exs)$)|(^conftest\.py$)|(Tests?\.(swift|java|kt|cs)$)/;
+
+// 修理小屋は、単語がどこかに出ただけでは建てない。
+// パス名・強い復旧コマンド・DBの down 手順・手順書の見出しだけを証拠にする。
+const RECOVERY_NAME = /(^|[\/._-])(rollback|roll-back|revert|restore|recovery|disaster-recovery|backup|backups)([\/._-]|$)/i;
+const RECOVERY_HEADING = /(?:^|\n)\s{0,3}(?:#{1,6}\s*)?(?:rollback|roll-back|revert|restore|recovery|disaster recovery|backup|ロールバック|切り戻し|復旧|バックアップ)(?:\s|:|：|$)/im;
+const RECOVERY_COMMANDS = [
+  { kind: 'deployment', re: /\bwrangler\s+rollback\b/i, detail: 'wrangler rollback' },
+  { kind: 'deployment', re: /\bvercel\s+rollback\b/i, detail: 'vercel rollback' },
+  { kind: 'deployment', re: /\bkubectl\s+rollout\s+undo\b/i, detail: 'kubectl rollout undo' },
+  { kind: 'deployment', re: /\bhelm\s+rollback\b/i, detail: 'helm rollback' },
+  { kind: 'deployment', re: /\bfly(?:ctl)?\s+releases?\s+rollback\b/i, detail: 'fly releases rollback' },
+  { kind: 'deployment', re: /\bheroku\s+rollback\b/i, detail: 'heroku rollback' },
+  { kind: 'deployment', re: /\bfirebase\s+hosting:rollback\b/i, detail: 'firebase hosting:rollback' },
+  { kind: 'deployment', re: /\baws\b[^\n]{0,180}\brollback\b/i, detail: 'aws ... rollback' },
+  { kind: 'deployment', re: /\bgcloud\b[^\n]{0,220}--to-revision(?:=|\s)/i, detail: 'gcloud ... --to-revision' },
+  { kind: 'deployment', re: /(?:\b(?:deploy|deployment|release|production|本番)[^\n]{0,180}\bgit\s+revert\b|\bgit\s+revert\b[^\n]{0,180}\b(?:deploy|deployment|release|production|本番))/i, detail: 'git revert（デプロイの戻し）' },
+  { kind: 'deployment', re: /\bflyctl?\s+deploy\b[^\n]*(?:--image\b[^\n]*(?:rollback|revert|previous|old|restore|戻|切り戻)|(?:rollback|revert|previous|old|restore|戻|切り戻)[^\n]*--image\b)/i, detail: 'flyctl deploy --image（戻し）' },
+  { kind: 'database', re: /\b(?:migrate|migration)\s*(?::|\s+)(?:down|rollback)\b/i, detail: 'migrate down / rollback' },
+  { kind: 'database', re: /\bprisma\s+migrate\s+resolve\s+--rolled-back\b/i, detail: 'prisma migrate resolve --rolled-back' },
+  { kind: 'database', re: /\bknex\s+migrate:rollback\b/i, detail: 'knex migrate:rollback' },
+  { kind: 'database', re: /\brails\s+db:rollback\b/i, detail: 'rails db:rollback' },
+  { kind: 'backup', re: /(?=[\s\S]*\bpg_dump\b)(?=[\s\S]*\bpg_restore\b)/i, detail: 'pg_dump と pg_restore' },
+];
+const extOfPath = (path) => {
+  const b = basename(path).toLowerCase();
+  const i = b.lastIndexOf('.');
+  return i > 0 ? b.slice(i + 1) : '';
+};
+const automationPath = (path) => {
+  const b = basename(path).toLowerCase();
+  return SCRIPT_EXT.has(extOfPath(path)) ||
+    /^\.github\/workflows\/[^/]+\.ya?ml$/i.test(path) ||
+    /(^|\/)(scripts?|bin|tasks?|tools?|deploy|deployment|ops|ci)(\/|$)/i.test(path) ||
+    /^(package\.json|makefile|gnumakefile|justfile|taskfile\.ya?ml|dockerfile|containerfile|procfile|.*\.ya?ml|.*\.yaml|.*\.toml)$/i.test(b);
+};
+const migrationPath = (path) => /(^|\/)(migrations?|alembic)(\/|$)/i.test(path) || /\.down\.sql$/i.test(path);
+// CODE_EXT の通常ソースは、運用の置き場・手順書・migration でない限り、
+// パス名に rollback / restore などがあるだけでは証拠にしない。
+const recoveryNameEligible = (path) => automationPath(path) || DOC_EXT.has(extOfPath(path)) || migrationPath(path);
 
 // ---------- 依存の名前 → 分かりやすい名前 ----------
 const SDK = [   // [正規表現, 名前]（npm・PyPI・RubyGems・Go・Cargo の名前）
@@ -343,6 +385,23 @@ export function detectFacilities(files, history, groups, extra) {
   }
   const sources = read(chosen);
 
+  // 修理小屋の候補。通常のソース走査に入らない shell・workflow・手順書も読むが、
+  // fixtures・tests・vendor などは除く。一般の docs/ 配下も、復旧手順書なら対象にする。
+  const recoveryProd = (p) => !SKIP_DIR.test(p) &&
+    !/(^|\/)(examples?|demos?|samples?|fixtures?|tests?|__tests__|specs?|e2e|cypress|playwright|benchmarks?)\//i.test(p);
+  const recoveryPaths = files.filter((f) => {
+    if (f.binary || f.bytes > SCAN_FILE_MAX || !recoveryProd(f.path)) return false;
+    const recoveryNamed = RECOVERY_NAME.test(f.path);
+    const runbookNamed = /(^|\/)(runbook|playbook|operations?|ops|deploy|release|migration|migrations?)([-_.\/]|$)/i.test(f.path);
+    return automationPath(f.path) || migrationPath(f.path) ||
+      (DOC_EXT.has(f.ext) && (recoveryNamed || runbookNamed));
+  }).map((f) => f.path);
+  const recoveryTexts = read([...new Set([
+    ...recoveryPaths,
+    ...workflows,
+    ...chosen.filter((p) => RECOVERY_NAME.test(p) && recoveryNameEligible(p)),
+  ])].slice(0, SCAN_FILES));
+
   const servers = [], hostsSeen = new Map(), webhooks = [], sqliteSrc = [];
   const envInCode = new Map(), loaderSrc = new Set(), routeList = [];   // 環境変数の名前 -> そのファイル、読み込む仕組み、受付の道
   for (const [p, s] of sources) {
@@ -432,6 +491,64 @@ export function detectFacilities(files, history, groups, extra) {
     const evidence = uniq(all);
     facilities.push({ archetype, name, reason, evidence: evidence.slice(0, EVIDENCE_CAP), evidenceCount: evidence.length, facts, all: evidence, ...(extraStats || stats(evidence)) });
   };
+
+  // --- 修理小屋: rollback / recovery ---
+  // 名前だけでなく、運用の置き場にある強いコマンド・down migration・
+  // バックアップの対・手順書の見出しを、製品ファイルからだけ拾う。
+  {
+    const hits = { deployment: [], database: [], backup: [], runbook: [] };
+    const seen = new Set();
+    const addRecovery = (kind, path, detail) => {
+      const key = `${kind}\0${path}\0${detail}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      hits[kind].push({ path, detail });
+    };
+    const kindFromName = (path) => {
+      if (DOC_EXT.has(extOfPath(path))) return 'runbook';
+      const word = (path.match(/rollback|roll-back|revert|restore|recovery|disaster-recovery|backup|backups/i) || [])[0]?.toLowerCase() || '';
+      if (/rollback|roll-back|revert/.test(word)) return 'deployment';
+      if (/restore|recovery|disaster|backup/.test(word)) return 'backup';
+      return 'runbook';
+    };
+    for (const [path, text] of recoveryTexts) {
+      if (RECOVERY_NAME.test(path) && recoveryNameEligible(path)) {
+        const word = (path.match(/rollback|roll-back|revert|restore|recovery|disaster-recovery|backup|backups/i) || ['recovery'])[0];
+        addRecovery(kindFromName(path), path, `ファイル名に「${word}」がある`);
+      }
+      if (automationPath(path)) {
+        for (const command of RECOVERY_COMMANDS) {
+          if (command.re.test(text)) addRecovery(command.kind, path, `「${command.detail}」`);
+        }
+        if (/(?=[\s\S]*\bpg_dump\b)(?=[\s\S]*\bpg_restore\b)/i.test(text)) {
+          addRecovery('backup', path, '「pg_dump」と「pg_restore」の両方がある');
+        }
+      }
+      if (migrationPath(path) && /\.down\.sql$/i.test(path)) {
+        addRecovery('database', path, 'down migration');
+      }
+      if (DOC_EXT.has(extOfPath(path)) && RECOVERY_HEADING.test(text)) {
+        addRecovery('runbook', path, 'ロールバック・復旧の節がある');
+      }
+    }
+    const found = Object.values(hits).flat();
+    if (found.length) {
+      const order = ['deployment', 'database', 'backup', 'runbook'];
+      const evidence = order.flatMap((kind) => hits[kind].map((hit) => hit.path));
+      const parts = [];
+      if (hits.deployment.length) parts.push(`デプロイを戻す手段 ${hits.deployment.length} 件`);
+      if (hits.database.length) parts.push(`DB を戻す手段 ${hits.database.length} 件`);
+      if (hits.backup.length) parts.push(`バックアップの手段 ${hits.backup.length} 件`);
+      if (hits.runbook.length) parts.push(`復旧の手順書 ${hits.runbook.length} 件`);
+      const facts = {
+        deployment: hits.deployment.slice(0, 8),
+        database: hits.database.slice(0, 8),
+        backup: hits.backup.slice(0, 8),
+        runbook: hits.runbook.slice(0, 8),
+      };
+      add('repair', '修理小屋', `戻すための証拠がある（${parts.join('、')}）`, evidence, facts);
+    }
+  }
 
   // --- 役場: git リポジトリ ---
   if (isGit && head) {

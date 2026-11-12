@@ -21,10 +21,10 @@
 // props の (x, y) は、その小物が立つ足元の中心（tile単位）。1×1なら (tx + 0.5, ty + 1)。
 import { readFileSync } from 'node:fs';
 
-const DEFAULT_FOOT = { house_s: [5, 4], house_m: [6, 4], house_l: [7, 5], shop: [6, 4], workshop: [7, 5], ruin: [6, 4] };
+const DEFAULT_FOOT = { house_s: [5, 4], house_m: [6, 4], house_l: [7, 5], shop: [6, 4], workshop: [7, 5], ruin: [6, 4], repair: [6, 4] };
 const DOOR_DX = { house_s: 2, house_m: 2, house_l: 3, shop: 2, workshop: 3, ruin: 2 };
 // 施設（PRODUCT.md §4）。art manifest にその archetype の絵があるものだけを置く（作ったものだけを置く）。
-export const FACILITY_NAME = { town_hall: '役場', inn: '宿屋', pub: '酒場', warehouse: '倉庫', watchtower: '見張り台', dojo: '道場', dock: '船着場' };
+export const FACILITY_NAME = { town_hall: '役場', inn: '宿屋', pub: '酒場', warehouse: '倉庫', watchtower: '見張り台', dojo: '道場', dock: '船着場', repair: '修理小屋' };
 // 外に立つ施設（建物ではなく小物＋外に立つ番人）。その小物の絵があるときだけ置く
 export const LANDMARK = { well: { name: '井戸', prop: 'wellhouse' }, gate: { name: '門', prop: 'gate' } };
 const CROWD_CAP = 40;               // 街を歩く常連の上限
@@ -2016,7 +2016,7 @@ export function layoutTown(repo, opts = {}) {
   });
 
   // 施設の置き場所: 役場は広場の北、酒場は広場のきわ、宿屋は大通りの入口、道場・倉庫は別々の地区、見張り台は外縁、
-  // 船着場は南の岸
+  // 船着場は南の岸。修理小屋は工房の近く、工房が無ければ外縁。
   const frng = makeRng(seed ^ 0x51ed270b);
   const fac = { hall: null, pub: null, inn: null, dock: null, early: [], late: [],
     hallSide: frng() < 0.5 ? -1 : 1, pubSide: frng() < 0.5 ? -1 : 1, innSide: frng() < 0.5 ? -1 : 1 };
@@ -2028,6 +2028,11 @@ export function layoutTown(repo, opts = {}) {
     else if (s.archetype === 'inn') fac.inn = s;
     else if (s.archetype === 'dock') fac.dock = s;
     else if (s.archetype === 'watchtower') fac.late.push({ ...s, angle: slots.pop() ?? -Math.PI / 2 });
+    else if (s.archetype === 'repair') {
+      const hasWorkshop = groups.some((g) => g.key === '\u0000workshops');
+      if (hasWorkshop) fac.early.push({ ...s, angle: WORKSHOP_ANGLE });
+      else fac.late.push({ ...s, angle: Math.PI / 2 });
+    }
     else fac.early.push({ ...s, angle: slots.pop() ?? Math.PI / 2 });
   }
   // 水の深さ: 桟橋の長さ + 2 行

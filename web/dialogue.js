@@ -572,6 +572,27 @@ const FACILITY_VOICE = {
     close: ['動くと言うなら、確かめてからにしましょう。', '確かめたことだけが、本当のことです。'],
   },
 
+  // 修理小屋: evidence is a sign that a return path was written down, not proof that it works.
+  repair: {
+    greet: ['いらっしゃい。修理小屋の職人だ。', 'こんばんは。修理小屋へようこそ。'],
+    what: ['壊れたときに戻す手がかりを、ここで預かっている。', '作った所のそばで、切り戻しと復旧の手順を見張っているんだ。'],
+    facts(f) {
+      const out = [];
+      const deployment = Array.isArray(f.deployment) ? f.deployment : [];
+      const database = Array.isArray(f.database) ? f.database : [];
+      const backup = Array.isArray(f.backup) ? f.backup : [];
+      const runbook = Array.isArray(f.runbook) ? f.runbook : [];
+      if (deployment[0]) out.push(`デプロイを切り戻す証拠は${q(deployment[0].path)}にある。${deployment[0].detail}という記述だ。`);
+      if (database[0]) out.push(`DBを戻す証拠は${q(database[0].path)}にある。${database[0].detail}の手順が見つかった。`);
+      if (backup[0]) out.push(`バックアップの手がかりは${q(backup[0].path)}にある。${backup[0].detail}。`);
+      if (runbook[0]) out.push(`復旧の手順書は${q(runbook[0].path)}だ。${runbook[0].detail}がある。`);
+      out.push('ここで見つけたのは、戻す手段を書いた証拠だけだ。本当に戻せるかは、ここでは確かめていないんだ。');
+      return out;
+    },
+    max: 5,
+    close: ['壊れたときほど、手順書を落ち着いて確かめてくれ。'],
+  },
+
   // 井戸番: the settings (env) the town draws from its well. Names only; values are never read.
   well: {
     greet: ['やあ、井戸へようこそ。わたしは井戸番だよ。', 'こんばんは。井戸の番をしているよ。'],
@@ -671,6 +692,7 @@ const FACILITY_WORKS = {
   watchtower: (n) => `見張り台は修理中だ。まだ記録していない変更が${n}個ある。`,
   dojo: (n) => `いま、道場は手入れの最中です。まだ記録していない変更が${n}個あります。`,
   dock: (n) => `桟橋を直してる最中だ。まだ記録していない変更が${n}個ある。`,
+  repair: (n) => `いま修理小屋も手入れ中だ。まだ記録していない変更が${n}個ある。`,
 };
 
 function facilityLines(building, fac, town) {
@@ -685,7 +707,7 @@ function facilityLines(building, fac, town) {
   const a = (m.authors || []).filter((x) => x && x.name && x.commits > 0);
   if (facts.length < 2 && a.length) {
     // the keeper's own way of speaking (the watchtower guard, the warehouse keeper and the pub master are curt)
-    const end = { pub: 'だ', warehouse: 'だ', watchtower: 'だ' }[fac.archetype] || 'です';
+    const end = { pub: 'だ', warehouse: 'だ', watchtower: 'だ', repair: 'だ' }[fac.archetype] || 'です';
     facts.push(`よく顔を出すのは${san(a[0].name)}${end}（${fmtInt(a[0].commits)}回）。`);
   }
   return [pick(v.greet), pick(v.what), ...facts.slice(0, v.max || 4), pick(v.close)].map(spaceOut);
