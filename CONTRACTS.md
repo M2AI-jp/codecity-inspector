@@ -96,7 +96,7 @@ facts の形:
     keeper: { x: 33.5, y: 37.6875 },   // 番人の足元（tile。px = ×16。歩ける1マスの中、小物の横。まわり1マスは小物を置かない）
     facility: { archetype, name, reason, evidence, evidenceCount, facts, merged }, module: { ... } }],
   unplaced: [{                          // RepoModel に根拠があるが、絵・場所・番人などの条件で置けなかった施設／目印
-    archetype: "town_hall" | "inn" | "pub" | "warehouse" | "watchtower" | "dojo" | "well" | "dock" | "gate",
+    archetype: "town_hall" | "inn" | "pub" | "warehouse" | "watchtower" | "dojo" | "well" | "dock" | "gate" | "repair",
     name: "門", reason: "出口ごとに門の絵・柱・土道・門番を置ける場所がない",
     evidence: ["src/server/index.js", ...], evidenceCount: 3
   }],                                  // 省略可。門・井戸が unplaced のとき tools/check-play.mjs は失敗する
