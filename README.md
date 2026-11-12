@@ -10,6 +10,8 @@ node codecity.mjs /path/to/repository
 
 Node.js 22以上だけで動きます（npmパッケージは不要）。製品の正本は [PRODUCT.md](PRODUCT.md)、データの形は [CONTRACTS.md](CONTRACTS.md) です。
 
+リポジトリにデプロイの切り戻し、DB migration の戻し、バックアップ復元、または復旧手順書の実体があるときだけ、工房の近く（工房が無ければ外縁）に「修理小屋」が建ちます。修理小屋の職人は見つかった証拠を説明しますが、実際に戻せるかどうかは確認済みとは言いません。
+
 確かめるための道具:
 
 - `node tools/check-play.mjs <repo>` — すべての建物に扉から入れて、番人と話せるかを、ゲームと同じ当たり判定で調べる

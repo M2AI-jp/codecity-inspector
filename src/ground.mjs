@@ -13,7 +13,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { decodePNG, encodePNG } from '../tools/png.mjs';
 
-export const GROUND_VERSION = 15;          // 見た目を変えたら上げる（キャッシュの鍵に入る）
+export const GROUND_VERSION = 16;          // 見た目を変えたら上げる（キャッシュの鍵に入る）
 const T = 16;
 const DEFAULT_ART = path.resolve(import.meta.dirname, '../art/game');
 const TEX_NAMES = ['street', 'grass', 'dirt', 'plaza', 'moss'];

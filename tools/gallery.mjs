@@ -20,12 +20,12 @@ const MEANING = {
   shop: '商店 — 画面・UIの領域', workshop: '工房 — build・CI・開発の道具', ruin: '廃屋 — 長く触られていない古いコード',
   town_hall: '役場 — gitリポジトリそのもの', inn: '宿屋 — 公開Webサービス', pub: '酒場 — API・外部接続・LLM',
   warehouse: '倉庫 — DB・storage', watchtower: '見張り台 — logs・monitoring', dojo: '道場 — test・E2E',
-  dock: '船着場 — アプリ・パッケージを外へ届ける所',
+  dock: '船着場 — アプリ・パッケージを外へ届ける所', repair: '修理小屋 — rollback・recovery の手がかり',
 };
 const KEEPER = {
   'keeper-smith': '工房の親方', 'keeper-shop': '商店の主人', 'keeper-house': '家の人', 'keeper-ruin': '廃屋の管理人',
   'keeper-town_hall': '役場の書記', 'keeper-inn': '宿屋の番頭', 'keeper-pub': '酒場の主人', 'keeper-warehouse': '倉庫番',
-  'keeper-watchtower': '見張り台の番人', 'keeper-dojo': '道場の検査官', 'keeper-dock': '船頭', 'keeper-well': '井戸番',
+  'keeper-watchtower': '見張り台の番人', 'keeper-dojo': '道場の検査官', 'keeper-dock': '船頭', 'keeper-repair': '修理小屋の職人', 'keeper-well': '井戸番',
   'keeper-gate': '門番', contractor: '外部工務店の代理人',
 };
 const PROP_MEANING = {

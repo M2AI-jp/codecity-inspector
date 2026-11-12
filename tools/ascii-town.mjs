@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // 街を文字で表示して目で確かめる道具。
 //   node tools/ascii-town.mjs <repoPath | town.json> [--check] [--no-props] [--manifest art/game/manifest.json]
-// 建物: W 工房 / S 商店 / H 住宅 / R 廃屋 / G 役場 / Y 宿屋 / P 酒場 / K 倉庫 / M 見張り台 / D 道場 / Q 船着場（扉は小文字）。
+// 建物: W 工房 / S 商店 / H 住宅 / R 廃屋 / G 役場 / Y 宿屋 / P 酒場 / K 倉庫 / M 見張り台 / D 道場 / Q 船着場 / E 修理小屋（扉は小文字）。
 // 地面: . 草地 # 石畳 : 土の路地 + 広場 ~ 水（空白は街の外）
 // 小物: T 木 * 茂み o 樽 x 木箱 % 袋 f 鉢 v プランター c 荷車 = 柵 n ベンチ i 街灯 O 井戸 N 掲示板 & 井戸小屋 | 桟橋 ^ 舟
 //       ! 足場 $ 工事中の札 _ 材木 [ 門の柱（くぐれる所は地面のまま） / k 外に立つ番人 / " 段の前の壁 ; 階段 / @ 開始位置
@@ -23,7 +23,7 @@ let town, model = null;
 if (target.endsWith('.json')) town = JSON.parse(readFileSync(target, 'utf8'));
 else { model = analyzeRepository(target); town = layoutTown(model, lopts); }
 
-const LETTER = { workshop: 'W', shop: 'S', house: 'H', ruin: 'R', town_hall: 'G', inn: 'Y', pub: 'P', warehouse: 'K', watchtower: 'M', dojo: 'D', dock: 'Q' };
+const LETTER = { workshop: 'W', shop: 'S', house: 'H', ruin: 'R', town_hall: 'G', inn: 'Y', pub: 'P', warehouse: 'K', watchtower: 'M', dojo: 'D', dock: 'Q', repair: 'E' };
 const PROP = { tree: 'T', bush: '*', barrel: 'o', crate: 'x', fence: '=', bench: 'n', lamp: 'i', well: 'O', noticeboard: 'N',
   sacks: '%', flowerpot: 'f', planter: 'v', cart: 'c', wellhouse: '&', pier: '|', boat: '^', scaffold: '!', 'sign-works': '$', lumber: '_', gate: '[' };
 const propArt = lopts.props;
