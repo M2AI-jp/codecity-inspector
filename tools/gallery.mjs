@@ -33,6 +33,8 @@ const PROP_MEANING = {
   scaffold: '足場 — 作業中の変更がある建物', 'scaffold-2': '足場 — 作業中の変更がある建物', 'sign-works': '工事中の札', lumber: '材木',
   gate: '門 — 外から人が入る入口（public web・API。外に立つ施設）',
   flowerbed: '花壇 — 広場の飾り', lowwall: '低い石垣 — 広場の縁',
+  'bridge-h': '橋 — 東西の通りが水路をまたぐ所（歩ける石の橋）', 'bridge-v': '橋 — 南北の通りが水路をまたぐ所（歩ける石の橋）',
+  'canal-mouth': '水路の口 — 井戸（env・設定）の水が広場の縁から出る所',
 };
 
 const sections = [];
