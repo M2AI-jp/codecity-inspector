@@ -1527,6 +1527,38 @@
       "flicker": true,
       "layer": "ground"
     },
+    "bridge-h": {
+      "src": "props/bridge-h.png",
+      "origin": [40, 48],
+      "solid": null,
+      "light": null,
+      "flicker": false,
+      "layer": "ground",
+      "deck": [-32, -25, 64, 23],
+      "solids": [
+        [-40, -32, 4, 4],
+        [36, -32, 4, 4],
+        [-40, -8, 4, 4],
+        [36, -8, 4, 4]
+      ],
+      "size": [80, 48]
+    },
+    "bridge-v": {
+      "src": "props/bridge-v.png",
+      "origin": [24, 80],
+      "solid": null,
+      "light": null,
+      "flicker": false,
+      "layer": "ground",
+      "deck": [-16, -72, 32, 64],
+      "solids": [
+        [-24, -80, 4, 4],
+        [-24, -4, 4, 4],
+        [20, -80, 4, 4],
+        [20, -4, 4, 4]
+      ],
+      "size": [48, 80]
+    },
     "bush-2": {
       "src": "props/bush-2.png",
       "origin": [12, 13],
@@ -1540,6 +1572,14 @@
       "solid": [-9, -4, 18, 4],
       "light": null,
       "flicker": false
+    },
+    "canal-mouth": {
+      "src": "props/canal-mouth.png",
+      "origin": [16, 16],
+      "solid": null,
+      "light": null,
+      "flicker": false,
+      "layer": "ground"
     },
     "cart": {
       "src": "props/cart.png",
