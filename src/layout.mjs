@@ -209,7 +209,7 @@ function generate(C, scale) {
   const harbour = fac.dock ? C.harbour : null;
   // 建物の数に対して仮想格子を広げすぎない。面を順に埋めるので、
   // 旧来の大きな余白（2.4係数・固定1200）を残すと通りだけが増える。
-  const area = Math.max(360, need * (maxH + 8) * 0.22 + 100) * scale;
+  const area = Math.max(360, need * (maxH + 8) * (harbour ? 0.18 : 0.22) + 100) * scale;
   // 面積は保ったまま横長を抑え、建物を近い列へ積める格子にする。
   const cols = Math.round(Math.sqrt(area)) + 2 * MARGIN - (harbour ? 0 : 1);
   // 北南の門の絵は footprint より約6行高い。港以外では外縁の3行を
@@ -354,16 +354,17 @@ function generate(C, scale) {
     dockAt = { x, y: yb - d.h + 1, w: d.w, h: d.h, yb };
     pinned.push([x - 1, dockAt.y - 2, x + d.w, yb]);
   }
-  // 水辺: 岸の通り（街の幅いっぱい。船着場と桟橋の前はまっすぐ、その外は段々に1行下がる。使わない所は消える）
+  // 水辺: 岸の通り（街の幅いっぱいの、途切れない直線。使わない所は消える）
   let quay = null;
   if (harbour) {
     const qTop = hTop + 3 + southRows;
-    const mid = dockAt.x + (fac.dock.doorDx ?? Math.floor(dockAt.w / 2));      // 扉の列。桟橋はその左右（-5〜+4）
-    const QL = meander('h', qTop, mid, 1, 2, STREET, 'quay', { lo: 0, hi: 1, flatN: 8, jogAfterFlat: true });
-    const QR = meander('h', qTop, mid + 1, cols - 2, 2, STREET, 'quay', { lo: 0, hi: 1, flatN: 6, jogAfterFlat: true });
+    const qk = addPiece('h', 1, qTop, cols - 2, qTop + 1, STREET, 'quay');
     const qt = new Int16Array(cols).fill(qTop);
-    for (let x = 1; x <= cols - 2; x++) qt[x] = x <= mid ? QL.at(x) : QR.at(x);
-    quay = { top: qTop, bottom: qTop + 1, qt, water0: qTop + 2, water1: qTop + 1 + harbour.water, grps: [QL.grp, QR.grp] };
+    quay = {
+      top: qTop, bottom: qTop + 1, qt,
+      water0: qTop + 2, water1: qTop + 1 + harbour.water,
+      grps: qk >= 0 ? [pieces[qk].grp] : [],
+    };
   }
 
   // ---- 地区を通りで切り分ける（BSP）
@@ -723,6 +724,17 @@ function generate(C, scale) {
     for (let i = 0; i < rowCount; i++) addCompactRow(plaza.y0 - 1 - rowStep * (i + 1), i === 0 ? { compactOuter: true } : {});
     addCompactRow(plaza.y1 + rowStep, { compactOuter: true });
   }
+  // 港では、船着場と同じ岸の通りに向く一列を最優先で埋める。
+  // BSPの面を先に選ぶと南の街区が森の前へ散るため、岸の両端から
+  // 建物を続けて置き、船着場の左右も同じ frontage に渡す。
+  if (harbour && quay) {
+    const x0 = 1, x1 = cols - 2, yb = quay.top - 1, streetY = quay.top;
+    const L = { x0, x1, y0: Math.max(1, yb - maxH - 8), y1: yb, closedTop: false, dense: true, harbour: true };
+    const sd = new Int16Array(x1 - x0 + 1).fill(streetY);
+    denseTracks.unshift({
+      L, sd, dir: 1, x0, x1, cursor: x0, items: [], high: false, dense: true, harbour: true,
+    });
+  }
   // 広場の東西にも短い dense track を置く。南向きの扉は広場の外側へ向けたまま、
   // footprint の側面が広場に接するので、広場を挟んだ上下の列だけで街を広げない。
   if (!harbour) {
@@ -770,7 +782,7 @@ function generate(C, scale) {
     const yb = smin - 1 - setback, y = yb - h + 1;
     if (y < t.L.y0 + (t.L.closedTop ? 2 : 0) || y - roofRows < 1) return null;
     for (let x = x0; x < x0 + w; x++) {
-      for (let yy = y; yy <= yb; yy++) { const k = id(x, yy); if ((!allowRoad && road[k] >= 0) || plazaM[k] || foot[k] >= 0 || front[k] || roofZ[k] || (green[k] && !allowRoad)) return null; }
+      for (let yy = y; yy <= yb; yy++) { const k = id(x, yy); if ((!allowRoad && road[k] >= 0) || plazaM[k] || foot[k] >= 0 || front[k] || roofZ[k] || (harbour && green[k]) || (green[k] && !allowRoad)) return null; }
       // 裏は cover 行だけあける。cover が0の版は建物のすぐ上まで別の建物を置ける。
       for (let yy = y - roofRows; yy < y; yy++) {
         const k = id(x, yy);
@@ -911,6 +923,37 @@ function generate(C, scale) {
       takeHallNeighbor(-1);
       takeHallNeighbor(1);
     }
+  }
+  // 港の船着場も、左右の水際 frontage を先に建物でつなぐ。
+  // 通常のカーソルは船着場の予約へ進んだあと戻らないため、
+  // 先取りしないと片側に2〜3マスの空きが残る。
+  if (harbour && dockAt) {
+    const dockPlaced = placed.find((p) => p.spec.archetype === 'dock');
+    const dockTrack = dockPlaced?.track;
+    const takeHarbourNeighbor = (side) => {
+      if (!dockPlaced || !dockTrack) return false;
+      const refs = [];
+      for (let qi = 0; qi < queues.length; qi++) for (let si = 0; si < queues[qi].items.length; si++) {
+        const s = queues[qi].items[si];
+        refs.push({ qi, si, s, house: s.module?.kind === 'house' ? 0 : 1 });
+      }
+      refs.sort((a, b) => a.house - b.house || a.qi - b.qi || a.si - b.si);
+      for (const ref of refs) {
+        for (const gap of side < 0 ? [1, 0] : [0, 1]) {
+          const x0 = side < 0 ? dockPlaced.x - gap - ref.s.w : dockPlaced.x + dockPlaced.w + gap;
+          pinOwner = pinned.length - 1;
+          const pos = fit(dockTrack, x0, ref.s.w, ref.s.h, 0, ref.s.roofRows, true);
+          pinOwner = null;
+          if (!pos) continue;
+          queues[ref.qi].items.splice(ref.si, 1);
+          commit(ref.s, dockTrack, pos, '\u0000harbour-row');
+          return true;
+        }
+      }
+      return false;
+    };
+    takeHarbourNeighbor(-1);
+    takeHarbourNeighbor(1);
   }
   let activeTrack = null;
   for (let guard = 0; guard < 20000; guard++) {
@@ -1525,7 +1568,7 @@ function placeProps(P, F, rng, spawn, extra) {
   const kept = (x, y) => inC(x, y) && (g[id(x, y)] === STREET || g[id(x, y)] === DIRT || g[id(x, y)] === PLAZA);
 
   // 港の岸の通りの上2行には森を近づけない。岸の幅を広げても、
-  // 水際の建物・樽・桟橋が森に切られないようにする。
+  // 水際の建物・樽・桟橋が森に切られないようにする（木の最短距離は3行）。
   if (quay) {
     for (let x = crop.x0; x <= crop.x1; x++) {
       const qt = Number.isFinite(quay.qt[x]) ? quay.qt[x] : quay.top;
@@ -1578,6 +1621,16 @@ function placeProps(P, F, rng, spawn, extra) {
     for (let x = quay.keep[0] + 2, i = 0; x <= quay.keep[1] - 2 && clutter.length; x += 4, i++) {
       const qt = Number.isFinite(quay.qt[x]) ? quay.qt[x] : quay.top;
       tryProp(clutter[i % clutter.length], x, qt + 1);
+    }
+    // 水際 frontage に建物を並べきれない列は、森ではなく荷物で埋める。
+    // 建物の扉列（footprint直下の歩行列）は reserved のまま残す。
+    const frontage = clutter.length ? clutter : (has('fence') ? ['fence'] : []);
+    for (let x = quay.keep[0] + 1, i = 0; x <= quay.keep[1] - 1 && frontage.length; x += 3, i++) {
+      const y = quay.top - 1;
+      if (foot[id(x, y)] >= 0) continue;
+      for (const type of [frontage[i % frontage.length], ...frontage]) {
+        if (tryProp(type, x, y)) break;
+      }
     }
     // 岸の通りの街灯: 桟橋から離れた所に少しだけ
     if (quay.keep) for (let x = quay.keep[0] + 3; x <= quay.keep[1] - 3; x += 3) lampAt([[x, quay.qt[x] + 1]], 18);
@@ -2225,7 +2278,46 @@ function placeProps(P, F, rng, spawn, extra) {
         }
         if (got) break;
       }
-      if (!got) for (let y = best.y0; y <= best.y1; y++) for (let x = best.x0; x <= best.x1; x++) skip[id(x, y)] = 1;   // 置けない（扉の前など）: あきらめる
+      if (!got) {
+        // 小物が歩行面を切断する細い袋小路では、無理に物を置かず
+        // 1マスだけ土の小道にして芝生の帯を分ける（DIRTは歩ける）。
+        let cut = false;
+        for (let y = best.y0; y <= best.y1 && !cut; y++) for (let x = best.x0; x <= best.x1; x++) {
+          if (!isGrass(x, y) || blocked[id(x, y)] || reserved[id(x, y)] || foot[id(x, y)] >= 0) continue;
+          g[id(x, y)] = DIRT;
+          cut = true;
+          break;
+        }
+        if (!cut) for (let y = best.y0; y <= best.y1; y++) for (let x = best.x0; x <= best.x1; x++) skip[id(x, y)] = 1;   // 扉の前などはあきらめる
+      }
+    }
+  }
+  // 小物を置くと歩行面を切断する袋小路でも、裸芝生の最大長方形を残さない。
+  // 既存の小物配置を壊さず、歩ける DIRT の1マスへ変えて帯を分ける。
+  {
+    const W0 = crop.x1 - crop.x0 + 1, heights = new Int32Array(W0);
+    const bare = (x, y) => inC(x, y) && g[id(x, y)] === GRASS && foot[id(x, y)] < 0 && !roofZ[id(x, y)];
+    for (let iter = 0; iter < 64; iter++) {
+      heights.fill(0);
+      let best = null;
+      for (let y = crop.y0; y <= crop.y1; y++) {
+        for (let i = 0; i < W0; i++) heights[i] = bare(crop.x0 + i, y) ? heights[i] + 1 : 0;
+        const stack = [];
+        for (let i = 0; i <= W0; i++) {
+          const h = i < W0 ? heights[i] : 0;
+          let from = i;
+          while (stack.length && stack[stack.length - 1][1] >= h) {
+            const [s0, hh] = stack.pop(), w = i - s0;
+            if (hh >= 2 && w >= 2 && (!best || hh * w > best.a)) best = { a: hh * w, x0: crop.x0 + s0, x1: crop.x0 + i - 1, y0: y - hh + 1, y1: y };
+            from = s0;
+          }
+          stack.push([from, h]);
+        }
+      }
+      if (!best || best.a <= 8) break;
+      const x = Math.floor((best.x0 + best.x1) / 2), y = Math.floor((best.y0 + best.y1) / 2);
+      if (!bare(x, y)) break;
+      g[id(x, y)] = DIRT;
     }
   }
   return out;
@@ -2338,10 +2430,10 @@ export function layoutTown(repo, opts = {}) {
     }
     else fac.early.push({ ...s, angle: slots.pop() ?? Math.PI / 2 });
   }
-  // 水の深さ: 桟橋の長さ + 2 行
+  // 水の深さ: 桟橋が届く行に、岸から2行ぶんの余水を足す
   let pierRows = 0;
   for (const t of ['pier', 'pier-2']) if (propArt[t]?.deck) pierRows = Math.max(pierRows, Math.ceil(propArt[t].deck[3] / 16));
-  const harbour = { water: clamp(pierRows + 3, 5, 9) };
+  const harbour = { water: clamp(pierRows + 2, 5, 9) };
   const all = [...specs, ...facSpecs];
   const maxH = Math.max(4, ...all.filter((s) => s !== fac.hall).map((s) => s.h));
   const need = all.reduce((t, s) => t + s.w + 1.6, 0);
