@@ -51,6 +51,7 @@ html, body {
 #stats .kind-watchtower { background: #23343e; color: #bfe3ff; }
 #stats .kind-dojo { background: #2e2a40; color: #d8ccff; }
 #stats .kind-dock { background: #1e3442; color: #b6e2f2; }
+#stats .kind-repair { background: #493126; color: #ffd1a3; }
 #stats .path { font-size: 21px; font-weight: 700; word-break: break-all; }
 #stats .grid { display: grid; grid-template-columns: max-content 1fr; column-gap: 12px; }
 #stats .k, #stats .v { padding: 3px 0; border-top: 1px solid rgba(214, 186, 128, 0.16); }
