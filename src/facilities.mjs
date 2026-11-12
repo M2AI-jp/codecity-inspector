@@ -781,8 +781,13 @@ export function detectFacilities(files, history, groups, extra) {
       if (committedEnv.length) parts.push(`記録に入った env ファイル「${committedEnv[0]}」`);
       if (loaders.length) parts.push(`設定を読みこむ道具 ${loaders.slice(0, 2).join('・')}`);
       const codeFiles = sortPaths(uniq(codeNames.slice(0, 12).flatMap((n) => [...envInCode.get(n)])));
+      const envInCodeFacts = codeNames.slice(0, 40).map((name) => ({
+        name,
+        files: sortPaths([...envInCode.get(name)]).slice(0, 20),
+      }));
       add('well', '井戸', parts.join('、'), [...examples, ...committedEnv, ...loaderPaths, ...codeFiles], {
         examples, names: envNames.slice(0, 40), namesTotal: envNames.length, configs, committed: committedEnv.slice(0, 8), loaders,
+        envInCode: envInCodeFacts,
         ciSecrets: [...ciSecrets.entries()].sort((a, b) => b[1].size - a[1].size || (a[0] < b[0] ? -1 : 1)).map(([n]) => n).slice(0, 12),
       });
       facilities[facilities.length - 1].noMerge = true;      // 建物が無いので、モジュールをまとめない

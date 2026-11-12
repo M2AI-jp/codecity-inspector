@@ -55,7 +55,7 @@ facts の形:
 | town_hall | `{ commits, contributors, contributorsWindow /* 履歴を上限まで読んだとき・浅いクローンのときの範囲 */, firstCommit /* 浅いクローンでは null */, lastCommit, tags /* 浅いクローンでタグが無ければ null（不明） */, latestTag: {name,date}, changelog, shallow, dirty /* 作業ツリーで HEAD と違うファイルの総数。bare・作業ツリーなしは null */, agents: [{ name, commits, recent }] /* 工事報告（RepoModel.agents） */ }` |
 | inn | `{ servers: [{path, how}], deploy: [paths], domains: ["docs.brew.sh"], frameworks: ["Next.js"], configs: [paths], pages: [paths] }` |
 | pub | `{ connectors: [{ name: "OpenAI", via: "dep" \| "url", paths }], webhooks: ["/api/webhook"], routes: [{ method: "GET" \| "POST" \| … \| null /* 分からなければ null */, route: "/api/chat", path }] /* この街が受ける道。サーバーらしいファイル（フレームワークの呼び出し・Flask/FastAPI・Go・Rails の routes.rb・Next.js の app/**/route と pages/api・サーバーのファイルの "/api/…" の文字列）から。最大30 */, routesTotal, keys: [{ name: "OPENAI_API_KEY", for: "OpenAI" \| null, example: true /* 見本の env に名前がある */ }] /* 鍵らしい設定の名前だけ（値は読まない）。最大20 */, envExamples: [paths], specs: [openapi・swagger・asyncapi・GraphQL・proto のパス], prompts: [AI への頼み方のファイル], promptsTotal, watchtower: true \| false /* 見張り台があるか */, watchTools: ["Sentry"] }`。酒場は connectors・webhooks・API の取り決め（openapi など）のどれかがあるときだけ |
-| well | `{ examples: [".env.example", …] /* 見本（名前だけ読む） */, names: ["OPENAI_API_KEY", …] /* 見本に書いてある名前を先に、製品のコードが読む環境変数の名前（読むファイルの多い順）。最大40。OS・CI が自分で渡す名前（HOME・PATH・GITHUB_SHA など）は除く */, namesTotal, configs: [設定のファイル・ディレクトリ 最大8], committed: [".env", …] /* git に記録された本物の env ファイル。中身は開かない */, loaders: ["dotenv", …], ciSecrets: ["NPM_TOKEN", …] /* .github/workflows の secrets.X（GITHUB_TOKEN は除く）。最大12 */ }`。見本・記録された env・読み込む道具のどれかがあるか、製品のコードが3つ以上の名前を読むときだけ。外に立つ施設（Town の landmarks）なので merged は常に [] |
+| well | `{ examples: [".env.example", …] /* 見本（名前だけ読む） */, names: ["OPENAI_API_KEY", …] /* 見本に書いてある名前を先に、製品のコードが読む環境変数の名前（読むファイルの多い順）。最大40。OS・CI が自分で渡す名前（HOME・PATH・GITHUB_SHA など）は除く */, namesTotal, envInCode: [{ name: "OPENAI_API_KEY", files: ["src/server.js", …] }] /* 値を読まず、設定名を読む製品ファイルだけ。名前ごとに最大20件 */, configs: [設定のファイル・ディレクトリ 最大8], committed: [".env", …] /* git に記録された本物の env ファイル。中身は開かない */, loaders: ["dotenv", …], ciSecrets: ["NPM_TOKEN", …] /* .github/workflows の secrets.X（GITHUB_TOKEN は除く）。最大12 */ }`。見本・記録された env・読み込む道具のどれかがあるか、製品のコードが3つ以上の名前を読むときだけ。外に立つ施設（Town の landmarks）なので merged は常に [] |
 | dock | `{ packages: [{ registry: "npm" \| "PyPI" \| "crates.io" \| "RubyGems" \| "Go" \| "Packagist" \| "pub.dev" \| "SwiftPM", name, version \| null, path }] /* 荷札。公開した証拠ではない */, apps: [{ kind: "iOS" \| "macOS" \| "Apple" \| "Android" \| "Expo" \| "React Native" \| "Electron" \| "Tauri" \| "Capacitor" \| "Flutter" \| "Browser extension" \| "VS Code extension", path: "mac/" }], publish: [paths] /* 出港の手順: 公開・配布のコマンドを含む workflow・package.json、配布の設定（.goreleaser.yml・release-please-config.json・electron-builder.yml・eas.json・Fastfile など） */, bins: ["codecity"] }`。アプリ・出港の手順・はっきりした荷札（package.json に main・bin・exports・files などがあり private でない、pyproject の build-system、Cargo.toml の [package]、gemspec など）のどれかがあるときだけ。荷札だけの package.json（名前と版だけ）・go.mod は、船着場があるときに並べるだけ |
 | gate | `{ domains: ["docs.brew.sh"] /* CNAME の住所 */, deploy: [{ path: "vercel.json", name: "Vercel" \| null }] /* 公開の段取りの設定（Vercel・Netlify・Fly.io・Render・Cloudflare Workers・Firebase Hosting・Docker の EXPOSE など）。公開した証拠ではない */, servers: [{ path, how }] /* 宿屋と同じ */, frameworks: ["Next.js"], routes: [{ method, route, path }] /* 受付の道（酒場の routes と同じ見つけ方。受け方の分かるものが3本以上あればそれだけ）。最大8 */, routesTotal, auth: [{ name: "NextAuth.js", path: "package.json" }] /* ログインの道具: 製品の依存（docs・examples・tests の下の manifest は数えない）に、名前でそれと分かる道具（next-auth・@auth/*・better-auth・passport・lucia・@clerk/*・@supabase/auth-helpers-*・@supabase/ssr・@auth0/*・@firebase/auth・devise・omniauth・django-allauth・flask-login など）があるときだけ。最大4 */ }`。宿屋の証拠（Webサーバーのコード・公開の設定・Webの骨組み）があるか、受け方の分かる受付の道があるときだけ。外に立つ施設（Town の landmarks）なので merged は常に []。本当に外から入れるかは確かめない |
 | warehouse | `{ kinds: ["SQLite", ...], sqlFiles, migrations, configs, dataFiles, sqliteCode }` |
@@ -72,6 +72,14 @@ facts の形:
   tile: 16, cols: 96, rows: 72,
   ground: ["..##++..", ...],          // rows個の文字列、各cols文字。'.'草地 '#'石畳の通り ':'土の路地 '+'広場 '~'水 ' '街の外
   groundImage: "/ground.png",         // ground から src/ground.mjs が合成した1枚の地面画像（cols*16 × rows*16 px、原点は tile (0,0) の左上）
+  canal: {                            // 井戸と橋の絵が揃うときだけ。町内座標の2マス幅の水路
+    cells: [[x, y], ...],             // ground の '~' と一致する水セル（幅2、曲がり角を含む）
+    from: "well",                     // 広場の井戸の縁から流れ始める
+    past: ["src/server", ...],        // envInCode の設定名を最も多く読む建物地区。値は含めない
+    to: "harbour" | "outside",        // 船着場があれば港の水へ、無ければ森の外へ
+    crossings: [{ x, y, road: "h" | "v", bridge: "bridge-h" | "bridge-v" }, ...]
+                                       // 通り・路地を直角に渡る交差点と、そこで使う橋の向き
+  },
   buildings: [{
     id: "b12" | "f1",                  // 施設は f<n>
     archetype: "house_s" | "house_m" | "shop" | "workshop" | "ruin"
@@ -85,7 +93,7 @@ facts の形:
   }],
   props: [{ type: "lamp" | "barrel" | "crate" | "tree" | "bush" | "bench" | "fence" | "noticeboard"
                  | "sacks" | "flowerpot" | "planter" | "cart"
-                 | "wellhouse" | "pier" | "boat" | "scaffold" | "sign-works" | "lumber" | "gate",
+                 | "wellhouse" | "canal-mouth" | "pier" | "boat" | "bridge-h" | "bridge-v" | "scaffold" | "sign-works" | "lumber" | "gate",
             x: 20.5, y: 14,            // 足元の中心（tile）。1×1 なら (tx + 0.5, ty + 1)
             look: "pier-2",            // 省略可。manifest の小物の名前そのもの（layout が形を当てにして選んだもの: 桟橋の板・足場）。
             w: 1 }],                   // 省略可。layout が場所を取った tile の幅（絵の solid より細く置いたとき。足場を1マスの隙間に立てたとき）
@@ -96,10 +104,11 @@ facts の形:
     keeper: { x: 33.5, y: 37.6875 },   // 番人の足元（tile。px = ×16。歩ける1マスの中、小物の横。まわり1マスは小物を置かない）
     facility: { archetype, name, reason, evidence, evidenceCount, facts, merged }, module: { ... } }],
   unplaced: [{                          // RepoModel に根拠があるが、絵・場所・番人などの条件で置けなかった施設／目印
-    archetype: "town_hall" | "inn" | "pub" | "warehouse" | "watchtower" | "dojo" | "well" | "dock" | "gate" | "repair",
+    archetype: "town_hall" | "inn" | "pub" | "warehouse" | "watchtower" | "dojo" | "well" | "dock" | "gate" | "repair" | "canal",
     name: "門", reason: "出口ごとに門の絵・柱・土道・門番を置ける場所がない",
     evidence: ["src/server/index.js", ...], evidenceCount: 3
-  }],                                  // 省略可。門・井戸が unplaced のとき tools/check-play.mjs は失敗する
+  }],                                  // 省略可。門・井戸・水路が unplaced のとき tools/check-play.mjs は失敗する。
+                                       // 井戸の根拠があるのに canal と unplaced canal の両方が無い場合も失敗する
   contractors: [{ id: "a1", name: "Claude Code", commits, recent, homes: ["b3", ...], last: { subject, date } }],
   terraces: [{ x, y, w, h }],          // 段（tile）。上の面 x..x+w-1 × y..y+h-1 は歩ける。y+h 行（x..x+w-1）は擁壁の前の面で、
                                        // web/world.js では階段の所を除いて歩けない。東西の端は縁石（layout は外側の草地・広場を柵・茂み・
@@ -124,6 +133,10 @@ facts の形:
 密度の規則（src/layout.mjs generate）: 仮想格子は建物数に対して過大にせず、同じ面に置き始めた建物はその面の cursor が閉じるまで続けて置く。面を切り替えるときも既存の建物に近い面を優先し、広場の北側には長い frontage を数本用意して薄い地区への散開を避ける。役場は広場の北辺の中心に置き、左右の住宅を間0〜1マスで先に確保する。役場の段はその隣家の下まで広げてよい。隣の間は0マスを約半分、1マスを約4割、2マスを約1割にし、3マス以上は作らない。建物の裏は外観版の `cover` の最大行数だけを予約し、低い建物の前は STREET・DIRT・PLAZA の前庭にする。`node tools/lawn.mjs town.json` の最大は8マス以下にする。
 小物（src/layout.mjs placeProps）: 広場は舞台: まん中（南寄り）の飾り（井戸小屋。無ければ manifest の flowerbed、それも無ければプランターと鉢の花の島）に左右から向くベンチ、縁に樽と鉢（2行おき）、南の縁の両わきに低い柵、街灯は2本だけ（西と東の縁に1本ずつ、段の下の上の方から。基準の広場と同じ数）。役場の階段の前（扉の列の左右2・5行）と飾りのまわり1マスはあける。井戸小屋がまん中にあり flowerbed があるときは、花壇は小さな広場か緑地へ。ほかの街灯は少なく、施設の扉のわき・石畳の通りどうしの角（路地・裏道の角には立てない、16マス離す）・岸（18マス離す）・小さな広場と緑地だけ。木は2〜5本のかたまり（裏庭・広い隙間・街のきわ）と空き地の木立ちで、通り・路地・広場・水のすぐ下2行には植えない（樹冠が歩く人を隠さないように）。建物の足もと（横の壁ぎわの下の1〜3段）と舗装の前庭の扉の脇には、その建物らしい樽・木箱・袋・鉢・プランターを寄せる。footprint の下1行と扉の列の歩行通路は空ける。建物の裏で cover の外側に2行以上の何も無い草地が残る列には、木・茂み・鉢を置いて帯を分ける。最後に、見える芝生（草地で物が無く、建物の絵の屋根の陰（版の cover）でない所）の中の何も無い長方形（縦横とも2マス以上）が8マスを超えるあいだ、いちばん大きい長方形のまん中に2〜3個の組（建物の2マス以内は樽・木箱・袋・鉢・プランター・茂み、離れた所は茂み・花・木）を置く（あけておく所には置かない。`node tools/lawn.mjs town.json` で測る）。
 水辺（船着場があるとき）: 大通りの南は街区1〜3段で、その下に岸の通り（'#'、2行、切り出した街の幅いっぱいの直線）、その下は街の幅いっぱい・地図の下の端まで水（'~'）。水深は最長の桟橋の `deck` が届く行に2行の余水を加え、5〜9行に収める。岸の通りのすぐ下の水の行も町の幅いっぱいで同じ行にそろえ、src/ground.mjs が quay.png（岸壁）を重ねる。岸の通りのすぐ上の行は船着場の左右へ建物の正面を間0〜1で続け、建物を置けない列は樽・木箱・袋・網干しの柵などで埋める。岸の通りから3行以内には森を置かない。桟橋（props の pier、`look` つき）は板の上端が岸壁の行の上から4px下（岸壁の上の石が見える）から南へ突き出し、web/world.js が板と岸の通りをつなぐ（板の上端が岸の下の水の tile の上から8px以内なら、その tile の板の幅は上端から歩ける）。舟（boat）は最初の桟橋の杭にぴったりもやう。水は歩けず、桟橋の板（manifest の deck）の上だけ歩ける。
+
+水路と橋: 井戸（well）の施設と、`bridge-h`・`bridge-v` の両方の絵・sidecar があるときだけ `Town.canal` と水路を作る。水路は広場を切らず、井戸に近い広場の南・東・西の縁の順に始点を試し、`envInCode` の設定名を最も多く読む建物モジュールの地区のそば（建物の周囲10マスまでの草地・路地）を通って、船着場があれば (a) 港の水、次に (b) 街の外（森・地図の端）へ流れる。各縁で置けなければ次の縁を試す。地区のそばを通る経路がどの縁からも無い場合に限り `past: []` として街の外へ流す。これらをすべて試しても置けない場合は、`Town.canal` を省略し、`Town.unplaced` に `{ archetype: "canal", name: "水路", reason }` を残す。
+
+`cells` は幅2マスの `~` だけで、建物の footprint・屋根の陰・扉の前・段・広場・門の道を通らず、草地や建物の間を優先する。通り・土の路地とは直角に交わる所だけで同じマスを使い、それ以外では通り・路地のすぐ隣（1マス以内）を流さない。交差点の中心から曲がり角まで2マス以内の通りは渡らせない。通りの脇にいる状態から、通りを渡らずに曲がって離れることも許さない。港の水へ入るときは岸の通りを直角に幅いっぱい渡り、岸壁の地面文字をその水路口だけ `~` にして最初の港の水行へ注ぐ（`to: "harbour"`）。港の水・地図の端・別の水路とは、注ぎ口を除き平行に3マス以内を流さない。水が舗装地を横切るときは、道路の両側へ続く実際の横断だけを `crossings` に記録する。始点の水路端には `canal-mouth`（`ascii-town` では `∩`）を置き、広場の縁の石の口から水が出ることを示す。`crossings` の各交差点に対応する橋を置く（`ascii-town` では `bridge-h` が `─`、`bridge-v` が `│`）。`bridge-h` は東西の通りが南北の水路を渡る向き、`bridge-v` は南北の通りが東西の水路を渡る向きで、sidecar の `deck` の矩形だけが水上で歩け、`solids` は欄干である。密な配置を水路と同じ格子で確定するときは、水路セルと橋 deck を先に決定的に予約し、横橋の deck 外側まで通常建物が橋の歩行端をふさぐ場合だけその建物セルも予約して再配置する。`tools/ascii-town.mjs --check` は港の水と水路の間の幅1〜2マスの陸帯、港の水との平行3マス以内、地図端との平行3マス以内、終端の接続を検査する。橋が通りを分断しないことは tools/check-play.mjs が Player の当たり判定で両方向を渡って確かめる。井戸の根拠があるのに `Town.canal` も `unplaced` の水路記録も無い場合、または水路が `unplaced` の場合、同ツールは失敗する。
 
 ### 小さな生き物（src/creatures.mjs → town.creatures → web/creatures.js）
 
@@ -190,8 +203,8 @@ manifest.json は手で編集しない。画像を作る人は、画像の隣に
 - 生き物 `art/game/creatures/<name>.png` と `<name>.json`: `{ "frame": [16,16], "pivot": [8,15], "anims": { "<anim>": { "down": [...], "left": [...], ... } } }` → manifest の `creatures[name] = { src, frame, pivot, anims }`。name は pigeon・pigeon-fly・dog・cat・cat-2（anims: pigeon は idle・peck・hop、pigeon-fly は fly、dog・cat は idle（座る）・stand・walk）。
 - 小物 `art/game/props/<type>.png` と `<type>.json`: `{ "origin": [ox,oy], "solid": [x,y,w,h] | null, "light": [x,y,r] | null, "flicker": true, "layer": "ground", "deck": [x,y,w,h], "solids": [[x,y,w,h], ...], "lights": [[x,y,r], ...], "opening": [x,y,w,h] }`（座標は小物の足元＝town.jsonの(x,y)×16 を原点としたpx。`layer`・`deck`・`solids`・`lights`・`opening` は省略可）
   `solids` は当たりをいくつも（門の柱。web/world.js はそれぞれを当たりにし、`solid` は使わない）、`lights` は灯をいくつも（門の提灯。world.lights にそれぞれ入り、web/lighting.js がほかの小物の灯と同じに描く）、`opening` は柱の間のくぐれる所（門の下。layout はその列を歩ける道にする）。足元は門の下辺（柱の足の線）で、人物はそこで y の順に並ぶ（足元より北にいる人は門の絵の後ろ）。
-  `layer: "ground"` の小物は地面のすぐ上・人物の下に描く（y でならべない）。`deck` は水の上で歩ける板: そこに掛かる水の tile は板の矩形だけ歩けて、残りは水のまま（web/world.js）。layout は板の上端を岸壁の行の上から4px下に置く。
-  layout が場所を取る大きさは tile 単位で、幅 = round(solid.w / 16)、奥行き = ceil(solid.h / 16)（最小 1×1、足元は下辺の中央）。`solids` のある小物（門）は、柱の箱がかかる tile だけ（くぐれる所の列は除く）。井戸小屋 `wellhouse`・足場 `scaffold`（`scaffold-2`）・工事中の札 `sign-works`・材木 `lumber`・桟橋 `pier`（`pier-2`）・舟 `boat`・門 `gate` は、絵があるときだけ置く。
+  `layer: "ground"` の小物は地面のすぐ上・人物の下に描く（y でならべない）。`deck` は水の上で歩ける板: そこに掛かる水の tile は板の矩形だけ歩けて、残りは水のまま（web/world.js）。layout は板の上端を岸壁の行の上から4px下に置く。橋の `deck` は通り側の板も含むが、水の tile だけを歩けるようにする。
+  layout が場所を取る大きさは tile 単位で、幅 = round(solid.w / 16)、奥行き = ceil(solid.h / 16)（最小 1×1、足元は下辺の中央）。`solids` のある小物（門）は、柱の箱がかかる tile だけ（くぐれる所の列は除く）。井戸小屋 `wellhouse`・足場 `scaffold`（`scaffold-2`）・工事中の札 `sign-works`・材木 `lumber`・桟橋 `pier`（`pier-2`）・橋 `bridge-h`（`bridge-v`）・舟 `boat`・門 `gate` は、絵があるときだけ置く。
 - 地面 `art/game/ground/<name>.png`（継ぎ目なし）: street・grass・dirt・plaza・moss は必須。`water.png` は水面（128×128 前後、縦横に継ぎ目なし）、`quay.png` は岸壁の帯（横に継ぎ目なし、上端 = 岸の通りの下端。16px より高ければ下の水の行に続けて描く。透明な所は水が見える）。水辺は船着場の絵と water.png の両方があるときだけつくる。`wall.png` は段（town.terraces）の石垣の前面の石の粒（高さ 16px、横に継ぎ目なし。石の形と明暗は src/ground.mjs が描く）。無ければ広場の石の粒を使う。
 
 ## 施設の置き場所（src/layout.mjs）
