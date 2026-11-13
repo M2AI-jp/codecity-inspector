@@ -2678,6 +2678,49 @@ export function layoutTown(repo, opts = {}) {
   P.terraces = P.terraces.filter((t) => !t.drop);
   const dock = P.placed.find((p) => p.spec.archetype === 'dock');
   const canal = buildCanal(P, F, repo, propArt);
+  // 橋・水路口の絵は足元より北へ張り出す。広場の南階段の前2行や、
+  // その階段の上に水路が重なると、欄干が階段へ食い込んで見えるため、
+  // 水路が通る位置を避ける階段列を同じ広場の中から選ぶ。
+  if (canal && plazaT?.stair) {
+    const visualBox = (p) => {
+      const a = propArt[p.look || p.type] || {};
+      const [ox, oy] = a.origin || [0, 0];
+      const w = a.size?.[0] || Math.max(16, ox * 2);
+      const h = a.size?.[1] || Math.max(16, oy);
+      const left = p.x * 16 - ox, top = p.y * 16 - oy;
+      return {
+        x0: Math.floor(left / 16),
+        x1: Math.ceil((left + w) / 16) - 1,
+        y0: Math.floor(top / 16),
+        y1: Math.ceil((top + h) / 16) - 1,
+      };
+    };
+    const canalProps = [...(canal.bridgeProps || []), ...(canal.mouthProps || [])];
+    const conflictScore = (t, stairX) => {
+      const fy = t.y + t.h, x0 = stairX, x1 = stairX + t.stair.w - 1;
+      const inClear = (x, y) => x >= x0 && x <= x1 && y >= fy - 2 && y <= fy + 2;
+      let score = 0;
+      for (const [x, y] of canal.cells || []) if (inClear(x, y)) score += 100;
+      for (const p of canalProps) {
+        const b = visualBox(p);
+        const w = Math.max(0, Math.min(x1, b.x1) - Math.max(x0, b.x0) + 1);
+        const h = Math.max(0, Math.min(fy + 2, b.y1) - Math.max(fy - 2, b.y0) + 1);
+        score += w * h;
+      }
+      return score;
+    };
+    const t = plazaT;
+    const first = t.stair.x;
+    const candidates = Array.from({ length: t.w - t.stair.w + 1 }, (_, i) => t.x + i)
+      .sort((a, b) => Math.abs(a - first) - Math.abs(b - first) || a - b);
+    let chosen = first, best = Infinity;
+    for (const x of candidates) {
+      const score = conflictScore(t, x);
+      if (score < best) { best = score; chosen = x; }
+      if (score === 0) break;
+    }
+    t.stair.x = chosen;
+  }
   const placedProps = placeProps(P, F, makeRng(seed ^ 0x9e3779b9), spawn, {
     propArt, landmarks, dock, bridgeProps: canal?.bridgeProps || [], mouthProps: canal?.mouthProps || [], bridgeCells: canal?.bridgeCells || [],
   });
