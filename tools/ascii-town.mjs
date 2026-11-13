@@ -199,7 +199,10 @@ if (args.includes('--check')) {
     const roadAt = (x, y) => {
       const ch = town.ground[y]?.[x];
       const terraceFace = faceCells.some(([fx, fy]) => fx === x && fy === y);
-      return foot[y * cols + x] < 0 && !buildingWalk.has(`${x},${y}`) && !terraceFace && (ch === '#' || ch === ':');
+      // 建物の下辺の前庭も、建物から街路へ続く歩行面なので橋の端に
+      // 使える。段の壁は歩行面ではないため、通りとして数えない。
+      return foot[y * cols + x] < 0 && !terraceFace &&
+        (buildingWalk.has(`${x},${y}`) || ch === '#' || ch === ':');
     };
     const nearCrossing = (x, y) => crossings.some((c) => Math.abs(c.x - x) + Math.abs(c.y - y) <= 2);
     const canalHas = (x, y) => canalSet.has(`${x},${y}`);
