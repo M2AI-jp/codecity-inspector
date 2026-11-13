@@ -102,7 +102,6 @@ if (args.includes('--check')) {
   let waterLandStripCount = 0;
   const { cols, rows } = town;
   const foot = new Int32Array(cols * rows).fill(-1);
-  const buildingWalk = new Set();
   const blocked = new Uint8Array(cols * rows);
   if (town.ground.length !== rows || town.ground.some((r) => r.length !== cols)) problems.push('ground の大きさが cols×rows と合わない');
   town.buildings.forEach((b, i) => {
@@ -111,7 +110,6 @@ if (args.includes('--check')) {
       if (foot[y * cols + x] >= 0) problems.push(`${b.id} と ${town.buildings[foot[y * cols + x]].id} が重なる`);
       foot[y * cols + x] = i;
     }
-    for (let x = b.x; x < b.x + b.w; x++) buildingWalk.add(`${x},${b.y + b.h}`);
   });
   for (const b of town.buildings) {
     if (b.door.y !== b.y + b.h - 1 || b.door.x < b.x || b.door.x >= b.x + b.w) problems.push(`${b.id} の扉が下辺に無い`);
@@ -122,7 +120,7 @@ if (args.includes('--check')) {
       if (y >= 0 && o >= 0 && town.buildings[o] !== b) problems.push(`${b.id} の屋根の余白に ${town.buildings[o].id}`);
     }
   }
-  const seenProp = new Map();
+  const seenProp = new Set();
   const deckT = new Uint8Array(cols * rows);
   for (const p of town.props) {
     const deck = !!deckTiles(p);
@@ -130,17 +128,11 @@ if (args.includes('--check')) {
       const t = y * cols + x;
       if (x < 0 || y < 0 || x >= cols || y >= rows) { problems.push(`小物 ${p.type} (${x},${y}) が範囲外`); continue; }
       if (foot[t] >= 0) problems.push(`小物 ${p.type} (${x},${y}) が建物の上`);
-      const previous = seenProp.get(t);
-      // 広場の段が浅い街では、始点の canal-mouth が最初の bridge-h の
-      // deck と同じ水セルを示すことがある。橋が口を覆う重なりはこの
-      // 一組だけを許し、通常の小物どうしの重なりは従来どおり失敗にする。
-      if (previous && !(p.type.startsWith('bridge-') && previous === 'canal-mouth')) {
-        problems.push(`小物 (${x},${y}) が重なる`);
-      }
+      if (seenProp.has(t)) problems.push(`小物 (${x},${y}) が重なる`);
       if (town.ground[y]?.[x] === ' ' || town.ground[y]?.[x] === undefined) problems.push(`小物 ${p.type} (${x},${y}) が街の外`);
       if (deck) { if (town.ground[y][x] === '~') deckT[t] = 1; continue; }     // 桟橋の板は歩ける（水の上）
       if (town.ground[y]?.[x] === '~' && p.type !== 'boat' && p.type !== 'canal-mouth') problems.push(`小物 ${p.type} (${x},${y}) が水の上`);
-      seenProp.set(t, p.type);
+      seenProp.add(t);
       blocked[t] = 1;
     }
   }
@@ -198,11 +190,7 @@ if (args.includes('--check')) {
     const crossings = town.canal.crossings || [];
     const roadAt = (x, y) => {
       const ch = town.ground[y]?.[x];
-      const terraceFace = faceCells.some(([fx, fy]) => fx === x && fy === y);
-      // 建物の下辺の前庭も、建物から街路へ続く歩行面なので橋の端に
-      // 使える。段の壁は歩行面ではないため、通りとして数えない。
-      return foot[y * cols + x] < 0 && !terraceFace &&
-        (buildingWalk.has(`${x},${y}`) || ch === '#' || ch === ':');
+      return ch === '#' || ch === ':';
     };
     const nearCrossing = (x, y) => crossings.some((c) => Math.abs(c.x - x) + Math.abs(c.y - y) <= 2);
     const canalHas = (x, y) => canalSet.has(`${x},${y}`);
@@ -271,7 +259,8 @@ if (args.includes('--check')) {
       }
     }
     const mouth = town.props.find((p) => p.type === 'canal-mouth'
-      && propTilesOf(p).some(([x, y]) => canalHas(x, y)));
+      && propTilesOf(p).some(([x, y]) => canalHas(x, y))
+      && !propTilesOf(p).some(([x, y]) => bridgeDeckSet.has(`${x},${y}`)));
     if (!mouth) problems.push('水路の始点に広場の縁の水路口が無い');
     // 港の水は地図の下端から flood fill し、港の水でない水路と区別する。
     // 水路との間に1〜2マスの陸が残ると、細い草の島や岸の帯になる。
