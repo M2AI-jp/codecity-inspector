@@ -1477,9 +1477,11 @@ function finalize(P, maxH, opt = {}) {
     for (let y = t.y; y <= t.y + t.h; y++) for (let x = t.x; x < t.x + t.w; x++) if (inG(x, y)) terraceMask[id(x, y)] = 1;
   }
   const doorFront = new Uint8Array(N);
+  const buildingWalkRow = new Uint8Array(N);
   const fixedFoot = new Uint8Array(N), fixedRoof = new Uint8Array(N), fixedFront = new Uint8Array(N), fixedDoorFront = new Uint8Array(N);
   for (const p of placed) {
     const dc = p.doorCol ?? p.x + p.spec.doorDx;
+    for (let x = p.x; x < p.x + p.w; x++) if (inG(x, p.yb + 1)) buildingWalkRow[id(x, p.yb + 1)] = 1;
     for (let x = p.x; x < p.x + p.w; x++) {
       for (let y = p.y; y <= p.yb; y++) if (inG(x, y) && p.spec.facility) fixedFoot[id(x, y)] = 1;
       for (let y = p.y - (p.spec.roofRows ?? 2); y < p.y; y++) if (inG(x, y) && p.spec.facility) fixedRoof[id(x, y)] = 1;
@@ -1951,6 +1953,78 @@ function finalize(P, maxH, opt = {}) {
     mouthProps.push({ type: 'canal-mouth', x: mouthX, y: mouthY, look: 'canal-mouth' });
   }
   const crossings = [];
+  // 1本の橋の deck は流れ方向に2マスを覆う。水路の同じ向きの
+  // 交差部が近いと、前庭や dense frontage まで舗装として拾って橋が
+  // 縦に重なるため、交差前にその部分だけ草地へ戻す。
+  const initialRoadWater = new Set(canalCells.filter(([x, y]) => paved(id(x, y))).map(([x, y]) => id(x, y)));
+  const initialRoadDir = new Map(canalCells.map(([x, y]) => [id(x, y), roadDirAt(x, y)]));
+  const initialComponents = [];
+  const initialSeen = new Set();
+  for (const start of initialRoadWater) {
+    if (initialSeen.has(start)) continue;
+    const dir = initialRoadDir.get(start);
+    if (!dir) continue;
+    const component = [], q = [start];
+    initialSeen.add(start);
+    for (let h = 0; h < q.length; h++) {
+      const k = q[h], x = k % cols, y = (k / cols) | 0;
+      component.push([x, y]);
+      for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
+        const nk = id(nx, ny);
+        if (initialRoadWater.has(nk) && initialRoadDir.get(nk) === dir && !initialSeen.has(nk)) {
+          initialSeen.add(nk);
+          q.push(nk);
+        }
+      }
+    }
+    const xs = component.map(([x]) => x), ys = component.map(([, y]) => y);
+    initialComponents.push({
+      cells: component, dir,
+      minX: Math.min(...xs), maxX: Math.max(...xs),
+      minY: Math.min(...ys), maxY: Math.max(...ys),
+      soft: component.every(([x, y]) => {
+        const r = road[id(x, y)];
+        return r < 0 || pieces[r]?.kind === 'dense';
+      }),
+    });
+  }
+  const axisRange = (c) => c.dir === 'h' ? [c.minY, c.maxY] : [c.minX, c.maxX];
+  const axisGap = (a, b) => {
+    const [a0, a1] = axisRange(a), [b0, b1] = axisRange(b);
+    return a1 < b0 ? b0 - a1 - 1 : b1 < a0 ? a0 - b1 - 1 : 0;
+  };
+  const clearCrossingCell = (x, y, dir) => {
+    const k = id(x, y);
+    original[k] = GRASS;
+    const sides = dir === 'h' ? [[x - 1, y], [x + 1, y]] : [[x, y - 1], [x, y + 1]];
+    for (const [nx, ny] of sides) {
+      if (!inG(nx, ny)) continue;
+      const nk = id(nx, ny);
+      if (foot[nk] >= 0 || buildingWalkRow[nk] || front[nk] || plazaM[nk] || terraceMask[nk]) continue;
+      if (original[nk] === STREET || original[nk] === DIRT) g[nk] = GRASS;
+    }
+  };
+  const keptComponents = [];
+  initialComponents
+    .sort((a, b) => (a.dir === b.dir ? axisRange(a)[0] - axisRange(b)[0] : a.dir.localeCompare(b.dir)))
+    .forEach((c) => {
+      const nearbyNormal = initialComponents.some((q) => q !== c && q.dir === c.dir && !q.soft && axisGap(c, q) <= 2);
+      const nearbyKept = keptComponents.some((q) => q.dir === c.dir && axisGap(c, q) <= 2);
+      if ((c.soft && nearbyNormal) || nearbyKept) {
+        for (const [x, y] of c.cells) clearCrossingCell(x, y, c.dir);
+        return;
+      }
+      const [a0, a1] = axisRange(c);
+      if (a1 - a0 + 1 > 2) {
+        const keep0 = c.dir === 'h' ? Math.floor((a0 + a1) / 2) : a0;
+        const keep1 = keep0 + 1;
+        for (const [x, y] of c.cells) {
+          const axis = c.dir === 'h' ? y : x;
+          if (axis < keep0 || axis > keep1) clearCrossingCell(x, y, c.dir);
+        }
+      }
+      keptComponents.push(c);
+    });
   const roadWater = new Set(canalCells.filter(([x, y]) => paved(id(x, y))).map(([x, y]) => id(x, y)));
   const waterRoadDir = new Map(canalCells.map(([x, y]) => [id(x, y), roadDirAt(x, y)]));
   const crossed = new Set();
@@ -2032,7 +2106,11 @@ function finalize(P, maxH, opt = {}) {
   // deck が収まる道路行を探して橋と crossing の中心を同じ行へ寄せる。
   const touchesPerpendicularRoad = (x, y, flow) => {
     const sides = flow === 'v' ? [[x - 1, y], [x + 1, y]] : [[x, y - 1], [x, y + 1]];
-    return sides.some(([nx, ny]) => inG(nx, ny) && paved(id(nx, ny)));
+    return sides.some(([nx, ny]) => {
+      if (!inG(nx, ny)) return false;
+      const k = id(nx, ny), r = road[k];
+      return r >= 0 && pieces[r]?.kind !== 'dense';
+    });
   };
   for (let i = 0; i < crossings.length; i++) {
     const c = crossings[i], p = bridgeProps[i];
@@ -2099,7 +2177,8 @@ function finalize(P, maxH, opt = {}) {
     for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
       if (!inG(nx, ny)) continue;
       const nk = id(nx, ny);
-      if (original[nk] === DIRT && road[nk] < 0 && foot[nk] < 0 && !front[nk] && !plazaM[nk]) g[nk] = GRASS;
+      if ((original[nk] === STREET || original[nk] === DIRT) &&
+        !bridgeCells.has(nk) && foot[nk] < 0 && !buildingWalkRow[nk] && !front[nk] && !plazaM[nk] && !terraceMask[nk]) g[nk] = GRASS;
     }
   }
   // bridge-h / bridge-v の deck は絵の都合で道路を前後2行覆う。

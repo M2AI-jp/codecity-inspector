@@ -102,6 +102,7 @@ if (args.includes('--check')) {
   let waterLandStripCount = 0;
   const { cols, rows } = town;
   const foot = new Int32Array(cols * rows).fill(-1);
+  const buildingWalk = new Set();
   const blocked = new Uint8Array(cols * rows);
   if (town.ground.length !== rows || town.ground.some((r) => r.length !== cols)) problems.push('ground の大きさが cols×rows と合わない');
   town.buildings.forEach((b, i) => {
@@ -110,6 +111,7 @@ if (args.includes('--check')) {
       if (foot[y * cols + x] >= 0) problems.push(`${b.id} と ${town.buildings[foot[y * cols + x]].id} が重なる`);
       foot[y * cols + x] = i;
     }
+    for (let x = b.x; x < b.x + b.w; x++) buildingWalk.add(`${x},${b.y + b.h}`);
   });
   for (const b of town.buildings) {
     if (b.door.y !== b.y + b.h - 1 || b.door.x < b.x || b.door.x >= b.x + b.w) problems.push(`${b.id} の扉が下辺に無い`);
@@ -190,11 +192,31 @@ if (args.includes('--check')) {
     const crossings = town.canal.crossings || [];
     const roadAt = (x, y) => {
       const ch = town.ground[y]?.[x];
-      return ch === '#' || ch === ':';
+      return foot[y * cols + x] < 0 && !buildingWalk.has(`${x},${y}`) && (ch === '#' || ch === ':');
     };
     const nearCrossing = (x, y) => crossings.some((c) => Math.abs(c.x - x) + Math.abs(c.y - y) <= 2);
     const canalHas = (x, y) => canalSet.has(`${x},${y}`);
-    const bridgeDecks = town.props.filter((p) => p.type === 'bridge-h' || p.type === 'bridge-v').flatMap((p) => deckTiles(p) || []);
+    const bridgeProps = town.props.filter((p) => p.type === 'bridge-h' || p.type === 'bridge-v');
+    const bridgeDeckSets = bridgeProps.map((p) => new Set((deckTiles(p) || propTilesOf(p)).map(([x, y]) => `${x},${y}`)));
+    for (let i = 0; i < bridgeProps.length; i++) {
+      for (let j = i + 1; j < bridgeProps.length; j++) {
+        let adjacent = false;
+        for (const key of bridgeDeckSets[i]) {
+          const [x, y] = key.split(',').map(Number);
+          if (bridgeDeckSets[j].has(key) ||
+            bridgeDeckSets[j].has(`${x - 1},${y}`) || bridgeDeckSets[j].has(`${x + 1},${y}`) ||
+            bridgeDeckSets[j].has(`${x},${y - 1}`) || bridgeDeckSets[j].has(`${x},${y + 1}`)) {
+            adjacent = true;
+            break;
+          }
+        }
+        if (adjacent) {
+          const a = bridgeProps[i], b = bridgeProps[j];
+          problems.push(`橋 ${a.type} (${a.x},${a.y}) と ${b.type} (${b.x},${b.y}) の deck が縦横に隣り合う`);
+        }
+      }
+    }
+    const bridgeDecks = bridgeProps.flatMap((p) => deckTiles(p) || []);
     const bridgeDeckSet = new Set(bridgeDecks.map(([x, y]) => `${x},${y}`));
     const roadTurnAt = (x, y) => {
       const at = (xx, yy) => roadAt(xx, yy) && !bridgeDeckSet.has(`${xx},${yy}`);
