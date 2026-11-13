@@ -1,0 +1,1897 @@
+{
+  "_generated": "tools/build-manifest.mjs が art/game/ の画像と sidecar から作ったファイル。手で編集しない。",
+  "tile": 16,
+  "characters": {
+    "player": {
+      "src": "../approved/player--default.png",
+      "frame": [32, 32],
+      "pivot": [16, 31],
+      "anims": {
+        "idle": {
+          "up": [0],
+          "down": [12],
+          "right": [24],
+          "left": [36]
+        },
+        "walk": {
+          "up": [2, 3, 4, 5],
+          "down": [14, 15, 16, 17],
+          "right": [26, 27, 28, 29],
+          "left": [38, 39, 40, 41]
+        }
+      }
+    },
+    "keepers": {
+      "dock": {
+        "src": "residents/keeper-dock.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      },
+      "dojo": {
+        "src": "residents/keeper-dojo.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      },
+      "gate": {
+        "src": "residents/keeper-gate.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      },
+      "house": {
+        "src": "residents/keeper-house.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      },
+      "inn": {
+        "src": "residents/keeper-inn.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      },
+      "pub": {
+        "src": "residents/keeper-pub.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      },
+      "ruin": {
+        "src": "residents/keeper-ruin.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      },
+      "shop": {
+        "src": "residents/keeper-shop.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      },
+      "workshop": {
+        "src": "residents/keeper-smith.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      },
+      "town_hall": {
+        "src": "residents/keeper-town_hall.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      },
+      "warehouse": {
+        "src": "residents/keeper-warehouse.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      },
+      "watchtower": {
+        "src": "residents/keeper-watchtower.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      },
+      "well": {
+        "src": "residents/keeper-well.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      }
+    },
+    "townsfolk": [
+      {
+        "src": "residents/townsfolk-1.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      },
+      {
+        "src": "residents/townsfolk-2.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      },
+      {
+        "src": "residents/townsfolk-3.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      },
+      {
+        "src": "residents/townsfolk-4.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      },
+      {
+        "src": "residents/townsfolk-5.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      },
+      {
+        "src": "residents/townsfolk-6.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      },
+      {
+        "src": "residents/townsfolk-7.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      },
+      {
+        "src": "residents/townsfolk-8.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      }
+    ],
+    "contractor": {
+      "src": "residents/contractor.png",
+      "frame": [32, 32],
+      "pivot": [16, 31],
+      "anims": {
+        "idle": {
+          "down": [0],
+          "left": [4],
+          "right": [8],
+          "up": [12]
+        },
+        "walk": {
+          "down": [1, 2, 3, 0],
+          "left": [5, 6, 7, 4],
+          "right": [9, 10, 11, 8],
+          "up": [13, 14, 15, 12]
+        }
+      }
+    }
+  },
+  "archetypes": {
+    "dock": {
+      "variants": [
+        {
+          "id": "dock-1",
+          "footprint": [7, 4],
+          "exterior": {
+            "src": "buildings/dock-1.exterior.png",
+            "origin": [0, 56],
+            "size": [112, 120]
+          },
+          "cutaway": {
+            "src": "buildings/dock-1.cutaway.png",
+            "origin": [0, 56],
+            "size": [112, 120]
+          },
+          "wall": [1, 1],
+          "cover": [1, 1, 1, 1, 1, 1, 1],
+          "door": {
+            "x": 3,
+            "w": 1
+          },
+          "floor": [4, 17, 104, 39],
+          "blockers": [
+            [8, 17, 38, 21],
+            [4, 40, 26, 16],
+            [70, 17, 27, 27],
+            [90, 38, 18, 18]
+          ],
+          "lights": [
+            [22, 25, 22],
+            [89, 25, 22],
+            [68, 38, 24],
+            [60, -4, 18]
+          ],
+          "smoke": [
+            [95, -38]
+          ],
+          "interiorLights": [
+            [94, 10, 36],
+            [78, 20, 26]
+          ]
+        }
+      ]
+    },
+    "dojo": {
+      "variants": [
+        {
+          "id": "dojo-1",
+          "footprint": [7, 5],
+          "exterior": {
+            "src": "buildings/dojo-1.exterior.png",
+            "origin": [0, 48],
+            "size": [112, 128]
+          },
+          "cutaway": {
+            "src": "buildings/dojo-1.cutaway.png",
+            "origin": [0, 48],
+            "size": [112, 128]
+          },
+          "wall": [1, 1],
+          "cover": [0, 1, 1, 1, 1, 1, 0],
+          "door": {
+            "x": 3,
+            "w": 1
+          },
+          "floor": [8, 19, 96, 52],
+          "blockers": [
+            [10, 22, 10, 8],
+            [8, 32, 9, 22],
+            [8, 57, 9, 8],
+            [27, 42, 11, 8],
+            [45, 42, 11, 8],
+            [63, 42, 11, 8],
+            [82, 36, 24, 16],
+            [90, 52, 10, 7]
+          ],
+          "lights": [
+            [12, 44, 22],
+            [98, 44, 22],
+            [56, 18, 20],
+            [71, 44, 24]
+          ],
+          "smoke": [],
+          "interiorLights": [
+            [16, -6, 28],
+            [97, -6, 28],
+            [101, 33, 20]
+          ]
+        }
+      ]
+    },
+    "house_l": {
+      "variants": [
+        {
+          "id": "house_l-1",
+          "footprint": [7, 5],
+          "exterior": {
+            "src": "buildings/house_l-1.exterior.png",
+            "origin": [0, 48],
+            "size": [112, 128]
+          },
+          "cutaway": {
+            "src": "buildings/house_l-1.cutaway.png",
+            "origin": [0, 48],
+            "size": [112, 128]
+          },
+          "wall": [3, 4],
+          "cover": [0, 1, 1, 1, 1, 1, 0],
+          "door": {
+            "x": 2,
+            "w": 1
+          },
+          "floor": [5, 25, 101, 45],
+          "blockers": [
+            [6, 25, 24, 5],
+            [82, 25, 24, 11],
+            [31, 34, 51, 20],
+            [8, 52, 10, 6],
+            [6, 63, 19, 7],
+            [80, 62, 26, 8]
+          ],
+          "lights": [
+            [35, 10, 22],
+            [83, 13, 22],
+            [21, 29, 22],
+            [44, 29, 22],
+            [72, 29, 22],
+            [91, 29, 22],
+            [24, 52, 26],
+            [54, 51, 26],
+            [16, 55, 24],
+            [72, 55, 24]
+          ],
+          "smoke": [
+            [16, -42]
+          ],
+          "interiorLights": [
+            [18, 15, 36],
+            [40, 33, 22],
+            [69, 33, 22],
+            [57, 14, 20],
+            [100, 62, 22]
+          ]
+        },
+        {
+          "id": "house_l-2",
+          "footprint": [7, 5],
+          "exterior": {
+            "src": "buildings/house_l-2.exterior.png",
+            "origin": [0, 48],
+            "size": [112, 128]
+          },
+          "cutaway": {
+            "src": "buildings/house_l-2.cutaway.png",
+            "origin": [0, 48],
+            "size": [112, 128]
+          },
+          "wall": [2, 2],
+          "cover": [0, 2, 2, 2, 2, 2, 0],
+          "door": {
+            "x": 3,
+            "w": 1
+          },
+          "floor": [5, 18, 101, 51],
+          "blockers": [
+            [5, 18, 24, 4],
+            [84, 18, 22, 4],
+            [10, 29, 30, 11],
+            [14, 52, 27, 10],
+            [6, 58, 10, 6],
+            [66, 28, 8, 6],
+            [77, 24, 29, 31],
+            [76, 55, 13, 6],
+            [95, 62, 11, 7]
+          ],
+          "lights": [
+            [23, 0, 22],
+            [55, 0, 22],
+            [88, 0, 22],
+            [23, 22, 22],
+            [57, 21, 22],
+            [89, 23, 22],
+            [21, 54, 24],
+            [90, 55, 24],
+            [37, 55, 26],
+            [72, 56, 26]
+          ],
+          "smoke": [
+            [15, -47],
+            [97, -47]
+          ],
+          "interiorLights": [
+            [17, 12, 34],
+            [95, 12, 34],
+            [37, 45, 22],
+            [10, 57, 24]
+          ]
+        },
+        {
+          "id": "house_l-3",
+          "footprint": [7, 5],
+          "exterior": {
+            "src": "buildings/house_l-3.exterior.png",
+            "origin": [0, 48],
+            "size": [112, 128]
+          },
+          "cutaway": {
+            "src": "buildings/house_l-3.cutaway.png",
+            "origin": [0, 48],
+            "size": [112, 128]
+          },
+          "wall": [2, 2],
+          "cover": [0, 1, 1, 1, 1, 1, 0],
+          "door": {
+            "x": 4,
+            "w": 1
+          },
+          "floor": [5, 2, 102, 65],
+          "blockers": [
+            [7, 0, 24, 14],
+            [6, 20, 12, 10],
+            [24, 30, 26, 22],
+            [52, 0, 14, 22],
+            [70, 0, 16, 18],
+            [90, 0, 15, 14],
+            [80, 26, 26, 20],
+            [81, 50, 13, 10],
+            [8, 60, 40, 7]
+          ],
+          "lights": [
+            [74, 4, 26],
+            [18, 48, 22],
+            [37, 48, 22],
+            [92, 49, 22],
+            [54, 41, 20]
+          ],
+          "smoke": [
+            [12, -44],
+            [98, -37]
+          ],
+          "interiorLights": [
+            [19, 10, 36],
+            [98, 10, 28],
+            [37, 30, 22]
+          ]
+        }
+      ]
+    },
+    "house_m": {
+      "variants": [
+        {
+          "id": "house_m-1",
+          "footprint": [6, 4],
+          "exterior": {
+            "src": "buildings/house_m-1.exterior.png",
+            "origin": [0, 40],
+            "size": [96, 104]
+          },
+          "cutaway": {
+            "src": "buildings/house_m-1.cutaway.png",
+            "origin": [0, 40],
+            "size": [96, 104]
+          },
+          "wall": [4, 6],
+          "cover": [0, 1, 1, 1, 1, 0],
+          "door": {
+            "x": 2,
+            "w": 1
+          },
+          "floor": [8, 16, 80, 36],
+          "blockers": [
+            [8, 16, 22, 8],
+            [76, 16, 12, 16],
+            [80, 32, 8, 13],
+            [30, 23, 32, 17],
+            [12, 31, 13, 6],
+            [6, 36, 14, 16],
+            [67, 49, 13, 3]
+          ],
+          "lights": [
+            [17, 39, 24],
+            [75, 39, 24],
+            [25, 9, 22],
+            [69, 9, 22],
+            [64, -5, 20],
+            [57, 35, 20]
+          ],
+          "smoke": [
+            [15, -40]
+          ],
+          "interiorLights": [
+            [20, 13, 34],
+            [46, 21, 22]
+          ]
+        },
+        {
+          "id": "house_m-2",
+          "footprint": [6, 4],
+          "exterior": {
+            "src": "buildings/house_m-2.exterior.png",
+            "origin": [0, 40],
+            "size": [96, 104]
+          },
+          "cutaway": {
+            "src": "buildings/house_m-2.cutaway.png",
+            "origin": [0, 40],
+            "size": [96, 104]
+          },
+          "wall": [3, 2],
+          "cover": [1, 2, 2, 2, 2, 0],
+          "door": {
+            "x": 1,
+            "w": 2
+          },
+          "floor": [5, 10, 80, 43],
+          "blockers": [
+            [5, 10, 13, 8],
+            [28, 10, 34, 3],
+            [64, 10, 21, 7],
+            [6, 26, 19, 24],
+            [35, 19, 29, 16],
+            [78, 34, 7, 7],
+            [63, 44, 22, 9],
+            [40, 53, 8, 11]
+          ],
+          "lights": [
+            [47, -20, 20],
+            [35, 7, 24],
+            [59, 7, 24],
+            [14, 40, 26],
+            [65, 39, 26]
+          ],
+          "smoke": [
+            [90, -39]
+          ],
+          "interiorLights": [
+            [74, 9, 32],
+            [45, 20, 22]
+          ]
+        },
+        {
+          "id": "house_m-3",
+          "footprint": [6, 4],
+          "exterior": {
+            "src": "buildings/house_m-3.exterior.png",
+            "origin": [0, 58],
+            "size": [96, 122]
+          },
+          "cutaway": {
+            "src": "buildings/house_m-3.cutaway.png",
+            "origin": [0, 58],
+            "size": [96, 122]
+          },
+          "wall": [4, 3],
+          "cover": [1, 2, 2, 2, 2, 1],
+          "door": {
+            "x": 4,
+            "w": 1
+          },
+          "floor": [5, 2, 86, 46],
+          "blockers": [
+            [4, 0, 8, 22],
+            [11, 0, 18, 7],
+            [31, 0, 7, 6],
+            [22, 8, 10, 5],
+            [4, 22, 17, 12],
+            [22, 16, 34, 18],
+            [54, 0, 20, 9],
+            [73, 4, 7, 7],
+            [80, 0, 12, 24]
+          ],
+          "lights": [
+            [48, -23, 20],
+            [30, -2, 24],
+            [68, -2, 24],
+            [32, 32, 26],
+            [69, 22, 18],
+            [84, 31, 20]
+          ],
+          "smoke": [
+            [10, -57],
+            [17, -57]
+          ],
+          "interiorLights": [
+            [20, 2, 32],
+            [38, 22, 22],
+            [12, 26, 20]
+          ]
+        }
+      ]
+    },
+    "house_s": {
+      "variants": [
+        {
+          "id": "house_s-1",
+          "footprint": [5, 4],
+          "exterior": {
+            "src": "buildings/house_s-1.exterior.png",
+            "origin": [0, 32],
+            "size": [80, 96]
+          },
+          "cutaway": {
+            "src": "buildings/house_s-1.cutaway.png",
+            "origin": [0, 32],
+            "size": [80, 96]
+          },
+          "wall": [2, 2],
+          "cover": [0, 1, 1, 1, 0],
+          "door": {
+            "x": 2,
+            "w": 1
+          },
+          "floor": [6, 16, 68, 37],
+          "blockers": [
+            [7, 16, 18, 13],
+            [29, 16, 19, 8],
+            [50, 16, 18, 10],
+            [67, 16, 7, 12],
+            [27, 31, 24, 9],
+            [58, 43, 16, 9]
+          ],
+          "lights": [
+            [18, 33, 24],
+            [55, 32, 20],
+            [66, 33, 24]
+          ],
+          "smoke": [
+            [63, -30]
+          ],
+          "interiorLights": [
+            [59, 17, 32],
+            [38, 26, 22]
+          ]
+        },
+        {
+          "id": "house_s-2",
+          "footprint": [5, 4],
+          "exterior": {
+            "src": "buildings/house_s-2.exterior.png",
+            "origin": [0, 32],
+            "size": [80, 96]
+          },
+          "cutaway": {
+            "src": "buildings/house_s-2.cutaway.png",
+            "origin": [0, 32],
+            "size": [80, 96]
+          },
+          "wall": [2, 2],
+          "cover": [0, 1, 1, 0, 0],
+          "door": {
+            "x": 1,
+            "w": 1
+          },
+          "floor": [8, 19, 39, 29],
+          "blockers": [
+            [21, 26, 23, 9]
+          ],
+          "lights": [
+            [32, 11, 20],
+            [44, 35, 24],
+            [72, 37, 20]
+          ],
+          "smoke": [
+            [14, -30]
+          ],
+          "interiorLights": [
+            [15, 12, 32],
+            [27, 18, 24]
+          ]
+        },
+        {
+          "id": "house_s-3",
+          "footprint": [5, 4],
+          "exterior": {
+            "src": "buildings/house_s-3.exterior.png",
+            "origin": [0, 32],
+            "size": [80, 96]
+          },
+          "cutaway": {
+            "src": "buildings/house_s-3.cutaway.png",
+            "origin": [0, 32],
+            "size": [80, 96]
+          },
+          "wall": [2, 4],
+          "cover": [0, 1, 1, 1, 0],
+          "door": {
+            "x": 3,
+            "w": 1
+          },
+          "floor": [8, 3, 65, 50],
+          "blockers": [
+            [10, 2, 15, 15],
+            [54, 2, 16, 14],
+            [27, 16, 25, 14],
+            [6, 20, 10, 18],
+            [16, 36, 9, 7],
+            [64, 16, 10, 18],
+            [54, 34, 8, 8],
+            [66, 39, 8, 9]
+          ],
+          "lights": [
+            [31, 21, 22],
+            [17, 35, 24],
+            [67, 30, 20]
+          ],
+          "smoke": [
+            [66, -30]
+          ],
+          "interiorLights": [
+            [38, 17, 24],
+            [61, 10, 30],
+            [32, 2, 18]
+          ]
+        }
+      ]
+    },
+    "inn": {
+      "variants": [
+        {
+          "id": "inn-1",
+          "footprint": [7, 5],
+          "exterior": {
+            "src": "buildings/inn-1.exterior.png",
+            "origin": [0, 48],
+            "size": [112, 128]
+          },
+          "cutaway": {
+            "src": "buildings/inn-1.cutaway.png",
+            "origin": [0, 48],
+            "size": [112, 128]
+          },
+          "wall": [5, 6],
+          "cover": [0, 2, 2, 2, 2, 2, 0],
+          "door": {
+            "x": 3,
+            "w": 1
+          },
+          "floor": [8, 22, 94, 48],
+          "blockers": [
+            [9, 22, 24, 2],
+            [8, 22, 11, 12],
+            [34, 21, 10, 12],
+            [22, 31, 12, 6],
+            [46, 22, 16, 3],
+            [67, 22, 18, 3],
+            [86, 22, 16, 12],
+            [67, 38, 35, 20],
+            [11, 53, 8, 8]
+          ],
+          "lights": [
+            [25, 4, 20],
+            [86, 4, 20],
+            [47, 14, 20],
+            [65, 14, 20],
+            [22, 54, 22],
+            [89, 54, 22],
+            [39, 54, 22],
+            [72, 56, 22],
+            [56, 46, 18]
+          ],
+          "smoke": [
+            [19, -46]
+          ],
+          "interiorLights": [
+            [20, 16, 36],
+            [27, 30, 20],
+            [93, 40, 22]
+          ]
+        }
+      ]
+    },
+    "pub": {
+      "variants": [
+        {
+          "id": "pub-1",
+          "footprint": [7, 5],
+          "exterior": {
+            "src": "buildings/pub-1.exterior.png",
+            "origin": [0, 48],
+            "size": [112, 128]
+          },
+          "cutaway": {
+            "src": "buildings/pub-1.cutaway.png",
+            "origin": [0, 48],
+            "size": [112, 128]
+          },
+          "wall": [3, 3],
+          "cover": [0, 1, 1, 1, 1, 1, 0],
+          "door": {
+            "x": 3,
+            "w": 1
+          },
+          "floor": [7, 20, 100, 50],
+          "blockers": [
+            [8, 20, 10, 11],
+            [17, 20, 58, 15],
+            [83, 20, 20, 11],
+            [92, 30, 15, 25],
+            [21, 42, 28, 14],
+            [66, 50, 29, 14],
+            [7, 54, 27, 15]
+          ],
+          "lights": [
+            [57, 12, 24],
+            [90, 30, 24],
+            [24, 51, 24],
+            [41, 49, 26],
+            [72, 49, 26]
+          ],
+          "smoke": [
+            [92, -32]
+          ],
+          "interiorLights": [
+            [92, 19, 40],
+            [34, 36, 24],
+            [80, 43, 24],
+            [26, 19, 22],
+            [67, 20, 20],
+            [21, 61, 20]
+          ]
+        }
+      ]
+    },
+    "repair": {
+      "variants": [
+        {
+          "id": "repair-1",
+          "footprint": [6, 4],
+          "exterior": {
+            "src": "buildings/repair-1.exterior.png",
+            "origin": [0, 12],
+            "size": [96, 76]
+          },
+          "cutaway": {
+            "src": "buildings/repair-1.cutaway.png",
+            "origin": [0, 12],
+            "size": [96, 76]
+          },
+          "wall": [4, 4],
+          "cover": [0, 0, 0, 0, 0, 0],
+          "door": {
+            "x": 2,
+            "w": 1
+          },
+          "floor": [8, 22, 80, 38],
+          "blockers": [
+            [10, 22, 18, 10],
+            [34, 22, 22, 10],
+            [66, 22, 18, 12],
+            [12, 40, 20, 10],
+            [46, 40, 20, 10],
+            [70, 50, 16, 10]
+          ],
+          "lights": [
+            [22, 24, 24],
+            [72, 26, 22]
+          ],
+          "smoke": [],
+          "interiorLights": [
+            [46, 34, 30],
+            [70, 48, 24]
+          ]
+        }
+      ]
+    },
+    "ruin": {
+      "variants": [
+        {
+          "id": "ruin-1",
+          "footprint": [6, 4],
+          "exterior": {
+            "src": "buildings/ruin-1.exterior.png",
+            "origin": [0, 40],
+            "size": [96, 104]
+          },
+          "cutaway": {
+            "src": "buildings/ruin-1.cutaway.png",
+            "origin": [0, 40],
+            "size": [96, 104]
+          },
+          "wall": [2, 2],
+          "cover": [0, 0, 0, 0, 0, 0],
+          "door": {
+            "x": 1,
+            "w": 2
+          },
+          "floor": [8, 26, 83, 25],
+          "blockers": [
+            [30, 30, 25, 10],
+            [58, 31, 11, 5],
+            [83, 26, 9, 6],
+            [65, 41, 12, 5],
+            [8, 36, 9, 7]
+          ],
+          "lights": [],
+          "smoke": []
+        },
+        {
+          "id": "ruin-2",
+          "footprint": [6, 4],
+          "exterior": {
+            "src": "buildings/ruin-2.exterior.png",
+            "origin": [0, 40],
+            "size": [96, 104]
+          },
+          "cutaway": {
+            "src": "buildings/ruin-2.cutaway.png",
+            "origin": [0, 40],
+            "size": [96, 104]
+          },
+          "wall": [1, 2],
+          "cover": [0, 0, 0, 0, 0, 0],
+          "door": {
+            "x": 2,
+            "w": 2
+          },
+          "floor": [7, 20, 82, 29],
+          "blockers": [
+            [16, 20, 15, 10],
+            [53, 20, 22, 12],
+            [49, 31, 6, 4],
+            [20, 43, 20, 4],
+            [66, 45, 12, 4],
+            [78, 39, 11, 4],
+            [56, 44, 9, 4]
+          ],
+          "lights": [
+            [75, 41, 18]
+          ],
+          "smoke": [],
+          "interiorLights": [
+            [64, 10, 24]
+          ]
+        }
+      ]
+    },
+    "shop": {
+      "variants": [
+        {
+          "id": "shop-1",
+          "footprint": [6, 4],
+          "exterior": {
+            "src": "buildings/shop-1.exterior.png",
+            "origin": [0, 40],
+            "size": [96, 104]
+          },
+          "cutaway": {
+            "src": "buildings/shop-1.cutaway.png",
+            "origin": [0, 40],
+            "size": [96, 104]
+          },
+          "wall": [4, 4],
+          "cover": [0, 1, 1, 1, 1, 0],
+          "door": {
+            "x": 1,
+            "w": 1
+          },
+          "floor": [8, 9, 81, 43],
+          "blockers": [
+            [9, 14, 12, 9],
+            [61, 9, 9, 6],
+            [39, 23, 46, 9],
+            [44, 39, 34, 7],
+            [36, 48, 55, 4]
+          ],
+          "lights": [
+            [64, 35, 30],
+            [31, 32, 22],
+            [65, -1, 22]
+          ],
+          "smoke": [
+            [83, -38]
+          ],
+          "interiorLights": [
+            [74, 17, 26],
+            [58, 13, 20]
+          ]
+        },
+        {
+          "id": "shop-2",
+          "footprint": [6, 4],
+          "exterior": {
+            "src": "buildings/shop-2.exterior.png",
+            "origin": [0, 40],
+            "size": [96, 104]
+          },
+          "cutaway": {
+            "src": "buildings/shop-2.cutaway.png",
+            "origin": [0, 40],
+            "size": [96, 104]
+          },
+          "wall": [2, 4],
+          "cover": [0, 1, 1, 1, 1, 0],
+          "door": {
+            "x": 1,
+            "w": 1
+          },
+          "floor": [6, 13, 84, 38],
+          "blockers": [
+            [7, 26, 17, 10],
+            [22, 20, 9, 5],
+            [53, 25, 35, 12],
+            [73, 36, 8, 6],
+            [6, 47, 10, 4],
+            [38, 47, 11, 4]
+          ],
+          "lights": [
+            [68, 38, 30],
+            [27, 34, 18],
+            [11, 33, 26],
+            [48, -3, 22],
+            [67, 13, 16]
+          ],
+          "smoke": [
+            [15, -37]
+          ],
+          "interiorLights": [
+            [15, 7, 26],
+            [74, 19, 24],
+            [26, 20, 20]
+          ]
+        }
+      ]
+    },
+    "town_hall": {
+      "variants": [
+        {
+          "id": "town_hall-1",
+          "footprint": [8, 5],
+          "exterior": {
+            "src": "buildings/town_hall-1.exterior.png",
+            "origin": [0, 64],
+            "size": [128, 144]
+          },
+          "cutaway": {
+            "src": "buildings/town_hall-1.cutaway.png",
+            "origin": [0, 64],
+            "size": [128, 144]
+          },
+          "wall": [2, 2],
+          "cover": [0, 1, 1, 1, 2, 1, 1, 0],
+          "door": {
+            "x": 3,
+            "w": 2
+          },
+          "floor": [6, 20, 116, 50],
+          "blockers": [
+            [6, 20, 12, 13],
+            [18, 20, 20, 3],
+            [32, 22, 65, 12],
+            [56, 36, 16, 9],
+            [94, 38, 24, 14],
+            [97, 54, 10, 6],
+            [6, 36, 13, 16],
+            [7, 58, 21, 12],
+            [110, 60, 12, 10]
+          ],
+          "lights": [
+            [15, 43, 22],
+            [29, 43, 22],
+            [99, 43, 22],
+            [114, 43, 22],
+            [41, 50, 24],
+            [86, 50, 24],
+            [24, 8, 20],
+            [105, 8, 20]
+          ],
+          "smoke": [
+            [30, -36],
+            [98, -36]
+          ],
+          "interiorLights": [
+            [28, 9, 34],
+            [82, 17, 22],
+            [112, 32, 22]
+          ]
+        }
+      ]
+    },
+    "warehouse": {
+      "variants": [
+        {
+          "id": "warehouse-1",
+          "footprint": [7, 4],
+          "exterior": {
+            "src": "buildings/warehouse-1.exterior.png",
+            "origin": [0, 48],
+            "size": [112, 112]
+          },
+          "cutaway": {
+            "src": "buildings/warehouse-1.cutaway.png",
+            "origin": [0, 48],
+            "size": [112, 112]
+          },
+          "wall": [1, 1],
+          "cover": [0, 1, 1, 2, 1, 1, 0],
+          "door": {
+            "x": 3,
+            "w": 1
+          },
+          "floor": [9, 26, 96, 30],
+          "blockers": [
+            [13, 26, 85, 9],
+            [8, 34, 21, 22],
+            [24, 38, 12, 7],
+            [33, 45, 14, 7],
+            [40, 48, 8, 7],
+            [61, 39, 17, 7],
+            [88, 33, 13, 8],
+            [81, 43, 24, 10]
+          ],
+          "lights": [
+            [56, 4, 22],
+            [19, 27, 20],
+            [93, 27, 20],
+            [32, 33, 26],
+            [81, 33, 26]
+          ],
+          "smoke": [],
+          "interiorLights": [
+            [94, 7, 30],
+            [52, 36, 22]
+          ]
+        }
+      ]
+    },
+    "watchtower": {
+      "variants": [
+        {
+          "id": "watchtower-1",
+          "footprint": [4, 4],
+          "exterior": {
+            "src": "buildings/watchtower-1.exterior.png",
+            "origin": [0, 80],
+            "size": [64, 144]
+          },
+          "cutaway": {
+            "src": "buildings/watchtower-1.cutaway.png",
+            "origin": [0, 80],
+            "size": [64, 144]
+          },
+          "wall": [2, 2],
+          "cover": [2, 3, 4, 2],
+          "door": {
+            "x": 1,
+            "w": 2
+          },
+          "floor": [5, 14, 54, 32],
+          "blockers": [
+            [5, 20, 21, 9],
+            [5, 34, 8, 6],
+            [42, 12, 18, 14],
+            [43, 22, 17, 22]
+          ],
+          "lights": [
+            [32, 7, 18],
+            [32, -28, 26],
+            [58, -28, 22]
+          ],
+          "smoke": [],
+          "interiorLights": [
+            [11, 8, 20],
+            [8, 32, 30]
+          ]
+        }
+      ]
+    },
+    "workshop": {
+      "variants": [
+        {
+          "id": "workshop-1",
+          "footprint": [7, 5],
+          "exterior": {
+            "src": "buildings/workshop-1.exterior.png",
+            "origin": [0, 48],
+            "size": [112, 128]
+          },
+          "cutaway": {
+            "src": "buildings/workshop-1.cutaway.png",
+            "origin": [0, 48],
+            "size": [112, 128]
+          },
+          "wall": [4, 4],
+          "cover": [0, 1, 0, 0, 0, 0, 0],
+          "door": {
+            "x": 4,
+            "w": 2
+          },
+          "floor": [8, 40, 96, 35],
+          "blockers": [
+            [10, 40, 24, 18],
+            [33, 53, 9, 5],
+            [49, 53, 9, 5],
+            [72, 51, 27, 6],
+            [8, 69, 48, 6],
+            [87, 68, 16, 7],
+            [86, 75, 10, 5]
+          ],
+          "lights": [
+            [27, 53, 24],
+            [41, 47, 22],
+            [74, 28, 22],
+            [76, 57, 46]
+          ],
+          "smoke": [
+            [23, -18]
+          ],
+          "interiorLights": [
+            [21, 30, 50],
+            [24, 46, 26],
+            [49, 14, 28],
+            [74, 17, 22]
+          ]
+        },
+        {
+          "id": "workshop-2",
+          "footprint": [7, 5],
+          "exterior": {
+            "src": "buildings/workshop-2.exterior.png",
+            "origin": [0, 48],
+            "size": [112, 128]
+          },
+          "cutaway": {
+            "src": "buildings/workshop-2.cutaway.png",
+            "origin": [0, 48],
+            "size": [112, 128]
+          },
+          "wall": [2, 4],
+          "cover": [0, 0, 0, 0, 0, 0, 0],
+          "door": {
+            "x": 4,
+            "w": 2
+          },
+          "floor": [7, 38, 96, 29],
+          "blockers": [
+            [8, 38, 42, 5],
+            [50, 40, 8, 4],
+            [14, 48, 34, 18],
+            [62, 44, 28, 13],
+            [92, 38, 12, 5],
+            [98, 48, 5, 18],
+            [64, 67, 7, 13]
+          ],
+          "lights": [
+            [20, 50, 24],
+            [46, 50, 24],
+            [84, 50, 30]
+          ],
+          "smoke": [
+            [96, -12]
+          ],
+          "interiorLights": [
+            [44, 13, 30],
+            [99, 54, 50]
+          ]
+        }
+      ]
+    }
+  },
+  "props": {
+    "barrel": {
+      "src": "props/barrel.png",
+      "origin": [7, 17],
+      "solid": [-6, -6, 12, 6],
+      "light": null,
+      "flicker": false
+    },
+    "bench": {
+      "src": "props/bench.png",
+      "origin": [16, 17],
+      "solid": [-12, -6, 24, 6],
+      "light": null,
+      "flicker": false
+    },
+    "boat": {
+      "src": "props/boat.png",
+      "origin": [26, 25],
+      "solid": [-24, -18, 48, 19],
+      "light": [-17, -20, 30],
+      "flicker": true,
+      "layer": "ground"
+    },
+    "bridge-h": {
+      "src": "props/bridge-h.png",
+      "origin": [40, 48],
+      "solid": null,
+      "light": null,
+      "flicker": false,
+      "layer": "ground",
+      "deck": [-32, -25, 64, 23],
+      "solids": [
+        [-40, -32, 4, 4],
+        [36, -32, 4, 4],
+        [-40, -8, 4, 4],
+        [36, -8, 4, 4]
+      ],
+      "size": [80, 48]
+    },
+    "bridge-v": {
+      "src": "props/bridge-v.png",
+      "origin": [24, 80],
+      "solid": null,
+      "light": null,
+      "flicker": false,
+      "layer": "ground",
+      "deck": [-16, -72, 32, 64],
+      "solids": [
+        [-24, -80, 4, 4],
+        [-24, -4, 4, 4],
+        [20, -80, 4, 4],
+        [20, -4, 4, 4]
+      ],
+      "size": [48, 80]
+    },
+    "bush-2": {
+      "src": "props/bush-2.png",
+      "origin": [12, 13],
+      "solid": [-9, -4, 18, 4],
+      "light": null,
+      "flicker": false
+    },
+    "bush": {
+      "src": "props/bush.png",
+      "origin": [12, 13],
+      "solid": [-9, -4, 18, 4],
+      "light": null,
+      "flicker": false
+    },
+    "canal-mouth": {
+      "src": "props/canal-mouth.png",
+      "origin": [16, 16],
+      "solid": null,
+      "light": null,
+      "flicker": false,
+      "layer": "ground"
+    },
+    "cart": {
+      "src": "props/cart.png",
+      "origin": [24, 29],
+      "solid": [-20, -8, 40, 8],
+      "light": null,
+      "flicker": false
+    },
+    "crate": {
+      "src": "props/crate.png",
+      "origin": [8, 16],
+      "solid": [-7, -7, 14, 7],
+      "light": null,
+      "flicker": false
+    },
+    "fence": {
+      "src": "props/fence.png",
+      "origin": [8, 17],
+      "solid": [-8, -3, 16, 3],
+      "light": null,
+      "flicker": false
+    },
+    "flowerbed": {
+      "src": "props/flowerbed.png",
+      "origin": [28, 35],
+      "solid": [-24, -28, 48, 26],
+      "light": null,
+      "flicker": false
+    },
+    "flowerpot": {
+      "src": "props/flowerpot.png",
+      "origin": [6, 13],
+      "solid": [-3, -3, 6, 3],
+      "light": null,
+      "flicker": false
+    },
+    "gate": {
+      "src": "props/gate.png",
+      "origin": [48, 87],
+      "solid": null,
+      "light": [-33, -33, 26],
+      "flicker": true,
+      "solids": [
+        [-48, -12, 24, 12],
+        [24, -12, 24, 12]
+      ],
+      "lights": [
+        [-33, -33, 26],
+        [33, -33, 26]
+      ],
+      "opening": [-24, -12, 48, 12],
+      "size": [96, 88]
+    },
+    "lamp": {
+      "src": "props/lamp.png",
+      "origin": [7, 43],
+      "solid": [-2, -4, 4, 4],
+      "light": [0, -33, 70],
+      "flicker": true
+    },
+    "lowwall": {
+      "src": "props/lowwall.png",
+      "origin": [16, 13],
+      "solid": [-16, -5, 32, 5],
+      "light": null,
+      "flicker": false
+    },
+    "lumber": {
+      "src": "props/lumber.png",
+      "origin": [18, 21],
+      "solid": [-17, -9, 34, 9],
+      "light": null,
+      "flicker": false
+    },
+    "noticeboard": {
+      "src": "props/noticeboard.png",
+      "origin": [16, 31],
+      "solid": [-13, -3, 26, 3],
+      "light": null,
+      "flicker": false
+    },
+    "pier-2": {
+      "src": "props/pier-2.png",
+      "origin": [25, 0],
+      "solid": null,
+      "light": null,
+      "flicker": false,
+      "layer": "ground",
+      "deck": [-18, 0, 36, 64]
+    },
+    "pier": {
+      "src": "props/pier.png",
+      "origin": [25, 0],
+      "solid": null,
+      "light": [0, 70, 36],
+      "flicker": true,
+      "layer": "ground",
+      "deck": [-18, 0, 36, 80]
+    },
+    "planter": {
+      "src": "props/planter.png",
+      "origin": [8, 13],
+      "solid": [-7, -3, 14, 3],
+      "light": null,
+      "flicker": false
+    },
+    "sacks": {
+      "src": "props/sacks.png",
+      "origin": [10, 15],
+      "solid": [-8, -4, 16, 4],
+      "light": null,
+      "flicker": false
+    },
+    "scaffold-2": {
+      "src": "props/scaffold-2.png",
+      "origin": [24, 71],
+      "solid": [-23, -10, 46, 10],
+      "light": null,
+      "flicker": false
+    },
+    "scaffold": {
+      "src": "props/scaffold.png",
+      "origin": [16, 71],
+      "solid": [-15, -10, 30, 10],
+      "light": null,
+      "flicker": false
+    },
+    "sign-failed": {
+      "src": "props/sign-failed.png",
+      "origin": [12, 31],
+      "solid": [-9, -4, 18, 4],
+      "light": null,
+      "flicker": false
+    },
+    "sign-passed": {
+      "src": "props/sign-passed.png",
+      "origin": [12, 31],
+      "solid": [-9, -4, 18, 4],
+      "light": null,
+      "flicker": false
+    },
+    "sign-unverified": {
+      "src": "props/sign-unverified.png",
+      "origin": [12, 31],
+      "solid": [-9, -4, 18, 4],
+      "light": null,
+      "flicker": false
+    },
+    "sign-works": {
+      "src": "props/sign-works.png",
+      "origin": [10, 23],
+      "solid": [-10, -4, 21, 4],
+      "light": [12, -14, 20],
+      "flicker": true
+    },
+    "tree-2": {
+      "src": "props/tree-2.png",
+      "origin": [15, 63],
+      "solid": [-4, -4, 8, 4],
+      "light": null,
+      "flicker": false
+    },
+    "tree-3": {
+      "src": "props/tree-3.png",
+      "origin": [23, 54],
+      "solid": [-4, -4, 8, 4],
+      "light": null,
+      "flicker": false
+    },
+    "tree": {
+      "src": "props/tree.png",
+      "origin": [33, 53],
+      "solid": [-4, -4, 8, 4],
+      "light": null,
+      "flicker": false
+    },
+    "well": {
+      "src": "props/well.png",
+      "origin": [16, 39],
+      "solid": [-13, -10, 26, 10],
+      "light": null,
+      "flicker": false
+    },
+    "wellhouse": {
+      "src": "props/wellhouse.png",
+      "origin": [32, 60],
+      "solid": [-31, -20, 62, 20],
+      "light": [-6, -36, 28],
+      "flicker": true
+    }
+  },
+  "ground": {
+    "dirt": "ground/dirt.png",
+    "grass": "ground/grass.png",
+    "moss": "ground/moss.png",
+    "plaza": "ground/plaza.png",
+    "quay": "ground/quay.png",
+    "street": "ground/street.png",
+    "wall": "ground/wall.png",
+    "water": "ground/water.png"
+  },
+  "creatures": {
+    "cat-2": {
+      "src": "creatures/cat-2.png",
+      "frame": [16, 16],
+      "pivot": [8, 15],
+      "anims": {
+        "idle": {
+          "down": [0],
+          "left": [4],
+          "right": [8],
+          "up": [12]
+        },
+        "stand": {
+          "down": [2],
+          "left": [6],
+          "right": [10],
+          "up": [14]
+        },
+        "walk": {
+          "down": [1, 2, 3, 2],
+          "left": [5, 6, 7, 6],
+          "right": [9, 10, 11, 10],
+          "up": [13, 14, 15, 14]
+        }
+      }
+    },
+    "cat": {
+      "src": "creatures/cat.png",
+      "frame": [16, 16],
+      "pivot": [8, 15],
+      "anims": {
+        "idle": {
+          "down": [0],
+          "left": [4],
+          "right": [8],
+          "up": [12]
+        },
+        "stand": {
+          "down": [2],
+          "left": [6],
+          "right": [10],
+          "up": [14]
+        },
+        "walk": {
+          "down": [1, 2, 3, 2],
+          "left": [5, 6, 7, 6],
+          "right": [9, 10, 11, 10],
+          "up": [13, 14, 15, 14]
+        }
+      }
+    },
+    "dog": {
+      "src": "creatures/dog.png",
+      "frame": [24, 24],
+      "pivot": [12, 23],
+      "anims": {
+        "idle": {
+          "down": [0],
+          "left": [4],
+          "right": [8],
+          "up": [12]
+        },
+        "stand": {
+          "down": [2],
+          "left": [6],
+          "right": [10],
+          "up": [14]
+        },
+        "walk": {
+          "down": [1, 2, 3, 2],
+          "left": [5, 6, 7, 6],
+          "right": [9, 10, 11, 10],
+          "up": [13, 14, 15, 14]
+        }
+      }
+    },
+    "pigeon-fly": {
+      "src": "creatures/pigeon-fly.png",
+      "frame": [16, 16],
+      "pivot": [8, 15],
+      "anims": {
+        "fly": {
+          "left": [0, 1, 2, 3],
+          "right": [4, 5, 6, 7]
+        }
+      }
+    },
+    "pigeon": {
+      "src": "creatures/pigeon.png",
+      "frame": [16, 16],
+      "pivot": [8, 15],
+      "anims": {
+        "idle": {
+          "down": [0],
+          "left": [4],
+          "right": [8],
+          "up": [12]
+        },
+        "peck": {
+          "down": [0, 1],
+          "left": [4, 5],
+          "right": [8, 9],
+          "up": [12, 13]
+        },
+        "hop": {
+          "down": [2, 3],
+          "left": [6, 7],
+          "right": [10, 11],
+          "up": [14, 15]
+        }
+      }
+    }
+  }
+}

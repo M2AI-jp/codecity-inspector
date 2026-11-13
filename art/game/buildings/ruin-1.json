@@ -1,0 +1,12 @@
+{
+  "archetype": "ruin",
+  "footprint": [6, 4],
+  "exterior": { "src": "ruin-1.exterior.png", "origin": [0, 40] },
+  "cutaway": { "src": "ruin-1.cutaway.png", "origin": [0, 40] },
+  "door": { "x": 1, "w": 2 },
+  "floor": [8, 26, 83, 25],
+  "blockers": [[30, 30, 25, 10], [58, 31, 11, 5], [83, 26, 9, 6], [65, 41, 12, 5], [8, 36, 9, 7]],
+  "lights": [],
+  "interiorLights": [],
+  "smoke": []
+}

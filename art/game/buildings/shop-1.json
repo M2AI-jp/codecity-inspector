@@ -1,0 +1,12 @@
+{
+  "archetype": "shop",
+  "footprint": [6, 4],
+  "exterior": { "src": "shop-1.exterior.png", "origin": [0, 40] },
+  "cutaway": { "src": "shop-1.cutaway.png", "origin": [0, 40] },
+  "door": { "x": 1, "w": 1 },
+  "floor": [8, 9, 81, 43],
+  "blockers": [[9, 14, 12, 9], [61, 9, 9, 6], [39, 23, 46, 9], [44, 39, 34, 7], [36, 48, 55, 4]],
+  "lights": [[64, 35, 30], [31, 32, 22], [65, -1, 22]],
+  "interiorLights": [[74, 17, 26], [58, 13, 20]],
+  "smoke": [[83, -38]]
+}

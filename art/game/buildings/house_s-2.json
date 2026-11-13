@@ -1,0 +1,32 @@
+{
+  "archetype": "house_s",
+  "footprint": [5, 4],
+  "exterior": {
+    "src": "house_s-2.exterior.png",
+    "origin": [0, 32]
+  },
+  "cutaway": {
+    "src": "house_s-2.cutaway.png",
+    "origin": [0, 32]
+  },
+  "door": {
+    "x": 1,
+    "w": 1
+  },
+  "floor": [8, 19, 39, 29],
+  "blockers": [
+    [21, 26, 23, 9]
+  ],
+  "lights": [
+    [32, 11, 20],
+    [44, 35, 24],
+    [72, 37, 20]
+  ],
+  "interiorLights": [
+    [15, 12, 32],
+    [27, 18, 24]
+  ],
+  "smoke": [
+    [14, -30]
+  ]
+}

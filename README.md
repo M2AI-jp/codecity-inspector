@@ -1,37 +1,29 @@
 # CodeCity
 
-CodeCity is under development as a local, read-only, top-down pixel-art game.
-It reads a repository without executing or modifying it.
-
-## Run
-
-With Node.js 22 or newer, point CodeCity at a repository you are authorized to
-inspect:
+リポジトリが、歩ける夜のドット絵の街になります。
 
 ```sh
-npx codecity /path/to/repository
+node codecity.mjs /path/to/repository
 ```
 
-CodeCity serves the current generated scene on `127.0.0.1` and opens it in your
-browser. Use `--no-open` to print the local URL without opening a browser.
+表示されたURLをブラウザで開きます。矢印キーかWASDで走り、Shiftを押している間はゆっくり歩きます。行きたい場所をクリックしても歩きます。建物の扉から入ると屋根が外れ、中の番人が話しかけてきます。酒場の主人のところでは Enter かクリックで「接続者ギルドの名簿」が開きます（←→ か Q・E でページをめくり、Esc で閉じる）。
 
-CodeCity reads repository files to build the town. It does not execute or modify
-the inspected repository, run its tests, hooks, binaries, or package manager,
-upload its source or analysis, or bind the game server to a non-loopback host.
+Node.js 22以上だけで動きます（npmパッケージは不要）。製品の正本は [PRODUCT.md](PRODUCT.md)、データの形は [CONTRACTS.md](CONTRACTS.md) です。
 
-The generated dialogue keeps observed, inferred, and unknown evidence distinct.
-Untested code is not reported as broken.
+リポジトリにデプロイの切り戻し、DB migration の戻し、バックアップ復元、または復旧手順書の実体があるときだけ、工房の近く（工房が無ければ外縁）に「修理小屋」が建ちます。修理小屋の職人は見つかった証拠を説明しますが、実際に戻せるかどうかは確認済みとは言いません。
 
-Contributor source checkouts use `studio/governance/PRODUCT.md` as the only
-product authority and remaining-work queue; that pre-shipping file is not part
-of the npm package.
+env・secrets・config の根拠があり、橋の絵が揃っている街では、広場の井戸から設定を読む地区のそばを水路が流れ、通りの交差点に橋がかかります。
 
-## Repository divisions
+道場の状態札は、作業フォルダに残るテスト実行の記録だけを読み、検査通過済み・壊れている・未確認を示します。
 
-- `art/references/user-provided/`: 22 immutable owner-provided originals; they
-  are not production code or package content.
-- `studio/governance/PRODUCT.md`: product authority only; it is not package
-  content.
-- `ship/`: customer-delivered modules, exact shipping art, and custody records.
-  Only the human owner may authorize new exact bytes under
-  `ship/50-art/assets/`.
+確かめるための道具:
+
+- `node tools/check-play.mjs <repo>` — すべての建物に扉から入れて、番人と話せるかを、ゲームと同じ当たり判定で調べる
+- `node codecity.mjs <repo> --json town.json` と `node tools/ascii-town.mjs town.json --check` — 街の配置を文字で見る・検査する
+- `node tools/lawn.mjs town.json` — 何も無い芝生の長方形の広さを測る（8マスを超えないように小物の組を置いている）
+- `node tools/density.mjs town.json` — 建物密度・同じ通りの間隔・建物裏の裸の芝生・広場辺の接触率・芝生最大長方形を測る
+- `node tools/check-state.mjs` — 一時リポジトリで道場の passed・failed・unverified 判定を確かめる
+- `node tools/build-manifest.mjs` — `art/game/` の画像と注釈から manifest.json を作り直す
+- `node tools/gallery.mjs gallery.html` — 素材のレビュー用ページを作る
+
+`art/approved/` はユーザーが承認した画像、`art/game/` は承認前の候補、`art/references/user-provided/` はユーザーの原画です。

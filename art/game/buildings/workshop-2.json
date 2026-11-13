@@ -1,0 +1,27 @@
+{
+  "archetype": "workshop",
+  "footprint": [7, 5],
+  "exterior": { "src": "workshop-2.exterior.png", "origin": [0, 48] },
+  "cutaway": { "src": "workshop-2.cutaway.png", "origin": [0, 48] },
+  "door": { "x": 4, "w": 2 },
+  "floor": [7, 38, 96, 29],
+  "blockers": [
+    [8, 38, 42, 5],
+    [50, 40, 8, 4],
+    [14, 48, 34, 18],
+    [62, 44, 28, 13],
+    [92, 38, 12, 5],
+    [98, 48, 5, 18],
+    [64, 67, 7, 13]
+  ],
+  "lights": [
+    [20, 50, 24],
+    [46, 50, 24],
+    [84, 50, 30]
+  ],
+  "interiorLights": [
+    [44, 13, 30],
+    [99, 54, 50]
+  ],
+  "smoke": [[96, -12]]
+}
