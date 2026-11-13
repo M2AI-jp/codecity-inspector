@@ -61,6 +61,22 @@ const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 const sizeOf = (m) => m.lines + 30 * m.files;
 const parentOf = (p) => (p.includes('/') ? p.slice(0, p.lastIndexOf('/')) : null);
 
+const RUIN_SEGMENT = /(?:^|[\/\\])(?:archive|archives|attic|deprecated|legacy|old|obsolete|retired|unused|backup|backups|bak|tmp|temp)(?:[\/\\]|$)/i;
+
+function aggregateKindAndReason(parts, recent) {
+  const explicitRuin = parts.some((part) => RUIN_SEGMENT.test(part.path || ''));
+  const onlyRuin = parts.length > 0 && parts.every((part) => part.kind === 'ruin');
+  let kind;
+  if (explicitRuin || (onlyRuin && recent <= 0)) kind = 'ruin';
+  else if (parts.some((part) => part.kind === 'workshop')) kind = 'workshop';
+  else if (parts.some((part) => part.kind === 'shop')) kind = 'shop';
+  else kind = 'house';
+  const reason = parts.find((part) => part.kind === kind && part.reason)?.reason
+    || [...parts].sort((a, b) => (b.recent || 0) - (a.recent || 0))[0]?.reason
+    || '';
+  return { kind, reason };
+}
+
 function absorb(dst, src) {
   dst.merged = [...(dst.merged || []), ...(src.orig ? [src.path] : []), ...(src.merged || [])];
   dst.files += src.files; dst.lines += src.lines; dst.bytes += src.bytes;
@@ -72,15 +88,35 @@ function absorb(dst, src) {
   for (const a of src.authors || []) au.set(a.name, Math.max(au.get(a.name) || 0, a.commits));
   dst.authors = [...au.entries()].sort((a, b) => b[1] - a[1] || cmp(a[0], b[0])).slice(0, 10).map(([name, commits]) => ({ name, commits }));
   if (src.lastCommit && (!dst.lastCommit || Date.parse(src.lastCommit.date) > Date.parse(dst.lastCommit.date))) dst.lastCommit = src.lastCommit;
+  dst.recent = (dst.recent || 0) + (src.recent || 0);
+  dst._parts = [...(dst._parts || []), ...(src._parts || [{
+    path: src.path,
+    kind: src.kind,
+    reason: src.reason,
+    recent: src.recent || 0,
+  }])];
+  const classification = aggregateKindAndReason(dst._parts, dst.recent);
+  dst.kind = classification.kind;
+  dst._aggregateReason = classification.reason;
   dst.topFiles = [...(dst.topFiles || []), ...(src.topFiles || [])].sort((a, b) => b.lines - a.lines || cmp(a.path, b.path)).slice(0, 8);
   // 作業中の変更（未コミットのファイル数）は足す
   const dirty = (dst.works?.dirty || 0) + (src.works?.dirty || 0);
   if (dirty > 0) dst.works = { ...(dst.works || {}), dirty };
 }
 
-function aggregate(modules, cap) {
+export function aggregate(modules, cap = CAP) {
   // orig: path が元の RepoModel のモジュールのパスそのものか
-  let list = modules.map((m) => ({ ...m, orig: true, baseReason: m.reason }));
+  let list = modules.map((m) => ({
+    ...m,
+    orig: true,
+    baseReason: m.reason,
+    _parts: [{
+      path: m.path,
+      kind: m.kind,
+      reason: m.reason,
+      recent: m.recent || 0,
+    }],
+  }));
   const bySize = (a, b) => sizeOf(a) - sizeOf(b) || cmp(a.path, b.path);
   while (list.length > cap) {
     const deep = list.filter((m) => m.path.includes('/')).sort(bySize);
@@ -109,13 +145,56 @@ function aggregate(modules, cap) {
       m.path = parent;
     }
   }
-  return list.map(({ orig, baseReason, ...rest }) => {
+  return list.map(({ orig, baseReason, _parts, _aggregateReason, ...rest }) => {
+    const reason = _aggregateReason || baseReason || rest.reason;
     if (rest.merged?.length) {
       const n = rest.merged.length;
-      rest.reason = `${baseReason}。小さなモジュール ${n} 件をまとめた（${rest.merged.slice(0, 3).join('、')}${n > 3 ? ' ほか' : ''}）`;
+      rest.reason = `${reason}。小さなモジュール ${n} 件をまとめた（${rest.merged.slice(0, 3).join('、')}${n > 3 ? ' ほか' : ''}）`;
+    } else if (_aggregateReason) {
+      rest.reason = reason;
     }
     return rest;
   }).sort((a, b) => (a.path === '.' ? -1 : b.path === '.' ? 1 : cmp(a.path, b.path)));
+}
+
+// past を経由する候補を全ての辺で試してから、必要なときだけ past: [] の候補を試す。
+// 探索本体を引数にすることで、辺の試行順とフォールバック順を同じ規則で保つ。
+export function chooseCanalRoute(edgeDefs, startsFor, {
+  past = [],
+  targetGoals = new Set(),
+  harbourStates = new Set(),
+  outsideStates = new Set(),
+  astarVia,
+  astar,
+} = {}) {
+  const findRoute = (viaPast) => {
+    for (const edge of edgeDefs) {
+      const starts = startsFor(edge);
+      if (!starts.length) continue;
+      if (viaPast) {
+        if (!past.length || !targetGoals.size) continue;
+        if (harbourStates.size) {
+          const path = astarVia(starts, targetGoals, harbourStates);
+          if (path) return { path, past: past.slice(), to: 'harbour', edge: edge.name };
+        }
+        if (outsideStates.size) {
+          const path = astarVia(starts, targetGoals, outsideStates);
+          if (path) return { path, past: past.slice(), to: 'outside', edge: edge.name };
+        }
+      } else {
+        if (harbourStates.size) {
+          const path = astar(starts, harbourStates);
+          if (path) return { path, past: [], to: 'harbour', edge: edge.name };
+        }
+        if (outsideStates.size) {
+          const path = astar(starts, outsideStates);
+          if (path) return { path, past: [], to: 'outside', edge: edge.name };
+        }
+      }
+    }
+    return null;
+  };
+  return (past.length && targetGoals.size ? findRoute(true) : null) || findRoute(false);
 }
 
 // ---------- 建物の大きさ ----------
@@ -1392,7 +1471,7 @@ function buildCanal(P, F, repo, propArt) {
       if (dist[s] > 0) { dist[s] = 0; heapPush(heap, [heuristic(s), 0, s]); }
     }
     let expanded = 0;
-    while (heap.length && expanded++ < N * 3) {
+    while (heap.length && expanded++ < N * 4) {
       const [, dg, s] = heapPop(heap);
       if (dg !== dist[s]) continue;
       if (goals.has(s)) {
@@ -1455,12 +1534,9 @@ function buildCanal(P, F, repo, propArt) {
     // 「地区のそば」は建物の壁際だけに限定しない。建物の周囲10マス
     // までを候補にして、通りの角を避けながら到達できる余地を残す。
     for (let y = p.y - 10; y <= p.yb + 10; y++) {
-      addGoal(p.x - 9, y, 1);
-      addGoal(p.x + p.w + 9, y, 1);
-    }
-    for (let x = p.x - 10; x <= p.x + p.w + 9; x++) {
-      addGoal(x, p.y - 9, 0);
-      addGoal(x, p.yb + 10, 0);
+      for (let x = p.x - 10; x <= p.x + p.w + 9; x++) {
+        for (let d = 0; d < 4; d++) addGoal(x, y, d);
+      }
     }
   }
 
@@ -1478,7 +1554,7 @@ function buildCanal(P, F, repo, propArt) {
     const starts = [];
     if (edge.name === 'south') {
       const xs = [];
-      for (let x = plaza.x0; x <= plaza.x1; x++) xs.push(x);
+      for (let x = plaza.x0 - 16; x <= plaza.x1 + 16; x++) xs.push(x);
       xs.sort((a, b) => Math.abs(a - wellAnchor.x) - Math.abs(b - wellAnchor.x) || a - b);
       for (const x of xs) {
         // 広場の擁壁そのものを水にせず、その下の大通り側から口を出す。
@@ -1487,10 +1563,13 @@ function buildCanal(P, F, repo, propArt) {
       }
     } else {
       const ys = [];
-      for (let y = plaza.y0; y <= plaza.y1; y++) ys.push(y);
+      for (let y = plaza.y0 - 16; y <= plaza.y1 + 16; y++) ys.push(y);
       ys.sort((a, b) => Math.abs(a - wellAnchor.y) - Math.abs(b - wellAnchor.y) || a - b);
-      const x = edge.name === 'east' ? plaza.x1 + 1 : plaza.x0 - 1;
-      for (const y of ys) if (inC(x, y) && laneAllowed(x, y, edge.d, false)) starts.push(state(x, y, edge.d));
+      const edgeX = edge.name === 'east' ? plaza.x1 + 1 : plaza.x0 - 1;
+      for (let offset = 0; offset <= 16; offset++) {
+        const x = edge.name === 'east' ? edgeX + offset : edgeX - offset;
+        for (const y of ys) if (inC(x, y) && laneAllowed(x, y, edge.d, false)) starts.push(state(x, y, edge.d));
+      }
     }
     return starts;
   };
@@ -1546,7 +1625,7 @@ function buildCanal(P, F, repo, propArt) {
       if (dist[key] > 0) { dist[key] = 0; heapPush(heap, [heuristic(s), 0, key]); }
     }
     let expanded = 0;
-    while (heap.length && expanded++ < N * 6) {
+    while (heap.length && expanded++ < N * 8) {
       const [, dg, key] = heapPop(heap);
       if (dg !== dist[key]) continue;
       const s = stateOf(key), hit = (key & 1) === 1;
@@ -1579,37 +1658,12 @@ function buildCanal(P, F, repo, propArt) {
     return null;
   };
 
-  let allStates = null, routePast = [], routeTo = null;
-  for (const edge of edgeDefs) {
-    const starts = startsFor(edge);
-    if (!starts.length) continue;
-    // (a) 港の水、(b) 街の外の順で、まず設定地区のそばを通る道を探す。
-    let found = null;
-    if (harbourStates.size && past.length && targetGoals.size) {
-      const path = astarVia(starts, targetGoals, harbourStates);
-      if (path) found = { path, past: past.slice(), to: 'harbour' };
-    }
-    if (!found && outsideStates.size && past.length && targetGoals.size) {
-      const path = astarVia(starts, targetGoals, outsideStates);
-      if (path) found = { path, past: past.slice(), to: 'outside' };
-    }
-    // 地区を決められない街では、(a) 港、(b) 外の順で直接流す。
-    if (!found && !past.length && harbourStates.size) {
-      const path = astar(starts, harbourStates);
-      if (path) found = { path, past: [], to: 'harbour' };
-    }
-    // past のそばを通る道が無いときだけ、past を空にして街の外へ流す。
-    if (!found && outsideStates.size) {
-      const path = astar(starts, outsideStates);
-      if (path) found = { path, past: [], to: 'outside' };
-    }
-    if (found) {
-      allStates = found.path;
-      routePast = found.past;
-      routeTo = found.to;
-      break;
-    }
-  }
+  const found = chooseCanalRoute(edgeDefs, startsFor, {
+    past, targetGoals, harbourStates, outsideStates, astarVia, astar,
+  });
+  const allStates = found?.path || null;
+  const routePast = found?.past || [];
+  const routeTo = found?.to || null;
   if (!allStates) {
     return cannotPlace('広場の南・東・西の縁から、港または街の外へ、通りとの直交・曲がり角2マスの規則を守る水路を置けない');
   }
@@ -1656,12 +1710,17 @@ function buildCanal(P, F, repo, propArt) {
   const roadWater = new Set(canalCells.filter(([x, y]) => paved(id(x, y))).map(([x, y]) => id(x, y)));
   const waterRoadDir = new Map(canalCells.map(([x, y]) => [id(x, y), roadDirAt(x, y)]));
   const crossed = new Set();
+  const deckCells = new Set();
   const addDeckTiles = (type, px, py) => {
     const d = propArt[type].deck;
     const ax = px * 16, ay = py * 16;
     const x0 = Math.floor((ax + d[0]) / 16), y0 = Math.floor((ay + d[1]) / 16);
     const x1 = Math.floor((ax + d[0] + d[2] - 0.001) / 16), y1 = Math.floor((ay + d[1] + d[3] - 0.001) / 16);
-    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (inC(x, y)) bridgeCells.add(id(x, y));
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (inC(x, y)) {
+      const k = id(x, y);
+      deckCells.add(k);
+      bridgeCells.add(k);
+    }
     // 橋の板の両端に接する道路マスも予約する。ここへ街灯や樽を置くと、
     // 橋の上へ歩き出す最初の一歩を小物が塞いでしまう。
     if (type === 'bridge-h') {
@@ -1704,6 +1763,9 @@ function buildCanal(P, F, repo, propArt) {
     }
   }
   for (const k of cells) g[k] = WATER;
+  // 橋の絵は通り1行より背が高い版もある。水でない deck の下だけを
+  // 舗装にして、絵の端が草地・街の外へ浮かないようにする。
+  for (const k of deckCells) if (!cells.has(k) && original[k] === GRASS) g[k] = STREET;
   return {
     cells: canalCells,
     from: 'well',
@@ -2678,6 +2740,32 @@ export function layoutTown(repo, opts = {}) {
   P.terraces = P.terraces.filter((t) => !t.drop);
   const dock = P.placed.find((p) => p.spec.archetype === 'dock');
   const canal = buildCanal(P, F, repo, propArt);
+  // 南階段の足元と前2行は、水路・橋・水口を置かない。運河を優先して
+  // 置いたあと、広場内で空いている別の階段位置へ寄せる。
+  const plazaTerrace = P.terraces.find((t) => t.plaza);
+  if (plazaTerrace?.stair && canal?.cells?.length) {
+    const stairY = plazaTerrace.y + plazaTerrace.h;
+    const blocked = new Set(canal.cells.map(([x, y]) => P.id(x, y)));
+    for (const [x, y] of canal.bridgeCells || []) blocked.add(P.id(x, y));
+    for (const p of [...(canal.mouthProps || []), ...(canal.bridgeProps || [])]) {
+      for (let y = p.y; y <= p.y + 1; y++) for (let x = p.x - 1; x <= p.x + 1; x++) {
+        if (P.inG(x, y)) blocked.add(P.id(x, y));
+      }
+    }
+    const sx0 = plazaTerrace.x, sx1 = plazaTerrace.x + plazaTerrace.w - plazaTerrace.stair.w;
+    const preferred = plazaTerrace.x + Math.floor((plazaTerrace.w - plazaTerrace.stair.w) / 2);
+    const choices = [];
+    for (let x = sx0; x <= sx1; x++) choices.push(x);
+    choices.sort((a, b) => Math.abs(a - preferred) - Math.abs(b - preferred) || a - b);
+    const clear = (x) => {
+      for (let y = stairY - 2; y <= stairY + 2; y++) {
+        for (let dx = 0; dx < plazaTerrace.stair.w; dx++) if (blocked.has(P.id(x + dx, y))) return false;
+      }
+      return true;
+    };
+    const safe = choices.find(clear);
+    if (safe !== undefined) plazaTerrace.stair.x = safe;
+  }
   const placedProps = placeProps(P, F, makeRng(seed ^ 0x9e3779b9), spawn, {
     propArt, landmarks, dock, bridgeProps: canal?.bridgeProps || [], mouthProps: canal?.mouthProps || [], bridgeCells: canal?.bridgeCells || [],
   });
