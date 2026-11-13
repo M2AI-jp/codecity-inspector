@@ -611,7 +611,8 @@ function generate(C, scale) {
     if (c.length) c[Math.min(c.length - 1, ri(0, 2))].green = true;
   }
 
-  // ---- 段（terrace）: 役場は広場の北の段の上に立ち、段の前の壁（face）は広場に向く。階段は扉の前（あとで版の扉に合わせる）。
+  // ---- 段（terrace）: 広場全体を大通りより一段高くし、役場はその上の段に重ねる。
+  // 広場の南の壁は大通りに向き、階段はあとで版・井戸小屋の位置を見て決める。
   // ほかに、下に通りのある小さな緑地をひとつ段にする（壁は緑地の下の端、階段は真ん中）
   const terraces = [];
   // 役場の扉の前は段の上の前庭が2行（基準の絵の踊り場。建物が段の上に立っているのが分かる）。前の壁はその下の行
@@ -623,6 +624,8 @@ function generate(C, scale) {
     const L = cand[0];
     if (L) terraces.push({ x: L.x0, y: L.y0, w: L.x1 - L.x0 + 1, h: L.y1 - L.y0, green: L, stair: { x: L.x0 + Math.floor((L.x1 - L.x0 - 1) / 2), w: 2 } });
   }
+  // 広場の面全体。南の壁（y + h）は大通りの先頭行に重なり、階段だけが上下をつなぐ。
+  terraces.push({ x: plaza.x0, y: plaza.y0, w: plaza.x1 - plaza.x0 + 1, h: plaza.y1 - plaza.y0 + 1, plaza: true });
 
   // ---- 建物を置く面（街区の下の端）
   const foot = new Int32Array(N).fill(-1), roofZ = new Uint8Array(N), front = new Uint8Array(N);
@@ -1478,7 +1481,8 @@ function buildCanal(P, F, repo, propArt) {
       for (let x = plaza.x0; x <= plaza.x1; x++) xs.push(x);
       xs.sort((a, b) => Math.abs(a - wellAnchor.x) - Math.abs(b - wellAnchor.x) || a - b);
       for (const x of xs) {
-        const y = plaza.y1 + 1;
+        // 広場の擁壁そのものを水にせず、その下の大通り側から口を出す。
+        const y = plaza.y1 + 2;
         if (inC(x, y) && laneAllowed(x, y, edge.d, false)) starts.push(state(x, y, edge.d));
       }
     } else {
@@ -1744,11 +1748,13 @@ function placeProps(P, F, rng, spawn, extra) {
     mark(noTree, p.x - 2, p.y - 1, p.x + p.w + 1, p.yb + 5);
   }
 
-  // 段の前の壁（face）は歩けない（階段の所だけ）。階段とその上下の1マスはあける
+  // 段の前の壁（face）は歩けない（階段の所だけ）。階段の上下は小物を置かない。
+  // 広場の南階段は、前（大通り側）・後ろ（広場側）を2行ずつあける。
   for (const t of P.terraces) {
     const fy = t.y + t.h;
+    const clear = t.plaza ? 2 : 1;
     for (let x = t.x; x < t.x + t.w; x++) {
-      if (x >= t.stair.x && x < t.stair.x + t.stair.w) mark(reserved, x, fy - 1, x, fy + 1);
+      if (x >= t.stair.x && x < t.stair.x + t.stair.w) mark(reserved, x, fy - clear, x, fy + clear);
       else if (inC(x, fy)) blocked[id(x, fy)] = 1;
     }
   }
@@ -2064,7 +2070,7 @@ function placeProps(P, F, rng, spawn, extra) {
   }
 
   // 広場は舞台: まん中の飾り（井戸小屋か花壇、無ければ花の島）に向いたベンチ、縁に樽と鉢、南の縁に低い柵、縁の街灯。
-  // 役場の段の階段から大通りまでと、飾りのまわり1マスは歩けるようにあけておく
+  // 役場の段・広場の南階段の上下と、飾りのまわり1マスは歩けるようにあけておく
   const { x0: px0, x1: px1, y0: py0, y1: py1 } = plaza, pc = P.cx;
   const ht = P.terraces.find((t) => t.hall);
   const sq0 = ht ? ht.y + ht.h + 1 : py0;                               // 段の壁の下から広場
@@ -2178,7 +2184,8 @@ function placeProps(P, F, rng, spawn, extra) {
     let n = 0;
     for (let y = sq0 + 2; y <= py1 - 2; y += 2) if (rng() < 0.75) tryProp(list[n++ % list.length], x, y);
   }
-  // 南の縁の両わき: 低い石垣（2マス）があればそれ、無ければ低い柵
+  // 南の縁の両わき: 低い石垣（2マス）があればそれ、無ければ低い柵。
+  // 広場の階段の上下2行は reserved 済みなので、段の壁・階段には重ならない。
   if (has('lowwall')) { for (const x of [px0 + 1, px1 - 2]) if (!tryProp('lowwall', x, py1)) { tryProp('fence', x, py1); tryProp('fence', x + 1, py1); } }
   else for (const x of [px0 + 1, px0 + 2, px1 - 2, px1 - 1]) tryProp('fence', x, py1);
   // 縁の街灯は2本だけ（基準 target-town.png の広場も、西と東の縁に1本ずつ）: 段の下の舞台の上の方、西と東の縁。
@@ -2641,6 +2648,13 @@ export function layoutTown(repo, opts = {}) {
     t.stair = dw >= 3 ? { x: hp.doorCol, w: dw } : dw === 2 ? { x: towardRight ? hp.doorCol : hp.doorCol - 1, w: 3 } : { x: hp.doorCol - 1, w: 3 };
     if (t.stair.x < t.x) t.stair.x = t.x;
     if (t.stair.x + t.stair.w > t.x + t.w) t.stair.x = t.x + t.w - t.stair.w;
+  }
+  // 広場の南階段: 広場幅に応じた4〜6マス。中央の井戸小屋を置けるよう、中央より1マス西へ寄せる。
+  const plazaT = P.terraces.find((t) => t.plaza);
+  if (plazaT) {
+    const w = clamp(Math.round(plazaT.w / 2), 4, 6);
+    const centered = plazaT.x + Math.floor((plazaT.w - w) / 2);
+    plazaT.stair = { x: clamp(centered - 1, plazaT.x, plazaT.x + plazaT.w - w), w };
   }
   P.terraces = P.terraces.filter((t) => !t.drop);
   const dock = P.placed.find((p) => p.spec.archetype === 'dock');
