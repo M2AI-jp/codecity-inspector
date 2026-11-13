@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { hasPgDumpAndRestore, pickWithinBudget } from '../src/facilities.mjs';
+import { hasPgDumpAndRestore, hasFlyDeployImageBack, pickWithinBudget } from '../src/facilities.mjs';
 import { analyzeRepository } from '../src/analyze.mjs';
 
 // 前の判定（先読み2つ）。短い入力でだけ比べる。
@@ -78,4 +78,42 @@ test('街の解析: バックアップの対は同じに見つかり、長い自
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+// 前の flyctl の判定。flyctl? のせいで fly deploy を見落としていた。
+const OLD_FLY = /\bflyctl?\s+deploy\b[^\n]*(?:--image\b[^\n]*(?:rollback|revert|previous|old|restore|戻|切り戻)|(?:rollback|revert|previous|old|restore|戻|切り戻)[^\n]*--image\b)/i;
+
+test('fly deploy / flyctl deploy の --image での戻しを見つける（両方の綴り）', () => {
+  const yes = [
+    'flyctl deploy --image registry.fly.io/app:previous',
+    'fly deploy --image registry.fly.io/app:old',
+    'FLY DEPLOY --IMAGE app:ROLLBACK',
+    'flyctl deploy --strategy immediate --image "$PREVIOUS_IMAGE"',
+    'flyctl deploy --app x  # 戻す: --image を指定',
+    'run: flyctl deploy --app web --image ${{ inputs.restore_image }}',
+  ];
+  const no = [
+    'flyct deploy --image app:old',          // 前の正規表現はこれに当たっていた
+    'flyctl deploy --image app:v2',
+    'flyctl deploy --remote-only',
+    'flyctl deploy\n--image app:old',        // 別の行
+    'rollback --image x flyctl deploy',      // fly deploy より前
+    'flyctl deployment --image app:old',
+    '',
+  ];
+  for (const s of yes) assert.equal(hasFlyDeployImageBack(s), true, s);
+  for (const s of no) assert.equal(hasFlyDeployImageBack(s), false, s);
+  // flyctl の綴りでは前の判定と同じ
+  for (const s of [...yes, ...no].filter((x) => !/\bfly\s+deploy/i.test(x) && !/flyct\s/i.test(x))) assert.equal(hasFlyDeployImageBack(s), OLD_FLY.test(s), s);
+});
+
+test('flyctl: 長い1行でもすぐ終わる', () => {
+  const t = performance.now();
+  const line = 'flyctl deploy --image x '.repeat((256 << 10) / 24 | 0);
+  assert.equal(hasFlyDeployImageBack(line), false);
+  assert.equal(hasFlyDeployImageBack(line + ' old'), true);
+  assert.equal(hasFlyDeployImageBack('fly deploy '.repeat(20000)), false);
+  assert.equal(hasFlyDeployImageBack('a'.repeat(256 << 10)), false);
+  const ms = performance.now() - t;
+  assert.ok(ms < 1000, `遅すぎる: ${ms.toFixed(0)}ms`);
 });
