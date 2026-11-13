@@ -19,6 +19,7 @@ const EVIDENCE_CAP = 20;
 const SCAN_FILES = 2500;            // ソースを読むファイル数の上限
 const SCAN_BYTES = 16 << 20;        // ソースを読む合計バイト数の上限
 const SCAN_FILE_MAX = 256 << 10;    // これより大きいソースは読まない
+const RECOVERY_SCAN_BYTES = 16 << 20;   // 修理小屋のために読む shell・workflow・手順書の合計バイト数の上限
 const NONGIT_HEAD = 96 << 10;       // git でないとき、1ファイルの先頭だけ読む
 const TEST_RECORD_MAX = 1 << 20;    // テスト結果の記録も大きすぎるものは読まない
 
@@ -50,8 +51,24 @@ const RECOVERY_COMMANDS = [
   { kind: 'database', re: /\bprisma\s+migrate\s+resolve\s+--rolled-back\b/i, detail: 'prisma migrate resolve --rolled-back' },
   { kind: 'database', re: /\bknex\s+migrate:rollback\b/i, detail: 'knex migrate:rollback' },
   { kind: 'database', re: /\brails\s+db:rollback\b/i, detail: 'rails db:rollback' },
-  { kind: 'backup', re: /(?=[\s\S]*\bpg_dump\b)(?=[\s\S]*\bpg_restore\b)/i, detail: 'pg_dump と pg_restore' },
+  { kind: 'backup', re: { test: (s) => hasPgDumpAndRestore(s) }, detail: 'pg_dump と pg_restore' },
 ];
+// pg_dump と pg_restore がどちらもどこかにあるか。先読み2つの正規表現は長さの2乗で遅くなるので、1語ずつ別に探す（線形）。
+const PG_DUMP = /\bpg_dump\b/i;
+const PG_RESTORE = /\bpg_restore\b/i;
+export const hasPgDumpAndRestore = (s) => PG_DUMP.test(s) && PG_RESTORE.test(s);
+// 修理小屋のために読むファイルを、件数とバイト数の上限の中で順に選ぶ（入らない大きなファイルは飛ばす）。
+export const pickWithinBudget = (paths, bytesOf, maxFiles, maxBytes) => {
+  const out = [];
+  let budget = maxBytes;
+  for (const p of paths) {
+    if (out.length >= maxFiles) break;
+    const b = bytesOf(p);
+    if (b > budget) continue;
+    out.push(p); budget -= b;
+  }
+  return out;
+};
 const extOfPath = (path) => {
   const b = basename(path).toLowerCase();
   const i = b.lastIndexOf('.');
@@ -547,11 +564,12 @@ export function detectFacilities(files, history, groups, extra) {
     return automationPath(f.path) || migrationPath(f.path) ||
       (DOC_EXT.has(f.ext) && (recoveryNamed || runbookNamed));
   }).map((f) => f.path);
-  const recoveryTexts = read([...new Set([
+  const bytesByPath = new Map(files.map((f) => [f.path, f.bytes || 0]));
+  const recoveryTexts = read(pickWithinBudget([...new Set([
     ...recoveryPaths,
     ...workflows,
     ...chosen.filter((p) => RECOVERY_NAME.test(p) && recoveryNameEligible(p)),
-  ])].slice(0, SCAN_FILES));
+  ])], (p) => bytesByPath.get(p) || 0, SCAN_FILES, RECOVERY_SCAN_BYTES));
 
   const servers = [], hostsSeen = new Map(), webhooks = [], sqliteSrc = [];
   const envInCode = new Map(), loaderSrc = new Set(), routeList = [];   // 環境変数の名前 -> そのファイル、読み込む仕組み、受付の道
@@ -671,7 +689,7 @@ export function detectFacilities(files, history, groups, extra) {
         for (const command of RECOVERY_COMMANDS) {
           if (command.re.test(text)) addRecovery(command.kind, path, `「${command.detail}」`);
         }
-        if (/(?=[\s\S]*\bpg_dump\b)(?=[\s\S]*\bpg_restore\b)/i.test(text)) {
+        if (hasPgDumpAndRestore(text)) {
           addRecovery('backup', path, '「pg_dump」と「pg_restore」の両方がある');
         }
       }
