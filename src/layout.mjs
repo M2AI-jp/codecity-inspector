@@ -2244,6 +2244,25 @@ function placeProps(P, F, rng, spawn, extra) {
     }
   }
 
+  // 道場の検査状態: 扉の前をふさがない脇に、状態を図形で示す札を1つだけ立てる。
+  const statusProp = { passed: 'sign-passed', failed: 'sign-failed', unverified: 'sign-unverified' };
+  for (const p of placed) {
+    if (p.spec.facility?.archetype !== 'dojo') continue;
+    const type = statusProp[p.spec.facility.facts?.state];
+    if (!type || !has(type)) continue;
+    const dc = p.doorCol ?? p.x + p.spec.doorDx;
+    const left = hash32(`dojo-sign:${p.spec.id}`) % 2 === 0;
+    const sides = left ? [-1, 1] : [1, -1];
+    const candidates = [];
+    for (const side of sides) {
+      const x = side < 0 ? p.x - 1 : p.x + p.w;
+      candidates.push([x, p.yb + 1], [x, p.yb], [x, p.yb - 1]);
+    }
+    // 版の扉の左右2マスの外側も試す。扉の列とその前の通りは reserved のままにする。
+    candidates.push([dc - 3, p.yb + 1], [dc + 4, p.yb + 1], [dc - 3, p.yb], [dc + 4, p.yb]);
+    for (const [x, y] of candidates) if (tryProp(type, x, y)) break;
+  }
+
   // 建物の足もと: 横の壁ぎわ（下の1〜2段）に、その建物らしい小物のかたまり（扉の前の2行はあける）
   const FEET = {
     workshop: ['crate', 'barrel', 'sacks', 'crate', 'barrel'],

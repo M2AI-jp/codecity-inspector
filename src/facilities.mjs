@@ -11,7 +11,7 @@
 //   repair    修理小屋 : rollback・recovery（切り戻し・復旧の手順やコマンド）
 // 中身を読むのは依存の一覧と、上限つきのソースの走査だけ（git なら HEAD の内容を cat-file --batch でまとめて読む）。
 import { execFileSync } from 'node:child_process';
-import { openSync, readSync, closeSync } from 'node:fs';
+import { openSync, readSync, closeSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { basename, join } from 'node:path';
 
 const DAY = 86400000;
@@ -20,6 +20,7 @@ const SCAN_FILES = 2500;            // ソースを読むファイル数の上�
 const SCAN_BYTES = 16 << 20;        // ソースを読む合計バイト数の上限
 const SCAN_FILE_MAX = 256 << 10;    // これより大きいソースは読まない
 const NONGIT_HEAD = 96 << 10;       // git でないとき、1ファイルの先頭だけ読む
+const TEST_RECORD_MAX = 1 << 20;    // テスト結果の記録も大きすぎるものは読まない
 
 const CODE_EXT = new Set('js mjs cjs ts mts cts jsx tsx py rb go rs php java kt swift ex exs cs'.split(' '));
 const SCRIPT_EXT = new Set('sh bash zsh fish ps1 bat cmd make'.split(' '));
@@ -294,6 +295,156 @@ function makeReader(root, isGit, bare) {
     }
     return out;
   };
+}
+
+// ---------- テスト実行の記録（道場がある街だけ） ----------
+// codecity はテストを走らせない。作業フォルダに残った、決まった場所の小さな記録だけを読む。
+const failedState = new Set(['fail', 'failed', 'error', 'errors', 'broken']);
+const failureCount = (value) => {
+  if (Number.isFinite(value)) return Math.max(0, Math.floor(value));
+  if (Array.isArray(value)) return value.length;
+  if (value && typeof value === 'object') return Object.keys(value).length;
+  return 0;
+};
+const resultState = (value) => String(value ?? '').toLowerCase();
+
+function recordFile(root, file) {
+  try {
+    const s = statSync(join(root, file));
+    if (!s.isFile() || s.size > TEST_RECORD_MAX) return null;
+    return { file, abs: join(root, file), mtimeMs: s.mtimeMs, mtime: new Date(s.mtimeMs).toISOString() };
+  } catch { return null; }
+}
+
+function jsonAt(meta) {
+  try { return JSON.parse(readFileSync(meta.abs, 'utf8')); } catch { return null; }
+}
+
+function publicRecord(meta, tool, failures) {
+  return { tool, file: meta.file, mtime: meta.mtime, passed: failures === 0, failures, _mtimeMs: meta.mtimeMs };
+}
+
+function vitestFailureCount(data) {
+  const files = Array.isArray(data?.results) ? data.results
+    : Array.isArray(data?.testResults) ? data.testResults
+      : Array.isArray(data?.files) ? data.files
+        : data?.results && typeof data.results === 'object' ? Object.values(data.results) : null;
+  let failures = 0;
+  if (files) {
+    for (const f of files) {
+      const state = resultState(f?.state ?? f?.status ?? f?.result?.state ?? f?.result?.status);
+      const assertions = Array.isArray(f?.assertionResults) ? f.assertionResults
+        : Array.isArray(f?.tests) ? f.tests : [];
+      const assertionFailed = assertions.some((t) => failedState.has(resultState(t?.status ?? t?.state ?? t?.result)));
+      if (failedState.has(state) || assertionFailed) failures++;
+    }
+    if (!failures && Number.isFinite(data?.numFailedTestSuites)) failures = Math.max(0, Math.floor(data.numFailedTestSuites));
+    if (!failures && Number.isFinite(data?.failedFiles)) failures = Math.max(0, Math.floor(data.failedFiles));
+    if (!failures && data?.success === false) failures = 1;
+    return failures;
+  }
+  if (Number.isFinite(data?.numFailedTestSuites)) return Math.max(0, Math.floor(data.numFailedTestSuites));
+  if (Number.isFinite(data?.numFailedFiles)) return Math.max(0, Math.floor(data.numFailedFiles));
+  if (Number.isFinite(data?.numFailedTests)) return Math.max(0, Math.floor(data.numFailedTests));
+  if (data && typeof data.success === 'boolean') return data.success ? 0 : 1;
+  return null;
+}
+
+function junitFailureCount(text) {
+  const suites = [...text.matchAll(/<testsuite\b[^>]*>/gi)];
+  if (suites.length) {
+    let counted = false;
+    const total = suites.reduce((n, m) => {
+      const failures = /\bfailures\s*=\s*["'](\d+)["']/i.exec(m[0]);
+      const errors = /\berrors\s*=\s*["'](\d+)["']/i.exec(m[0]);
+      if (failures || errors) counted = true;
+      return n + (failures ? Number(failures[1]) : 0) + (errors ? Number(errors[1]) : 0);
+    }, 0);
+    if (counted) return total;
+  }
+  if (/<testsuites?\b/i.test(text)) {
+    const root = /<testsuites\b[^>]*>/i.exec(text)?.[0] || '';
+    const failures = /\bfailures\s*=\s*["'](\d+)["']/i.exec(root);
+    const errors = /\berrors\s*=\s*["'](\d+)["']/i.exec(root);
+    if (failures || errors) return (failures ? Number(failures[1]) : 0) + (errors ? Number(errors[1]) : 0);
+    return (text.match(/<failure\b/gi) || []).length + (text.match(/<error\b/gi) || []).length;
+  }
+  return null;
+}
+
+function junitFiles(root) {
+  const found = [];
+  const add = (dir, re) => {
+    const abs = join(root, dir);
+    try {
+      for (const e of readdirSync(abs, { withFileTypes: true })) {
+        if (!e.isFile() || !re.test(e.name)) continue;
+        found.push(dir === '.' ? e.name : `${dir}/${e.name}`);
+      }
+    } catch { /* 記録の置き場が無い街もある */ }
+  };
+  add('test-results', /\.xml$/i);
+  add('reports', /^junit.*\.xml$/i);
+  add('.', /^junit.*\.xml$/i);
+  add('test-reports', /\.xml$/i);
+  return [...new Set(found)].sort();
+}
+
+function readTestRecords(root) {
+  const records = [];
+  const add = (tool, file, parser) => {
+    const meta = recordFile(root, file);
+    if (!meta) return;
+    let failures;
+    try { failures = parser(meta); } catch { failures = null; }
+    if (!Number.isFinite(failures)) return;
+    records.push(publicRecord(meta, tool, Math.max(0, Math.floor(failures))));
+  };
+  add('Playwright', 'test-results/.last-run.json', (meta) => {
+    const data = jsonAt(meta);
+    if (!data || !['passed', 'failed'].includes(data.status)) return null;
+    const listed = failureCount(data.failedTests);
+    return data.status === 'failed' ? Math.max(1, listed) : listed;
+  });
+  add('pytest', '.pytest_cache/v/cache/lastfailed', (meta) => {
+    const data = jsonAt(meta);
+    return data && typeof data === 'object' && !Array.isArray(data) ? Object.keys(data).length : null;
+  });
+  for (const file of ['node_modules/.vitest/results.json', 'node_modules/.vite/vitest/results.json']) {
+    add('Vitest', file, (meta) => vitestFailureCount(jsonAt(meta)));
+  }
+  for (const file of junitFiles(root)) {
+    add('JUnit XML', file, (meta) => {
+      try { return junitFailureCount(readFileSync(meta.abs, 'utf8')); } catch { return null; }
+    });
+  }
+  return records.sort((a, b) => b._mtimeMs - a._mtimeMs || (a.file < b.file ? -1 : a.file > b.file ? 1 : 0));
+}
+
+function dirtyMtime(root, extra, recordPaths) {
+  const paths = Array.isArray(extra.dirtyPaths) ? extra.dirtyPaths : [];
+  if (!paths.length) return { latest: 0, unknown: (extra.dirty || 0) > 0 };
+  const changed = paths.filter((p) => !recordPaths.has(p));
+  if (!changed.length) return { latest: 0, unknown: false };
+  let latest = 0, unknown = false;
+  for (const p of changed) {
+    try {
+      const s = statSync(join(root, p));
+      if (s.isFile()) latest = Math.max(latest, s.mtimeMs);
+      else unknown = true;
+    } catch { unknown = true; } // 削除された変更は、記録より新しいか確かめられない
+  }
+  return { latest, unknown };
+}
+
+function dojoState(root, refTime, extra) {
+  const records = readTestRecords(root);
+  const latest = records[0] || null;
+  const dirty = dirtyMtime(root, extra, new Set(records.map((r) => r.file)));
+  const fresh = !!latest && refTime > 0 && latest._mtimeMs > refTime && !dirty.unknown && latest._mtimeMs > dirty.latest;
+  const state = fresh ? (latest.failures === 0 ? 'passed' : 'failed') : 'unverified';
+  const clean = (r) => r ? { tool: r.tool, file: r.file, mtime: r.mtime, passed: r.passed, failures: r.failures } : null;
+  return { state, records: records.map(clean), latestRecord: clean(latest) };
 }
 
 // 依存の名前を取り出す（manifest の種類ごと）
@@ -751,8 +902,10 @@ export function detectFacilities(files, history, groups, extra) {
       const st = stats(all);
       let latest = null;
       for (const c of history) if (c.files.some((f) => testPath(f))) { latest = { subject: c.subject, date: c.date, author: keyer.display(c.key) }; break; }
+      const run = dojoState(root, refTime, extra);
       add('dojo', '道場', `テストのファイルが ${testFiles.length} 件${runners.length ? `（${runners.slice(0, 2).join('・')}）` : ''}${dirs.length ? `、稽古場「${sortPaths(dirs)[0]}」` : ''}`,
-        [...cfg, ...sortPaths(dirs).map((d) => `${d}/`), ...sortPaths(testFiles)], { files: testFiles.length, runners, dirs: sortPaths(dirs).slice(0, 4), latest }, { ...st });
+        [...cfg, ...sortPaths(dirs).map((d) => `${d}/`), ...sortPaths(testFiles)],
+        { files: testFiles.length, runners, dirs: sortPaths(dirs).slice(0, 4), latest, ...run }, { ...st });
       facilities[facilities.length - 1].all = all;
     }
   }
