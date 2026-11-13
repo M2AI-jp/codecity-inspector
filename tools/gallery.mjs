@@ -30,7 +30,8 @@ const KEEPER = {
 };
 const PROP_MEANING = {
   wellhouse: '井戸小屋 — env・secrets・設定（外に立つ施設）', pier: '桟橋（歩ける板）', 'pier-2': '桟橋（歩ける板）', boat: 'もやった舟',
-  scaffold: '足場 — 作業中の変更がある建物', 'scaffold-2': '足場 — 作業中の変更がある建物', 'sign-works': '工事中の札', lumber: '材木',
+  scaffold: '足場 — 作業中の変更がある建物', 'scaffold-2': '足場 — 作業中の変更がある建物', 'sign-works': '工事中の札',
+  'sign-passed': '検査通過済みの札', 'sign-failed': '壊れていることを示す札', 'sign-unverified': '未確認の札', lumber: '材木',
   gate: '門 — 外から人が入る入口（public web・API。外に立つ施設）',
   flowerbed: '花壇 — 広場の飾り', lowwall: '低い石垣 — 広場の縁',
   'bridge-h': '橋 — 東西の通りが水路をまたぐ所（歩ける石の橋）', 'bridge-v': '橋 — 南北の通りが水路をまたぐ所（歩ける石の橋）',

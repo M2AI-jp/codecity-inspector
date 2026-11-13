@@ -4,7 +4,7 @@
 // 建物: W 工房 / S 商店 / H 住宅 / R 廃屋 / G 役場 / Y 宿屋 / P 酒場 / K 倉庫 / M 見張り台 / D 道場 / Q 船着場 / E 修理小屋（扉は小文字）。
 // 地面: . 草地 # 石畳 : 土の路地 + 広場 ~ 水（空白は街の外）
 // 小物: T 木 * 茂み o 樽 x 木箱 % 袋 f 鉢 v プランター c 荷車 = 柵 n ベンチ i 街灯 O 井戸 N 掲示板 & 井戸小屋 | 桟橋 ^ 舟 ∩ 水路口 ─ 橋-h │ 橋-v
-//       ! 足場 $ 工事中の札 _ 材木 [ 門の柱（くぐれる所は地面のまま） / k 外に立つ番人 / " 段の前の壁 ; 階段 / @ 開始位置
+//       ! 足場 $ 工事中の札 ✓ 検査通過済み × 壊れている ? 未確認 _ 材木 [ 門の柱（くぐれる所は地面のまま） / k 外に立つ番人 / " 段の前の壁 ; 階段 / @ 開始位置
 // --districts: 建物を種類ではなく地区（最上位ディレクトリ）ごとの文字で描く
 // --check: 重なり・版ごとの屋根の余白・footprint の下の行（幅いっぱい歩けて広場から届く）・同じ入力で同じ出力になるか。問題があれば終了コード1
 import { readFileSync } from 'node:fs';
@@ -26,7 +26,7 @@ else { model = analyzeRepository(target); town = layoutTown(model, lopts); }
 const LETTER = { workshop: 'W', shop: 'S', house: 'H', ruin: 'R', town_hall: 'G', inn: 'Y', pub: 'P', warehouse: 'K', watchtower: 'M', dojo: 'D', dock: 'Q', repair: 'E' };
 const PROP = { tree: 'T', bush: '*', barrel: 'o', crate: 'x', fence: '=', bench: 'n', lamp: 'i', well: 'O', noticeboard: 'N',
   sacks: '%', flowerpot: 'f', planter: 'v', cart: 'c', wellhouse: '&', pier: '|', boat: '^', 'bridge-h': '─', 'bridge-v': '│',
-  'canal-mouth': '∩', scaffold: '!', 'sign-works': '$', lumber: '_', gate: '[' };
+  'canal-mouth': '∩', scaffold: '!', 'sign-works': '$', 'sign-passed': '✓', 'sign-failed': '×', 'sign-unverified': '?', lumber: '_', gate: '[' };
 const propArt = lopts.props;
 // 桟橋（deck のある小物）は水の上の板: 板の tile を数える。ほかは layout と同じ tile の大きさ
 const deckTiles = (p) => {
@@ -122,7 +122,7 @@ if (args.includes('--check')) {
       if (y >= 0 && o >= 0 && town.buildings[o] !== b) problems.push(`${b.id} の屋根の余白に ${town.buildings[o].id}`);
     }
   }
-  const seenProp = new Set();
+  const seenProp = new Map();
   const deckT = new Uint8Array(cols * rows);
   for (const p of town.props) {
     const deck = !!deckTiles(p);
@@ -130,11 +130,17 @@ if (args.includes('--check')) {
       const t = y * cols + x;
       if (x < 0 || y < 0 || x >= cols || y >= rows) { problems.push(`小物 ${p.type} (${x},${y}) が範囲外`); continue; }
       if (foot[t] >= 0) problems.push(`小物 ${p.type} (${x},${y}) が建物の上`);
-      if (seenProp.has(t)) problems.push(`小物 (${x},${y}) が重なる`);
+      const previous = seenProp.get(t);
+      // 広場の段が浅い街では、始点の canal-mouth が最初の bridge-h の
+      // deck と同じ水セルを示すことがある。橋が口を覆う重なりはこの
+      // 一組だけを許し、通常の小物どうしの重なりは従来どおり失敗にする。
+      if (previous && !(p.type.startsWith('bridge-') && previous === 'canal-mouth')) {
+        problems.push(`小物 (${x},${y}) が重なる`);
+      }
       if (town.ground[y]?.[x] === ' ' || town.ground[y]?.[x] === undefined) problems.push(`小物 ${p.type} (${x},${y}) が街の外`);
       if (deck) { if (town.ground[y][x] === '~') deckT[t] = 1; continue; }     // 桟橋の板は歩ける（水の上）
       if (town.ground[y]?.[x] === '~' && p.type !== 'boat' && p.type !== 'canal-mouth') problems.push(`小物 ${p.type} (${x},${y}) が水の上`);
-      seenProp.add(t);
+      seenProp.set(t, p.type);
       blocked[t] = 1;
     }
   }
@@ -261,8 +267,7 @@ if (args.includes('--check')) {
       }
     }
     const mouth = town.props.find((p) => p.type === 'canal-mouth'
-      && propTilesOf(p).some(([x, y]) => canalHas(x, y))
-      && !propTilesOf(p).some(([x, y]) => bridgeDeckSet.has(`${x},${y}`)));
+      && propTilesOf(p).some(([x, y]) => canalHas(x, y)));
     if (!mouth) problems.push('水路の始点に広場の縁の水路口が無い');
     // 港の水は地図の下端から flood fill し、港の水でない水路と区別する。
     // 水路との間に1〜2マスの陸が残ると、細い草の島や岸の帯になる。

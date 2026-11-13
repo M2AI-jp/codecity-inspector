@@ -1707,6 +1707,27 @@
       "light": null,
       "flicker": false
     },
+    "sign-failed": {
+      "src": "props/sign-failed.png",
+      "origin": [12, 31],
+      "solid": [-9, -4, 18, 4],
+      "light": null,
+      "flicker": false
+    },
+    "sign-passed": {
+      "src": "props/sign-passed.png",
+      "origin": [12, 31],
+      "solid": [-9, -4, 18, 4],
+      "light": null,
+      "flicker": false
+    },
+    "sign-unverified": {
+      "src": "props/sign-unverified.png",
+      "origin": [12, 31],
+      "solid": [-9, -4, 18, 4],
+      "light": null,
+      "flicker": false
+    },
     "sign-works": {
       "src": "props/sign-works.png",
       "origin": [10, 23],

@@ -578,6 +578,7 @@ export function analyzeRepository(rootPath) {
       git: (args) => git(root, args),
       rootFiles: tree.files.map((f) => f.path),
       dirty: dirty ? dirty.length : null,
+      dirtyPaths: dirty || [],
       agents: agents.map((a) => ({ name: a.name, commits: a.commits, recent: a.recent })),
     });
   } catch (e) { console.warn(`施設の判定に失敗した（施設なしで続ける）: ${e.message}`); }

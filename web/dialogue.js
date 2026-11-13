@@ -451,6 +451,27 @@ const dateJa = (iso) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso |
 const listJa = (a) => (a.length <= 1 ? a.join('') : `${a.slice(0, -1).join('、')}と${a[a.length - 1]}`);
 const q = (p) => `「${p}」`;
 const nPeople = (n) => (n === 1 ? 'ひとり' : n === 2 ? 'ふたり' : `${fmtInt(n)}人`);
+const dojoStatusLines = (f) => {
+  const r = f.latestRecord;
+  const when = r && dateJa(r.mtime);
+  const tool = r && r.tool ? q(r.tool) : '検査道具';
+  if (f.state === 'passed' && r) {
+    return [`最後の検査は${when ? `${when}、` : ''}${tool}の記録で失敗0件です。そのあと変更はありません。`];
+  }
+  if (f.state === 'failed' && r) {
+    return [
+      `最後の検査は${when ? `${when}、` : ''}${tool}の記録で${fmtInt(r.failures)}件が通っていません。`,
+      '外部工務店の完成報告は自己申告で、検査の記録には数えていません。',
+    ];
+  }
+  if (f.state === 'unverified') {
+    return r
+      ? [`最後の検査（${when || '日時不明'}）のあとに変更があるので、いまの形はまだ確かめていません。`,
+        '外部工務店の完成報告は自己申告で、検査の記録には数えていません。']
+      : ['検査の記録が見当たりません。', '外部工務店の完成報告は自己申告なので、代わりに数えていません。'];
+  }
+  return [];
+};
 
 const FACILITY_VOICE = {
   town_hall: {
@@ -559,7 +580,7 @@ const FACILITY_VOICE = {
     greet: ['ようこそ、道場へ。', 'お静かに。ここは道場です。'],
     what: ['ここでは、街のしくみが本当に動くかを確かめています。', '動くと言われたものを、実際に動かして確かめる場所です。'],
     facts(f) {
-      const out = [];
+      const out = dojoStatusLines(f);
       if (f.files > 0) out.push(`試験（テスト）のファイルが${fmtInt(f.files)}個あります。`);   // test files, helpers included (not test cases)
       if (f.runners && f.runners.length) out.push(`確かめる道具は ${f.runners.slice(0, 2).join('、')} です。`);
       if (f.dirs && f.dirs.length) out.push(`稽古場は${f.dirs.slice(0, 2).map(q).join('と')}です。`);
