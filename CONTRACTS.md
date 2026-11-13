@@ -60,7 +60,7 @@ facts の形:
 | gate | `{ domains: ["docs.brew.sh"] /* CNAME の住所 */, deploy: [{ path: "vercel.json", name: "Vercel" \| null }] /* 公開の段取りの設定（Vercel・Netlify・Fly.io・Render・Cloudflare Workers・Firebase Hosting・Docker の EXPOSE など）。公開した証拠ではない */, servers: [{ path, how }] /* 宿屋と同じ */, frameworks: ["Next.js"], routes: [{ method, route, path }] /* 受付の道（酒場の routes と同じ見つけ方。受け方の分かるものが3本以上あればそれだけ）。最大8 */, routesTotal, auth: [{ name: "NextAuth.js", path: "package.json" }] /* ログインの道具: 製品の依存（docs・examples・tests の下の manifest は数えない）に、名前でそれと分かる道具（next-auth・@auth/*・better-auth・passport・lucia・@clerk/*・@supabase/auth-helpers-*・@supabase/ssr・@auth0/*・@firebase/auth・devise・omniauth・django-allauth・flask-login など）があるときだけ。最大4 */ }`。宿屋の証拠（Webサーバーのコード・公開の設定・Webの骨組み）があるか、受け方の分かる受付の道があるときだけ。外に立つ施設（Town の landmarks）なので merged は常に []。本当に外から入れるかは確かめない |
 | warehouse | `{ kinds: ["SQLite", ...], sqlFiles, migrations, configs, dataFiles, sqliteCode }` |
 | watchtower | `{ tools: ["Sentry", ...], logDirs, configs }` |
-| dojo | `{ files, runners: ["Vitest", "node --test"], dirs, latest: { subject, date, author } }` |
+| dojo | `{ files, runners: ["Vitest", "node --test"], dirs, latest: { subject, date, author }, state: "passed" \| "failed" \| "unverified", records: [{ tool, file, mtime, passed, failures }], latestRecord: { tool, file, mtime, passed, failures } \| null }`。`records` は道場がある街の作業フォルダに残る次の記録だけを読む: `test-results/.last-run.json`（Playwright）、`.pytest_cache/v/cache/lastfailed`（pytest）、`node_modules/.vitest/results.json` または `node_modules/.vite/vitest/results.json`（Vitest）、`test-results/*.xml`・`reports/junit*.xml`・`junit*.xml`・`test-reports/*.xml`（JUnit XML）。各記録の `mtime` はファイル更新時刻、`failures` は失敗数、`passed` は失敗数0。最新の記録が最終コミットと作業ツリーでまだ記録していない変更のファイルより新しく、失敗数0なら `passed`、失敗数1以上なら `failed`、記録が無い・古い・変更ファイルの時刻を確かめられないなら `unverified`。外部工務店の報告、コミットメッセージ、Go・Cargo・Jestなど標準の記録がないものは数えない |
 | repair | `{ deployment: [{ path, detail }], database: [{ path, detail }], backup: [{ path, detail }], runbook: [{ path, detail }] }`。デプロイの切り戻し、DB migration の down/rollback、バックアップの dump/restore、復旧手順書の見出しなど、製品ファイルで確認できた種類だけを入れる。単なる `restore` という関数名や、fixtures・tests・vendor の中の証拠は数えない。ここにあることは実行可能性の確認ではない |
 
 ## Town（src/layout.mjs → web、`/town.json`）
@@ -93,7 +93,7 @@ facts の形:
   }],
   props: [{ type: "lamp" | "barrel" | "crate" | "tree" | "bush" | "bench" | "fence" | "noticeboard"
                  | "sacks" | "flowerpot" | "planter" | "cart"
-                 | "wellhouse" | "canal-mouth" | "pier" | "boat" | "bridge-h" | "bridge-v" | "scaffold" | "sign-works" | "lumber" | "gate",
+                 | "wellhouse" | "canal-mouth" | "pier" | "boat" | "bridge-h" | "bridge-v" | "scaffold" | "sign-works" | "sign-passed" | "sign-failed" | "sign-unverified" | "lumber" | "gate",
             x: 20.5, y: 14,            // 足元の中心（tile）。1×1 なら (tx + 0.5, ty + 1)
             look: "pier-2",            // 省略可。manifest の小物の名前そのもの（layout が形を当てにして選んだもの: 桟橋の板・足場）。
             w: 1 }],                   // 省略可。layout が場所を取った tile の幅（絵の solid より細く置いたとき。足場を1マスの隙間に立てたとき）
@@ -214,6 +214,7 @@ manifest.json は手で編集しない。画像を作る人は、画像の隣に
 - 井戸（外に立つ施設）は広場のまん中の飾り（南寄り）として井戸小屋を置き、置けなければ左右の寄り、それも無理なら広場に近い緑地。番人は井戸小屋の外側の下の段の歩ける1マスに立ち、そこから街のどこへでも行けることを確かめてから置く。井戸小屋と番人のまわり1マスには木を植えない。
 - 門（外に立つ施設、絵 `gate` があるときだけ）は、南北の通りが街の外へ出る土の道（北の通りの上の端・斜めの通りの下の端。finalize の `exits`）のうち宿屋に近い方（宿屋が無ければ北）に、通りをまたいで南向きに立てる。門の行は通りの端から 1〜16 行外で（切り出す範囲は、通りの端の両わき（左右8〜9マス）の建物より外へ、門の絵の高さ＋4行をのこす）、門の外（その先の地図の端まで、絵の幅の左右6マス）に建物・石畳の通り・広場が無い所（街の中の通りの途中には立てない）、絵が建物とその屋根にかからない所、柱が草地に立つ所のうち、通りにいちばん近い所。出口の土道が途中で草地・外に変わっていても、建物・水・舗装で遮られない列だけを門の候補まで土道として延ばす。くぐれる所（opening、3マス）は道の列を包むように置き、包めなければ左右に 1〜2 マスずらして、門の手前の端と門の外の行で元の道へ横につなぐ（門のわきに残る元の道は草に戻す）。門の手前2行（通りの端まで）から門の外の1行までは門の幅の土の道。柱はふさぎ、街のどこからでも門の外まで行けることを確かめる。門番は街の内側の柱のわき（北の門なら柱の1行手前、南の門なら絵の外の横）の歩ける1マスで、門の幅の道には立たない。門の絵と門番のまわり1マスには木を植えず、門の道（手前3行・外2行）には小物を置かない。ほかの街灯は門の灯から離して立てる。置ける所が無ければ門は置かず、`Town.unplaced` に理由と根拠を残す（tools/check-play.mjs はそれを失敗にする）。
 - 工事中（module.works.dirty > 0）の建物: 横の壁ぎわの草地に足場（扉の前の2行・通り・路地には置かない、街の通り道をふさがない。横が1マスしかあかなければ、細く置いた足場がその1マスの真ん中に立つ）。その建物の横の1マスの隙間は路地にせず草地のままにする（足場の絵があるとき）。足場の手前か反対側の壁ぎわに工事中の札、裏庭か足場の横に材木（どれも絵と余地があるときだけ）。
+- 道場の状態札（`sign-passed`・`sign-failed`・`sign-unverified`）は、道場の扉の前の通り道をふさがない扉の脇に1つだけ置く。`ascii-town` ではそれぞれ `✓`（検査通過済み）・`×`（壊れている）・`?`（未確認）で表す。
 - 施設の扉の前（扉の列の左右2マス、扉の列の通り・土・広場が続く所まで。2〜5行）には小物を置かず、施設のまわり（左右2マス、上1行〜扉の前5行）には木を置かない。広場の角の植え込みは、広場に面する建物の扉の前の行には作らない。
 - 広場には、もう飾りの井戸（well）を置かない（井戸は env・設定の施設になったので、根拠の無い井戸を見せない）。
 
