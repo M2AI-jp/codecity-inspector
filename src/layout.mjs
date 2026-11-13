@@ -213,11 +213,16 @@ function generate(C, scale) {
   const area = Math.max(360, need * (maxH + 8) * harbourArea + 100) * scale;
   // 面積は保ったまま横長を抑え、建物を近い列へ積める格子にする。
   const cols = Math.round(Math.sqrt(area)) + 2 * MARGIN - (harbour ? 0 : 1);
+  // 広場を深くした分だけ縦の格子を先に確保する。後段の scale を上げて
+  // 街全体を拡大すると空いた街区まで増えるため、追加分は行だけにする。
+  const PR = Math.max(7, maxH + 2) + (chance(0.35) ? 1 : 0);
+  const shallowPR = Math.max(4, maxH - 1);
   // 北南の門の絵は footprint より約6行高い。港以外では外縁の3行を
   // 門の候補に残す（届かない草地は finalize が街の外にする）。
-  const baseRows = Math.round(Math.sqrt(area)) + 2 * MARGIN + maxH + 4;
+  const baseRows = Math.round(Math.sqrt(area)) + 2 * MARGIN + maxH + 4 + Math.max(0, PR - shallowPR);
   let rows = baseRows + (C.gateRows && !harbour ? 5 : 0);
-  const PR = Math.max(4, maxH - 1);                                  // 広場の奥行き（密集した街区でも前庭を残す）
+  // 本線と同じ深さの広場にする。役場の段の下から南の段の壁まで歩ける面を
+  // 9行前後に保ち、井戸小屋を広場の中央へ戻せる奥行きを確保する。
   const PW = fac.hall ? 12 : 10 + 2 * ri(0, 1);                       // 広場の幅（小さく、まわりを建物の正面が囲む）
   // 水辺: 大通りの南は街区 1〜3 段、その下に岸の通りと水。北へ広げる分、格子を縦に足す
   let southRows = 0, hTop;
@@ -1094,29 +1099,41 @@ function generate(C, scale) {
       // この地区の建物のうち、カーソルにいちばん近く置けるもの（隙間を残さない）。同じ近さなら並び順の先
       const tried = new Set();
       let best = null;
+      let fallback = null;
       const last = t.last;
       for (let i = 0; i < q[phase].length; i++) {
         const s = q[phase][i];
         if (tried.has(s.w * 64 + s.h)) continue;
         tried.add(s.w * 64 + s.h);
-        // 建物を上の通り側へ寄せる: 前に1〜2行の舗装を残し、0行は少なくする。
-        // 直前の建物とは下がり方を変える。
+        // 建物を上の通り側へ寄せる: 前の行は0〜1行だけにし、
+        // 直前の建物とは下がり方を変える。下がり方を fit の途中で
+        // 0へ戻すと一直線の家並みになるので、まず選んだ値だけを試す。
         const sr = rng();
-        let setback = sr < 0.55 ? 2 : sr < 0.9 ? 1 : 0;
-        if (last && setback === last.sb) setback = last.sb === 2 ? 1 : 2;
+        let setback = sr < 0.5 ? 0 : 1;
+        if (last && setback === last.sb) setback = 1 - last.sb;
         for (let k = 0; k <= WINDOW && (!best || k <= best.k); k++) {
           const x0 = t.dir < 0 ? t.cursor - k - s.w + 1 : t.cursor + k;
           if (t.dir < 0 ? x0 < t.x0 : x0 + s.w - 1 > t.x1) break;
-          let pos = null;
-          for (let sb = setback; sb >= 0 && !pos; sb--) pos = fit(t, x0, s.w, s.h, sb, s.roofRows, !!t.dense);
-          if (!pos) continue;
-          // 同じ近さなら、直前の家と幅か下がり方が違うほう
-          const same = last && last.w === s.w && last.yb === pos.yb;
-          if (!best || k < best.k || (k === best.k && best.same && !same)) best = { i, s, pos, k, same };
+          let pos = fit(t, x0, s.w, s.h, setback, s.roofRows, !!t.dense);
+          if (pos) {
+            // 同じ近さなら、直前の家と幅か下がり方が違うほう
+            const same = last && last.w === s.w && last.yb === pos.yb;
+            if (!best || k < best.k || (k === best.k && best.same && !same)) best = { i, s, pos, k, same };
+          } else if (last) {
+            // 交互の下がり方がこの列に入らない場合だけ、同じ下がり方を
+            // 最後の手段として記録する。これで施設や細い街区を失わず、
+            // 入る家並みでは 0/1 のばらつきを優先できる。
+            pos = fit(t, x0, s.w, s.h, 1 - setback, s.roofRows, !!t.dense);
+            if (pos) {
+              const same = last.w === s.w && last.yb === pos.yb;
+              if (!fallback || k < fallback.k || (k === fallback.k && fallback.same && !same)) fallback = { i, s, pos, k, same };
+            }
+          }
           break;
         }
         if (best && best.k === 0 && !best.same) break;
       }
+      if (!best) best = fallback;
       if (!best) continue;
       q[phase].splice(best.i, 1);
       commit(best.s, t, best.pos, q.g.key);
@@ -2233,6 +2250,14 @@ function placeProps(P, F, rng, spawn, extra) {
   const noTree = new Uint8Array(N);
   for (const [x, y] of bridgeCells) if (inC(x, y)) noTree[id(x, y)] = 1;
   const mark = (arr, x0, y0, x1, y1) => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (inC(x, y)) arr[id(x, y)] = 1; };
+  // 水路口は props の先頭に置くだけでなく、後から置く花壇・柵などの
+  // 候補からも外す。深い広場では口が南の段の近くへ来るため、これを
+  // 予約しないと花壇の絵が水路口のタイルに重なる。
+  for (const p of mouthProps) {
+    const [mw, mh] = propTiles(p.look || p.type, propArt);
+    const mx = Math.floor(p.x - mw / 2 + 0.5), my = Math.round(p.y - mh);
+    mark(reserved, mx, my, mx + mw - 1, my + mh - 1);
+  }
   for (const p of placed) {
     if (!p.spec.facility) continue;
     const dc = p.doorCol ?? p.x + p.spec.doorDx;
@@ -2481,18 +2506,23 @@ function placeProps(P, F, rng, spawn, extra) {
           let ok = vx0 >= crop.x0 && vx1 <= crop.x1 && vy0 >= crop.y0;
           for (let y = vy0; y <= r + 1 && ok; y++) for (let x = vx0; x <= vx1; x++) if (inC(x, y) && (foot[id(x, y)] >= 0 || roofZ[id(x, y)])) { ok = false; break; }
           if (!ok) continue;
-          // 門の外は街の外（建物・石畳の通り・広場が無い）: 街の中の通りの途中には門を立てない
+          // 門の外は建物・広場が無い所。密な街では出口の土道が石畳の
+          // 端へつながることがあるので、石畳そのものは通過可能な外側
+          // の道として許し、建物と広場だけを候補から除く。
           const yEnd = e.dir < 0 ? crop.y0 : crop.y1;
           // compact な街では隣家や別の縦道が絵の端に来る。門の絵の幅だけを
           // 外へ空ければよく、周囲の余白まで要求すると門候補を失う。
           for (let y = out1; ok && (y - yEnd) * e.dir <= 0; y += e.dir) for (let x = vx0; x <= vx1; x++) {
             if (!inC(x, y)) continue;
             const k2 = id(x, y);
-            if (foot[k2] >= 0 || g[k2] === STREET || g[k2] === PLAZA) { ok = false; break; }
+            if (foot[k2] >= 0 || g[k2] === PLAZA) { ok = false; break; }
           }
           if (!ok) continue;
-          // 柱は草地（街の外の草地）の上だけ
-          for (const [x, y] of pillar) if (!inC(x, y) || foot[id(x, y)] >= 0 || (g[id(x, y)] !== GRASS && g[id(x, y)] !== OUT && !(g[id(x, y)] === DIRT && x === pathCol(e, y))) || blocked[id(x, y)] || reserved[id(x, y)]) ok = false;
+          // 柱は草地・街の外・土道の上。石畳の端にしか候補が残らない
+          // 密な街では、石畳にも置ける（歩行到達性は下で再確認する）。
+          for (const [x, y] of pillar) if (!inC(x, y) || foot[id(x, y)] >= 0 ||
+            (g[id(x, y)] !== GRASS && g[id(x, y)] !== OUT && g[id(x, y)] !== STREET && !(g[id(x, y)] === DIRT && x === pathCol(e, y))) ||
+            blocked[id(x, y)] || reserved[id(x, y)]) ok = false;
           if (!ok) continue;
           // 塗る所（門の絵は南を向くので、北側の道は屋根の上に出る所で元の道につなぐ）:
           //   門の行と、その北の2行・南の行（北の門なら手前の2行、南の門なら外の1行）は門の幅。
@@ -2577,6 +2607,52 @@ function placeProps(P, F, rng, spawn, extra) {
           return { prop, keeper };
         }
       }
+    }
+    // 密な格子では、出口の通りの周囲を建物の前庭が埋めて通常候補が
+    // 全滅することがある。空いた草地の端に土道を通してから同じ門の
+    // 開口・柱・番人の到達性を検査する最後の候補を持つ。
+    const edgeRows = [];
+    for (let r = crop.y0 + 2; r <= crop.y1 - 2; r++) edgeRows.push(r);
+    edgeRows.sort((u, v) => Math.min(u - crop.y0, crop.y1 - u) - Math.min(v - crop.y0, crop.y1 - v) || u - v);
+    for (const r of edgeRows) for (let c0 = crop.x0 + 2; c0 <= crop.x1 - n - 3; c0++) {
+      const fx = c0 * 16 - op[0], fy = (r + 1) * 16;
+      const opCols = new Set(Array.from({ length: n }, (_, i) => c0 + i));
+      const pillar = [];
+      for (const sb of solids) {
+        const tx0 = Math.floor((fx + sb[0]) / 16), tx1 = Math.floor((fx + sb[0] + sb[2] - 1) / 16);
+        const ty0 = Math.floor((fy + sb[1]) / 16), ty1 = Math.floor((fy + sb[1] + sb[3] - 1) / 16);
+        for (let y = ty0; y <= ty1; y++) for (let x = tx0; x <= tx1; x++)
+          if (!opCols.has(x) && !pillar.some(([px, py]) => px === x && py === y)) pillar.push([x, y]);
+      }
+      const paint = [];
+      for (let y = r - 1; y <= r + 1; y++) for (let x = c0; x < c0 + n; x++) paint.push([x, y]);
+      if (!pillar.length || pillar.some(([x, y]) => !inC(x, y) || foot[id(x, y)] >= 0 || blocked[id(x, y)] || reserved[id(x, y)] ||
+        ![GRASS, STREET, DIRT].includes(g[id(x, y)])) || paint.some(([x, y]) => !inC(x, y) || foot[id(x, y)] >= 0 || g[id(x, y)] === WATER)) continue;
+      const saved = paint.map(([x, y]) => g[id(x, y)]);
+      paint.forEach(([x, y]) => { if (g[id(x, y)] === GRASS) g[id(x, y)] = DIRT; });
+      pillar.forEach(([x, y]) => { g[id(x, y)] = GRASS; blocked[id(x, y)] = 1; });
+      const before = flood().count;
+      let keeper = null;
+      for (const [kx, ky] of [[c0 - 1, r + 1], [c0 + n, r + 1], [c0 - 1, r - 1], [c0 + n, r - 1]]) {
+        if (!walk(kx, ky) || reserved[id(kx, ky)] || paint.some(([x, y]) => x === kx && y === ky)) continue;
+        blocked[id(kx, ky)] = 1;
+        if (flood().count === before - 1) { keeper = { x: kx + 0.5, y: ky + 0.6875 }; break; }
+        blocked[id(kx, ky)] = 0;
+      }
+      if (!keeper) {
+        for (const [x, y] of pillar) blocked[id(x, y)] = 0;
+        for (const [[x, y], old] of paint.map((p, i) => [p, saved[i]])) g[id(x, y)] = old;
+        continue;
+      }
+      const prop = { type: lm.prop, x: fx / 16, y: fy / 16 };
+      reach = flood().count;
+      props.push(prop);
+      for (const [x, y] of paint) reserved[id(x, y)] = 1;
+      mark(reserved, c0 - 1, r - 1, c0 + n, r + 1);
+      mark(noTree, c0 - 2, r - 2, c0 + n + 1, r + 4);
+      mark(reserved, Math.floor(keeper.x) - 1, Math.floor(keeper.y) - 1, Math.floor(keeper.x) + 1, Math.floor(keeper.y) + 1);
+      for (const l of a.lights || []) lamps.push([Math.floor((fx + l[0]) / 16), Math.floor((fy + Math.max(l[1], -8)) / 16)]);
+      return { prop, keeper };
     }
     return null;
   }
@@ -3313,6 +3389,24 @@ export function layoutTown(repo, opts = {}) {
       if (n < bn) { bn = n; best = v; }
     }
     variantOf.set(p, best);
+  }
+  // 同じ通りで同じ幅・同じ版の家が3軒続くと、乱数が違っても
+  // 一直線の量産街に見える。配置順の隣2軒が同じ組合せなら、
+  // 3軒目だけ別版へ決定的に差し替える。
+  const isHouse = (p) => ['house_s', 'house_m', 'house_l'].includes(p.spec.archetype);
+  for (const t of P.tracks) {
+    const row = t.items
+      .filter(isHouse)
+      .sort((a, b) => (t.dir < 0 ? b.x - a.x : a.x - b.x) || a.yb - b.yb);
+    for (let i = 2; i < row.length; i++) {
+      const [a, b, p] = row.slice(i - 2, i + 1);
+      const va = variantOf.get(a), vb = variantOf.get(b), vp = variantOf.get(p);
+      if (!va || !vb || !vp || a.w !== b.w || b.w !== p.w || va.id !== vb.id || vb.id !== vp.id) continue;
+      const vs = art[p.spec.archetype]?.variants || [];
+      const start = hash32(`row-variant:${p.spec.id}`) % vs.length;
+      const alt = vs.map((_, k) => vs[(start + k) % vs.length]).find((v) => v.id !== va.id && v.id !== vb.id);
+      if (alt) variantOf.set(p, alt);
+    }
   }
   for (const p of P.placed) {
     p.doorCol = p.x + clamp(variantOf.get(p)?.doorX ?? p.spec.doorDx, 0, p.w - 1);

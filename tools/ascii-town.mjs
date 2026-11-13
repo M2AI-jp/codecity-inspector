@@ -198,7 +198,8 @@ if (args.includes('--check')) {
     const crossings = town.canal.crossings || [];
     const roadAt = (x, y) => {
       const ch = town.ground[y]?.[x];
-      return foot[y * cols + x] < 0 && !buildingWalk.has(`${x},${y}`) && (ch === '#' || ch === ':');
+      const terraceFace = faceCells.some(([fx, fy]) => fx === x && fy === y);
+      return foot[y * cols + x] < 0 && !buildingWalk.has(`${x},${y}`) && !terraceFace && (ch === '#' || ch === ':');
     };
     const nearCrossing = (x, y) => crossings.some((c) => Math.abs(c.x - x) + Math.abs(c.y - y) <= 2);
     const canalHas = (x, y) => canalSet.has(`${x},${y}`);
