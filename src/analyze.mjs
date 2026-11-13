@@ -1,7 +1,7 @@
 // リポジトリ → RepoModel（CONTRACTS.md）。Node標準ライブラリのみ。
 import { execFileSync, spawnSync } from 'node:child_process';
 import { readFileSync, readdirSync, lstatSync } from 'node:fs';
-import { basename, extname, join, resolve } from 'node:path';
+import { basename, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { detectFacilities } from './facilities.mjs';
 
 const MAX_COMMITS = 5000;          // git log を読む上限
@@ -38,6 +38,31 @@ const SECRET_FILE = { test: (b) => /^\.env(\.[\w.-]+)?$/i.test(b) && !/[.-](exam
 
 const EMAIL = /[\w.+-]+@[\w-]+(\.[\w-]+)+/g;
 const scrub = (s) => String(s ?? '').replace(EMAIL, '').replace(/<\s*>/g, '').replace(/\s+/g, ' ').trim();
+
+// 作業ツリーから読むときは、リポジトリ内の通常ファイルだけに限定する。
+// 親ディレクトリの symlink も拒否して、解析対象の外へ解決される経路を残さない。
+function repoPath(root, rel) {
+  if (typeof rel !== 'string' || rel.includes('\0')) return null;
+  const base = resolve(root);
+  const abs = resolve(base, rel);
+  const fromRoot = relative(base, abs);
+  if (!fromRoot || fromRoot === '..' || fromRoot.startsWith(`..${sep}`) || isAbsolute(fromRoot)) return null;
+  try {
+    const rootStat = lstatSync(base);
+    if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) return null;
+  } catch { return null; }
+  let cur = base;
+  const parts = fromRoot.split(sep);
+  for (let i = 0; i < parts.length; i++) {
+    cur = join(cur, parts[i]);
+    let st;
+    try { st = lstatSync(cur); } catch { return null; }
+    if (st.isSymbolicLink()) return null;
+    if (i < parts.length - 1 && !st.isDirectory()) return null;
+    if (i === parts.length - 1 && !st.isFile()) return null;
+  }
+  return abs;
+}
 
 function git(root, args) {
   try {
@@ -116,8 +141,9 @@ function readFiles(root, paths) {
   const unread = [];
   for (const p of paths) {
     let st;
-    try { st = lstatSync(join(root, p)); } catch { continue; }      // 作業ツリーで削除済み
-    if (!st.isFile()) continue;                                       // submodule・symlink
+    const abs = repoPath(root, p);
+    if (!abs) continue;                                                // 作業ツリーで削除済み・symlink・ディレクトリ
+    try { st = lstatSync(abs); } catch { continue; }                   // 作業ツリーで削除済み
     const ext = extOf(p);
     const f = { path: p, ext, bytes: st.size, lines: 0, binary: false };
     if (SECRET_FILE.test(basename(p))) { files.push(f); continue; }  // 秘密が入っているかもしれないファイルは開かない（行数も数えない）
@@ -125,7 +151,7 @@ function readFiles(root, paths) {
     else if (read >= MAX_READ_FILES) unread.push(f);
     else {
       let buf;
-      try { buf = readFileSync(join(root, p)); } catch { buf = null; }
+      try { buf = readFileSync(abs); } catch { buf = null; }
       read++;
       if (!buf || buf.subarray(0, 8000).includes(0)) f.binary = true;
       else { f.lines = countLines(buf); textBytes += buf.length; textLines += f.lines; }
@@ -428,7 +454,13 @@ export function analyzeRepository(rootPath) {
   // 中身を読むのは README と package.json だけ。git なら HEAD の内容を読む
   const readText = (p) => {
     if (fromGit) return git(root, ['show', `HEAD:${bare ? '' : './'}${p}`]);
-    try { return readFileSync(join(root, p), 'utf8'); } catch { return null; }
+    const abs = repoPath(root, p);
+    if (!abs) return null;
+    try {
+      const st = lstatSync(abs);
+      if (st.size > MAX_TEXT_BYTES) return null;
+      return readFileSync(abs, 'utf8');
+    } catch { return null; }
   };
   const tree = buildTree(files);
   const groups = groupModules(tree);
@@ -451,9 +483,14 @@ export function analyzeRepository(rootPath) {
   let grafts = [];
   if (shallow) {
     const sp = git(root, ['rev-parse', '--git-path', 'shallow'])?.trim();
-    try { grafts = readFileSync(resolve(root, sp), 'utf8').split('\n').map((x) => x.trim()).filter(Boolean); } catch {}
+    const shallowPath = sp ? repoPath(root, sp) : null;
+    try {
+      if (!shallowPath || lstatSync(shallowPath).size > MAX_TEXT_BYTES) throw new Error('unsafe shallow file');
+      grafts = readFileSync(shallowPath, 'utf8').split('\n').map((x) => x.trim()).filter(Boolean);
+    } catch {}
   }
   const history = isGit && head ? readHistory(root, undefined, 0, grafts) : [];
+  const dirty = isGit && head ? dirtyFiles(root, bare) : null;
   const keyer = authorKeyer();
   const stats = groups.map(() => ({ commits: 0, recent: 0, last: null, authors: new Map() }));
   // 「最近」は今日ではなくリポジトリの最新コミットから90日（同じコミットなら同じ結果）
@@ -524,8 +561,19 @@ export function analyzeRepository(rootPath) {
     };
   });
 
-  // 古さの基準は「今日」ではなくリポジトリの最新コミット（同じコミットなら同じ結果）
-  const refTime = history.length ? Date.parse(history[0].date) : 0;
+  // 古さの基準は、HEAD の現在位置に来た時刻・最新コミット・
+  // 記録していない作業ツリーの変更時刻の最大（同じ状態なら同じ結果）。
+  const reflogSeconds = isGit && head ? Number(git(root, ['reflog', '-1', '--format=%ct', 'HEAD'])?.trim()) : NaN;
+  const headTime = Number.isFinite(reflogSeconds) && reflogSeconds > 0 ? reflogSeconds * 1000 : latestTime;
+  const recordPath = (p) => /^(?:test-results\/\.last-run\.json|\.pytest_cache\/v\/cache\/lastfailed|node_modules\/\.vitest\/results\.json|node_modules\/\.vite\/vitest\/results\.json|test-results\/[^/]+\.xml|reports\/junit[^/]+\.xml|junit[^/]+\.xml|test-reports\/[^/]+\.xml)$/i.test(p);
+  let dirtyTime = 0;
+  for (const p of dirty || []) {
+    if (recordPath(p)) continue;
+    const abs = repoPath(root, p);
+    if (!abs) continue;
+    try { dirtyTime = Math.max(dirtyTime, lstatSync(abs).mtimeMs); } catch {}
+  }
+  const refTime = Math.max(latestTime, headTime, dirtyTime);
   const dated = modules.filter((m) => m.lastCommit).map((m) => Date.parse(m.lastCommit.date)).sort((a, b) => a - b);
   const q25 = dated.length >= 4 ? dated[Math.floor((dated.length - 1) * 0.25)] : -Infinity;
   const pkgCache = new Map();
@@ -564,7 +612,6 @@ export function analyzeRepository(rootPath) {
     }));
 
   // 工事中: 作業ツリーで HEAD と違うファイルの数（モジュールごと）。bare・git でないときは数えない
-  const dirty = isGit && head ? dirtyFiles(root, bare) : null;
   if (dirty) {
     const n = new Map();
     for (const p of dirty) { const i = ownerOf(p); if (i !== undefined) n.set(i, (n.get(i) || 0) + 1); }

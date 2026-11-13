@@ -11,16 +11,20 @@
 //   repair    修理小屋 : rollback・recovery（切り戻し・復旧の手順やコマンド）
 // 中身を読むのは依存の一覧と、上限つきのソースの走査だけ（git なら HEAD の内容を cat-file --batch でまとめて読む）。
 import { execFileSync } from 'node:child_process';
-import { openSync, readSync, closeSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { basename, join } from 'node:path';
+import { openSync, readSync, closeSync, readFileSync, readdirSync, lstatSync } from 'node:fs';
+import { basename, isAbsolute, join, relative, resolve, sep } from 'node:path';
 
 const DAY = 86400000;
 const EVIDENCE_CAP = 20;
 const SCAN_FILES = 2500;            // ソースを読むファイル数の上限
 const SCAN_BYTES = 16 << 20;        // ソースを読む合計バイト数の上限
 const SCAN_FILE_MAX = 256 << 10;    // これより大きいソースは読まない
+const RECOVERY_SCAN_BYTES = 16 << 20;   // 修理小屋のために読む shell・workflow・手順書の合計バイト数の上限
 const NONGIT_HEAD = 96 << 10;       // git でないとき、1ファイルの先頭だけ読む
 const TEST_RECORD_MAX = 1 << 20;    // テスト結果の記録も大きすぎるものは読まない
+const JUNIT_RECORD_MAX = 20;        // JUnit XML は数を絞る
+const READ_FILE_MAX = 1 << 20;      // 解析で読む1ファイルの上限
+const READ_BATCH_MAX = SCAN_BYTES;  // 1回の解析読込の合計上限
 
 const CODE_EXT = new Set('js mjs cjs ts mts cts jsx tsx py rb go rs php java kt swift ex exs cs'.split(' '));
 const SCRIPT_EXT = new Set('sh bash zsh fish ps1 bat cmd make'.split(' '));
@@ -45,13 +49,42 @@ const RECOVERY_COMMANDS = [
   { kind: 'deployment', re: /\baws\b[^\n]{0,180}\brollback\b/i, detail: 'aws ... rollback' },
   { kind: 'deployment', re: /\bgcloud\b[^\n]{0,220}--to-revision(?:=|\s)/i, detail: 'gcloud ... --to-revision' },
   { kind: 'deployment', re: /(?:\b(?:deploy|deployment|release|production|本番)[^\n]{0,180}\bgit\s+revert\b|\bgit\s+revert\b[^\n]{0,180}\b(?:deploy|deployment|release|production|本番))/i, detail: 'git revert（デプロイの戻し）' },
-  { kind: 'deployment', re: /\bflyctl?\s+deploy\b[^\n]*(?:--image\b[^\n]*(?:rollback|revert|previous|old|restore|戻|切り戻)|(?:rollback|revert|previous|old|restore|戻|切り戻)[^\n]*--image\b)/i, detail: 'flyctl deploy --image（戻し）' },
+  { kind: 'deployment', re: { test: (s) => hasFlyDeployImageBack(s) }, detail: 'flyctl deploy --image（戻し）' },
   { kind: 'database', re: /\b(?:migrate|migration)\s*(?::|\s+)(?:down|rollback)\b/i, detail: 'migrate down / rollback' },
   { kind: 'database', re: /\bprisma\s+migrate\s+resolve\s+--rolled-back\b/i, detail: 'prisma migrate resolve --rolled-back' },
   { kind: 'database', re: /\bknex\s+migrate:rollback\b/i, detail: 'knex migrate:rollback' },
   { kind: 'database', re: /\brails\s+db:rollback\b/i, detail: 'rails db:rollback' },
-  { kind: 'backup', re: /(?=[\s\S]*\bpg_dump\b)(?=[\s\S]*\bpg_restore\b)/i, detail: 'pg_dump と pg_restore' },
+  { kind: 'backup', re: { test: (s) => hasPgDumpAndRestore(s) }, detail: 'pg_dump と pg_restore' },
 ];
+// pg_dump と pg_restore がどちらもどこかにあるか。先読み2つの正規表現は長さの2乗で遅くなるので、1語ずつ別に探す（線形）。
+const PG_DUMP = /\bpg_dump\b/i;
+const PG_RESTORE = /\bpg_restore\b/i;
+export const hasPgDumpAndRestore = (s) => PG_DUMP.test(s) && PG_RESTORE.test(s);
+// fly deploy / flyctl deploy の後ろ（同じ行）に --image と戻しの語の両方があるか。行ごとに、最初の fly deploy の後ろだけを見る（線形）。
+const FLY_DEPLOY = /\bfly(?:ctl)?\s+deploy\b/i;
+const FLY_IMAGE = /--image\b/i;
+const FLY_BACK = /rollback|revert|previous|old|restore|戻|切り戻/i;
+export const hasFlyDeployImageBack = (s) => {
+  for (const line of s.split('\n')) {
+    const m = FLY_DEPLOY.exec(line);
+    if (!m) continue;
+    const rest = line.slice(m.index + m[0].length);
+    if (FLY_IMAGE.test(rest) && FLY_BACK.test(rest)) return true;
+  }
+  return false;
+};
+// 修理小屋のために読むファイルを、件数とバイト数の上限の中で順に選ぶ（入らない大きなファイルは飛ばす）。
+export const pickWithinBudget = (paths, bytesOf, maxFiles, maxBytes) => {
+  const out = [];
+  let budget = maxBytes;
+  for (const p of paths) {
+    if (out.length >= maxFiles) break;
+    const b = bytesOf(p);
+    if (b > budget) continue;
+    out.push(p); budget -= b;
+  }
+  return out;
+};
 const extOfPath = (path) => {
   const b = basename(path).toLowerCase();
   const i = b.lastIndexOf('.');
@@ -257,6 +290,36 @@ const uniq = (a) => [...new Set(a)];
 const byName = (name, paths) => { const k = name.toLowerCase().replace(/[^a-z0-9]/g, ''); return sortPaths(paths).sort((x, y) => (!basename(x).toLowerCase().includes(k)) - (!basename(y).toLowerCase().includes(k))); };
 const sortPaths = (a) => [...a].sort((x, y) => x.split('/').length - y.split('/').length || (x < y ? -1 : x > y ? 1 : 0));
 
+// 作業ツリーから読むときは、リポジトリ内の通常ファイルだけに限定する。
+// 親ディレクトリの symlink も拒否して、リポジトリの外へ解決される経路を残さない。
+function repoPath(root, rel, kind = 'file') {
+  if (typeof rel !== 'string' || rel.includes('\0')) return null;
+  const base = resolve(root);
+  const abs = resolve(base, rel);
+  const fromRoot = relative(base, abs);
+  if (fromRoot && (fromRoot === '..' || fromRoot.startsWith(`..${sep}`) || isAbsolute(fromRoot))) return null;
+  try {
+    const rootStat = lstatSync(base);
+    if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) return null;
+  } catch { return null; }
+  if (!fromRoot) {
+    try {
+      return kind === 'directory' ? base : null;
+    } catch { return null; }
+  }
+  let cur = base;
+  const parts = fromRoot.split(sep);
+  for (let i = 0; i < parts.length; i++) {
+    cur = join(cur, parts[i]);
+    let st;
+    try { st = lstatSync(cur); } catch { return null; }
+    if (st.isSymbolicLink()) return null;
+    if (i < parts.length - 1 && !st.isDirectory()) return null;
+    if (i === parts.length - 1 && (kind === 'file' ? !st.isFile() : !st.isDirectory())) return null;
+  }
+  return abs;
+}
+
 // ---------- 中身を読む ----------
 // パスは解析したディレクトリからの相対。リポジトリの一部のディレクトリを解析したときも、そのディレクトリのファイルを読む
 // （"HEAD:./p" は今いるディレクトリから。bare リポジトリには作業ディレクトリが無いので "HEAD:p"）
@@ -279,19 +342,26 @@ function makeReader(root, isGit, bare) {
         pos = nl + 1;
         if (head[1] === 'missing' || head.length < 3) continue;
         const size = Number(head[2]);
+        if (!Number.isSafeInteger(size) || size < 0 || size > READ_FILE_MAX || size > READ_BATCH_MAX) {
+          pos += Math.max(0, size) + 1;
+          continue;
+        }
         out.set(p, buf.toString('utf8', pos, pos + size));
         pos += size + 1;
       }
       return out;
     }
     for (const p of paths) {
+      const abs = repoPath(root, p, 'file');
+      if (!abs) continue;
+      let fd = null;
       try {
-        const fd = openSync(join(root, p), 'r');
+        fd = openSync(abs, 'r');
         const b = Buffer.alloc(NONGIT_HEAD);
         const n = readSync(fd, b, 0, b.length, 0);
-        closeSync(fd);
         out.set(p, b.toString('utf8', 0, n));
       } catch { /* 読めないファイルは飛ばす */ }
+      finally { if (fd !== null) { try { closeSync(fd); } catch {} } }
     }
     return out;
   };
@@ -310,9 +380,11 @@ const resultState = (value) => String(value ?? '').toLowerCase();
 
 function recordFile(root, file) {
   try {
-    const s = statSync(join(root, file));
+    const abs = repoPath(root, file, 'file');
+    if (!abs) return null;
+    const s = lstatSync(abs);
     if (!s.isFile() || s.size > TEST_RECORD_MAX) return null;
-    return { file, abs: join(root, file), mtimeMs: s.mtimeMs, mtime: new Date(s.mtimeMs).toISOString() };
+    return { file, abs, mtimeMs: s.mtimeMs, mtime: new Date(s.mtimeMs).toISOString() };
   } catch { return null; }
 }
 
@@ -329,20 +401,24 @@ function vitestFailureCount(data) {
     : Array.isArray(data?.testResults) ? data.testResults
       : Array.isArray(data?.files) ? data.files
         : data?.results && typeof data.results === 'object' ? Object.values(data.results) : null;
-  let failures = 0;
+  const failedResult = (value) => {
+    if (value === true) return true;
+    if (Array.isArray(value)) return value[1] === true;
+    if (!value || typeof value !== 'object') return false;
+    if (value.failed === true) return true;
+    const state = resultState(value.state ?? value.status ?? value.result?.state ?? value.result?.status);
+    const assertions = Array.isArray(value.assertionResults) ? value.assertionResults
+      : Array.isArray(value.tests) ? value.tests : [];
+    return failedState.has(state) || assertions.some((t) => failedState.has(resultState(t?.status ?? t?.state ?? t?.result)));
+  };
   if (files) {
-    for (const f of files) {
-      const state = resultState(f?.state ?? f?.status ?? f?.result?.state ?? f?.result?.status);
-      const assertions = Array.isArray(f?.assertionResults) ? f.assertionResults
-        : Array.isArray(f?.tests) ? f.tests : [];
-      const assertionFailed = assertions.some((t) => failedState.has(resultState(t?.status ?? t?.state ?? t?.result)));
-      if (failedState.has(state) || assertionFailed) failures++;
-    }
+    let failures = files.reduce((n, f) => n + (failedResult(f) ? 1 : 0), 0);
     if (!failures && Number.isFinite(data?.numFailedTestSuites)) failures = Math.max(0, Math.floor(data.numFailedTestSuites));
     if (!failures && Number.isFinite(data?.failedFiles)) failures = Math.max(0, Math.floor(data.failedFiles));
     if (!failures && data?.success === false) failures = 1;
     return failures;
   }
+  if (data?.failed === true) return 1;
   if (Number.isFinite(data?.numFailedTestSuites)) return Math.max(0, Math.floor(data.numFailedTestSuites));
   if (Number.isFinite(data?.numFailedFiles)) return Math.max(0, Math.floor(data.numFailedFiles));
   if (Number.isFinite(data?.numFailedTests)) return Math.max(0, Math.floor(data.numFailedTests));
@@ -375,11 +451,15 @@ function junitFailureCount(text) {
 function junitFiles(root) {
   const found = [];
   const add = (dir, re) => {
-    const abs = join(root, dir);
+    if (found.length >= JUNIT_RECORD_MAX) return;
+    const abs = repoPath(root, dir, 'directory');
+    if (!abs) return;
     try {
       for (const e of readdirSync(abs, { withFileTypes: true })) {
+        if (found.length >= JUNIT_RECORD_MAX) return;
         if (!e.isFile() || !re.test(e.name)) continue;
-        found.push(dir === '.' ? e.name : `${dir}/${e.name}`);
+        const file = dir === '.' ? e.name : `${dir}/${e.name}`;
+        if (repoPath(root, file, 'file')) found.push(file);
       }
     } catch { /* 記録の置き場が無い街もある */ }
   };
@@ -387,12 +467,18 @@ function junitFiles(root) {
   add('reports', /^junit.*\.xml$/i);
   add('.', /^junit.*\.xml$/i);
   add('test-reports', /\.xml$/i);
-  return [...new Set(found)].sort();
+  return [...new Set(found)].sort().slice(0, JUNIT_RECORD_MAX);
 }
 
-function readTestRecords(root) {
+function isTrackedRecord(root, file, extra) {
+  if (!extra?.isGit || typeof extra.git !== 'function') return false;
+  return !!extra.git(['ls-files', '--error-unmatch', '--', file])?.trim();
+}
+
+function readTestRecords(root, extra) {
   const records = [];
   const add = (tool, file, parser) => {
+    if (isTrackedRecord(root, file, extra)) return;
     const meta = recordFile(root, file);
     if (!meta) return;
     let failures;
@@ -429,7 +515,9 @@ function dirtyMtime(root, extra, recordPaths) {
   let latest = 0, unknown = false;
   for (const p of changed) {
     try {
-      const s = statSync(join(root, p));
+      const abs = repoPath(root, p, 'file');
+      if (!abs) { unknown = true; continue; }
+      const s = lstatSync(abs);
       if (s.isFile()) latest = Math.max(latest, s.mtimeMs);
       else unknown = true;
     } catch { unknown = true; } // 削除された変更は、記録より新しいか確かめられない
@@ -438,7 +526,7 @@ function dirtyMtime(root, extra, recordPaths) {
 }
 
 function dojoState(root, refTime, extra) {
-  const records = readTestRecords(root);
+  const records = readTestRecords(root, extra);
   const latest = records[0] || null;
   const dirty = dirtyMtime(root, extra, new Set(records.map((r) => r.file)));
   const fresh = !!latest && refTime > 0 && latest._mtimeMs > refTime && !dirty.unknown && latest._mtimeMs > dirty.latest;
@@ -486,9 +574,24 @@ export function detectFacilities(files, history, groups, extra) {
   // 同じファイルは1度だけ読む（git なら cat-file --batch の1回にまとめる）
   const rawRead = makeReader(root, isGit && !!head, !!extra.bare);
   const cache = new Map();
+  const fileInfo = new Map(files.map((f) => [f.path, f]));
   const read = (paths) => {
     const miss = uniq(paths.filter((p) => !cache.has(p)));
-    if (miss.length) { const got = rawRead(miss); for (const p of miss) cache.set(p, got.has(p) ? got.get(p) : null); }
+    if (miss.length) {
+      let budget = READ_BATCH_MAX;
+      const allowed = [];
+      for (const p of miss) {
+        const f = fileInfo.get(p);
+        const bytes = Number(f?.bytes);
+        if (!f || f.binary || !Number.isFinite(bytes) || bytes < 0 || bytes > READ_FILE_MAX) continue;
+        const cost = Math.max(1, bytes);
+        if (cost > budget) continue;
+        budget -= cost;
+        allowed.push(p);
+      }
+      const got = allowed.length ? rawRead(allowed) : new Map();
+      for (const p of miss) cache.set(p, got.has(p) ? got.get(p) : null);
+    }
     const out = new Map();
     for (const p of paths) { const t = cache.get(p); if (t != null) out.set(p, t); }
     return out;
@@ -547,11 +650,17 @@ export function detectFacilities(files, history, groups, extra) {
     return automationPath(f.path) || migrationPath(f.path) ||
       (DOC_EXT.has(f.ext) && (recoveryNamed || runbookNamed));
   }).map((f) => f.path);
-  const recoveryTexts = read([...new Set([
+  const bytesByPath = new Map(files.map((f) => [f.path, f.bytes || 0]));
+  const recoveryAll = [...new Set([
     ...recoveryPaths,
     ...workflows,
     ...chosen.filter((p) => RECOVERY_NAME.test(p) && recoveryNameEligible(p)),
-  ])].slice(0, SCAN_FILES));
+  ])];
+  // 上限を超えるときは、名前に rollback・restore などがあるファイルを先に選ぶ。読む順（＝証拠の並び）は元のまま。
+  const recoveryPicked = new Set(pickWithinBudget(
+    [...recoveryAll].sort((a, b) => RECOVERY_NAME.test(b) - RECOVERY_NAME.test(a)),
+    (p) => bytesByPath.get(p) || 0, SCAN_FILES, RECOVERY_SCAN_BYTES));
+  const recoveryTexts = read(recoveryAll.filter((p) => recoveryPicked.has(p)));
 
   const servers = [], hostsSeen = new Map(), webhooks = [], sqliteSrc = [];
   const envInCode = new Map(), loaderSrc = new Set(), routeList = [];   // 環境変数の名前 -> そのファイル、読み込む仕組み、受付の道
@@ -671,7 +780,7 @@ export function detectFacilities(files, history, groups, extra) {
         for (const command of RECOVERY_COMMANDS) {
           if (command.re.test(text)) addRecovery(command.kind, path, `「${command.detail}」`);
         }
-        if (/(?=[\s\S]*\bpg_dump\b)(?=[\s\S]*\bpg_restore\b)/i.test(text)) {
+        if (hasPgDumpAndRestore(text)) {
           addRecovery('backup', path, '「pg_dump」と「pg_restore」の両方がある');
         }
       }
