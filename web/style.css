@@ -112,8 +112,8 @@ html, body {
 #intro.show { opacity: 1; }
 #intro.out { opacity: 0; transition: opacity 0.8s ease-in; }
 #intro .intro-title {
-  font-family: "DotGothic16", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Noto Sans JP", "Meiryo", system-ui, sans-serif;
-  font-weight: 700; font-synthesis: none;      /* DotGothic16 stays regular; the fallback gothic is bold */
+  font-family: "Hiragino Maru Gothic ProN", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Noto Sans JP", "Meiryo", system-ui, sans-serif;
+  font-weight: 700; font-synthesis: none;
   font-size: 64px; line-height: 1.15; letter-spacing: 0.06em;
   color: #ffe2a0; overflow-wrap: anywhere;
   text-shadow: 0 4px 0 rgba(0, 0, 0, 0.7), 0 0 28px rgba(255, 186, 102, 0.28);

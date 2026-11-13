@@ -268,11 +268,14 @@ function agentsOfCommit(author, email, subject, body) {
 // ---------- git 履歴 ----------
 // grafts: 浅いクローンの境界コミット（完全なハッシュ）。親が無いように見えるだけなので、ファイル一覧は使わない
 // 本文（%b）は外部エージェントの印を探すためだけに読み、持ち続けない
-function readHistory(root, extra = ['-n', String(MAX_COMMITS), '--', '.'], timeout = 0, grafts = []) {
-  // 時間切れでも、それまでに読めた分は使う
+function readHistory(root, extra = ['--', '.'], maxCommits = MAX_COMMITS, grafts = []) {
+  const args = [...extra];
+  if (!args.includes('-n') && !args.includes('--max-count')) {
+    args.unshift('-n', String(maxCommits));
+  }
   const r = spawnSync('git', ['-C', root, '-c', 'core.quotepath=false', 'log', '--no-merges', '--no-renames',
-    '--format=%x1e%h%x1f%cI%x1f%aN%x1f%aE%x1f%s%x1f%b%x1f', '--name-only', '--relative', ...extra],
-  { encoding: 'utf8', maxBuffer: 1 << 30, stdio: ['ignore', 'pipe', 'ignore'], timeout });
+    '--format=%x1e%h%x1f%cI%x1f%aN%x1f%aE%x1f%s%x1f%b%x1f', '--name-only', '--relative', ...args],
+  { encoding: 'utf8', maxBuffer: 1 << 30, stdio: ['ignore', 'pipe', 'ignore'] });
   const out = r.stdout || '';
   const commits = [];
   const recs = out.split('\x1e');
@@ -489,7 +492,7 @@ export function analyzeRepository(rootPath) {
       grafts = readFileSync(shallowPath, 'utf8').split('\n').map((x) => x.trim()).filter(Boolean);
     } catch {}
   }
-  const history = isGit && head ? readHistory(root, undefined, 0, grafts) : [];
+  const history = isGit && head ? readHistory(root, undefined, MAX_COMMITS, grafts) : [];
   const dirty = isGit && head ? dirtyFiles(root, bare) : null;
   const keyer = authorKeyer();
   const stats = groups.map(() => ({ commits: 0, recent: 0, last: null, authors: new Map() }));
@@ -523,12 +526,12 @@ export function analyzeRepository(rootPath) {
       person.touches.set(i, (person.touches.get(i) || 0) + 1);
     }
   }
-  // 直近の履歴に出てこないモジュールは、それより古い履歴をそのパスだけに絞って1回でたどる（時間の上限つき）
+  // 直近の履歴に出てこないモジュールは、それより古い履歴をそのパスだけに絞って件数上限までたどる
   if (history.length >= MAX_COMMITS) {
     const missing = groups.map((g, i) => i).filter((i) => !stats[i].last);
     const paths = missing.flatMap((i) => (groups[i].path === '.' ? groups[i].files.map((f) => f.path) : [groups[i].path])).slice(0, 400);
     if (paths.length) {
-      for (const c of readHistory(root, ['--skip', String(MAX_COMMITS), '--', ...paths], 1500, grafts)) {
+      for (const c of readHistory(root, ['--', ...paths], MAX_COMMITS, grafts)) {
         const k = keyer.key(c.author);
         const mods = new Set();
         for (const f of c.files) { const i = ownerOf(f); if (i !== undefined && missing.includes(i)) mods.add(i); }
