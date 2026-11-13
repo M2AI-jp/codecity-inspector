@@ -13,8 +13,8 @@
 // Node 22+ 標準ライブラリだけ。git ls-files と git log（作者名）を1回ずつ読むだけにして、速く保つ。
 
 import { execFileSync } from 'node:child_process';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync, readdirSync, lstatSync } from 'node:fs';
+import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { agentForAuthor } from './analyze.mjs';
 
 const MAX_PIGEONS = 14, MAX_DOGS = 3, MAX_CATS = 4;
@@ -27,9 +27,34 @@ function git(root, args, max = 64 * 1024 * 1024) {
   catch { return null; }
 }
 
+// 作業ツリーから読むときは、リポジトリ内の通常ファイルだけに限定する。
+// 親ディレクトリの symlink も拒否し、/dev/stdin・/dev/zero などの外部特殊ファイルを開かない。
+function repoFile(root, rel) {
+  if (typeof rel !== 'string' || rel.includes('\0')) return null;
+  const baseRoot = resolve(root);
+  const abs = resolve(baseRoot, rel);
+  const fromRoot = relative(baseRoot, abs);
+  if (!fromRoot || fromRoot === '..' || fromRoot.startsWith(`..${sep}`) || isAbsolute(fromRoot)) return null;
+  try {
+    const rootStat = lstatSync(baseRoot);
+    if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) return null;
+  } catch { return null; }
+  let cur = baseRoot;
+  const parts = fromRoot.split(sep);
+  for (let i = 0; i < parts.length; i++) {
+    cur = join(cur, parts[i]);
+    let st;
+    try { st = lstatSync(cur); } catch { return null; }
+    if (st.isSymbolicLink()) return null;
+    if (i < parts.length - 1 && !st.isDirectory()) return null;
+    if (i === parts.length - 1 && !st.isFile()) return null;
+  }
+  return abs;
+}
+
 function listFiles(root) {
   const out = git(root, ['ls-files', '-z']);
-  if (out != null) return out.split('\0').filter(Boolean).slice(0, MAX_FILES);
+  if (out != null) return out.split('\0').filter(Boolean).slice(0, MAX_FILES).filter((p) => repoFile(root, p));
   // git でなければ浅く歩く
   const files = [];
   const walk = (rel, depth) => {
@@ -48,8 +73,10 @@ function listFiles(root) {
 
 function readText(root, rel) {
   try {
-    const abs = join(root, rel);
-    if (statSync(abs).size > MAX_READ) return null;
+    const abs = repoFile(root, rel);
+    if (!abs) return null;
+    const st = lstatSync(abs);
+    if (st.size > MAX_READ) return null;
     return readFileSync(abs, 'utf8');
   } catch { return null; }
 }

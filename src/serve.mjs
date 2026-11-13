@@ -11,6 +11,20 @@ const TYPES = {
   '.svg': 'image/svg+xml', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.ico': 'image/x-icon', '.txt': 'text/plain; charset=utf-8',
 };
 
+function localHost(header) {
+  const value = String(header || '').trim();
+  if (!value) return false;
+  if (value.startsWith('[')) {
+    const end = value.indexOf(']');
+    if (end < 0 || value.slice(1, end).toLowerCase() !== '::1') return false;
+    return value.slice(end + 1) === '' || /^:\d+$/.test(value.slice(end + 1));
+  }
+  const parts = value.split(':');
+  if (parts.length > 2) return false;
+  const name = parts[0].toLowerCase();
+  return ['localhost', '127.0.0.1'].includes(name) && (parts.length === 1 || /^\d+$/.test(parts[1]));
+}
+
 // ground: 地面の PNG（Buffer）。渡されなければ起動時にここで作る（キャッシュがあれば読むだけ）。
 export async function serveTown(town, { port = 4317, host = '127.0.0.1', ground } = {}) {
   const body = JSON.stringify(town);
@@ -23,6 +37,7 @@ export async function serveTown(town, { port = 4317, host = '127.0.0.1', ground 
       res.writeHead(code, { 'content-type': type, 'cache-control': 'no-cache' });
       res.end(req.method === 'HEAD' ? undefined : data);
     };
+    if (!localHost(req.headers.host)) return send(403, 'forbidden host');
     let path;
     try { path = decodeURIComponent(new URL(req.url, 'http://x').pathname); } catch { return send(400, 'bad request'); }
     if (req.method !== 'GET' && req.method !== 'HEAD') return send(405, 'method not allowed');
