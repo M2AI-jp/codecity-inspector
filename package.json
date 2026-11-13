@@ -6,5 +6,5 @@
   "description": "A repository becomes a walkable night-time pixel-art town.",
   "bin": { "codecity": "codecity.mjs" },
   "engines": { "node": ">=22" },
-  "scripts": { "start": "node codecity.mjs ." }
+  "scripts": { "start": "node codecity.mjs .", "test": "node --test test/*.test.mjs" }
 }

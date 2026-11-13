@@ -19,6 +19,7 @@ const EVIDENCE_CAP = 20;
 const SCAN_FILES = 2500;            // ソースを読むファイル数の上限
 const SCAN_BYTES = 16 << 20;        // ソースを読む合計バイト数の上限
 const SCAN_FILE_MAX = 256 << 10;    // これより大きいソースは読まない
+const RECOVERY_SCAN_BYTES = 16 << 20;   // 修理小屋のために読む shell・workflow・手順書の合計バイト数の上限
 const NONGIT_HEAD = 96 << 10;       // git でないとき、1ファイルの先頭だけ読む
 const TEST_RECORD_MAX = 1 << 20;    // テスト結果の記録も大きすぎるものは読まない
 const JUNIT_RECORD_MAX = 20;        // JUnit XML は数を絞る
@@ -48,13 +49,42 @@ const RECOVERY_COMMANDS = [
   { kind: 'deployment', re: /\baws\b[^\n]{0,180}\brollback\b/i, detail: 'aws ... rollback' },
   { kind: 'deployment', re: /\bgcloud\b[^\n]{0,220}--to-revision(?:=|\s)/i, detail: 'gcloud ... --to-revision' },
   { kind: 'deployment', re: /(?:\b(?:deploy|deployment|release|production|本番)[^\n]{0,180}\bgit\s+revert\b|\bgit\s+revert\b[^\n]{0,180}\b(?:deploy|deployment|release|production|本番))/i, detail: 'git revert（デプロイの戻し）' },
-  { kind: 'deployment', re: /\bflyctl?\s+deploy\b[^\n]*(?:--image\b[^\n]*(?:rollback|revert|previous|old|restore|戻|切り戻)|(?:rollback|revert|previous|old|restore|戻|切り戻)[^\n]*--image\b)/i, detail: 'flyctl deploy --image（戻し）' },
+  { kind: 'deployment', re: { test: (s) => hasFlyDeployImageBack(s) }, detail: 'flyctl deploy --image（戻し）' },
   { kind: 'database', re: /\b(?:migrate|migration)\s*(?::|\s+)(?:down|rollback)\b/i, detail: 'migrate down / rollback' },
   { kind: 'database', re: /\bprisma\s+migrate\s+resolve\s+--rolled-back\b/i, detail: 'prisma migrate resolve --rolled-back' },
   { kind: 'database', re: /\bknex\s+migrate:rollback\b/i, detail: 'knex migrate:rollback' },
   { kind: 'database', re: /\brails\s+db:rollback\b/i, detail: 'rails db:rollback' },
-  { kind: 'backup', re: /(?=[\s\S]*\bpg_dump\b)(?=[\s\S]*\bpg_restore\b)/i, detail: 'pg_dump と pg_restore' },
+  { kind: 'backup', re: { test: (s) => hasPgDumpAndRestore(s) }, detail: 'pg_dump と pg_restore' },
 ];
+// pg_dump と pg_restore がどちらもどこかにあるか。先読み2つの正規表現は長さの2乗で遅くなるので、1語ずつ別に探す（線形）。
+const PG_DUMP = /\bpg_dump\b/i;
+const PG_RESTORE = /\bpg_restore\b/i;
+export const hasPgDumpAndRestore = (s) => PG_DUMP.test(s) && PG_RESTORE.test(s);
+// fly deploy / flyctl deploy の後ろ（同じ行）に --image と戻しの語の両方があるか。行ごとに、最初の fly deploy の後ろだけを見る（線形）。
+const FLY_DEPLOY = /\bfly(?:ctl)?\s+deploy\b/i;
+const FLY_IMAGE = /--image\b/i;
+const FLY_BACK = /rollback|revert|previous|old|restore|戻|切り戻/i;
+export const hasFlyDeployImageBack = (s) => {
+  for (const line of s.split('\n')) {
+    const m = FLY_DEPLOY.exec(line);
+    if (!m) continue;
+    const rest = line.slice(m.index + m[0].length);
+    if (FLY_IMAGE.test(rest) && FLY_BACK.test(rest)) return true;
+  }
+  return false;
+};
+// 修理小屋のために読むファイルを、件数とバイト数の上限の中で順に選ぶ（入らない大きなファイルは飛ばす）。
+export const pickWithinBudget = (paths, bytesOf, maxFiles, maxBytes) => {
+  const out = [];
+  let budget = maxBytes;
+  for (const p of paths) {
+    if (out.length >= maxFiles) break;
+    const b = bytesOf(p);
+    if (b > budget) continue;
+    out.push(p); budget -= b;
+  }
+  return out;
+};
 const extOfPath = (path) => {
   const b = basename(path).toLowerCase();
   const i = b.lastIndexOf('.');
@@ -620,11 +650,17 @@ export function detectFacilities(files, history, groups, extra) {
     return automationPath(f.path) || migrationPath(f.path) ||
       (DOC_EXT.has(f.ext) && (recoveryNamed || runbookNamed));
   }).map((f) => f.path);
-  const recoveryTexts = read([...new Set([
+  const bytesByPath = new Map(files.map((f) => [f.path, f.bytes || 0]));
+  const recoveryAll = [...new Set([
     ...recoveryPaths,
     ...workflows,
     ...chosen.filter((p) => RECOVERY_NAME.test(p) && recoveryNameEligible(p)),
-  ])].slice(0, SCAN_FILES));
+  ])];
+  // 上限を超えるときは、名前に rollback・restore などがあるファイルを先に選ぶ。読む順（＝証拠の並び）は元のまま。
+  const recoveryPicked = new Set(pickWithinBudget(
+    [...recoveryAll].sort((a, b) => RECOVERY_NAME.test(b) - RECOVERY_NAME.test(a)),
+    (p) => bytesByPath.get(p) || 0, SCAN_FILES, RECOVERY_SCAN_BYTES));
+  const recoveryTexts = read(recoveryAll.filter((p) => recoveryPicked.has(p)));
 
   const servers = [], hostsSeen = new Map(), webhooks = [], sqliteSrc = [];
   const envInCode = new Map(), loaderSrc = new Set(), routeList = [];   // 環境変数の名前 -> そのファイル、読み込む仕組み、受付の道
@@ -744,7 +780,7 @@ export function detectFacilities(files, history, groups, extra) {
         for (const command of RECOVERY_COMMANDS) {
           if (command.re.test(text)) addRecovery(command.kind, path, `「${command.detail}」`);
         }
-        if (/(?=[\s\S]*\bpg_dump\b)(?=[\s\S]*\bpg_restore\b)/i.test(text)) {
+        if (hasPgDumpAndRestore(text)) {
           addRecovery('backup', path, '「pg_dump」と「pg_restore」の両方がある');
         }
       }
