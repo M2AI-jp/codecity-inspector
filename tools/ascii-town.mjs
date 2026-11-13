@@ -6,14 +6,15 @@
 // 小物: T 木 * 茂み o 樽 x 木箱 % 袋 f 鉢 v プランター c 荷車 = 柵 n ベンチ i 街灯 O 井戸 N 掲示板 & 井戸小屋 | 桟橋 ^ 舟 ∩ 水路口 ─ 橋-h │ 橋-v
 //       ! 足場 $ 工事中の札 ✓ 検査通過済み × 壊れている ? 未確認 _ 材木 [ 門の柱（くぐれる所は地面のまま） / k 外に立つ番人 / " 段の前の壁 ; 階段 / @ 開始位置
 // --districts: 建物を種類ではなく地区（最上位ディレクトリ）ごとの文字で描く
-// --check: 重なり・隙間・屋根の余白・footprint の下の行（幅いっぱい歩けて広場から届く）・同じ入力で同じ出力になるか。問題があれば終了コード1
+// --check: 重なり・版ごとの屋根の余白・footprint の下の行（幅いっぱい歩けて広場から届く）・同じ入力で同じ出力になるか。問題があれば終了コード1
 import { readFileSync } from 'node:fs';
 import { analyzeRepository } from '../src/analyze.mjs';
 import { layoutTown, loadArt, loadProps, loadGround, propTiles } from '../src/layout.mjs';
 
 const args = process.argv.slice(2);
 const mi = args.indexOf('--manifest');
-const manifest = mi >= 0 ? JSON.parse(readFileSync(args[mi + 1], 'utf8')) : undefined;
+const manifestPath = mi >= 0 ? args[mi + 1] : new URL('../art/game/manifest.json', import.meta.url);
+const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
 const lopts = { art: loadArt(manifest), props: loadProps(manifest), ground: loadGround(manifest) };
 const target = args.find((a, i) => !a.startsWith('--') && args[i - 1] !== '--manifest');
 if (!target) { console.error('使い方: node tools/ascii-town.mjs <repoPath | town.json> [--check] [--no-props]'); process.exit(2); }
@@ -66,6 +67,11 @@ const propTilesOf = (p) => {
   for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) out.push([tx + dx, ty + dy]);
   return out;
 };
+const coverOf = (b) => {
+  const vs = manifest.archetypes?.[b.archetype]?.variants || [];
+  const v = vs.find((x) => x.id === b.variant) || vs[0];
+  return Array.isArray(v?.cover) ? v.cover : null;
+};
 if (!args.includes('--no-props')) for (const p of town.props) for (const [x, y] of propTilesOf(p)) if (grid[y]?.[x] !== undefined) grid[y][x] = PROP[p.type] || '?';
 for (const l of town.landmarks || []) if (l.keeper && grid[Math.floor(l.keeper.y - 0.01)]?.[Math.floor(l.keeper.x)] !== undefined) grid[Math.floor(l.keeper.y - 0.01)][Math.floor(l.keeper.x)] = 'k';
 // 段の前の壁（階段の所を除く）
@@ -107,13 +113,11 @@ if (args.includes('--check')) {
   });
   for (const b of town.buildings) {
     if (b.door.y !== b.y + b.h - 1 || b.door.x < b.x || b.door.x >= b.x + b.w) problems.push(`${b.id} の扉が下辺に無い`);
-    for (let y = b.y - 3; y < b.y; y++) for (let x = b.x; x < b.x + b.w; x++) {
+    const cover = coverOf(b);
+    for (let dx = 0; dx < b.w; dx++) for (let y = b.y - (cover?.[dx] ?? 2); y < b.y; y++) {
+      const x = b.x + dx;
       const o = foot[y * cols + x];
       if (y >= 0 && o >= 0 && town.buildings[o] !== b) problems.push(`${b.id} の屋根の余白に ${town.buildings[o].id}`);
-    }
-    for (let y = b.y; y < b.y + b.h; y++) for (const x of [b.x - 1, b.x + b.w]) {
-      const o = foot[y * cols + x];
-      if (o >= 0 && town.buildings[o] !== b) problems.push(`${b.id} と ${town.buildings[o].id} の間に隙間が無い`);
     }
   }
   const seenProp = new Set();
@@ -190,7 +194,27 @@ if (args.includes('--check')) {
     };
     const nearCrossing = (x, y) => crossings.some((c) => Math.abs(c.x - x) + Math.abs(c.y - y) <= 2);
     const canalHas = (x, y) => canalSet.has(`${x},${y}`);
-    const bridgeDecks = town.props.filter((p) => p.type === 'bridge-h' || p.type === 'bridge-v').flatMap((p) => deckTiles(p) || []);
+    const bridgeProps = town.props.filter((p) => p.type === 'bridge-h' || p.type === 'bridge-v');
+    const bridgeDeckSets = bridgeProps.map((p) => new Set((deckTiles(p) || propTilesOf(p)).map(([x, y]) => `${x},${y}`)));
+    for (let i = 0; i < bridgeProps.length; i++) {
+      for (let j = i + 1; j < bridgeProps.length; j++) {
+        let adjacent = false;
+        for (const key of bridgeDeckSets[i]) {
+          const [x, y] = key.split(',').map(Number);
+          if (bridgeDeckSets[j].has(key) ||
+            bridgeDeckSets[j].has(`${x - 1},${y}`) || bridgeDeckSets[j].has(`${x + 1},${y}`) ||
+            bridgeDeckSets[j].has(`${x},${y - 1}`) || bridgeDeckSets[j].has(`${x},${y + 1}`)) {
+            adjacent = true;
+            break;
+          }
+        }
+        if (adjacent) {
+          const a = bridgeProps[i], b = bridgeProps[j];
+          problems.push(`橋 ${a.type} (${a.x},${a.y}) と ${b.type} (${b.x},${b.y}) の deck が縦横に隣り合う`);
+        }
+      }
+    }
+    const bridgeDecks = bridgeProps.flatMap((p) => deckTiles(p) || []);
     const bridgeDeckSet = new Set(bridgeDecks.map(([x, y]) => `${x},${y}`));
     const roadTurnAt = (x, y) => {
       const at = (xx, yy) => roadAt(xx, yy) && !bridgeDeckSet.has(`${xx},${yy}`);
