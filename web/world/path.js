@@ -4,6 +4,29 @@ import { DIR_AT } from './navigation.js';
 
 const T = TILE;
 
+// 床・地面へのクリック。実座標で空いている点を、tile内の代表点に置き換えない。
+// 家具で分かれた同じtileの中や、格子で表せない細い通路も足元で確かめる。
+export function pathTo(world, x, y, wx, wy) {
+  let target = { x: wx, y: wy };
+  if (world.feetHit(wx, wy)) {
+    const free = world.nearestFree(Math.floor(wx / T), Math.floor((wy - 3) / T), 8);
+    if (!free) return null;
+    target = world.navPoint(...free);
+  }
+  if (world.sweepFree(x, y, target.x, target.y)) return { target, points: [target] };
+  const tiles = world.findPath(Math.floor(x / T), Math.floor((y - 3) / T),
+    Math.floor(target.x / T), Math.floor((target.y - 3) / T), { useCost: false });
+  const points = tiles && world.smoothPath(x, y, tiles, target.x, target.y);
+  let previous = { x, y };
+  if (points && points.every((p) => {
+    const free = world.sweepFree(previous.x, previous.y, p.x, p.y);
+    previous = p;
+    return free;
+  })) return { target, points };
+  const fine = feetPath(world, x, y, target.x, target.y);
+  return fine ? { target, points: fine } : null;
+}
+
 // 足元(x, y)から建物bの扉の内側への道筋。届かなければnull。
 // 内側のtileが道案内の格子につながらないときは、扉の隙間まで進み、そこからまっすぐ入る。
 export function pathInto(world, b, x, y, opts = { useCost: false }) {

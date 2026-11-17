@@ -1,15 +1,59 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { World } from '../web/world.js';
 import { parseGround } from '../web/ground.js';
 import { Player } from '../web/player.js';
 import { SIM_DT } from '../web/config.js';
-import { artFrom } from '../tools/check-play.mjs';
+import { artFrom, buildWorld } from '../tools/check-play.mjs';
 
 const worldOf = (cols, rows) => {
   const town = { cols, rows, ground: Array(rows).fill('+'.repeat(cols)), buildings: [], props: [] };
   return new World(town, artFrom({}), parseGround(town));
 };
+
+function follow(world, start, route) {
+  assert.ok(route, 'クリック先への経路がある');
+  const player = new Player(start.x, start.y, null);
+  player.setPath(route.points, route.target);
+  const input = { slow: false, axis(o) { o.x = o.y = 0; return o; } };
+  for (let n = 0; n < 1200 && player.path; n++) player.update(SIM_DT, input, world);
+  assert.ok(Math.hypot(player.x - route.target.x, player.y - route.target.y) < 1,
+    `目標 (${route.target.x},${route.target.y}) に到着する: (${player.x},${player.y})`);
+  return player;
+}
+
+test('役場の室内で、格子がつながらない床もクリックした実座標まで歩ける', () => {
+  const manifest = JSON.parse(readFileSync(new URL('../art/game/manifest.json', import.meta.url)));
+  const town = {
+    cols: 32, rows: 32, ground: Array(32).fill('+'.repeat(32)), props: [], spawn: { x: 21, y: 24 },
+    buildings: [{ id: 'f1', archetype: 'town_hall', variant: 'town_hall-1',
+      x: 17, y: 17, w: 8, h: 5, door: { x: 20, y: 21 }, module: { kind: 'town_hall', path: '.' } }],
+  };
+  const { world } = buildWorld(town, artFrom(manifest));
+  let start = { x: 336, y: 324.5 };
+  assert.equal(world.findPath(21, 20, 18, 20, { useCost: false }), null,
+    '報告された開始点と目標点のtile代表点はつながっていない');
+  for (const target of [{ x: 300, y: 324.5 }, { x: 336, y: 324.5 }, { x: 360, y: 316 }]) {
+    assert.equal(world.feetHit(target.x, target.y), false);
+    const route = world.pathTo(start.x, start.y, target.x, target.y);
+    assert.deepEqual(route?.target, target, '空いている床はtile代表点へ吸着させない');
+    start = follow(world, start, route);
+  }
+});
+
+test('床クリックも細い曲がり角を歩け、閉じた通路は通らない', () => {
+  const world = worldOf(8, 8);
+  world.addRect(27, 0, 8, 35, 'wall');
+  world.addRect(48, 27, 8, 101, 'wall');
+  world.computeNav();
+  const start = { x: 16, y: 16 }, target = { x: 112, y: 112 };
+  assert.equal(world.findPath(1, 0, 7, 6), null);
+  follow(world, start, world.pathTo(start.x, start.y, target.x, target.y));
+  world.addRect(35, 27, 13, 8, 'wall');
+  world.computeNav();
+  assert.equal(world.pathTo(start.x, start.y, target.x, target.y), null);
+});
 
 test('経路の検査点の間で小物の角に足元が触れる場合も横切らない', () => {
   const world = worldOf(8, 20);

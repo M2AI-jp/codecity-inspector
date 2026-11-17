@@ -4,7 +4,7 @@ import { MAT } from './ground.js';
 import { applyDecks, addRect, pickVariant, addBuilding, propDef, addProp } from './world/placement.js';
 import { addFloorWalls, floorReach, floorSpots } from './world/floor.js';
 import { computeNav, navPoint, buildNav, navFree } from './world/navigation.js';
-import { pathInto, nearestFree, findPath, sweepFree, smoothPath } from './world/path.js';
+import { pathTo, pathInto, nearestFree, findPath, sweepFree, smoothPath } from './world/path.js';
 import { boxHits, feetHit, buildingAtPx } from './world/collision.js';
 import { addOverlayPeople } from './overlay-world.js';
 
@@ -69,6 +69,7 @@ export class World {
   feetHit(fx, fy) { return feetHit(this, fx, fy); }
   buildingAtPx(px, py) { return buildingAtPx(this, px, py); }
   computeNav() { return computeNav(this); }
+  pathTo(x, y, wx, wy) { return pathTo(this, x, y, wx, wy); }
   pathInto(b, x, y, opts = { useCost: false }) { return pathInto(this, b, x, y, opts); }
   navPoint(tx, ty) { return navPoint(this, tx, ty); }
   buildNav() { return buildNav(this); }
