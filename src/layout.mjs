@@ -32,11 +32,15 @@ import { cmp, hash32, makeRng } from './layout/util.mjs';
 import { placementKey } from './layout/grid/placement.mjs';
 import { stairClearanceConflicts, describeStairConflict } from './stair-clearance.mjs';
 import { keepReachableTerraces } from './layout/terraces.mjs';
+import { moduleGroup, groupComponents } from './group-components.mjs';
 
 export { FACILITY_NAME, LANDMARK, aggregate, chooseCanalRoute, loadArt, loadProps, loadGround, propTiles };
 
 // ---------- 本体 ----------
 export function layoutTown(repo, opts = {}) {
+  for (const m of repo.modules || []) if (m.group !== undefined && typeof m.group !== 'string') {
+    throw new TypeError(`layoutTown: ${m.path} の group は文字列で指定する`);
+  }
   // 版と水路に合わせた階段位置は配置後に決まる。実際に重なった候補だけを
   // fit から外し、同じ種・順序で再試行する。重ならない街は従来の一回で返す。
   const stairRejected = new Set();
@@ -60,7 +64,13 @@ function layoutAttempt(repo, opts, stairRejected) {
   // 外に立つ施設（井戸）: 小物の絵があるときだけ
   const lms = (repo.facilities || []).filter((f) => LANDMARK[f.archetype] && propArt[LANDMARK[f.archetype].prop]);
   const byPath = new Map((repo.modules || []).map((m) => [m.path, m]));
-  const covered = new Set([...facs, ...lms].flatMap((f) => f.merged || []));
+  const mergePaths = (f) => {
+    const paths = f.merged || [];
+    const groups = new Set(paths.map((p) => moduleGroup(byPath.get(p))));
+    // 複数担当の施設は共有施設。担当付きモジュールは吸収せず、それぞれの地区に残す。
+    return groups.size > 1 ? paths.filter((p) => moduleGroup(byPath.get(p)) === undefined) : paths;
+  };
+  const covered = new Set([...facs, ...lms].flatMap(mergePaths));
   const mods = aggregate((repo.modules || []).filter((m) => !covered.has(m.path)), CAP);
   const arch = archetypes(mods);
   // 外観の版が footprint の上を隠す行数。配置・屋根陰・芝生計測で同じ値を使う。
@@ -73,10 +83,13 @@ function layoutAttempt(repo, opts, stairRejected) {
     const a = arch.get(m);
     const [w, h] = art[a]?.footprint ?? DEFAULT_FOOT[a];
     const doorDx = clamp(art[a]?.doorX ?? DOOR_DX[a] ?? Math.floor((w - 1) / 2), 0, w - 1);
-    return { id: `b${i + 1}`, archetype: a, w, h, doorDx, roofRows: coverRowsOf(art[a]), module: m, district: m.path === '.' ? '.' : m.path.split('/')[0] };
+    return { id: `b${i + 1}`, archetype: a, w, h, doorDx, roofRows: coverRowsOf(art[a]), module: m,
+      district: moduleGroup(m) ?? (m.path === '.' ? '.' : m.path.split('/')[0]) };
   });
   const facModule = (f) => {
-    const merged = (f.merged || []).map((p) => byPath.get(p)).filter(Boolean);
+    const paths = mergePaths(f);
+    const merged = paths.map((p) => byPath.get(p)).filter(Boolean);
+    const group = merged.length && merged.every((m) => moduleGroup(m) === moduleGroup(merged[0])) ? moduleGroup(merged[0]) : undefined;
     const languages = Object.create(null);
     let lines = 0, bytes = 0, dirty = 0;
     const top = [];
@@ -86,24 +99,26 @@ function layoutAttempt(repo, opts, stairRejected) {
       for (const [k, v] of Object.entries(m.languages || {})) languages[k] = (languages[k] || 0) + v;
     }
     return {
-      path: f.merged?.length ? f.merged[0] : f.archetype === 'town_hall' ? '.' : (f.evidence[0] || '.'),
+      path: paths.length ? paths[0] : f.archetype === 'town_hall' ? '.' : (f.evidence[0] || '.'),
+      ...(group !== undefined ? { group } : {}),
       kind: f.archetype, reason: f.reason,
       files: merged.length ? merged.reduce((t, m) => t + m.files, 0) : f.evidenceCount, lines, bytes,
       languages: Object.fromEntries(Object.entries(languages).sort((p, q) => q[1] - p[1] || cmp(p[0], q[0]))),
       lastCommit: f.lastCommit || null, commits: f.commits || 0, recent: f.recent || 0, authors: f.authors || [],
       topFiles: top.sort((p, q) => q.lines - p.lines || cmp(p.path, q.path)).slice(0, 8),
-      ...(f.merged?.length ? { merged: [...f.merged] } : {}),
+      ...(paths.length ? { merged: [...paths] } : {}),
       ...(dirty > 0 ? { works: { dirty } } : {}),
     };
   };
   const facilityOf = (f, name) => ({ archetype: f.archetype, name, reason: f.reason, evidence: f.evidence,
-    evidenceCount: f.evidenceCount, facts: f.facts || {}, merged: f.merged || [] });
+    evidenceCount: f.evidenceCount, facts: f.facts || {}, merged: mergePaths(f) });
   const facSpecs = facs.map((f, i) => {
     const a = art[f.archetype];
     const [w, h] = a.footprint;
+    const module = facModule(f);
     return { id: `f${i + 1}`, archetype: f.archetype, w, h, doorDx: clamp(a.doorX ?? Math.floor((w - 1) / 2), 0, w - 1),
-      module: facModule(f), facility: facilityOf(f, FACILITY_NAME[f.archetype]), sourceFacility: f,
-      district: '\u0000facility', roofRows: coverRowsOf(a) };
+      module, facility: facilityOf(f, FACILITY_NAME[f.archetype]), sourceFacility: f,
+      district: moduleGroup(module) ?? '\u0000facility', roofRows: coverRowsOf(a) };
   });
   const landmarks = lms.map((f, i) => ({ sourceFacility: f, prop: LANDMARK[f.archetype].prop, data: {
     id: `f${facSpecs.length + i + 1}`, archetype: f.archetype, name: LANDMARK[f.archetype].name, prop: LANDMARK[f.archetype].prop,
@@ -116,7 +131,8 @@ function layoutAttempt(repo, opts, stairRejected) {
     return byKey.get(key);
   };
   for (const s of specs) {
-    if (s.module.kind === 'workshop') groupOf('\u0000workshops').items.push(s);
+    if (moduleGroup(s.module) !== undefined) groupOf(`\u0000group:${s.module.group}`).items.push(s);
+    else if (s.module.kind === 'workshop') groupOf('\u0000workshops').items.push(s);
     else if (s.module.kind === 'ruin') groupOf(s.district).ruins.push(s);
     else groupOf(s.district).items.push(s);
   }
@@ -150,7 +166,7 @@ function layoutAttempt(repo, opts, stairRejected) {
     else if (s.archetype === 'dock') fac.dock = s;
     else if (s.archetype === 'watchtower') fac.late.push({ ...s, angle: slots.pop() ?? -Math.PI / 2 });
     else if (s.archetype === 'repair') {
-      const hasWorkshop = groups.some((g) => g.key === '\u0000workshops');
+      const hasWorkshop = specs.some((s) => s.module.kind === 'workshop');
       if (hasWorkshop) fac.early.push({ ...s, angle: WORKSHOP_ANGLE });
       else fac.late.push({ ...s, angle: Math.PI / 2 });
     }
@@ -165,7 +181,15 @@ function layoutAttempt(repo, opts, stairRejected) {
   const need = all.reduce((t, s) => t + s.w + 1.6, 0);
   const gateRows = lms.some((l) => l.archetype === 'gate') && propArt.gate
     ? Math.ceil((propArt.gate.origin?.[1] ?? 64) / 16) : 0;
-  let P = null, F = null, canal = null, lastCanalAttempt = null;
+  let P = null, F = null, canal = null, lastCanalAttempt = null, bestGroupAttempt = null;
+  const acceptGroups = (candidateP, candidateF, candidateCanal) => {
+    const missing = (candidateP.groupUnplaced || []).reduce((n, u) => n + u.modules.length, 0);
+    if (!missing) return true;
+    if (!bestGroupAttempt || missing < bestGroupAttempt.missing) {
+      bestGroupAttempt = { P: candidateP, F: candidateF, canal: candidateCanal, missing };
+    }
+    return false;
+  };
   const canalRequested = (repo.facilities || []).some((f) => f.archetype === 'well' && f.facts) &&
     !!propArt['bridge-h']?.deck && !!propArt['bridge-v']?.deck;
   const C = { groups, maxH, need, seed, fac, harbour, gateRows, count: all.length, stairRejected };
@@ -174,12 +198,16 @@ function layoutAttempt(repo, opts, stairRejected) {
     const g2 = groups.map((g) => ({ ...g, items: [...g.items], ruins: [...g.ruins] }));
     const firstP = generate({ ...C, groups: g2, fac: { ...fac, early: [...fac.early], late: [...fac.late] } }, scale);
     if (!firstP) continue;
+    if (opts.debug && firstP.groupUnplaced) {
+      (opts.debug.groupAttempts ||= []).push({ scale, missing: firstP.groupUnplaced.flatMap((u) => u.modules).length });
+    }
     const firstF = finalize(firstP, maxH, { scaffold: !!(propArt.scaffold || propArt['scaffold-2']), gateRows });
     const beforeCanal = firstF.g.slice();
     const firstCanal = buildCanal(firstP, firstF, repo, propArt);
     if (canalRequested) {
       // 最終形の検査を通った港行きは、既に建物と橋の両岸を両立している。
       if (firstCanal?.cells?.length && (firstCanal.to === 'harbour' || !firstP.quay)) {
+        if (!acceptGroups(firstP, firstF, firstCanal)) continue;
         P = firstP; F = firstF; canal = firstCanal;
         break;
       }
@@ -217,6 +245,14 @@ function layoutAttempt(repo, opts, stairRejected) {
             forcedStates: reserve.states, forcedPast: reserve.past, forcedTo: reserve.to,
           });
           if (!reservedCanal?.unplaced && (!reserve.to || reservedCanal.to === reserve.to)) {
+            if (!acceptGroups(reservedP, reservedF, reservedCanal)) {
+              // 港行きの予約が担当を分断する場合、既に成立した外向き水路と連続地区を残す。
+              if (firstP.groupUnplaced && firstCanal?.cells?.length && acceptGroups(firstP, firstF, firstCanal)) {
+                P = firstP; F = firstF; canal = firstCanal;
+                break;
+              }
+              continue;
+            }
             P = reservedP; F = reservedF; canal = reservedCanal;
             break;
           }
@@ -224,11 +260,16 @@ function layoutAttempt(repo, opts, stairRejected) {
       }
       // 予約で固定施設が置けなくなる場合も、先に見つかった有効な街を
       // 捨てない。最後の失敗候補で有効な水路を上書きしない。
+      if (firstP.groupUnplaced && firstCanal?.cells?.length && acceptGroups(firstP, firstF, firstCanal)) {
+        P = firstP; F = firstF; canal = firstCanal;
+        break;
+      }
       if (!lastCanalAttempt?.canal?.cells?.length) lastCanalAttempt = { P: firstP, F: firstF, canal: firstCanal };
       continue;
     }
-    P = firstP; F = firstF; canal = firstCanal;
+    if (acceptGroups(firstP, firstF, firstCanal)) { P = firstP; F = firstF; canal = firstCanal; }
   }
+  if (!P && bestGroupAttempt) ({ P, F, canal } = bestGroupAttempt);
   if (!P && lastCanalAttempt) ({ P, F, canal } = lastCanalAttempt);
   if (!P) throw new Error('layoutTown: 建物を配置できなかった');
   const gateArt = landmarks.some((l) => l.data.archetype === 'gate') && propArt.gate;
@@ -357,6 +398,7 @@ function layoutAttempt(repo, opts, stairRejected) {
   const placedFacilitySources = new Set(P.placed.map((p) => p.spec.sourceFacility).filter(Boolean));
   const placedLandmarkIds = new Set(placedProps.landmarks.map((l) => l.id));
   const unplaced = [];
+  for (const u of P.groupUnplaced || []) unplaced.push({ ...u, modules: [...new Set(u.modules.filter((p) => byPath.has(p)))] });
   if (canal?.unplaced) unplaced.push(canal.unplaced);
   for (const f of repo.facilities || []) {
     const facilityName = FACILITY_NAME[f.archetype] || LANDMARK[f.archetype]?.name;
@@ -467,6 +509,29 @@ function layoutAttempt(repo, opts, stairRejected) {
     spawn: { x: spawn.x - x0, y: spawn.y - y0 },
   };
   placedProps.finishLawn(town, art);
+  for (const m of repo.modules || []) {
+    const group = moduleGroup(m);
+    if (group === undefined || buildings.some((b) => moduleGroup(b.module) === group &&
+      (b.module.path === m.path || b.module.merged?.includes(m.path)))) continue;
+    let gap = unplaced.find((u) => u.archetype === 'group' && u.group === group);
+    if (!gap) {
+      gap = { archetype: 'group', name: group, group, pieces: 0, buildings: [], modules: [],
+        reason: '担当のモジュールをまとめた施設を、その施設の配置条件を守って置けなかった' };
+      unplaced.push(gap);
+    }
+    if (!gap.modules.includes(m.path)) gap.modules.push(m.path);
+  }
+  if (unplaced.length) town.unplaced = unplaced;
+  for (const g of groupComponents(town)) {
+    const gap = unplaced.find((u) => u.archetype === 'group' && u.group === g.group);
+    if (gap) { gap.pieces = g.pieces; gap.buildings = g.components.flat(); }
+    else if (g.pieces > 1) {
+      unplaced.push({ archetype: 'group', name: g.group, group: g.group, pieces: g.pieces,
+        buildings: g.components.flat(), modules: [],
+        reason: '施設の固定位置または水路・段の縁により、担当地区を一つにつなげられなかった' });
+    }
+  }
+  if (unplaced.length) town.unplaced = unplaced;
   const conflicts = stairClearanceConflicts(town, art, propArt);
   if (conflicts.length) throw new Error(`layoutTown: ${describeStairConflict(conflicts[0])}`);
   return town;

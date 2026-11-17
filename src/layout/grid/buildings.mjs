@@ -1,4 +1,5 @@
 import { WINDOW } from '../constants.mjs';
+import { placeGroups } from './groups.mjs';
 
 function arcDistance(theta, g) {
   const norm = (a) => ((a % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
@@ -9,6 +10,12 @@ function arcDistance(theta, g) {
 const arc = (a, b) => Math.abs(((a - b) % (2 * Math.PI) + 3 * Math.PI) % (2 * Math.PI) - Math.PI);
 
 export function placeBuildings(S) {
+  if (!placeOrdinaryBuildings(S)) return null;
+  placeGroups(S);
+  return true;
+}
+
+function placeOrdinaryBuildings(S) {
   const { queues, pending, tracks, nominal, seek, commit, advance, cx, fac, px0, px1, scale, denseTracks, trackAffinity, rng, fit } = S;
   let activeTrack = null;
   for (let guard = 0; guard < 20000; guard++) {

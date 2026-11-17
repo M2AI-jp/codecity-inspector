@@ -16,6 +16,6 @@ export function generate(C, scale) {
   if (!placeNeighbors(S)) return null;
   if (!placeBuildings(S)) return null;
   const { cols, rows, N, id, inG, cx, aN, aS, dirS, Htop, road, pieces, plazaM, plaza, hall, quay,
-    leaves, tracks, placed, foot, roofZ, front, green, pcx, pcy, kx0, kx1, U, squares, courts, terraces } = S;
-  return { cols, rows, N, id, inG, cx, aN, aS, aSdir: dirS, Htop, road, pieces, plazaM, plaza, hall, quay, leaves, tracks, placed, foot, roofZ, front, green, pcx, pcy, kx0, kx1, U, squares: [...squares, ...courts], terraces };
+    leaves, tracks, placed, foot, roofZ, front, green, pcx, pcy, kx0, kx1, U, squares, courts, terraces, groupUnplaced } = S;
+  return { cols, rows, N, id, inG, cx, aN, aS, aSdir: dirS, Htop, road, pieces, plazaM, plaza, hall, quay, leaves, tracks, placed, foot, roofZ, front, green, pcx, pcy, kx0, kx1, U, squares: [...squares, ...courts], terraces, groupUnplaced };
 }

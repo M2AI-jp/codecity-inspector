@@ -1,4 +1,5 @@
 import { WINDOW, Y_WEIGHT, clamp } from '../constants.mjs';
+import { moduleGroup } from '../../group-components.mjs';
 
 // 切り出し前の格子・建物・候補位置。同じ種を再試行するときも、他の候補は変えない。
 export const placementKey = (cols, rows, spec, x, y) => `${cols},${rows}:${spec.id}:${x},${y}`;
@@ -69,9 +70,10 @@ export function createPlacement(S) {
   };
   // 面を切り替えるときも、既存の建物の近くにある面を優先する。
   // これで同じ地区の通りを順に埋め、広場の周囲に家を薄く散らさない。
-  const trackAffinity = (t) => {
+  const trackAffinity = (t, group) => {
     let best = 1e9;
     for (const p of placed) {
+      if (group !== undefined && moduleGroup(p.spec.module) !== group) continue;
       const px0 = p.x, px1 = p.x + p.w - 1, py0 = p.y, py1 = p.yb;
       const dx = px1 < t.L.x0 ? t.L.x0 - px1 : t.L.x1 < px0 ? px0 - t.L.x1 : 0;
       const dy = py1 < t.L.y0 ? t.L.y0 - py1 : t.L.y1 < py0 ? py0 - t.L.y1 : 0;
