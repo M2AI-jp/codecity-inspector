@@ -14,7 +14,7 @@ import { STREET, GRASS, WATER } from '../src/layout/constants.mjs';
 const base = new URL('../compare/', import.meta.url).pathname;
 const manifest = JSON.parse(readFileSync(new URL('../art/game/manifest.json', import.meta.url), 'utf8'));
 
-test('一度解析した見本リポジトリの40種でCI検査と階段の上り下りを確かめる', { timeout: 30000 }, (t) => {
+test('一度解析した見本リポジトリの200種でCI検査と階段の上り下りを確かめる', { timeout: 180000 }, (t) => {
   mkdirSync(base, { recursive: true });
   const temp = mkdtempSync(join(base, 'seed-test-')), root = join(temp, 'seed-town');
   t.after(() => rmSync(temp, { recursive: true, force: true }));
@@ -38,7 +38,7 @@ test('一度解析した見本リポジトリの40種でCI検査と階段の上�
   }
   const repo = analyzeRepository(root), original = JSON.stringify(repo);
   let greens = 0, stairs = 0;
-  const report = fuzzSeeds(repo, manifest, { count: 40, onResult(result, checks) {
+  const report = fuzzSeeds(repo, manifest, { count: 200, onResult(result, checks) {
     assert.deepEqual(result.problems, [], `head=${result.head} seed=${result.seed}\n${result.problems.join('\n')}`);
     const town = checks.town;
     if (town.terraces.length > 2) greens++;
@@ -60,7 +60,7 @@ test('一度解析した見本リポジトリの40種でCI検査と階段の上�
   assert.equal(JSON.stringify(repo), original, 'head以外のモデルと元のheadを変更しない');
   assert.ok(stairs > 0);
   assert.ok(greens > 0, '安全な緑地の段まで一律に除かない');
-  t.diagnostic(`40種、階段${stairs}列の上下移動、緑地の段が残る街${greens}件`);
+  t.diagnostic(`seed-town: 200/200 passed、階段${stairs}列の上下移動、緑地の段が残る街${greens}件`);
 });
 
 test('東向きの水路口が建物に重なる種と、橋の柱脇がふさがる種を再検査する', { timeout: 30000 }, (t) => {

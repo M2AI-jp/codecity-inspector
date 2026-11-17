@@ -1,5 +1,6 @@
 import { CAP } from './constants.mjs';
 import { absorb, cmp, parentOf, sizeOf } from './util.mjs';
+import { moduleGroup } from '../group-components.mjs';
 
 export function aggregate(modules, cap = CAP) {
   // orig: path が元の RepoModel のモジュールのパスそのものか
@@ -20,16 +21,18 @@ export function aggregate(modules, cap = CAP) {
     if (!deep.length) {
       // 最上位ばかりのとき: いちばん小さいものを次に小さいものへ
       const flat = list.filter((m) => m.path !== '.').sort(bySize);
-      if (flat.length < 2) break;
-      absorb(flat[1], flat[0]);
-      list = list.filter((m) => m !== flat[0]);
+      const small = flat.find((m, i) => flat.slice(i + 1).some((p) => moduleGroup(p) === moduleGroup(m)));
+      if (!small) break; // group の境界を守れない場合は cap より group の保持を優先する。
+      const big = flat.find((m) => m !== small && moduleGroup(m) === moduleGroup(small));
+      absorb(big, small);
+      list = list.filter((m) => m !== small);
       continue;
     }
     const m = deep[0];
     const parent = parentOf(m.path);
-    const p = list.find((x) => x.path === parent);
+    const p = list.find((x) => x.path === parent && moduleGroup(x) === moduleGroup(m));
     if (p) { absorb(p, m); list = list.filter((x) => x !== m); continue; }
-    const sib = list.filter((x) => x !== m && parentOf(x.path) === parent).sort(bySize)[0];
+    const sib = list.filter((x) => x !== m && parentOf(x.path) === parent && moduleGroup(x) === moduleGroup(m)).sort(bySize)[0];
     if (sib) {
       const [big, small] = sizeOf(sib) >= sizeOf(m) ? [sib, m] : [m, sib];
       const agg = { ...big, path: parent, orig: false, merged: [...(big.orig ? [big.path] : []), ...(big.merged || [])] };

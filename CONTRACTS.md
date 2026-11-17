@@ -12,6 +12,7 @@
   readme: { title: "CodeCity", excerpt: "最初の段落（300字まで）" } | null,
   modules: [{
     path: "src/engine",                // ルートからの相対パス。ルート直下のファイル群は "."
+    group: "engine",                   // 省略可。呼び出し側が指定する担当の地区ID（文字列、完全一致で区別）
     kind: "workshop" | "shop" | "house" | "ruin",
     reason: "package.json の scripts と .github/workflows を含む",   // kind を決めた理由（日本語、事実のみ）
     files: 12, lines: 3400, bytes: 120000,
@@ -42,6 +43,10 @@
              last: { subject, date } }]                              // いちばん新しいもの
 }
 ```
+
+`modules[].group` は配置への入力であり、解析器が担当を推測して付ける値ではない。指定された通常建物は、kind・元のファイル・規模を保って同じ group の隣に置く。工房・廃屋も明示 group を優先する。全 module で group が未指定なら、従来と同じ RepoModel・manifest に対する Town JSON はバイト単位で変わらない（group 用の空フィールドも追加しない）。
+
+`aggregate` は group が同じモジュールだけを集約する。未指定と指定済みも混ぜず、集約先に group を残す。境界を守れなければ棟数の上限 CAP を超えても別々に残す。施設へまとめる全 module が同じ group なら、その施設の module にも group を残す。複数 group（未指定を含む）にまたがる共有施設は group を持たず、group 指定の module を吸収しない。その module は通常建物として担当地区に残り、共有施設の `merged` から除く。
 
 agents の見分け方（src/analyze.mjs AGENTS）: 作者名（`claude`・`copilot-swe-agent[bot]`・`chatgpt-codex-connector[bot]`・`Cursor Agent`・`devin-ai-integration[bot]`・`… (aider)`・`gemini-code-assist[bot]` など）、
 trailer（`Co-Authored-By: Claude … <noreply@anthropic.com>`・`Co-authored-by: Codex`・`Co-authored-by: Copilot`・`Co-authored-by: Cursor <…>`・`Amp-Thread:` など）、
@@ -87,7 +92,9 @@ facts の形:
     variant: "house_s-2",              // 省略可。見た目の版（近くに同じ版が並ばないよう layout が選ぶ）。無ければ hash(id) で選ぶ
     x: 10, y: 8, w: 6, h: 4,           // footprint（壁の外周）。扉は下辺
     door: { x: 12, y: 11 },            // 扉のtile（footprintの最下段）
+    district: "engine",               // group があればその値。無ければ従来のディレクトリ地区／施設用ID
     module: { ...RepoModel.modules[i] },  // 施設では kind = archetype、統計は根拠とまとめたモジュールのもの。
+                                       // group は元の module または同じ担当だけをまとめた施設から引き継ぐ
                                        // works: { dirty } はまとめたモジュールの合計（工事中の足場の目印）
     facility: { archetype, name, reason, evidence, evidenceCount, facts, merged }   // 施設のときだけ
   }],
@@ -107,6 +114,12 @@ facts の形:
     archetype: "town_hall" | "inn" | "pub" | "warehouse" | "watchtower" | "dojo" | "well" | "dock" | "gate" | "repair" | "canal",
     name: "門", reason: "出口ごとに門の絵・柱・土道・門番を置ける場所がない",
     evidence: ["src/server/index.js", ...], evidenceCount: 3
+  }, {                                 // group の配置を満たせなかった場合。同じ配列に残す（groupGaps は使わない）
+    archetype: "group", name: "engine", group: "engine",
+    pieces: 1,                         // 置けた建物の塊数。全棟未配置なら0。固定施設同士が離れる場合は2以上もある
+    buildings: ["b2", "f4"],            // 置けた同じ group の建物ID（全件）
+    modules: ["src/commands"],         // 置けなかった元の RepoModel.modules[].path（集約前のパス）
+    reason: "施設・屋根・階段・水路の予約を守り、同じ担当の建物に隣接する空き場所を確保できなかった"
   }],                                  // 省略可。門・井戸・水路が unplaced のとき tools/check-play.mjs は失敗する。
                                        // 井戸の根拠があるのに canal と unplaced canal の両方が無い場合も失敗する
   contractors: [{ id: "a1", name: "Claude Code", commits, recent, homes: ["b3", ...], last: { subject, date } }],
@@ -134,6 +147,12 @@ facts の形:
   spawn: { x: 48, y: 40 }
 }
 ```
+
+group の「塊」は、同じ group の建物 footprint とその周囲1 tile の和集合の4近傍連結成分とする（`src/group-components.mjs`）。幅2 tile までの路地を挟んだ隣家を含み、水・街の外・他の建物・階段以外の段の縁を越えてつながない。町全体の歩ける道を使った遠回りは数えない。
+
+group 配置では、既存の配置手順で施設と未指定の建物の場所を確保し、その後、明示 group の通常建物を既存の街区・前面へまとめて確定する。屋根・階段・水路の予約を同じ `fit` で守り、候補を試しても隣接できない通常建物は描画せず、`unplaced` に元のパスと理由を残す。全体の格子も再試行し、配置数が多い有効候補を残す。港へ向かう水路の予約で担当を置けなくなる場合、既に成立した外向き水路と連続地区を選べる。固定施設を group のために移動しない。固定施設同士、または最終の水路・段の縁によって複数の塊になる場合も、実測の `pieces`・建物ID・理由を `unplaced` に残す（建物を省略していなければ `modules: []`）。
+
+`tools/ascii-town.mjs --check` は group ごとの塊数を表示し、一塊でないのに実測と一致する理由付き `unplaced` が無ければ失敗する。`tools/seed-fuzz.mjs model.json --count 200` は、元の各 group module が建物か理由付き未配置のどちらかに残ることも検査し、全 group 完全配置の seed 数と「一塊または理由付き未配置」の seed 数を別々に報告する。
 
 街の形（src/layout.mjs）: 小さな広場（幅10〜14・奥行き9前後。北の辺は役場の段とその壁・階段、東西は広場わきの建物、南は広場の段の擁壁とその下の大通り。南の縁の中央に幅4〜6マスの階段）・広場の南の大通り・広場の両わきから東西へ出る北の通り・広場の両わきの南北の通り・役場の脇から北への通り・大通りから街の端（水辺なら岸）へ段々に斜めに下る通り（2〜3行ごとに1列ずれる）を骨組みにして、その外の地区を通りで切り分けていく。広場に東西から接する北の通りと両わきの通りは広場の段と同じ高さでつなぎ、低い大通りとの高低差は南階段だけでつなぐ。階段の前後2行は建物・小物でふさがず、街の他の歩行領域へ通じる。どの通りもまっすぐなのは 5〜10 マス（大通りの広場の下と、船着場・桟橋の前は 12〜14 マス）までで、そこで1行（1列）ずれるか T 字に突き当たる（`meander`）。切れ目は地区ごとに違う位置で T 字に突き当たり、交差点の向こうの通りと一直線につながりにくいよう、はじめの一区間は短い。ずれた通りに届かなくなった通りの端は届くまでのばす。深い街区には下へだけ揺れる土の路地（ときどき行き止まり）か、中ほどの小さな舗装の中庭（court。下の通りから小路が入り、奥の家は中庭に扉を向ける）。広い街区には一度折れるか1列ずつ揺れる南北の小路（折れた角の内側は小さな裏庭）。南北の通りが東西の通りに上から突き当たる角のいくつかは小さな広場（舗装、街灯とベンチか木か荷車）。同じ通りの隣は間0マスを約半分、1マスを約4割、2マスを約1割にし、3マス以上は作らない（間0は footprint の端を接してよい）。建物は隣と違う下がり方を先に選び、前の通りから1〜2行上へ寄せる。建物の上側に置かない余白は、その外観版の `cover` の最大行数だけにする。低い建物の前の空きは草地＋柵にせず、通りと同じ STREET・DIRT・PLAZA の前庭にする。緑地は建物15棟に1つほど、街の内側の空き地は木立ち（使わなかった街区には下の通りから曲がった土の小道が抜ける。通りの向こう側の路地と同じ列にはしない）。建物の無い通りは消え、街のまわりは森、街の外へ出る土の道が北・南（斜めの通りの続きは段々）・西・東に残る（宿屋の側は2行の街道）。
 密度の規則（src/layout.mjs generate）: 仮想格子は建物数に対して過大にせず、同じ面に置き始めた建物はその面の cursor が閉じるまで続けて置く。面を切り替えるときも既存の建物に近い面を優先し、広場の北側には長い frontage を数本用意して薄い地区への散開を避ける。役場は広場の北辺の中心に置き、左右の住宅を間0〜1マスで先に確保する。役場の段はその隣家の下まで広げてよい。隣の間は0マスを約半分、1マスを約4割、2マスを約1割にし、3マス以上は作らない。建物の裏は外観版の `cover` の最大行数だけを予約し、低い建物の前は STREET・DIRT・PLAZA の前庭にする。`node tools/lawn.mjs town.json` の最大は8マス以下にする。

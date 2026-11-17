@@ -5,7 +5,7 @@
 // 地面: . 草地 # 石畳 : 土の路地 + 広場 ~ 水（空白は街の外）
 // 小物: T 木 * 茂み o 樽 x 木箱 % 袋 f 鉢 v プランター c 荷車 = 柵 n ベンチ i 街灯 O 井戸 N 掲示板 & 井戸小屋 | 桟橋 ^ 舟 ∩ 水路口 ─ 橋-h │ 橋-v
 //       ! 足場 $ 工事中の札 ✓ 検査通過済み × 壊れている ? 未確認 _ 材木 [ 門の柱（くぐれる所は地面のまま） / k 外に立つ番人 / " 段の前の壁 ; 階段 / @ 開始位置
-// --districts: 建物を種類ではなく地区（最上位ディレクトリ）ごとの文字で描く
+// --districts: 建物を種類ではなく地区（group 指定を優先）ごとの文字で描く
 // --check: 重なり・版ごとの屋根の余白・footprint の下の行（幅いっぱい歩けて広場から届く）・同じ入力で同じ出力になるか。問題があれば終了コード1
 import { readFileSync } from 'node:fs';
 import { analyzeRepository } from '../src/analyze.mjs';
@@ -42,6 +42,7 @@ console.log(`\n${town.repo.name} @ ${town.repo.head ?? '-'}: ${town.cols}×${tow
 
 if (args.includes('--check')) {
   const result = checkAscii(town, manifest, {
+    repo: model,
     regenerate: model ? () => layoutTown(analyzeRepository(target), lopts) : undefined,
   });
   for (const line of result.lines) console.log(line);

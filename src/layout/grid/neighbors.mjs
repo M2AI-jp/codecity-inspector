@@ -1,3 +1,4 @@
+import { moduleGroup } from '../../group-components.mjs';
 
 export function placeNeighbors(S) {
   const { fac, hall, trackAt, fit, commit, tracks, flankW, flankE, px0, px1, advance, dockAt, pinned, scale, groups, placed, terraces, kx0, kx1, harbour } = S;
@@ -46,6 +47,7 @@ export function placeNeighbors(S) {
         const refs = [];
         for (let qi = 0; qi < queues.length; qi++) for (let si = 0; si < queues[qi].items.length; si++) {
           const s = queues[qi].items[si];
+          if (moduleGroup(s.module) !== undefined) continue;
           refs.push({ qi, si, s, house: s.module?.kind === 'house' ? 0 : 1 });
         }
         refs.sort((a, b) => a.house - b.house || a.qi - b.qi || a.si - b.si);
@@ -82,6 +84,7 @@ export function placeNeighbors(S) {
       const refs = [];
       for (let qi = 0; qi < queues.length; qi++) for (let si = 0; si < queues[qi].items.length; si++) {
         const s = queues[qi].items[si];
+        if (moduleGroup(s.module) !== undefined) continue;
         refs.push({ qi, si, s, house: s.module?.kind === 'house' ? 0 : 1 });
       }
       refs.sort((a, b) => a.house - b.house || a.qi - b.qi || a.si - b.si);

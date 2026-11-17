@@ -18,7 +18,7 @@ export const fuzzHead = (index) => index.toString(16).padStart(7, '0');
 export function checkSeed(repo, manifest, { layout = layoutTown } = {}) {
   const options = { art: loadArt(manifest), props: loadProps(manifest), ground: loadGround(manifest) };
   const town = layout(repo, options);
-  const ascii = checkAscii(town, manifest, { regenerate: () => layout(repo, options) });
+  const ascii = checkAscii(town, manifest, { repo, regenerate: () => layout(repo, options) });
   const lawn = largestRectangle(visibleLawn(town, manifest.archetypes, options.props), town.cols, town.rows)?.a ?? 0;
   const play = checkPlay(town, manifest, { repo });
   const problems = [
@@ -42,6 +42,10 @@ export function fuzzSeeds(repo, manifest, {
       Object.assign(result, {
         problems: checks.problems, lawn: checks.lawn,
         terraces: checks.town.terraces.length, stairs: checks.town.stairs.length,
+        ...(checks.ascii.groups.length ? { groups: checks.ascii.groups.map((g) => ({
+          group: g.group, pieces: g.pieces, buildings: g.buildings,
+          unplaced: (checks.town.unplaced || []).filter((u) => u.archetype === 'group' && u.group === g.group),
+        })) } : {}),
       });
     } catch (e) {
       result.problems.push(`exception: ${e.stack || e}`);
@@ -87,6 +91,12 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
       } });
       if (out) writeFileSync(join(out, 'report.json'), JSON.stringify(report, null, 2));
       console.log(`${repo.name}: ${count - report.failed}/${count} passed, ${report.failed} failed (heads ${fuzzHead(start)}..${fuzzHead(start + count - 1)})`);
+      const grouped = report.results.filter((r) => r.groups);
+      if (grouped.length) {
+        const connected = grouped.filter((r) => r.groups.every((g) => g.pieces === 1 && !g.unplaced.length)).length;
+        const accounted = grouped.filter((r) => r.groups.every((g) => g.pieces === 1 || g.unplaced.some((u) => u.reason?.trim()))).length;
+        console.log(`groups: ${connected}/${count} all connected without unplaced; ${accounted}/${count} one piece or reason in unplaced`);
+      }
       if (report.failed) process.exitCode = 1;
     }
   }
