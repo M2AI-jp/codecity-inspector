@@ -114,13 +114,15 @@ function placeOrdinaryBuildings(S) {
     let t = activeTrack, tn = t ? nominal(t) : null;
     if (!t || t.closed) {
       t = null; tn = null;
-      const dense = denseTracks.find((c) => !c.closed && !c.innOnly);
+      // 岸の家並みと役場のない広場の北辺を先に確保する。それ以外は
+      // 長い面も含めて近さを比較し、遠い北の列だけを先に埋めない。
+      const dense = denseTracks.find((c) => (c.harbour || c.plaza) && !c.closed && !c.innOnly);
       if (dense) {
         t = dense;
         tn = nominal(t);
       }
       for (const c of tracks) {
-        if (t) break;
+        if (dense) break;
         if (c.innOnly) continue;
         if (c.closed) continue;
         const n = nominal(c);
