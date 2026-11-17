@@ -13,6 +13,7 @@ import { layoutTown, loadArt, loadProps, loadGround } from '../src/layout.mjs';
 
 import { townGrid } from '../src/town-grid.mjs';
 import { checkAscii } from './check-ascii.mjs';
+import { stampOverlay } from '../src/overlay/ascii.mjs';
 
 const args = process.argv.slice(2);
 const mi = args.indexOf('--manifest');
@@ -31,6 +32,7 @@ const districts = [...new Set(town.buildings.map((b) => b.district))].sort();
 const DL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 const byDistrict = args.includes('--districts');
 const grid = townGrid(town, propArt, { noProps: args.includes('--no-props'), byDistrict });
+if (!args.includes('--no-props')) stampOverlay(grid, town.overlay);
 console.log(grid.map((r) => r.join('')).join('\n'));
 if (byDistrict) console.log(districts.map((d, i) => `${DL[i % DL.length]}=${d}`).join('  '));
 

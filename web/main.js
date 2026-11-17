@@ -12,6 +12,7 @@ import { Renderer } from './render.js';
 import { Input } from './input.js';
 import { Smoke } from './effects.js';
 import { UI, showError } from './ui.js';
+import { createOverlay } from './overlay.js';
 
 const T = TILE;
 const params = new URLSearchParams(location.search);
@@ -79,7 +80,7 @@ async function boot() {
   const creatures = createCreatures(town, world, await loadCreatureArt(manifest, MANIFEST_URL));   // pass-through, never solid
   // keepers stand still: make them solid for everyone and refresh navigation around them
   for (const k of npcs.keepers) world.addRect(k.x + KEEPER_BOX[0], k.y + KEEPER_BOX[1], KEEPER_BOX[2], KEEPER_BOX[3], 'npc');
-  if (npcs.keepers.length) world.computeNav();
+  if (npcs.keepers.length || town.overlay) world.computeNav();
   // the keeper answers as soon as you step in: one standing further back than NEAR_KEEPER from the
   // spot just inside the door (behind a shop counter) still speaks from there
   for (const k of npcs.keepers) {
@@ -102,7 +103,7 @@ async function boot() {
   input.blockKey = (code) => ui.rosterOpen && (code === 'ArrowLeft' || code === 'ArrowRight');
   document.getElementById('loading').classList.add('hide');
 
-  const noticeboards = world.props.filter((p) => p.type === 'noticeboard');
+  const noticeboards = world.props.filter((p) => p.type === 'noticeboard' && !p.data.overlayId);
   const readme = town.repo && town.repo.readme;
 
   // ---- view sizing: integer device-pixel scale, native view ~400-480 px wide --------------
@@ -211,6 +212,7 @@ async function boot() {
   let current = null;
   const viewRect = { x: 0, y: 0, w: 0, h: 0 };
   const characters = [player, ...npcs.keepers, ...movers, ...creatures.list];
+  const overlay = createOverlay({ town, world, art, characters, ui });
   const npcList = [...npcs.keepers, ...movers];
   let playerMoved = false;
 
@@ -288,7 +290,10 @@ async function boot() {
     uiState.playerMoved = playerMoved;
     const pet = uiState.keeper ? null : creatures.pick(player, uiState.walker);   // a creature nearer than the resident
     if (pet) uiState.walker = null;
+    const overlayNear = overlay?.nearest(player);
+    if (overlayNear) uiState.keeper = uiState.walker = uiState.notice = null;
     ui.update(uiState);
+    overlay?.update(view, player, overlayNear);
     creatures.bubble(view, player, pet);
   }
 
@@ -328,7 +333,7 @@ async function boot() {
 
   // Inspection handle for development and automated checks.
   window.__codecity = {
-    town, art, world, ground, player, npcs, creatures, view, cam, ui, input,
+    town, art, world, ground, player, npcs, creatures, view, cam, ui, input, overlay,
     step(seconds = 1) { const n = Math.round(seconds / SIM_DT); for (let i = 0; i < n; i++) update(SIM_DT); render(1, SIM_DT); last = performance.now(); },
     renderNow() { render(1, 0); },
     // run n frames with synthetic timestamps (hz) and report on-screen player x/y and camera

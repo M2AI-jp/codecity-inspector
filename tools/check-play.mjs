@@ -25,82 +25,38 @@
 import { readFileSync, statSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { readOverlay } from '../src/overlay/read.mjs';
+import { placeOverlay } from '../src/overlay/place.mjs';
+import { analyzeOverlayModel, groupOverlayModel } from '../src/overlay/model.mjs';
+import { overlayPeople } from '../web/overlay-world.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const NEAR_NOTICE_OVERLAY = 36;
 const web = (m) => import(new URL(`../web/${m}`, import.meta.url).href);
 
 // web/assets.js only touches the DOM inside its loaders; give warnOnce a quiet console.
-const { TILE: T, FEET_W, FEET_H, FEET_UP, SIM_DT, NEAR_KEEPER, KEEPER_BOX } = await web('config.js');
-const { parseGround } = await web('ground.js');
-const { World } = await web('world.js');
+const { TILE: T, FEET_W, FEET_H, FEET_UP, SIM_DT, NEAR_KEEPER } = await web('config.js');
 const { Player } = await web('player.js');
-const { createResidents } = await web('residents.js');
+import { artFrom, buildWorld } from '../src/overlay/geometry.mjs';
+export { artFrom, buildWorld } from '../src/overlay/geometry.mjs';
 
 // --- art: the same normalisation as web/assets.js loadArt(), geometry only -----------------
-export function artFrom(m) {
-  const stubSheet = { stub: true };
-  const art = { tile: m.tile || 16, player: stubSheet, keepers: {}, townsfolk: [], archetypes: {}, props: {}, ground: {} };
-  const ch = m.characters || {};
-  for (const kind of Object.keys(ch.keepers || {})) art.keepers[kind] = stubSheet;
-  for (const [key, a] of Object.entries(m.archetypes || {})) {
-    const defs = Array.isArray(a.variants) && a.variants.length ? a.variants : [a];
-    art.archetypes[key] = {
-      key,
-      variants: defs.map((v, i) => ({
-        key, id: v.id || `${key}-${i + 1}`,
-        footprint: v.footprint || a.footprint || null,
-        exterior: null, cutaway: null,
-        exteriorOrigin: (v.exterior && v.exterior.origin) || [0, 0],
-        cutawayOrigin: (v.cutaway && v.cutaway.origin) || (v.exterior && v.exterior.origin) || [0, 0],
-        door: v.door || null,
-        floor: Array.isArray(v.floor) ? v.floor : null,
-        blockers: Array.isArray(v.blockers) ? v.blockers : [],
-        lights: Array.isArray(v.lights) ? v.lights : [],
-        interiorLights: Array.isArray(v.interiorLights) ? v.interiorLights : [],
-        smoke: Array.isArray(v.smoke) ? v.smoke : [],
-      })),
-    };
-  }
-  for (const [key, p] of Object.entries(m.props || {})) {
-    art.props[key] = { key, image: null, origin: p.origin || [0, 0], solid: p.solid || null, light: p.light || null, flicker: p.flicker !== false,
-      deck: Array.isArray(p.deck) ? p.deck : null, layer: p.layer === 'ground' ? 'ground' : null,
-      ...(Array.isArray(p.solids) ? { solids: p.solids } : {}), ...(Array.isArray(p.lights) ? { lights: p.lights } : {}),
-      ...(Array.isArray(p.opening) ? { opening: p.opening } : {}) };
-  }
-  return art;
-}
 
-async function townFor(target, manifest) {
+async function townFor(target, manifest, overlay) {
   const abs = resolve(target);
   if (statSync(abs).isDirectory()) {
     const { analyzeRepository } = await import('../src/analyze.mjs');
     const { layoutTown, loadArt, loadProps, loadGround } = await import('../src/layout.mjs');
-    const repo = analyzeRepository(abs);
-    return { town: layoutTown(repo, { art: loadArt(manifest), props: loadProps(manifest), ground: loadGround(manifest) }), repo };
+    const repo = overlay ? groupOverlayModel(analyzeOverlayModel(abs), overlay) : analyzeRepository(abs);
+    const town = layoutTown(repo, { art: loadArt(manifest), props: loadProps(manifest), ground: loadGround(manifest), ...(overlay ? { seed: overlay.seed } : {}) });
+    return { town: overlay ? placeOverlay(town, overlay, manifest) : town, repo };
   }
-  return { town: JSON.parse(readFileSync(abs, 'utf8')), repo: null };
+  const town = JSON.parse(readFileSync(abs, 'utf8'));
+  if (overlay) throw new Error('--overlay requires a repository (town.json already contains its resolved overlay)');
+  return { town, repo: null };
 }
 
 // --- the world as web/main.js builds it ------------------------------------------------------
-export function buildWorld(town, art) {
-  const warns = [];
-  const ow = console.warn;
-  console.warn = (...a) => warns.push(a.join(' '));
-  let world, npcs;
-  try {
-    world = new World(town, art, parseGround(town));
-    npcs = createResidents(town, world, art, false);
-    for (const k of npcs.keepers) world.addRect(k.x + KEEPER_BOX[0], k.y + KEEPER_BOX[1], KEEPER_BOX[2], KEEPER_BOX[3], 'npc');
-    if (npcs.keepers.length) world.computeNav();
-  } finally { console.warn = ow; }
-  const spawn = town.spawn || { x: town.cols / 2, y: town.rows / 2 };
-  let [sx, sy] = [Math.floor(spawn.x), Math.floor(spawn.y)];
-  const free = world.nearestFree(sx, sy, 20);
-  if (free) [sx, sy] = free;
-  const p = world.navPoint(sx, sy);
-  return { world, npcs, start: { x: Math.round(p.x), y: Math.round(p.y) }, warns };
-}
-
 // 1px flood fill of feet positions (4-neighbour, the player's sub-steps are <= 1 px per axis)
 function flood(world, start) {
   const W = world.W, H = world.H;
@@ -293,6 +249,21 @@ export function checkPlay(town, manifest, { repo = null, verbose = false, target
   let failed = 0;
   const { world, npcs, start, warns } = buildWorld(town, art);
   const { seen, count } = flood(world, start);
+  const overlay = town.overlay ? {} : null;
+  if (overlay) {
+    for (const [kind, items] of [['markers', town.overlay.markers], ['people', overlayPeople(town.overlay)],
+      ['goal', town.overlay.goal ? [town.overlay.goal] : []]]) {
+      const bad = (items || []).filter((p) => !nearSeen(world, seen, p.x * T, p.y * T, NEAR_NOTICE_OVERLAY));
+      overlay[kind] = { reachable: (items || []).length - bad.length, total: (items || []).length };
+      failed += bad.length;
+      for (const p of bad) log(`  x overlay ${kind} ${p.id} cannot be reached`);
+    }
+    overlay.unplaced = (town.unplaced || []).filter((u) => u.overlay).length;
+    const unexplained = (town.unplaced || []).filter((u) => u.overlay && !u.reason?.trim());
+    failed += unexplained.length;
+    for (const u of unexplained) log(`  x overlay ${u.id} unplaced without reason`);
+    log(`overlay: markers ${overlay.markers.reachable}/${overlay.markers.total}, people (including gate keepers) ${overlay.people.reachable}/${overlay.people.total}, goal ${overlay.goal.reachable}/${overlay.goal.total} reachable; unplaced ${overlay.unplaced}, unexplained ${unexplained.length}`);
+  }
   const rows = [];
   for (const b of world.buildings) {
     const r = reachOf(world, seen, b);
@@ -388,7 +359,7 @@ export function checkPlay(town, manifest, { repo = null, verbose = false, target
     if (!x.ok || verbose) log(`      ${corridorReport(world, b)}; nearest reachable to door: ${x.r.nearest ? `${x.r.nearest[0] - b.px},${x.r.nearest[1] - b.py}` : 'none'}`);
   }
   if (verbose) for (const w of new Set(warns)) log(`  warn: ${w}`);
-  return { failed, lines, problems: lines.filter((line) => /^  x /.test(line)) };
+  return { failed, lines, problems: lines.filter((line) => /^  x /.test(line)), ...(overlay ? { overlay } : {}) };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
@@ -396,17 +367,21 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
   const verbose = args.includes('-v');
   const mi = args.indexOf('--manifest');
   const ti = args.indexOf('--town-out');
+  const oi = args.indexOf('--overlay');
   const manifestPath = resolve(mi >= 0 ? args[mi + 1] : `${ROOT}/art/game/manifest.json`);
-  const targets = args.filter((a, i) => !a.startsWith('-') && !['--manifest', '--town-out'].includes(args[i - 1]));
+  const targets = args.filter((a, i) => !a.startsWith('-') && !['--manifest', '--town-out', '--overlay'].includes(args[i - 1]));
   if (!targets.length || (ti >= 0 && (!args[ti + 1] || targets.length !== 1))) {
-    console.error('使い方: node tools/check-play.mjs <repo | town.json> [...] [--manifest path] [--town-out path (1 target)] [-v]');
+    console.error('使い方: node tools/check-play.mjs <repo | town.json> [...] [--overlay file (repo only)] [--manifest path] [--town-out path (1 target)] [-v]');
     process.exit(2);
   }
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+  let overlay;
+  try { if (oi >= 0) overlay = readOverlay(args[oi + 1]); }
+  catch (e) { console.error(e.message); process.exit(1); }
   let failed = 0;
   for (const target of targets) {
     const t0 = performance.now();
-    const { town, repo } = await townFor(target, manifest);
+    const { town, repo } = await townFor(target, manifest, overlay);
     if (ti >= 0) writeFileSync(resolve(args[ti + 1]), JSON.stringify(town, null, 1));
     const result = checkPlay(town, manifest, { repo, verbose, target, t0 });
     for (const line of result.lines) console.log(line);

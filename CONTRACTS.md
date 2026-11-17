@@ -262,3 +262,83 @@ manifest.json は手で編集しない。画像を作る人は、画像の隣に
 - 外部工務店（town.contractors）は1つにつき代理人が1人、homes の建物のあいだを住人と同じように歩く（絵は characters.contractor、無ければ townsfolk の姿）。吹き出しは「<名前> ─ 外部工務店の代理人です」「この街で最近90日に N 件の工事に名前があります」「工事の報告は自己申告です」「動くかどうかは道場で確かめてください」（数は本当の数だけ）。
 - 常連（town.crowd）は townsfolk の姿（`look % townsfolk数`）で、自分の建物の近くを歩き、ときどき広場やほかの建物の扉へ行き、立ち止まって見回し、二人で向かい合って立ち話をする。吹き出しは「◯◯の常連」と、その建物の本当の事実をひとつだけ言う。
 - コミットした人は townsfolk の姿で街を歩く（`look % townsfolk数` で姿を選ぶ）。番人と同じ人物が二重に現れることはない。
+
+## 重ね書き v1（`--overlay <file>` → `Town.overlay` → `/overlay.json`）
+
+CLI は `node codecity.mjs <repo> --overlay overlay.json [--port N] [--json out.json] [--ground out.png]`。
+指定した手元の通常ファイルだけを読む。URL・ディレクトリ・壊れた JSON・version が 1 以外・1,000,000 バイト超過は理由を stderr に出し exit 1。
+overlay が無い場合は overlay 用フィールドを Town に追加せず、従来の JSON を保つ。
+
+入力:
+
+```js
+{
+  version: 1,
+  source: { tool: "gridhub", name: "メモアプリ", seq: 34 }, // 省略可。業務上の意味を解さない
+  seed: "memo",                      // 省略可。layout の種だけ。HEAD・施設の証拠や状態には使わない
+  groups: [{ id: "ui", label: "絵師", paths: ["web/**"] }], // 省略可
+  title: { text: "メモアプリ", sub: "テスト 11/11" },      // 省略可
+  markers: [{
+    id: "U3", kind: "record", state: "unverified",
+    at: { path: "web/api-client.mjs" }, label: "APIクライアント", lines: ["テスト 0/0"]
+  }],
+  people: [{ id: "artist", name: "絵師", at: { marker: "U3" }, look: 2, lines: ["作業中"] }],
+  goal: { at: { landmark: "town_hall" }, label: "完了", lines: ["メモを書いて一覧できる"] }
+}
+```
+
+`groups` の id は groups 内で一意。markers・people・goal の id は合わせて一意で、groups とは別の名前空間。
+goal の id は省略すると `$goal`。重複した後続の物は理由付き unplaced にする。
+`groups` の不正な形・重複 id・不正な相対 glob、seed の不正な型、seed と groups だけで 1,000,000 バイトを超える場合は全体を拒否する。地区の先勝ちを部分的な省略で変えない。
+
+glob は `/` 区切りで、`*` は区切り内の任意の長さ、`?` は区切り内の Unicode コードポイント 1 字、`**` は 0 個以上のパス部分。
+正規表現・brace・否定 glob は解釈しない。モジュールのパスまたは、そのモジュールが実際に含むファイルのパスに最初に一致した group の id を `modules[].group` に入れる。
+解析器が小さなディレクトリをまとめた場合は、そのモジュール全体が先勝ちの group に属し、overlay のためにモジュールを分割しない。未一致は group なし。
+`analyzeRepository` の省略可能な `onModules(modules, fileGroups)` は、この全ファイル対応を受け取るためのフック。通常の RepoModel の形は変えない。
+
+| at（必ず 1 種） | 対応 |
+|---|---|
+| `{ path }` | 通常建物の module.path と、集約・施設に吸収された merged のパスから、そのファイルを含む最も深いモジュールの建物。無ければ役場、次に井戸、次に spawn |
+| `{ group }` | 同じ module.group の建物から広場に近い戸口。建物のない group の board・person は井戸または広場の周り |
+| `{ building }` | town.buildings の id。存在しなければ unplaced |
+| `{ landmark }` | town_hall・well・gate のそば。対象が無ければ town_hall → well → spawn |
+| `{ marker }` | people だけ。配置済み marker のそば。未配置の marker なら人も理由付き unplaced |
+
+record は `sign-passed`・`sign-failed`・`sign-unverified`、board は `noticeboard`。
+検証を通った record が 1 個以上ある間は、置けない record も含めて、道場自身の状態札を隠す。record がなくなれば元の道場の札を戻す。道場の facts は変更しない。
+gate は `gate` と門番の絵。歩行グラフ上の候補を絞り、実際の足元の 1px グラフでその tile を除くとほかの到達可能な位置が切り離されることを確かめる。通過可能な門と到達可能な門番を置ける切断点がなければ unplaced。
+people は townsfolk の `look % 絵の数`、look 省略時は id の固定 hash。goal は絵も当たりも持たず、歩ける位置と DOM の名札だけ。
+
+1 戸口に物は 1 個まで。あふれた物は同じ district 内で元の戸口に近い順に試す。
+戸口の前 2 行・実際の扉の幅＋左右 1 マス、建物正面の最初の 1 行、階段の前後 2 行＋左右 1 マス、建物・屋根・既存小物・人・出発点を避ける。
+各追加の当たりについて、check-play と同じ足元の大きさ・1px の 4 近傍を使い、追加した当たりが占める位置を除いて既存の到達可能な領域を切り離さない。すでに置いた物・人へ話せる位置も残す。札の状態だけが変わるときは配置を保つ。
+ASCII の tile 単位の歩行面も同時に保つ。overlay 有効時に、水路脇にある他の舗装と 4 近傍でつながらない孤立した土 1 マスは草へ戻す（既存の芝生仕上げが残す場合への補正）。橋の取り付け・建物・入口は対象外で、水と歩行面の形は変えない。overlay なしでは適用しない。
+
+上限は markers 2000 個、people 100 人。label・people.name・title.text は 60 コードポイント、lines は 6 行×各 80 コードポイント、title.sub は 80 コードポイント。
+数の上限を超えた項目、文字の上限や型を満たさない項目は部分的に切り詰めず、その項目を unplaced に記録する。title の不正は題字だけを採用しない。
+画面の overlay の字はすべて `textContent` で表示する。
+
+Town は配置済みの物を `props` にも持ち、`overlayId` で通常の小物と区別する。`Town.overlay` と `/overlay.json` の成功応答は同じ形:
+
+```js
+{
+  version: 1, layoutKey: "<seed/groups の SHA-256>", revision: "<配置結果の SHA-256>",
+  source: { tool, name, seq }, title: { text, sub }, // 入力にある場合だけ
+  hideDojoSigns: true,
+  markers: [{ id, kind, state, at, label, lines, x, y, building /* 戸口を使用したとき */, keeper /* gate だけ */ }],
+  people: [{ id, name, at, look, lines, x, y }],
+  goal: { id, at, label, lines, x, y } | null,
+  props: [{ type, look, x, y, overlayId }], // overlay の物と、表示する道場の元の札
+  unplaced: [{ overlay: true, scope: "markers" | "people" | "goal" | "title", id, index, reason }]
+}
+```
+
+x/y は tile 単位の足元。keeper は `{ x, y }`。building・state・index・id は該当する場合だけ。
+`Town.unplaced` にも同じ診断を追加する。入力の `unplaced` は producer の旧診断なので採用しない。
+主な reason は `unknown kind`、`duplicate id`、各文字・個数の limit、`invalid at`、`invalid record state`、`invalid look`、`missing art: …`、`missing townsfolk art`、`building not found`、`group has no building`、`marker not placed`、`no safe free doorway in district`、`no safe space near plaza or landmark`、`no safe walkable cut point for gate and keeper`、`no safe reachable space for person`、`no reachable goal location`。
+
+serve は指定ファイルだけを 750ms 間隔で監視し、`/overlay.json` の取得時にも再確認する。ブラウザは 2 秒ごとに取得し、ID ごとに位置・内容が変わった物と人だけを差し替える。変わらない描画オブジェクト・人物・建物・地面を保持する。
+移動・追加する物がプレイヤーや歩行中の住人に重なる場合は、次の取得まで適用を待つ。
+seed または groups が変わった場合だけ町と地面を再生成し、layoutKey の変化でブラウザを再読み込みする。title・source・状態・会話の変更では再読み込みしない。
+ライブ中の不正ファイルは `/overlay.json` を HTTP 422 `{ version: 1, error: "理由" }` にし、最後の正しい町を保つ。正しいファイルへ戻すと更新を再開する。
+Host の確認、GET/HEAD、localhost の listen、web/art だけの静的配信は従来と同じ。要求 URL から別の overlay ファイルを選ぶ仕組みはない。

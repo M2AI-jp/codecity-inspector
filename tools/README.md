@@ -12,3 +12,10 @@
 - 担当地区の検査: `node tools/ascii-town.mjs town.json --districts --check`（`module.group` ごとの塊数と理由付き `unplaced` を表示。一塊でないのに説明が無ければ失敗）
 - 種を変える検査: `node tools/seed-fuzz.mjs <リポジトリ | model.json> --count 200 --out compare/fuzz`（ASCII・芝生・実際の Player を検査。group 指定時は、入力 module の欠落も検査し、全担当が完全配置された seed 数と「一塊または理由付き未配置」の seed 数を分けて表示）
 - 状態判定の検査: `node tools/check-state.mjs`（os.tmpdir() の下で3つのgit fixtureを作り、記録のmtimeを固定して道場の passed・failed・unverified を確かめ、終了後に消す）
+
+- 重ね書きを表示: `node codecity.mjs <repo> --overlay overlay.json --port 4806`。`--json compare/town.json`、`--ground compare/ground.png` で書き出せる。配信中は検証済みの配置を `/overlay.json` で取得できる。
+- 重ね書きの歩行検査: `node tools/check-play.mjs <repo> --overlay overlay.json --town-out compare/overlay-town.json`。物・人（門番を含む）・goal の到達数、理由付き未配置数を出す。生成済みの town.json は `--overlay` を付けずに検査する。
+- 重ね書きの種検査: `node tools/seed-fuzz.mjs <repo> --overlay overlay.json --count 200 --out compare/overlay-fuzz`。元の seed に `@fuzz:0000000` などを付けて 200 通りを作り、HEAD や施設の証拠・状態は変えない。report.json に実際の overlaySeed と到達数を保存する。保存する model.json の `overlayFiles` は全ファイルのモジュール対応。手書き model.json にそれがなければ module.path・topFiles に一致する glob だけを解決できる。
+- ASCII の overlay: record は `✓`・`×`・`?`、board は `N`、gate は `[`、人は `p`、門番は `k`、goal は `◎`。
+
+見本リポジトリと生成物を作業ツリーから分離して検査するときは、`GIT_CEILING_DIRECTORIES="$PWD/compare"` と `TMPDIR="$PWD/compare/tmp"` を指定し、先に `mkdir -p compare/tmp` を実行する。追加の npm パッケージは不要。

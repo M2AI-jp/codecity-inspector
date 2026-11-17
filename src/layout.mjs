@@ -55,7 +55,7 @@ export function layoutTown(repo, opts = {}) {
 }
 
 function layoutAttempt(repo, opts, stairRejected) {
-  const seed = hash32(`${repo.name}@${repo.head ?? 'worktree'}`);
+  const seed = hash32(opts.seed ?? `${repo.name}@${repo.head ?? 'worktree'}`);
   const art = opts.art ?? loadArt();
   const propArt = opts.props ?? loadProps();
   const water = (opts.ground ?? loadGround()).includes('water');
