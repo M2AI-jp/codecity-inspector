@@ -95,6 +95,8 @@ facts の形:
                                        // 全建物の扉前2行（door.y+1..door.y+2）、扉幅＋左右1マス
                                        // （door.x-1..door.x+選択版のdoor.w）に、他の建物のfootprint・
                                        // 選択版の列別cover（town-grid.coverOf）を重ねない。
+                                       // 候補のfitで既存建物と双方向に調べる。配置後に版が変わって
+                                       // 衝突したときだけ、その版を固定して全体を再試行する。
     district: "engine",               // group があればその値。無ければ従来のディレクトリ地区／施設用ID
     module: { ...RepoModel.modules[i] },  // 施設では kind = archetype、統計は根拠とまとめたモジュールのもの。
                                        // group は元の module または同じ担当だけをまとめた施設から引き継ぐ

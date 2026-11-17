@@ -1,6 +1,8 @@
 import { WINDOW, Y_WEIGHT, clamp } from '../constants.mjs';
 import { moduleGroup } from '../../group-components.mjs';
-import { doorClearanceConflicts } from '../../door-clearance.mjs';
+import { hash32 } from '../util.mjs';
+import { doorClearance } from '../../door-clearance.mjs';
+import { coverOf } from '../../town-grid.mjs';
 
 // 切り出し前の格子・建物・候補位置。同じ種を再試行するときも、他の候補は変えない。
 export const placementKey = (cols, rows, spec, x, y) => `${cols},${rows}:${spec.id}:${x},${y}`;
@@ -9,13 +11,28 @@ export function createPlacement(S) {
   const { C, harbour, quay, id, road, plazaM, foot, front, roofZ, green, inG, pinned, rng, pcy, pcx, tracks } = S;
   const canalReserve = new Set((C.canalReserve || []).map(([x, y]) => `${x},${y}`));
   const reservedForCanal = (x, y) => canalReserve.has(`${x},${y}`);
-  const placedKeys = new Set();
+  const shapes = new Map();
   const clearanceBuilding = (spec, pos) => {
-    const v = C.doorVariants?.get(spec.id);
-    if (!v) return null;
-    return { id: spec.id, archetype: spec.archetype, variant: v.id,
+    // 初回も版の選択開始位置で測る。最終の近隣比較で版が変わって衝突した
+    // 場合だけ layoutTown が版を固定し、次の試行ではその実寸を使う。
+    if (!shapes.has(spec.id)) {
+      const vs = C.art?.[spec.archetype]?.variants || [];
+      const v = C.doorVariants?.get(spec.id) || vs[hash32(spec.id) % vs.length];
+      const b = { archetype: spec.archetype, variant: v?.id,
+        door: { x: clamp(v?.doorX ?? spec.doorDx, 0, spec.w - 1), y: spec.h - 1 } };
+      shapes.set(spec.id, { approach: doorClearance(b, C.art), cover: coverOf(b, C.art) });
+    }
+    const { approach: r, cover } = shapes.get(spec.id);
+    return {
       x: pos.x, y: pos.y, w: spec.w, h: spec.h,
-      door: { x: pos.x + clamp(v.doorX ?? spec.doorDx, 0, spec.w - 1), y: pos.y + spec.h - 1 } };
+      approach: { x0: pos.x + r.x0, x1: pos.x + r.x1, y0: pos.y + r.y0, y1: pos.y + r.y1 }, cover };
+  };
+  const coversApproach = (b, r) => {
+    if (b.y + b.h - 1 < r.y0) return false;
+    for (let x = Math.max(r.x0, b.x); x <= Math.min(r.x1, b.x + b.w - 1); x++) {
+      if (b.y - (b.cover?.[x - b.x] ?? 2) <= r.y1) return true;
+    }
+    return false;
   };
   // footprint のすぐ下の行（と、通りまでの前庭）が通りにつながる位置か。
   // roofRows は外観の版の cover の最大値で、屋根が上の通り・建物を隠す余白だけを予約する。
@@ -26,11 +43,6 @@ export function createPlacement(S) {
     for (let x = x0; x < x0 + w; x++) { const s = t.sd[x - t.x0]; if (s < 0) return null; smin = Math.min(smin, s); }
     const yb = smin - 1 - setback, y = yb - h + 1;
     if (C.rejectedPlacements?.has(placementKey(S.cols, S.rows, spec, x0, y))) return null;
-    const conflicts = C.rejectedDoorPairs?.get(placementKey(S.cols, S.rows, spec, x0, y));
-    if (conflicts && [...conflicts].some((key) => placedKeys.has(key))) return null;
-    const candidate = clearanceBuilding(spec, { x: x0, y });
-    if (candidate && placed.some((p) => p.clearance &&
-      doorClearanceConflicts({ buildings: [candidate, p.clearance] }, C.art).length)) return null;
     if (y < t.L.y0 + (t.L.closedTop ? 2 : 0) || y - roofRows < 1) return null;
     if (harbour && yb >= quay.top) return null;
     for (let x = x0; x < x0 + w; x++) {
@@ -52,6 +64,11 @@ export function createPlacement(S) {
     }
     // 横の壁は接してよい。新しい footprint 内の foot 衝突は上の検査で防ぐ。
     if (hitsPinOther(x0, y, x0 + w - 1, yb)) return null;
+    // 安い格子検査を通った候補だけ、既存の戸口と候補の戸口を双方向に検査する。
+    // 現在の placed だけを見るので、group の仮置きを巻き戻しても予約が残らない。
+    const candidate = clearanceBuilding(spec, { x: x0, y });
+    if (placed.some((p) => coversApproach(candidate, p.clearance.approach) ||
+      coversApproach(p.clearance, candidate.approach))) return null;
     return { x: x0, y, w, h, yb };
   };
   // 予約した所（役場・船着場）には、その建物しか置かない
@@ -59,7 +76,6 @@ export function createPlacement(S) {
   const hitsPinOther = (x0, y0, x1, y1) => pinned.some((p, i) => i !== S.pinOwner && x0 <= p[2] && x1 >= p[0] && y0 <= p[3] && y1 >= p[1]);
   const placed = [];
   const commit = (spec, t, pos, group) => {
-    placedKeys.add(placementKey(S.cols, S.rows, spec, pos.x, pos.y));
     const i = placed.length;
     for (let x = pos.x; x < pos.x + pos.w; x++) {
       for (let yy = pos.y; yy <= pos.yb; yy++) foot[id(x, yy)] = i;

@@ -42,12 +42,13 @@ export function layoutTown(repo, opts = {}) {
   for (const m of repo.modules || []) if (m.group !== undefined && typeof m.group !== 'string') {
     throw new TypeError(`layoutTown: ${m.path} の group は文字列で指定する`);
   }
-  // 版に合わせた戸口・水路に合わせた階段位置は配置後に決まる。実際に重なった候補だけを
-  // fit から外し、同じ種・順序で再試行する。重ならない街は従来の一回で返す。
+  // 戸口前は初回の fit から双方向に確保する。後で変わる版と階段位置に
+  // 衝突が残る場合だけ、版を固定／候補を除外して同じ種・順序で再試行する。
   const rejectedPlacements = new Set();
-  const doorVariants = new Map(), rejectedDoorPairs = new Map();
+  const doorVariants = new Map();
+  if (opts.debug) opts.debug.doorRetries = 0;
   for (let attempt = 0; attempt < 128; attempt++) {
-    const town = layoutAttempt(repo, opts, rejectedPlacements, doorVariants, rejectedDoorPairs, attempt);
+    const town = layoutAttempt(repo, opts, rejectedPlacements, doorVariants);
     if (town) {
       if (opts.debug) opts.debug.placementRetries = attempt;
       return town;
@@ -56,7 +57,7 @@ export function layoutTown(repo, opts = {}) {
   throw new Error('layoutTown: 階段と戸口前を隠さない建物配置を128回で確保できなかった');
 }
 
-function layoutAttempt(repo, opts, rejectedPlacements, doorVariants, rejectedDoorPairs, attempt) {
+function layoutAttempt(repo, opts, rejectedPlacements, doorVariants) {
   const seed = hash32(opts.seed ?? `${repo.name}@${repo.head ?? 'worktree'}`);
   const art = opts.art ?? loadArt();
   const propArt = opts.props ?? loadProps();
@@ -194,7 +195,7 @@ function layoutAttempt(repo, opts, rejectedPlacements, doorVariants, rejectedDoo
   };
   const canalRequested = (repo.facilities || []).some((f) => f.archetype === 'well' && f.facts) &&
     !!propArt['bridge-h']?.deck && !!propArt['bridge-v']?.deck;
-  const C = { groups, maxH, need, seed, fac, harbour, gateRows, count: all.length, rejectedPlacements, doorVariants, rejectedDoorPairs, art };
+  const C = { groups, maxH, need, seed, fac, harbour, gateRows, count: all.length, rejectedPlacements, doorVariants, art };
   for (let attempt = 0, scale = 1; attempt < 14 && !P; attempt++, scale *= 1.15) {
     // 施設ごとの置き場所の列を、試すたびに作り直す（generate は列を書き換える）
     const g2 = groups.map((g) => ({ ...g, items: [...g.items], ruins: [...g.ruins] }));
@@ -395,18 +396,10 @@ function layoutAttempt(repo, opts, rejectedPlacements, doorVariants, rejectedDoo
     for (const { object: p } of stairConflicts) {
       rejectedPlacements.add(placementKey(P.cols, P.rows, p.spec, p.x, p.y));
     }
-    // まず重なった二棟の組み合わせだけを除き、他の配置の自由度を残す。
-    // 相互依存が長引くときは版を固定し、次のfitから実寸の帯を先に確保する。
-    if (attempt < 32) for (const { door, object } of doorConflicts) {
-      const a = placementKey(P.cols, P.rows, door.spec, door.x, door.y);
-      const b = placementKey(P.cols, P.rows, object.spec, object.x, object.y);
-      for (const [key, other] of [[a, b], [b, a]]) {
-        if (!rejectedDoorPairs.has(key)) rejectedDoorPairs.set(key, new Set());
-        rejectedDoorPairs.get(key).add(other);
-      }
-    }
-    else if (doorConflicts.length) {
-      rejectedDoorPairs.clear();
+    // 近隣の見た目を比べて変えた版だけは fit 時点で未確定だった。
+    // その版をすぐ固定し、衝突した組を一つずつ除いて全体を繰り返すのを避ける。
+    if (doorConflicts.length) {
+      if (opts.debug) opts.debug.doorRetries++;
       for (const p of P.placed) doorVariants.set(p.spec.id, variantOf.get(p) || { doorX: p.spec.doorDx, doorW: 1 });
     }
     return null;

@@ -5,6 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 import { doorClearance, doorClearanceConflicts } from '../src/door-clearance.mjs';
 import { layoutTown, loadArt } from '../src/layout.mjs';
+import { createPlacement } from '../src/layout/grid/placement.mjs';
 
 const manifest = JSON.parse(readFileSync(new URL('../art/game/manifest.json', import.meta.url)));
 const b = { id: 'door', archetype: 'room', variant: 'wide', x: 8, y: 5, w: 6, h: 5, door: { x: 10, y: 9 } };
@@ -74,4 +75,39 @@ test('施設と一般住宅の全戸口を確保し、再配置も決定的', ()
   assert.deepEqual(doorClearanceConflicts(town, manifest.archetypes), []);
   assert.deepEqual(layoutTown(repo), town);
   assert.equal(town.buildings.length, 19);
+});
+
+test('fit は初回から双方向の戸口前を守り、列別coverと仮置きの巻き戻しを扱う', () => {
+  const make = (cover) => {
+    const cols = 40, rows = 30, n = cols * rows;
+    const defs = { room: { variants: [{ id: 'room-1', doorX: 1, doorW: 1, cover: [0, 0, 0, 0] }] },
+      roof: { variants: [{ id: 'roof-1', doorX: 1, doorW: 1, cover }] } };
+    const S = { cols, rows, C: { art: defs }, id: (x, y) => y * cols + x,
+      inG: (x, y) => x >= 0 && y >= 0 && x < cols && y < rows,
+      road: new Int32Array(n).fill(-1), foot: new Int32Array(n).fill(-1),
+      plazaM: new Uint8Array(n), front: new Uint8Array(n), roofZ: new Uint8Array(n),
+      green: new Uint8Array(n), pinned: [], rng: () => 0.5, pcx: 20, pcy: 15, tracks: [] };
+    createPlacement(S);
+    const track = (y) => ({ x0: 0, x1: 39, L: { y0: 0 }, sd: new Int16Array(cols).fill(y + 3), items: [] });
+    const upper = { id: 'upper', archetype: 'room', w: 4, h: 3, doorDx: 1, roofRows: 0 };
+    const lower = { ...upper, id: 'lower', archetype: 'roof', roofRows: 2 };
+    return { S, upper, lower, top: track(5), bottom: track(10) };
+  };
+  for (const reverse of [false, true]) {
+    const { S, upper, lower, top, bottom } = make([2, 2, 2, 2]);
+    const [first, a, second, b] = reverse ? [lower, bottom, upper, top] : [upper, top, lower, bottom];
+    const pos = S.fit(a, 10, first, 0);
+    assert.ok(pos);
+    S.commit(first, a, pos, 'team');
+    assert.equal(S.fit(b, 10, second, 0), null, `戸口と屋根の順序 reverse=${reverse}`);
+    // group の候補を捨てた後に、その候補の戸口予約を残さない。
+    S.placed.length = 0; S.foot.fill(-1); S.roofZ.fill(0); S.front.fill(0);
+    assert.ok(S.fit(b, 10, second, 0));
+  }
+  for (const [cover, expected] of [[[0, 2, 2, 2], true], [[1, 2, 2, 2], false], [null, false]]) {
+    const { S, upper, lower, top, bottom } = make(cover);
+    S.commit(upper, top, S.fit(top, 10, upper, 0), 'team');
+    // 戸口前と重なるのは屋根の左端1列だけ。透明な端は余白に数えない。
+    assert.equal(!!S.fit(bottom, 12, lower, 0), expected, JSON.stringify(cover));
+  }
 });
