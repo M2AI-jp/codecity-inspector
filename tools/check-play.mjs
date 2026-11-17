@@ -29,6 +29,7 @@ import { readOverlay } from '../src/overlay/read.mjs';
 import { placeOverlay } from '../src/overlay/place.mjs';
 import { analyzeOverlayModel, groupOverlayModel } from '../src/overlay/model.mjs';
 import { overlayPeople } from '../web/overlay-world.js';
+import { GOAL_ART, goalGeometry } from '../src/overlay/goal.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const NEAR_NOTICE_OVERLAY = 36;
@@ -48,7 +49,7 @@ async function townFor(target, manifest, overlay) {
     const { analyzeRepository } = await import('../src/analyze.mjs');
     const { layoutTown, loadArt, loadProps, loadGround } = await import('../src/layout.mjs');
     const repo = overlay ? groupOverlayModel(analyzeOverlayModel(abs), overlay) : analyzeRepository(abs);
-    const town = layoutTown(repo, { art: loadArt(manifest), props: loadProps(manifest), ground: loadGround(manifest), ...(overlay ? { seed: overlay.seed } : {}) });
+    const town = layoutTown(repo, { art: loadArt(manifest), props: loadProps(manifest), ground: loadGround(manifest), ...(overlay ? { seed: overlay.seed, goalLook: overlay.goal?.look } : {}) });
     return { town: overlay ? placeOverlay(town, overlay, manifest) : town, repo };
   }
   const town = JSON.parse(readFileSync(abs, 'utf8'));
@@ -253,10 +254,35 @@ export function checkPlay(town, manifest, { repo = null, verbose = false, target
   if (overlay) {
     for (const [kind, items] of [['markers', town.overlay.markers], ['people', overlayPeople(town.overlay)],
       ['goal', town.overlay.goal ? [town.overlay.goal] : []]]) {
-      const bad = (items || []).filter((p) => !nearSeen(world, seen, p.x * T, p.y * T, NEAR_NOTICE_OVERLAY));
+      const bad = (items || []).filter((p) => kind === 'goal' && p.look
+        ? seen[Math.round(p.y * T) * world.W + Math.round(p.x * T)] !== 1
+        : !nearSeen(world, seen, p.x * T, p.y * T, NEAR_NOTICE_OVERLAY));
       overlay[kind] = { reachable: (items || []).length - bad.length, total: (items || []).length };
       failed += bad.length;
       for (const p of bad) log(`  x overlay ${kind} ${p.id} cannot be reached`);
+    }
+    if (town.overlay.goal?.look) {
+      const g = town.overlay.goal, prop = town.props.find((p) => p.overlayId === `goal:${g.id}`), def = manifest.props?.[GOAL_ART[g.look]];
+      let frontOK = false, solidOK = false, clearOK = false, frontReachable = 0, frontTotal = 1;
+      if (prop && def?.solid && !def.deck && g.landmark?.x === prop.x && g.landmark?.y === prop.y && g.landmark?.look === prop.look) {
+        const geo = goalGeometry(prop, def);
+        const points = geo.cells(geo.front);
+        frontTotal = points.length;
+        frontReachable = points.filter(([x, y]) => seen[(y * T + 11) * world.W + x * T + 8] === 1).length;
+        frontOK = frontReachable === frontTotal;
+        solidOK = world.rects.some((r) => r.overlayProp === prop.overlayId &&
+          ['x', 'y', 'w', 'h'].every((k) => r[k] === geo.foot[k]));
+        clearOK = [geo.front, ...geo.sides].every((r) => !world.boxHits(r.x, r.y, r.x + r.w, r.y + r.h));
+        if (JSON.stringify(g.front) !== JSON.stringify({ x: geo.front.x / T, y: geo.front.y / T, w: geo.front.w / T, h: geo.front.h / T })) {
+          frontOK = false;
+        }
+      }
+      overlay.goalFront = { reachable: frontReachable, total: frontTotal };
+      if (!frontOK || !solidOK || !clearOK) {
+        failed++;
+        log(`  x overlay goal ${g.id} landmark: front reachable=${frontOK}, solid=${solidOK}, clearance=${clearOK}`);
+      }
+      log(`overlay goal front: ${overlay.goalFront.reachable}/${overlay.goalFront.total} cells reachable; solid=${solidOK}, clearance=${clearOK}`);
     }
     overlay.unplaced = (town.unplaced || []).filter((u) => u.overlay).length;
     const unexplained = (town.unplaced || []).filter((u) => u.overlay && !u.reason?.trim());

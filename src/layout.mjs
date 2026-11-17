@@ -34,6 +34,7 @@ import { stairClearance, stairClearanceConflicts, describeStairConflict } from '
 import { doorClearanceConflicts, describeDoorConflict } from './door-clearance.mjs';
 import { keepReachableTerraces } from './layout/terraces.mjs';
 import { moduleGroup, groupComponents } from './group-components.mjs';
+import { goalPlot } from './overlay/goal.mjs';
 
 export { FACILITY_NAME, LANDMARK, aggregate, chooseCanalRoute, loadArt, loadProps, loadGround, propTiles };
 
@@ -180,7 +181,14 @@ function layoutAttempt(repo, opts, rejectedPlacements, doorVariants, stairReserv
   let pierRows = 0;
   for (const t of ['pier', 'pier-2']) if (propArt[t]?.deck) pierRows = Math.max(pierRows, Math.ceil(propArt[t].deck[3] / 16));
   const harbour = { water: clamp(pierRows + 2, 5, 9) };
-  const all = [...specs, ...facSpecs];
+  const plot = goalPlot(opts.goalLook, propArt);
+  const goalSpec = plot ? {
+    id: '$goal-site', archetype: 'goal-site', goalSite: true,
+    w: plot.w + 2, h: plot.h + 2, roofRows: plot.roofRows,
+    doorDx: Math.floor((plot.w + 2) / 2), module: { kind: 'landmark' }, angle: -Math.PI / 2,
+  } : null;
+  if (goalSpec) fac.early.unshift(goalSpec);
+  const all = [...specs, ...facSpecs, ...(goalSpec ? [goalSpec] : [])];
   const maxH = Math.max(4, ...all.filter((s) => s !== fac.hall).map((s) => s.h));
   const need = all.reduce((t, s) => t + s.w + 1.6, 0);
   const gateRows = lms.some((l) => l.archetype === 'gate') && propArt.gate
@@ -284,6 +292,7 @@ function layoutAttempt(repo, opts, rejectedPlacements, doorVariants, stairReserv
   }
   if (!P && bestGroupAttempt) ({ P, F, canal } = bestGroupAttempt);
   if (!P && lastCanalAttempt) ({ P, F, canal } = lastCanalAttempt);
+  if (!P && goalSpec) return layoutAttempt(repo, { ...opts, goalLook: undefined }, stairRejected);
   if (!P) throw new Error('layoutTown: 建物を配置できなかった');
   const gateArt = landmarks.some((l) => l.data.archetype === 'gate') && propArt.gate;
   if (opts.debug) opts.debug.P = P;                  // 調べる道具のため（通り・街区の中身）
@@ -475,7 +484,7 @@ function layoutAttempt(repo, opts, rejectedPlacements, doorVariants, stairReserv
     for (let x = x0; x <= x1; x++) s += CH[F.g[P.id(x, y)]];
     ground.push(s);
   }
-  const buildings = P.placed.map((p) => ({
+  const buildings = P.placed.filter((p) => !p.spec.goalSite).map((p) => ({
     id: p.spec.id,
     archetype: p.spec.archetype,
     ...(variantOf.get(p) ? { variant: variantOf.get(p).id } : {}),
@@ -524,6 +533,12 @@ function layoutAttempt(repo, opts, rejectedPlacements, doorVariants, stairReserv
     cols: x1 - x0 + 1,
     rows: y1 - y0 + 1,
     ground,
+    ...(goalSpec && P.placed.some((p) => p.spec.goalSite) ? {
+      goalSite: (() => {
+        const p = P.placed.find((p) => p.spec.goalSite);
+        return { look: opts.goalLook, x: p.x - x0 + 1 + plot.w / 2, y: p.y - y0 + plot.h };
+      })(),
+    } : {}),
     ...(canal?.cells?.length ? {
       canal: {
         cells: canal.cells.map(([x, y]) => [x - x0, y - y0]),

@@ -105,7 +105,7 @@ facts の形:
   }],
   props: [{ type: "lamp" | "barrel" | "crate" | "tree" | "bush" | "bench" | "fence" | "noticeboard"
                  | "sacks" | "flowerpot" | "planter" | "cart"
-                 | "wellhouse" | "canal-mouth" | "pier" | "boat" | "bridge-h" | "bridge-v" | "scaffold" | "sign-works" | "sign-passed" | "sign-failed" | "sign-unverified" | "lumber" | "gate",
+                 | "wellhouse" | "canal-mouth" | "pier" | "boat" | "bridge-h" | "bridge-v" | "scaffold" | "sign-works" | "sign-passed" | "sign-failed" | "sign-unverified" | "lumber" | "gate" | "castle",
             x: 20.5, y: 14,            // 足元の中心（tile）。1×1 なら (tx + 0.5, ty + 1)
             look: "pier-2",            // 省略可。manifest の小物の名前そのもの（layout が形を当てにして選んだもの: 桟橋の板・足場）。
             w: 1 }],                   // 省略可。layout が場所を取った tile の幅（絵の solid より細く置いたとき。足場を1マスの隙間に立てたとき）
@@ -150,6 +150,8 @@ facts の形:
                 meaning: "cron" | "job" | "ruin",   // 猫だけ
                 sprite: "cat-2", sleeping: true, building: "b7" }],   // 廃屋の猫だけ（その廃屋の id）
   spawn: { x: 48, y: 40 }
+  // goal.look がある場合だけ。layout が確保した目印用の場所（建物・施設ではない）
+  // goalSite: { look: "castle", x, y }
 }
 ```
 
@@ -225,6 +227,7 @@ group 配置では、既存の配置手順で施設と未指定の建物の場�
 ```
 
 manifestに無いarchetype・propは描かずにconsoleへ警告し、ゲーム全体は止めない。
+`art/game/landmarks/` の目印も `props` に入る。`size: [w,h]` は画像全体、`bounds: [x,y,w,h]` は画像左上基準の不透明部分の外接矩形で、build-manifest がPNGから測る。
 
 ## 画像ごとのsidecar（art/game/** → tools/build-manifest.mjs → manifest.json）
 
@@ -243,6 +246,7 @@ manifest.json は手で編集しない。画像を作る人は、画像の隣に
   `layer: "ground"` の小物は地面のすぐ上・人物の下に描く（y でならべない）。`deck` は水の上で歩ける板: そこに掛かる水の tile は板の矩形だけ歩けて、残りは水のまま（web/world.js）。layout は板の上端を岸壁の行の上から4px下に置く。橋の `deck` は通り側の板も含むが、水の tile だけを歩けるようにする。
   layout が場所を取る大きさは tile 単位で、幅 = round(solid.w / 16)、奥行き = ceil(solid.h / 16)（最小 1×1、足元は下辺の中央）。`solids` のある小物（門）は、柱の箱がかかる tile だけ（くぐれる所の列は除く）。井戸小屋 `wellhouse`・足場 `scaffold`（`scaffold-2`）・工事中の札 `sign-works`・材木 `lumber`・桟橋 `pier`（`pier-2`）・橋 `bridge-h`（`bridge-v`）・舟 `boat`・門 `gate` は、絵があるときだけ置く。
 - 地面 `art/game/ground/<name>.png`（継ぎ目なし）: street・grass・dirt・plaza・moss は必須。`water.png` は水面（128×128 前後、縦横に継ぎ目なし）、`quay.png` は岸壁の帯（横に継ぎ目なし、上端 = 岸の通りの下端。16px より高ければ下の水の行に続けて描く。透明な所は水が見える）。水辺は船着場の絵と water.png の両方があるときだけつくる。`wall.png` は段（town.terraces）の石垣の前面の石の粒（高さ 16px、横に継ぎ目なし。石の形と明暗は src/ground.mjs が描く）。無ければ広場の石の粒を使う。
+- 目的地の目印 `art/game/landmarks/castle-1.png` と `castle-1.json`: 小物と同じ足元基準の sidecar。城Dは承認前の候補で、`origin: [96,224]`、`solid: [-96,-96,192,96]`（12×6マス）、光なし、`deck` なし。入れる建物・通過できる門として扱わない。
 
 ## 施設の置き場所（src/layout.mjs）
 
@@ -290,7 +294,8 @@ overlay が無い場合は overlay 用フィールドを Town に追加せず、
     at: { path: "web/api-client.mjs" }, label: "APIクライアント", lines: ["テスト 0/0"]
   }],
   people: [{ id: "artist", name: "絵師", at: { marker: "U3" }, look: 2, lines: ["作業中"] }],
-  goal: { at: { landmark: "town_hall" }, label: "完了", lines: ["メモを書いて一覧できる"] }
+  goal: { at: { landmark: "town_hall" }, label: "完了", lines: ["メモを書いて一覧できる"],
+          look: "castle" }            // look は省略可。未指定なら従来の名札だけ
 }
 ```
 
@@ -314,7 +319,10 @@ glob は `/` 区切りで、`*` は区切り内の任意の長さ、`?` は区�
 record は `sign-passed`・`sign-failed`・`sign-unverified`、board は `noticeboard`。
 検証を通った record が 1 個以上ある間は、置けない record も含めて、道場自身の状態札を隠す。record がなくなれば元の道場の札を戻す。道場の facts は変更しない。
 gate は `gate` と門番の絵。歩行グラフ上の候補を絞り、実際の足元の 1px グラフでその tile を除くとほかの到達可能な位置が切り離されることを確かめる。通過可能な門と到達可能な門番を置ける切断点がなければ unplaced。
-people は townsfolk の `look % 絵の数`、look 省略時は id の固定 hash。goal は絵も当たりも持たず、歩ける位置と DOM の名札だけ。
+people は townsfolk の `look % 絵の数`、look 省略時は id の固定 hash。
+goal.look は任意で、現在は `"castle"` だけ。省略時は絵も当たりも持たず、歩ける位置と DOM の名札だけで、従来の Town JSON とバイト単位で一致する。未知の文字列は `unknown goal look`、文字列以外は `invalid look` として goal 全体を unplaced にする。
+`"castle"` 指定時だけ layout は城の足元12×6マス・左右各1マス・前2行と屋根の余白を目印用に予約する。その区画は Town.buildings に入れず、配置した絵は `props` の `type: "castle", look: "castle-1", overlayId: "goal:<id>"` として持つ。城は固い足元を持ち、内部や deck を持たない。予約により町の配置は変わり得る。予約地は at の解決位置から24マス以内で試し、既存の空き場所も16マスの範囲で近い順に試す。
+城の足元は一つの高さの面に収める。絵の不透明部分・足元・前2行と左右1マスを、建物・屋根・既存小物・人・出発点・戸口・階段の予約と重ねない。城をほかの overlay より先に置き、前庭と左右の空きを後続の物・人にも予約する。名札は城の前の歩ける位置に置く。足元の追加で既存の到達領域を切り離さず、前2行の全マスの足元位置に出発点から到達できるときだけ採用する。段・空き場所・絵が足りなければ goal 全体を理由付き unplaced にする。check-play と seed-fuzz の `goal` は名札への到達数、`goalFront` は城前の到達マス数（幅14マス×2行＝28マス）を数える。
 
 1 戸口に物は 1 個まで。あふれた物は同じ district 内で元の戸口に近い順に試す。
 戸口の前 2 行・実際の扉の幅＋左右 1 マス、建物正面の最初の 1 行、階段の前後 2 行＋左右 1 マス、建物・屋根・既存小物・人・出発点を避ける。
@@ -329,12 +337,15 @@ Town は配置済みの物を `props` にも持ち、`overlayId` で通常の小
 
 ```js
 {
-  version: 1, layoutKey: "<seed/groups の SHA-256>", revision: "<配置結果の SHA-256>",
+  version: 1, layoutKey: "<seed/groups と指定時の goal.look の SHA-256>", revision: "<配置結果の SHA-256>",
   source: { tool, name, seq }, title: { text, sub }, // 入力にある場合だけ
   hideDojoSigns: true,
   markers: [{ id, kind, state, at, label, lines, x, y, building /* 戸口を使用したとき */, keeper /* gate だけ */ }],
   people: [{ id, name, at, look, lines, x, y }],
-  goal: { id, at, label, lines, x, y } | null,
+  goal: { id, at, label, lines, x, y,
+          look: "castle",                     // 以下3欄は look 指定時だけ
+          landmark: { x, y, look: "castle-1" }, // 絵の足元。名札の x/y とは別
+          front: { x, y, w, h: 2 } } | null,  // 城前の歩ける範囲（tile）
   props: [{ type, look, x, y, overlayId }], // overlay の物と、表示する道場の元の札
   unplaced: [{ overlay: true, scope: "markers" | "people" | "goal" | "title", id, index, reason }]
 }
@@ -343,9 +354,10 @@ Town は配置済みの物を `props` にも持ち、`overlayId` で通常の小
 x/y は tile 単位の足元。keeper は `{ x, y }`。building・state・index・id は該当する場合だけ。
 `Town.unplaced` にも同じ診断を追加する。入力の `unplaced` は producer の旧診断なので採用しない。
 主な reason は `unknown kind`、`duplicate id`、各文字・個数の limit、`invalid at`、`invalid record state`、`invalid look`、`missing art: …`、`missing townsfolk art`、`building not found`、`group has no building`、`marker not placed`、`no safe free doorway in district`、`no safe space near plaza or landmark`、`no safe walkable cut point for gate and keeper`、`no safe reachable space for person`、`no reachable goal location`。
+城の reason は `unknown goal look`、`missing solid goal art: castle-1`、`no safe level space for goal landmark and clear front`。
 
 serve は指定ファイルだけを 750ms 間隔で監視し、`/overlay.json` の取得時にも再確認する。ブラウザは 2 秒ごとに取得し、ID ごとに位置・内容が変わった物と人だけを差し替える。変わらない描画オブジェクト・人物・建物・地面を保持する。
 移動・追加する物がプレイヤーや歩行中の住人に重なる場合は、次の取得まで適用を待つ。
-seed または groups が変わった場合だけ町と地面を再生成し、layoutKey の変化でブラウザを再読み込みする。title・source・状態・会話の変更では再読み込みしない。
+seed・groups・goal.look が変わった場合は町と地面を再生成し、layoutKey の変化でブラウザを再読み込みする。城の追加・取り除きでも予約地を作り直す。title・source・状態・会話の変更では再読み込みしない。
 ライブ中の不正ファイルは `/overlay.json` を HTTP 422 `{ version: 1, error: "理由" }` にし、最後の正しい町を保つ。正しいファイルへ戻すと更新を再開する。
 Host の確認、GET/HEAD、localhost の listen、web/art だけの静的配信は従来と同じ。要求 URL から別の overlay ファイルを選ぶ仕組みはない。

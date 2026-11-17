@@ -20,7 +20,7 @@ export const fuzzHead = (index) => index.toString(16).padStart(7, '0');
 
 export function checkSeed(repo, manifest, { layout = layoutTown, overlay } = {}) {
   if (overlay) repo = groupOverlayModel(repo, overlay);
-  const options = { art: loadArt(manifest), props: loadProps(manifest), ground: loadGround(manifest), ...(overlay ? { seed: overlay.seed } : {}) };
+  const options = { art: loadArt(manifest), props: loadProps(manifest), ground: loadGround(manifest), ...(overlay ? { seed: overlay.seed, goalLook: overlay.goal?.look } : {}) };
   const generate = () => { const town = layout(repo, options); return overlay ? placeOverlay(town, overlay, manifest) : town; };
   const town = generate();
   const ascii = checkAscii(town, manifest, { repo, regenerate: generate });
@@ -109,8 +109,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
       }
       if (report.failed) process.exitCode = 1;
       if (overlay) {
-        const accounted = report.results.filter((r) => r.overlay && ['markers', 'people', 'goal'].every((k) => r.overlay[k].reachable === r.overlay[k].total)).length;
-        console.log(`overlay: ${accounted}/${count} all placed markers/people/goal reachable; unplaced objects retain reasons`);
+        const accounted = report.results.filter((r) => r.overlay && ['markers', 'people', 'goal', ...(r.overlay.goalFront ? ['goalFront'] : [])].every((k) => r.overlay[k].reachable === r.overlay[k].total)).length;
+        const fronts = report.results.reduce((s, r) => ({ reachable: s.reachable + (r.overlay?.goalFront?.reachable || 0), total: s.total + (r.overlay?.goalFront?.total || 0) }), { reachable: 0, total: 0 });
+        console.log(`overlay: ${accounted}/${count} all placed markers/people/goal reachable; goal front cells ${fronts.reachable}/${fronts.total}; unplaced objects retain reasons`);
       }
     }
   }
