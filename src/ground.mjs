@@ -14,7 +14,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { decodePNG, encodePNG } from '../tools/png.mjs';
 
-export const GROUND_VERSION = 17;          // 見た目を変えたら上げる（キャッシュの鍵に入る）
+export const GROUND_VERSION = 18;          // 見た目を変えたら上げる（キャッシュの鍵に入る）
 const T = 16;
 const DEFAULT_ART = path.resolve(import.meta.dirname, '../art/game');
 const TEX_NAMES = ['street', 'grass', 'dirt', 'plaza', 'moss'];
@@ -925,7 +925,8 @@ export function renderGround(town, artDir = DEFAULT_ART) {
       const a = st(c), b = st(c + 1);
       return { key: c * 7 + course, lx: x - a, len: b - a };
     };
-    const STONE = (x, y, key, k) => { const w = warm(key) * 0.5; put(x, y, [BASE[0] * (1 + 0.05 * w), BASE[1], BASE[2] * (1 - 0.08 * w)], k * tone(key) * grain(x, y) * grimeAt(x, y)); };
+    // 階段の踏み石だけ粒を差し替えられる。石垣・水路・袖の既定の色と粒はそのまま。
+    const STONE = (x, y, key, k, surfaceGrain = grain(x, y)) => { const w = warm(key) * 0.5; put(x, y, [BASE[0] * (1 + 0.05 * w), BASE[1], BASE[2] * (1 - 0.08 * w)], k * tone(key) * surfaceGrain * grimeAt(x, y)); };
     const MORTAR = [BASE[0] * 0.26, BASE[1] * 0.245, BASE[2] * 0.23];
     return { inMap, mul, put, blockAt, STONE, MORTAR, grimeAt };
   })();
@@ -1071,17 +1072,21 @@ export function renderGround(town, artDir = DEFAULT_ART) {
       else if (b.lx === b.len - 1) k *= 0.82;                                   // 右の縁
       STONE(x, y, b.key, k * (course ? 0.92 : 1.0));
     };
-    // 石段の 1 画素: 石垣から手前へ 8px 張り出す 6 段（4px ごとに 踏み面 2px・段鼻 1px・蹴上げ 1px）。ly は 0..23
-    // 基準の役場の石段は、人物の背丈ほどの高さに 5〜6 段（1 段がゲームの画素で約 3.6px）。6px ごとの 4 段では、厚い板に溝が 2 本ある腰掛けに見えた
+    // 石段の 1 画素: 石垣から手前へ 8px 張り出す 4 段。ly は 0..23。
+    // gridhub の試作 r4 と同じ 6px 周期（明るい踏み面 3px・段鼻 1px・暗い蹴上げ 2px）。
     const SD = 24;
+    const plazaL = 0.299 * PMEAN[0] + 0.587 * PMEAN[1] + 0.114 * PMEAN[2];
     const stairPx = (x, y, ly, sx0, sx1) => {
-      // 基準の石段: 踏み面は横に長い一枚石で明るく、蹴上げは濃い影。両脇の石垣より明るく、縞ではなく段に見える
-      const step = (ly / 4) | 0, k4 = ly % 4, b = blockAt((x - sx0) * 0.3 + step * 5, 20 + step);
-      let k = k4 === 0 ? 1.3 : k4 === 1 ? 1.22 : k4 === 2 ? 1.46 : 0.3;
-      if (k4 < 2 && b.lx === 0) k *= 0.72;                                     // 踏み面の継ぎ目は細い影（黒い目地にすると四角い穴に見える）
-      if (x - sx0 < 2) k *= 0.72;                                              // 左の袖の影
-      if (sx1 - 1 - x < 1) k *= 0.6;                                           // 右の端
-      STONE(x, y, b.key + 400, k * (1 - 0.015 * step));
+      const step = Math.floor(ly / 6), row = ly % 6;
+      const bx = (x - sx0) * 0.3 + step * 5, b = blockAt(bx, 20 + step);
+      let k = [1.55, 1.72, 1.67, 1.9, 0.66, 0.5][row];
+      if (row < 3 && b.key !== blockAt(bx - 0.3, 20 + step).key) k *= 0.87;       // 横長の踏み石の継ぎ目は 1px
+      if (x - sx0 < 2) k *= 0.82;
+      if (sx1 - x < 5) k *= 0.65;                                              // 東の袖に沿う連続した影
+      // 壁の積み石模様を踏み面に持ち込まず、広場の粒だけを弱めて使う。色・石ごとの明暗は STONE のまま。
+      const q = (((y + step * 11) % PLZ.height) * PLZ.width + (x % PLZ.width)) * 4;
+      const surfaceGrain = 0.9 + 0.18 * Math.min(1.5, lumOf(PLZ.data, q) / Math.max(1, plazaL));
+      STONE(x, y, b.key + 400, k * (1 - 0.015 * step), surfaceGrain);
     };
     // 柱: 上に 4px 突き出た笠石、左の面は明るく右の面は暗い
     const post = (px0, w, fy) => {
@@ -1134,6 +1139,15 @@ export function renderGround(town, artDir = DEFAULT_ART) {
         const sx0 = s.x * T, sx1 = (s.x + s.w) * T;
         if (sx0 - 5 >= x0) post(sx0 - 5, 5, fy);
         if (sx1 + 5 <= x1) post(sx1, 5, fy);
+        // 両脇の袖石を最下段まで伸ばし、上面・側面と東側の落ち影で階段の奥行きを示す。
+        for (let ly = 0; ly < SD; ly++) for (let d = 0; d < 4; d++) {
+          const k = d === 0 ? 1.52 : d === 1 ? 1.24 : 0.65, course = Math.floor(ly / 6);
+          if (sx0 - 5 >= x0) STONE(sx0 - 4 + d, fy + ly, 1800 + course, k);
+          if (sx1 + 5 <= x1) {
+            STONE(sx1 + d, fy + ly, 1900 + course, k * 0.88);
+            if (d < 2) mul(sx1 + 4 + d, fy + ly, d === 0 ? 0.52 : 0.76);
+          }
+        }
       }
     }
   }
