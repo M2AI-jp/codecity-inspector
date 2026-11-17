@@ -116,6 +116,7 @@ html, body {
   font-weight: 700; font-synthesis: none;
   font-size: 64px; line-height: 1.15; letter-spacing: 0.06em;
   color: #ffe2a0; overflow-wrap: anywhere;
+  text-wrap: balance;
   text-shadow: 0 4px 0 rgba(0, 0, 0, 0.7), 0 0 28px rgba(255, 186, 102, 0.28);
 }
 #intro .intro-sub {

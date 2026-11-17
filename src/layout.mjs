@@ -30,7 +30,8 @@ import { loadArt, loadGround, loadProps, propTiles } from './layout/manifest.mjs
 import { placeProps } from './layout/props.mjs';
 import { cmp, hash32, makeRng } from './layout/util.mjs';
 import { placementKey } from './layout/grid/placement.mjs';
-import { stairClearanceConflicts, describeStairConflict } from './stair-clearance.mjs';
+import { stairClearance, stairClearanceConflicts, describeStairConflict } from './stair-clearance.mjs';
+import { doorClearanceConflicts, describeDoorConflict } from './door-clearance.mjs';
 import { keepReachableTerraces } from './layout/terraces.mjs';
 import { moduleGroup, groupComponents } from './group-components.mjs';
 
@@ -41,20 +42,23 @@ export function layoutTown(repo, opts = {}) {
   for (const m of repo.modules || []) if (m.group !== undefined && typeof m.group !== 'string') {
     throw new TypeError(`layoutTown: ${m.path} の group は文字列で指定する`);
   }
-  // 版と水路に合わせた階段位置は配置後に決まる。実際に重なった候補だけを
-  // fit から外し、同じ種・順序で再試行する。重ならない街は従来の一回で返す。
-  const stairRejected = new Set();
+  // 戸口前は初回の fit から双方向に確保する。後で変わる版と階段位置に
+  // 衝突が残る場合だけ、版を固定／候補を除外して同じ種・順序で再試行する。
+  const rejectedPlacements = new Set();
+  const doorVariants = new Map();
+  const stairReservations = new Map();
+  if (opts.debug) opts.debug.doorRetries = 0;
   for (let attempt = 0; attempt < 128; attempt++) {
-    const town = layoutAttempt(repo, opts, stairRejected);
+    const town = layoutAttempt(repo, opts, rejectedPlacements, doorVariants, stairReservations);
     if (town) {
-      if (opts.debug) opts.debug.stairRetries = attempt;
+      if (opts.debug) opts.debug.placementRetries = attempt;
       return town;
     }
   }
-  throw new Error('layoutTown: 階段と前後2行を隠さない建物配置を128回で確保できなかった');
+  throw new Error('layoutTown: 階段と戸口前を隠さない建物配置を128回で確保できなかった');
 }
 
-function layoutAttempt(repo, opts, stairRejected) {
+function layoutAttempt(repo, opts, rejectedPlacements, doorVariants, stairReservations) {
   const seed = hash32(opts.seed ?? `${repo.name}@${repo.head ?? 'worktree'}`);
   const art = opts.art ?? loadArt();
   const propArt = opts.props ?? loadProps();
@@ -192,8 +196,17 @@ function layoutAttempt(repo, opts, stairRejected) {
   };
   const canalRequested = (repo.facilities || []).some((f) => f.archetype === 'well' && f.facts) &&
     !!propArt['bridge-h']?.deck && !!propArt['bridge-v']?.deck;
-  const C = { groups, maxH, need, seed, fac, harbour, gateRows, count: all.length, stairRejected };
-  for (let attempt = 0, scale = 1; attempt < 14 && !P; attempt++, scale *= 1.15) {
+  const C = { groups, maxH, need, seed, fac, harbour, gateRows, count: all.length, rejectedPlacements, doorVariants, stairReservations, art };
+  const hasGroups = (repo.modules || []).some((m) => moduleGroup(m) !== undefined);
+  // 通常の格子で担当が収まらない場合だけ、横幅の違う候補も調べる。
+  // 戸口・階段を空けた結果、長い担当が途中で切れるのを避ける。未指定の街の候補は変えない。
+  const attempts = [];
+  for (const widthExtra of hasGroups ? [0, 8, 16, 24, 32] : [0]) {
+    for (let attempt = 0, scale = 1; attempt < 14; attempt++, scale *= 1.15) attempts.push({ scale, widthExtra });
+  }
+  for (const { scale, widthExtra } of attempts) {
+    if (P) break;
+    C.widthExtra = widthExtra;
     // 施設ごとの置き場所の列を、試すたびに作り直す（generate は列を書き換える）
     const g2 = groups.map((g) => ({ ...g, items: [...g.items], ruins: [...g.ruins] }));
     const firstP = generate({ ...C, groups: g2, fac: { ...fac, early: [...fac.early], late: [...fac.late] } }, scale);
@@ -282,6 +295,7 @@ function layoutAttempt(repo, opts, stairRejected) {
   const variantOf = new Map();
   for (const p of [...P.placed].sort((a, b) => a.yb - b.yb || a.x - b.x)) {
     const vs = art[p.spec.archetype]?.variants || [];
+    if (doorVariants.has(p.spec.id)) { variantOf.set(p, doorVariants.get(p.spec.id)); continue; }
     if (vs.length < 2) { if (vs.length) variantOf.set(p, vs[0]); continue; }
     const near = new Map();
     for (const [q, v] of variantOf) {
@@ -309,6 +323,7 @@ function layoutAttempt(repo, opts, stairRejected) {
       .sort((a, b) => (t.dir < 0 ? b.x - a.x : a.x - b.x) || a.yb - b.yb);
     for (let i = 2; i < row.length; i++) {
       const [a, b, p] = row.slice(i - 2, i + 1);
+      if (doorVariants.has(p.spec.id)) continue;
       const va = variantOf.get(a), vb = variantOf.get(b), vp = variantOf.get(p);
       if (!va || !vb || !vp || a.w !== b.w || b.w !== p.w || va.id !== vb.id || vb.id !== vp.id) continue;
       const vs = art[p.spec.archetype]?.variants || [];
@@ -374,26 +389,47 @@ function layoutAttempt(repo, opts, stairRejected) {
   }
   const isolated = keepReachableTerraces(P, F, spawn, canal?.bridgeDeckCells);
   if (isolated.length) {
-    for (const p of isolated) stairRejected.add(placementKey(P.cols, P.rows, p.spec, p.x, p.y));
+    for (const p of isolated) rejectedPlacements.add(placementKey(P.cols, P.rows, p.spec, p.x, p.y));
     return null;
   }
   // 最終の階段位置と、選んだ版の列ごとの cover で確かめる（格子内座標）。
-  const stairBuildings = P.placed.map((p) => ({
+  const placedBuildings = P.placed.map((p) => ({
     ...p, id: p.spec.id, archetype: p.spec.archetype, variant: variantOf.get(p)?.id,
+    door: { x: p.doorCol, y: p.yb },
   }));
   const stairConflicts = stairClearanceConflicts({
     stairs: P.terraces.map((t) => ({ x: t.stair.x, y: t.y + t.h, w: t.stair.w })),
-    buildings: stairBuildings,
+    buildings: placedBuildings,
   }, art, propArt);
-  if (stairConflicts.length) {
-    for (const { object: p } of stairConflicts) {
-      stairRejected.add(placementKey(P.cols, P.rows, p.spec, p.x, p.y));
+  const doorConflicts = doorClearanceConflicts({ buildings: placedBuildings }, art);
+  if (stairConflicts.length || doorConflicts.length) {
+    for (const { stair, object: p } of stairConflicts) {
+      if (!hasGroups) {
+        rejectedPlacements.add(placementKey(P.cols, P.rows, p.spec, p.x, p.y));
+        continue;
+      }
+      // 担当の別棟が同じ階段を隠す再試行を繰り返さない。位置が確定した
+      // 階段は、その格子で次に試す全候補へ確保範囲を渡す。
+      const key = `${P.cols},${P.rows}`;
+      if (!stairReservations.has(key)) stairReservations.set(key, new Map());
+      stairReservations.get(key).set(`${stair.x},${stair.y},${stair.w}`, stairClearance(stair));
+      // 最終選択で屋根の版が変わった場合も、その実寸を次の fit に渡す。
+      const variant = art[p.archetype]?.variants?.find((v) => v.id === p.variant);
+      if (variant) doorVariants.set(p.spec.id, variant);
+      else rejectedPlacements.add(placementKey(P.cols, P.rows, p.spec, p.x, p.y));
+    }
+    // 近隣の見た目を比べて変えた版だけは fit 時点で未確定だった。
+    // その版をすぐ固定し、衝突した組を一つずつ除いて全体を繰り返すのを避ける。
+    if (doorConflicts.length) {
+      if (opts.debug) opts.debug.doorRetries++;
+      for (const p of P.placed) doorVariants.set(p.spec.id, variantOf.get(p) || { doorX: p.spec.doorDx, doorW: 1 });
     }
     return null;
   }
   const placedProps = placeProps(P, F, makeRng(seed ^ 0x9e3779b9), spawn, {
     propArt, landmarks, dock, bridgeProps: canal?.bridgeProps || [], mouthProps: canal?.mouthProps || [], bridgeCells: canal?.bridgeCells || [],
     bridgeDeckCells: canal?.bridgeDeckCells || [], canalCells: canal?.cells || [],
+    hasReadme: !!(repo.readme?.title?.trim() || repo.readme?.excerpt?.trim()),
   });
   const placedFacilitySources = new Set(P.placed.map((p) => p.spec.sourceFacility).filter(Boolean));
   const placedLandmarkIds = new Set(placedProps.landmarks.map((l) => l.id));
@@ -534,5 +570,7 @@ function layoutAttempt(repo, opts, stairRejected) {
   if (unplaced.length) town.unplaced = unplaced;
   const conflicts = stairClearanceConflicts(town, art, propArt);
   if (conflicts.length) throw new Error(`layoutTown: ${describeStairConflict(conflicts[0])}`);
+  const doorConflictsFinal = doorClearanceConflicts(town, art);
+  if (doorConflictsFinal.length) throw new Error(`layoutTown: ${describeDoorConflict(doorConflictsFinal[0])}`);
   return town;
 }

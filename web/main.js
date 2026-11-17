@@ -190,21 +190,8 @@ async function boot() {
       if (route) player.setPath(route.points, route.target);
       return;
     }
-    let tx = Math.floor(wx / T), ty = Math.floor((wy - 3) / T);
-    const f = world.nearestFree(tx, ty, 8);
-    if (!f) return;
-    [tx, ty] = f;
-    const exact = f[0] === Math.floor(wx / T) && f[1] === Math.floor((wy - 3) / T) && !world.feetHit(wx, wy);
-    const target = exact ? { x: wx, y: wy } : world.navPoint(tx, ty);
-    const tiles = world.findPath(Math.floor(player.x / T), Math.floor((player.y - 3) / T), Math.floor(target.x / T), Math.floor((target.y - 3) / T), { useCost: false });
-    if (!tiles && exit) {
-      const o = cur.doorOutside;
-      const t2 = world.findPath(Math.floor(o.x / T), Math.floor((o.y - 3) / T), Math.floor(target.x / T), Math.floor((target.y - 3) / T), { useCost: false });
-      if (t2) player.setPath([...exit, ...world.smoothPath(o.x, o.y, t2, target.x, target.y)], target);
-      return;
-    }
-    if (!tiles) return;
-    player.setPath(world.smoothPath(player.x, player.y, tiles, target.x, target.y), target);
+    const route = world.pathTo(player.x, player.y, wx, wy);
+    if (route) player.setPath(route.points, route.target);
   }
 
   // ---- simulation ------------------------------------------------------------------------

@@ -14,7 +14,7 @@ export function createFrame(C, scale) {
   const area = Math.max(140, need * (maxH + 8) * harbourArea + 100) * scale;
   const margin = C.count <= 10 ? 4 : MARGIN;
   // 面積は保ったまま横長を抑え、建物を近い列へ積める格子にする。
-  const cols = Math.round(Math.sqrt(area)) + 2 * margin - (harbour ? 0 : 1);
+  const cols = Math.round(Math.sqrt(area)) + 2 * margin - (harbour ? 0 : 1) + (C.widthExtra || 0);
   // 広場を深くした分だけ縦の格子を先に確保する。後段の scale を上げて
   // 街全体を拡大すると空いた街区まで増えるため、追加分は行だけにする。
   const PR = Math.max(7, maxH + 2) + (chance(0.35) ? 1 : 0);

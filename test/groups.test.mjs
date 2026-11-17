@@ -142,3 +142,58 @@ test('group の入力モジュールを黙って落とした Town は検査で�
   town.buildings = town.buildings.filter((b) => b !== missing);
   assert.ok(checkAscii(town, manifest, { repo }).problems.some((p) => p.includes('建物にも理由付き unplaced にも無い')));
 });
+
+test('戸口と階段を空けると担当が収まらない格子は、横幅の違う候補でも調べる', { timeout: 120000 }, () => {
+  // r9 の再現を配置に必要な入力へ絞る。従来は common の10モジュールが未配置だった。
+  const parts = [
+    ['common/_root', 'workshop', 6, 762],
+    ['common/.claude', 'workshop', 1, 50],
+    ['common/bin', 'workshop', 2, 235],
+    ['common/demos', 'house', 19, 2661],
+    ['common/docs', 'house', 27, 3669],
+    ['common/examples/kakeibo', 'house', 58, 30153],
+    ['common/examples/memo', 'house', 61, 3281],
+    ['common/examples/omikuji', 'house', 46, 29812],
+    ['mac/mac', 'house', 5, 759],
+    ['common/quests', 'house', 1, 3065],
+    ['gmkit/quests', 'house', 11, 1071],
+    ['site/site', 'shop', 31, 1416],
+    ['gmkit/src', 'house', 2, 321],
+    ['common/src/commands', 'house', 2, 82],
+    ['engine/src/commands', 'house', 19, 521],
+    ['gmkit/src/commands', 'house', 4, 224],
+    ['party/src/commands', 'house', 1, 223],
+    ['server/src/commands', 'house', 3, 208],
+    ['teller/src/commands', 'house', 2, 124],
+    ['engine/src/engine', 'house', 24, 4899],
+    ['gmkit/src/linear', 'house', 6, 636],
+    ['server/src/mcp', 'house', 3, 513],
+    ['party/src/party', 'house', 5, 1001],
+    ['teller/src/quest', 'house', 8, 1311],
+    ['server/src/server', 'house', 4, 1801],
+    ['common/tests', 'house', 10, 1514],
+    ['common/tests/e2e', 'house', 128, 17366],
+    ['site/tools', 'workshop', 1, 189],
+    ['board/web', 'shop', 1, 365],
+    ['common/web', 'shop', 1, 62],
+    ['assets/web/assets', 'shop', 41, 865],
+    ['board/web/board', 'shop', 57, 21214],
+    ['board/web/fixtures', 'shop', 6, 20009],
+  ];
+  const modules = parts.map(([path, kind, files, lines]) => ({
+    ...module(path, path.split('/')[0], kind), files, lines,
+  }));
+  const facilities = ['town_hall', 'inn', 'pub', 'dojo', 'well', 'dock', 'gate'].map((archetype) => {
+    const merged = archetype === 'dojo' ? ['common/tests', 'common/tests/e2e'] : archetype === 'dock' ? ['mac/mac'] : [];
+    return { archetype, name: archetype, reason: 'fixture', facts: {}, evidence: merged, evidenceCount: merged.length, merged };
+  });
+  // 後の2種は、最終選択した屋根の版も階段の予約とともに引き継ぐ必要がある。
+  for (const head of ['0000004', '000001d', '000008b']) {
+    const repo = { name: 'gridhub', head, modules, facilities };
+    const town = layoutTown(repo, options);
+    assert.equal(groupComponents(town).length, 10, head);
+    assert.ok(groupComponents(town).every((g) => g.pieces === 1), head);
+    assert.deepEqual((town.unplaced || []).filter((u) => u.archetype === 'group'), [], head);
+    assert.deepEqual(checkAscii(town, manifest, { repo }).problems, [], head);
+  }
+});

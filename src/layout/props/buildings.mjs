@@ -3,7 +3,7 @@ import { hash32 } from '../util.mjs';
 import { propTiles } from '../manifest.mjs';
 
 export function placeBuildingProps(S) {
-  const { placed, has, propArt, id, g, tryProp, props, inC, hidden, isGrass, rng, pick, isPavedAt, reserved } = S;
+  const { placed, has, propArt, id, g, tryProp, inC, hidden, isGrass, rng, pick, isPavedAt, reserved } = S;
   // 工事中（作業中の変更がある建物）: 横の壁に足場、そばに工事中の札、余地があれば材木
   for (const p of placed) {
     const dirty = p.spec.module?.works?.dirty || 0;
@@ -18,16 +18,16 @@ export function placeBuildingProps(S) {
       const tx = side < 0 ? p.x - sw : p.x + p.w, ty = p.yb - sh + 1;
       let ok = true;
       for (let dy = 0; dy < sh && ok; dy++) for (let dx = 0; dx < sw && ok; dx++) { const k = id(tx + dx, ty + dy); if (g[k] !== GRASS) ok = false; }
-      if (ok && tryProp('scaffold', tx, ty, false, look)) { at = { side, tx, sw }; break; }
+      const offset = (side < 0 ? p.wall[0] : -p.wall[1]) / 16;
+      if (ok && tryProp('scaffold', tx, ty, false, look, undefined, offset)) { at = { side, tx, sw }; break; }
     }
-    if (at) props[props.length - 1].x += at.side < 0 ? p.wall[0] / 16 : -p.wall[1] / 16;    // 絵の壁にぴったり
     // 横が1マスしかあかないときは、細い足場をその1マスの真ん中に（足場の板は両側の壁にかかる）
     if (!at && has('scaffold')) {
       for (const side of sides) {
         const tx = side < 0 ? p.x - 1 : p.x + p.w;
-        if (g[id(tx, p.yb)] === GRASS && tryProp('scaffold', tx, p.yb, false, 'scaffold', [1, 1])) {
+        const offset = (side < 0 ? p.wall[0] : -p.wall[1]) / 16;
+        if (g[id(tx, p.yb)] === GRASS && tryProp('scaffold', tx, p.yb, false, 'scaffold', [1, 1], offset)) {
           at = { side, tx, sw: 1 };
-          props[props.length - 1].x += side < 0 ? p.wall[0] / 16 : -p.wall[1] / 16;
           break;
         }
       }
