@@ -1,0 +1,25 @@
+{
+  "archetype": "dock",
+  "footprint": [7, 4],
+  "exterior": { "src": "dock-1.exterior.png", "origin": [0, 56] },
+  "cutaway": { "src": "dock-1.cutaway.png", "origin": [0, 56] },
+  "door": { "x": 3, "w": 1 },
+  "floor": [4, 17, 104, 39],
+  "blockers": [
+    [8, 17, 38, 21],
+    [4, 40, 26, 16],
+    [70, 17, 27, 27],
+    [90, 38, 18, 18]
+  ],
+  "lights": [
+    [22, 25, 22],
+    [89, 25, 22],
+    [68, 38, 24],
+    [60, -4, 18]
+  ],
+  "interiorLights": [
+    [94, 10, 36],
+    [78, 20, 26]
+  ],
+  "smoke": [[95, -38]]
+}

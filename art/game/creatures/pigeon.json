@@ -1,0 +1,1 @@
+{"frame":[16,16],"pivot":[8,15],"anims":{"idle":{"down":[0],"left":[4],"right":[8],"up":[12]},"peck":{"down":[0,1],"left":[4,5],"right":[8,9],"up":[12,13]},"hop":{"down":[2,3],"left":[6,7],"right":[10,11],"up":[14,15]}}}

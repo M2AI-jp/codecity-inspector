@@ -1,0 +1,9 @@
+{
+  "origin": [40, 48],
+  "solid": null,
+  "solids": [[-40, -32, 4, 4], [36, -32, 4, 4], [-40, -8, 4, 4], [36, -8, 4, 4]],
+  "light": null,
+  "flicker": false,
+  "layer": "ground",
+  "deck": [-32, -25, 64, 23]
+}

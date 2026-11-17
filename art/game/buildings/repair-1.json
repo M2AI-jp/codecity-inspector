@@ -1,0 +1,25 @@
+{
+  "archetype": "repair",
+  "footprint": [6, 4],
+  "exterior": { "src": "repair-1.exterior.png", "origin": [0, 12] },
+  "cutaway": { "src": "repair-1.cutaway.png", "origin": [0, 12] },
+  "door": { "x": 2, "w": 1 },
+  "floor": [8, 22, 80, 38],
+  "blockers": [
+    [10, 22, 18, 10],
+    [34, 22, 22, 10],
+    [66, 22, 18, 12],
+    [12, 40, 20, 10],
+    [46, 40, 20, 10],
+    [70, 50, 16, 10]
+  ],
+  "lights": [
+    [22, 24, 24],
+    [72, 26, 22]
+  ],
+  "interiorLights": [
+    [46, 34, 30],
+    [70, 48, 24]
+  ],
+  "smoke": []
+}

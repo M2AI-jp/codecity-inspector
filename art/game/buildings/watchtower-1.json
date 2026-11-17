@@ -1,0 +1,24 @@
+{
+  "archetype": "watchtower",
+  "footprint": [4, 4],
+  "exterior": { "src": "watchtower-1.exterior.png", "origin": [0, 80] },
+  "cutaway": { "src": "watchtower-1.cutaway.png", "origin": [0, 80] },
+  "door": { "x": 1, "w": 2 },
+  "floor": [5, 14, 54, 32],
+  "blockers": [
+    [5, 20, 21, 9],
+    [5, 34, 8, 6],
+    [42, 12, 18, 14],
+    [43, 22, 17, 22]
+  ],
+  "lights": [
+    [32, 7, 18],
+    [32, -28, 26],
+    [58, -28, 22]
+  ],
+  "interiorLights": [
+    [11, 8, 20],
+    [8, 32, 30]
+  ],
+  "smoke": []
+}
