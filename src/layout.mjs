@@ -36,6 +36,7 @@ import { keepReachableTerraces } from './layout/terraces.mjs';
 import { moduleGroup, groupComponents } from './group-components.mjs';
 import { goalPlot } from './overlay/goal.mjs';
 import { canalRoadSideProblem } from './layout/canal/validate.mjs';
+import { separateNearbyVariants } from './layout/variants.mjs';
 
 export { FACILITY_NAME, LANDMARK, aggregate, chooseCanalRoute, loadArt, loadProps, loadGround, propTiles };
 
@@ -325,30 +326,12 @@ function layoutAttempt(repo, opts, rejectedPlacements, doorVariants, stairReserv
     }
     variantOf.set(p, best);
   }
-  // 同じ通りで同じ幅・同じ版の家が3軒続くと、乱数が違っても
-  // 一直線の量産街に見える。配置順の隣2軒が同じ組合せなら、
-  // 3軒目だけ別版へ決定的に差し替える。
-  const isHouse = (p) => ['house_s', 'house_m', 'house_l'].includes(p.spec.archetype);
-  for (const t of P.tracks) {
-    const row = t.items
-      .filter(isHouse)
-      .sort((a, b) => (t.dir < 0 ? b.x - a.x : a.x - b.x) || a.yb - b.yb);
-    for (let i = 2; i < row.length; i++) {
-      const [a, b, p] = row.slice(i - 2, i + 1);
-      if (doorVariants.has(p.spec.id)) continue;
-      const va = variantOf.get(a), vb = variantOf.get(b), vp = variantOf.get(p);
-      if (!va || !vb || !vp || a.w !== b.w || b.w !== p.w || va.id !== vb.id || vb.id !== vp.id) continue;
-      const vs = art[p.spec.archetype]?.variants || [];
-      const start = hash32(`row-variant:${p.spec.id}`) % vs.length;
-      const alt = vs.map((_, k) => vs[(start + k) % vs.length]).find((v) => v.id !== va.id && v.id !== vb.id);
-      if (alt) variantOf.set(p, alt);
-    }
-  }
-  for (const p of P.placed) {
+  const applyVariants = () => { for (const p of P.placed) {
     p.doorCol = p.x + clamp(variantOf.get(p)?.doorX ?? p.spec.doorDx, 0, p.w - 1);
     p.wall = variantOf.get(p)?.wall || [0, 0];                // 絵の壁が footprint の端から内側にある幅（px、左・右）
     p.cover = variantOf.get(p)?.cover || null;                // 屋根が footprint の上にかぶさる行の数（列ごと）
-  }
+  } };
+  applyVariants();
   // 役場の段の階段: 版の扉の前に、扉の幅（2〜3マス、1マスの扉なら3マスで真ん中）
   for (const t of P.terraces) {
     if (!t.hall) continue;
@@ -399,6 +382,12 @@ function layoutAttempt(repo, opts, rejectedPlacements, doorVariants, stairReserv
     const safe = choices.find(clear);
     if (safe !== undefined) plazaTerrace.stair.x = safe;
   }
+  const clearanceArt = goalSpec ? { ...art, 'goal-site': {
+    variants: [{ cover: Array(goalSpec.w).fill(goalSpec.roofRows) }],
+  } } : art;
+  separateNearbyVariants(P.placed, variantOf, clearanceArt,
+    P.terraces.map((t) => ({ x: t.stair.x, y: t.y + t.h, w: t.stair.w })));
+  applyVariants();
   const isolated = keepReachableTerraces(P, F, spawn, canal?.bridgeDeckCells);
   if (isolated.length) {
     for (const p of isolated) rejectedPlacements.add(placementKey(P.cols, P.rows, p.spec, p.x, p.y));
@@ -409,9 +398,6 @@ function layoutAttempt(repo, opts, rejectedPlacements, doorVariants, stairReserv
     ...p, id: p.spec.id, archetype: p.spec.archetype, variant: variantOf.get(p)?.id,
     door: { x: p.doorCol, y: p.yb },
   }));
-  const clearanceArt = goalSpec ? { ...art, 'goal-site': {
-    variants: [{ cover: Array(goalSpec.w).fill(goalSpec.roofRows) }],
-  } } : art;
   const stairConflicts = stairClearanceConflicts({
     stairs: P.terraces.map((t) => ({ x: t.stair.x, y: t.y + t.h, w: t.stair.w })),
     buildings: placedBuildings,

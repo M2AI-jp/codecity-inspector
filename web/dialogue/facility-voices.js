@@ -3,6 +3,12 @@ import { fmtInt } from '../util.js';
 import { base, dateJa, listJa, nPeople, q, san, shortSubject, whenJa } from './text.js';
 import { count } from './contents.js';
 
+const recoveryDetail = (detail) => {
+  const text = String(detail ?? '').replace(/。+$/, '');
+  if (!text) return '';
+  return /ある$/.test(text) ? `${text}。` : `${text}という記述がある。`;
+};
+
 const dojoStatusLines = (f) => {
   const r = f.latestRecord;
   const when = r && dateJa(r.mtime);
@@ -155,10 +161,10 @@ export const FACILITY_VOICE = {
       const database = Array.isArray(f.database) ? f.database : [];
       const backup = Array.isArray(f.backup) ? f.backup : [];
       const runbook = Array.isArray(f.runbook) ? f.runbook : [];
-      if (deployment[0]) out.push(`デプロイを切り戻す証拠は${q(deployment[0].path)}にある。${deployment[0].detail}という記述だ。`);
-      if (database[0]) out.push(`DBを戻す証拠は${q(database[0].path)}にある。${database[0].detail}の手順が見つかった。`);
-      if (backup[0]) out.push(`バックアップの手がかりは${q(backup[0].path)}にある。${backup[0].detail}。`);
-      if (runbook[0]) out.push(`復旧の手順書は${q(runbook[0].path)}だ。${runbook[0].detail}がある。`);
+      if (deployment[0]) out.push(`デプロイを切り戻す証拠は${q(deployment[0].path)}にある。${recoveryDetail(deployment[0].detail)}`);
+      if (database[0]) out.push(`DBを戻す証拠は${q(database[0].path)}にある。${recoveryDetail(database[0].detail)}`);
+      if (backup[0]) out.push(`バックアップの手がかりは${q(backup[0].path)}にある。${recoveryDetail(backup[0].detail)}`);
+      if (runbook[0]) out.push(`復旧の手順書は${q(runbook[0].path)}だ。${recoveryDetail(runbook[0].detail)}`);
       out.push('ここで見つけたのは、戻す手段を書いた証拠だけだ。本当に戻せるかは、ここでは確かめていないんだ。');
       return out;
     },
