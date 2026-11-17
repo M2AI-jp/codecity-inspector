@@ -1,16 +1,19 @@
 import { DIRT, GRASS, OUT, PLAZA, STREET, WATER } from '../constants.mjs';
 import { propTiles } from '../manifest.mjs';
+import { stairClearance } from '../../stair-clearance.mjs';
 
 // 予約・当たり・到達数を共有する。tryProp と finishLawn も同じ状態を使う。
 export function createPropsContext(P, F, rng, spawn, extra) {
   const S = { P, F, rng, spawn, extra };
   const { cols, N, id, foot, front, roofZ, plaza, plazaM, placed, pieces, quay } = P;
   const { g, gap, garden, inside, crop, dist, yard } = F;
-  const { propArt, landmarks, works, bridgeProps = [], mouthProps = [], bridgeCells = [], canalCells = [] } = extra;
+  const { propArt, landmarks, works, bridgeProps = [], mouthProps = [], bridgeCells = [], bridgeDeckCells = [], canalCells = [] } = extra;
   const has = (type) => !!propArt[type];
   const inC = (x, y) => x >= crop.x0 && y >= crop.y0 && x <= crop.x1 && y <= crop.y1;
   const blocked = new Uint8Array(N), reserved = new Uint8Array(N);
-  const walk = (x, y) => inC(x, y) && g[id(x, y)] !== OUT && g[id(x, y)] !== WATER && foot[id(x, y)] < 0 && !blocked[id(x, y)];
+  const bridgeWalk = new Set(bridgeDeckCells.map(([x, y]) => id(x, y)));
+  const walk = (x, y) => inC(x, y) && g[id(x, y)] !== OUT &&
+    (g[id(x, y)] !== WATER || bridgeWalk.has(id(x, y))) && foot[id(x, y)] < 0 && !blocked[id(x, y)];
   const props = [...bridgeProps, ...mouthProps].map((p) => ({ ...p }));
   const out = { props, landmarks: [] };
 
@@ -31,6 +34,7 @@ export function createPropsContext(P, F, rng, spawn, extra) {
     const [mw, mh] = propTiles(p.look || p.type, propArt);
     const mx = Math.floor(p.x - mw / 2 + 0.5), my = Math.round(p.y - mh);
     mark(reserved, mx, my, mx + mw - 1, my + mh - 1);
+    mark(blocked, mx, my, mx + mw - 1, my + mh - 1);
   }
   for (const p of placed) {
     if (!p.spec.facility) continue;
@@ -42,14 +46,16 @@ export function createPropsContext(P, F, rng, spawn, extra) {
     mark(noTree, p.x - 2, p.y - 1, p.x + p.w + 1, p.yb + 5);
   }
 
-  // 段の前の壁（face）は歩けない（階段の所だけ）。階段の上下は小物を置かない。
-  // 広場の南階段は、前（大通り側）・後ろ（広場側）を2行ずつあける。
+  // 段の前の壁（face）は歩けない（階段の所だけ）。
+  // 全階段の前後2行・左右1マスは、縁の柵など force の小物にも渡さない。
+  const stairReserved = new Uint8Array(N);
   for (const t of P.terraces) {
     const fy = t.y + t.h;
-    const clear = t.plaza ? 2 : 1;
+    const r = stairClearance({ ...t.stair, y: fy });
+    mark(reserved, r.x0, r.y0, r.x1, r.y1);
+    mark(stairReserved, r.x0, r.y0, r.x1, r.y1);
     for (let x = t.x; x < t.x + t.w; x++) {
-      if (x >= t.stair.x && x < t.stair.x + t.stair.w) mark(reserved, x, fy - clear, x, fy + clear);
-      else if (inC(x, fy)) blocked[id(x, fy)] = 1;
+      if ((x < t.stair.x || x >= t.stair.x + t.stair.w) && inC(x, fy)) blocked[id(x, fy)] = 1;
     }
   }
   const flood = () => {
@@ -70,7 +76,7 @@ export function createPropsContext(P, F, rng, spawn, extra) {
     const { seen } = flood();   // 広場から届かない草地は街の外に
     for (let y = crop.y0; y <= crop.y1; y++) for (let x = crop.x0; x <= crop.x1; x++) {
       const t = id(x, y);
-      if (g[t] === GRASS && foot[t] < 0 && !seen[t]) g[t] = OUT;
+      if (g[t] === GRASS && foot[t] < 0 && !blocked[t] && !seen[t]) g[t] = OUT;
     }
   }
   S.reach = flood().count;
@@ -94,7 +100,7 @@ export function createPropsContext(P, F, rng, spawn, extra) {
     const [fw, fh] = size || propTiles(look || type, propArt);
     const tiles = [];
     for (let dy = 0; dy < fh; dy++) for (let dx = 0; dx < fw; dx++) tiles.push([tx + dx, ty + dy]);
-    for (const [x, y] of tiles) if (!walk(x, y) || (reserved[id(x, y)] && !force) || (type === 'tree' && noTree[id(x, y)])) return false;
+    for (const [x, y] of tiles) if (!walk(x, y) || g[id(x, y)] === WATER || stairReserved[id(x, y)] || (reserved[id(x, y)] && !force) || (type === 'tree' && noTree[id(x, y)])) return false;
     // 木の樹冠は足元の2行上までかかる: すぐ上に通り・路地・広場がある所には植えない（歩く人を隠さない）
     if (type === 'tree' && !force) for (let y = ty - 2; y < ty; y++) for (let x = tx - 1; x <= tx + 1; x++) if (isPavedAt(x, y)) return false;
     if (tiles.length === 1 && locallySafe(tx, ty)) blocked[id(tx, ty)] = 1;

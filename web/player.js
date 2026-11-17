@@ -46,7 +46,7 @@ export class Player extends Character {
     if (keyboard && this.path) this.setPath(null);
     let speed = input.slow ? WALK_SPEED : RUN_SPEED;
 
-    let following = false;
+    let following = false, waypoint = null, waypointDistance = Infinity;
     if (!keyboard && this.path) {
       let wp = this.path[this.pi];
       let dx = wp.x - this.x, dy = wp.y - this.y;
@@ -54,13 +54,14 @@ export class Player extends Character {
       // intermediate waypoints are taken a little early so turns stay smooth, when the way on to
       // the next one is clear from here (else cutting the turn would catch a wall corner)
       while (this.path && dist < (this.pi < this.path.length - 1 ? 5 : 0.6) &&
-        (this.pi === this.path.length - 1 || dist < 0.6 || world.sweepFree(this.x, this.y, this.path[this.pi + 1].x, this.path[this.pi + 1].y))) {
+        (this.pi === this.path.length - 1 || world.sweepFree(this.x, this.y, this.path[this.pi + 1].x, this.path[this.pi + 1].y))) {
         this.pi++;
         if (this.pi >= this.path.length) { this.setPath(null); break; }
         wp = this.path[this.pi]; dx = wp.x - this.x; dy = wp.y - this.y; dist = Math.hypot(dx, dy);
       }
       if (this.path) {
         following = true;
+        waypoint = wp; waypointDistance = dist;
         if (this.pi === this.path.length - 1) speed = Math.min(speed, Math.sqrt(2 * DECEL * 0.8 * dist) + 6);
         dirX = dx / (dist || 1); dirY = dy / (dist || 1);
       } else { dirX = dirY = 0; }
@@ -71,7 +72,10 @@ export class Player extends Character {
     if (following) {
       // path steering: direction follows the path exactly, speed eases in/out
       const cur = Math.hypot(this.vx, this.vy);
-      const ns = cur < speed ? Math.min(speed, cur + ACCEL * dt) : Math.max(speed, cur - DECEL * dt);
+      // A narrow turn may require the exact waypoint. Do not overshoot it or
+      // skip the last fraction of a pixel into a blocked shortcut.
+      const ns = Math.min(waypointDistance / dt,
+        cur < speed ? Math.min(speed, cur + ACCEL * dt) : Math.max(speed, cur - DECEL * dt));
       this.vx = dirX * ns; this.vy = dirY * ns;
     } else {
       // keyboard: velocity toward target with bounded acceleration
@@ -96,6 +100,11 @@ export class Player extends Character {
     for (let i = 0; i < n; i++) {
       if (sx) this.moveAxis(world, sx, 0, dirY === 0 || following, Math.max(Math.abs(this.vx), following ? Math.abs(this.vy) : 0) * dt / n);
       if (sy) this.moveAxis(world, 0, sy, dirX === 0 || following, Math.max(Math.abs(this.vy), following ? Math.abs(this.vx) : 0) * dt / n);
+    }
+    // Only remove floating-point accumulation after actually reaching the point.
+    if (waypoint && Math.hypot(this.x - waypoint.x, this.y - waypoint.y) < 1e-7 &&
+      !this.blocked(world, waypoint.x, waypoint.y)) {
+      this.x = waypoint.x; this.y = waypoint.y;
     }
 
     if (this.path) {

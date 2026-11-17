@@ -6,7 +6,7 @@ export function placeNeighbors(S) {
   if (hall) {
     const t = trackAt(hall.x, hall.yb);
     S.pinOwner = 0;
-    const pos = t && fit(t, hall.x, hall.w, hall.h, 0, fac.hall.roofRows);
+    const pos = t && fit(t, hall.x, fac.hall, 0);
     S.pinOwner = null;
     if (pos) commit(fac.hall, t, pos, '\u0000hall');
     else pending.late.unshift({ ...fac.hall, angle: -Math.PI / 2 });
@@ -14,14 +14,14 @@ export function placeNeighbors(S) {
   if (fac.pub) {
     const t = tracks.find((c) => c.L === (fac.pubSide < 0 ? flankW : flankE));
     const x0 = fac.pubSide < 0 ? px0 - fac.pub.w : px1 + 1;
-    const pos = t && fit(t, x0, fac.pub.w, fac.pub.h, 0, fac.pub.roofRows);
+    const pos = t && fit(t, x0, fac.pub, 0);
     if (pos) { commit(fac.pub, t, pos, '\u0000pub'); advance(t, pos); }
     else pending.early.push({ ...fac.pub, angle: fac.pubSide < 0 ? Math.PI : 0 });
   }
   if (dockAt) {
     const t = trackAt(dockAt.x, dockAt.yb);
     S.pinOwner = pinned.length - 1;
-    const pos = t && fit(t, dockAt.x, dockAt.w, dockAt.h, 0, fac.dock.roofRows);
+    const pos = t && fit(t, dockAt.x, fac.dock, 0);
     S.pinOwner = null;
     if (pos) commit(fac.dock, t, pos, '\u0000dock');
     else if (scale < 2.5) return null;               // 岸に船着場が入らない → 少し大きな格子でやり直す
@@ -53,7 +53,7 @@ export function placeNeighbors(S) {
           for (const gap of [0, 1]) {
             const x0 = side < 0 ? hp.x - gap - ref.s.w : hp.x + hp.w + gap;
             // 北の通りが役場の脇を通る場合でも、建物の footprint でその区間を覆える。
-            const pos = fit(row, x0, ref.s.w, ref.s.h, 0, ref.s.roofRows, true);
+            const pos = fit(row, x0, ref.s, 0, true);
             if (!pos) continue;
             queues[ref.qi].items.splice(ref.si, 1);
             commit(ref.s, row, pos, '\u0000hall-row');
@@ -89,7 +89,7 @@ export function placeNeighbors(S) {
         for (const gap of side < 0 ? [1, 0] : [0, 1]) {
           const x0 = side < 0 ? dockPlaced.x - gap - ref.s.w : dockPlaced.x + dockPlaced.w + gap;
           S.pinOwner = pinned.length - 1;
-          const pos = fit(dockTrack, x0, ref.s.w, ref.s.h, 0, ref.s.roofRows, true);
+          const pos = fit(dockTrack, x0, ref.s, 0, true);
           S.pinOwner = null;
           if (!pos) continue;
           queues[ref.qi].items.splice(ref.si, 1);

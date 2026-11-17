@@ -51,7 +51,7 @@ export function traceCanal(S) {
       allStates = opt.forcedStates.slice();
       routePast = Array.isArray(opt.forcedPast) ? opt.forcedPast.slice() : [];
       routeTo = opt.forcedTo || null;
-    }
+    } else return cannotPlace('予約した水路を建物配置後の地面に通せない');
   }
   if (!allStates) {
     const found = chooseCanalRoute(edgeDefs, startsFor, {

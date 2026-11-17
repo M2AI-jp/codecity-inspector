@@ -2,24 +2,8 @@ import { OUT } from '../constants.mjs';
 import { propTiles } from '../manifest.mjs';
 
 export function adjustBridges(S) {
-  const { bridgeProps, deckBounds, quay, inC, id, foot, placed, inG, road, pieces, crossings, canalCells, cols, rows, original, cellSet, paved, bridgeCells, bridgeDeckCells, addDeckTiles, mouthProps, propArt, dirs, firstState } = S;
-  // 横橋の deck の片側から2セル以内を同じ通常建物が全行ふさいでいる
-  // 場合だけ、その建物セルを次の建物配置で予約する。1行だけの接触は
-  // 歩行可能なので予約せず、密な街の外枠を広げない。縦橋は deck の
-  // 半端丸めを補正済み。
+  const { bridgeProps, deckBounds, inC, id, foot, inG, road, pieces, crossings, canalCells, cols, rows, original, cellSet, paved, bridgeCells, bridgeDeckCells, addDeckTiles, mouthProps, propArt, dirs, firstState } = S;
   const bridgeSideReserve = new Set();
-  for (const p of bridgeProps) {
-    if (p.type !== 'bridge-h') continue;
-    const { x0, y0, x1, y1 } = deckBounds(p.type, p.x, p.y);
-    const sideXs = quay ? [x0 - 1, x0 - 2, x1 + 1, x1 + 2] : [x0 - 1, x1 + 1];
-    for (const x of sideXs) {
-      const ks = [];
-      for (let y = y0; y <= y1; y++) if (inC(x, y)) ks.push(id(x, y));
-      if (ks.length && ks.some((k) => foot[k] >= 0 && !placed[foot[k]]?.spec.facility)) {
-        for (const k of ks) bridgeSideReserve.add(k);
-      }
-    }
-  }
   // 水路の中心が元の舗装セルでなくても、幅のある通りの両側に沿って
   // 横断している場合がある。橋の無い並走を残さないよう、その交差部に
   // deck が収まる道路行を探して橋と crossing の中心を同じ行へ寄せる。
@@ -73,7 +57,27 @@ export function adjustBridges(S) {
   // 補正後の deck だけを橋の予約帯として使う。
   bridgeCells.clear();
   bridgeDeckCells.clear();
-  for (const p of bridgeProps) addDeckTiles(p.type, p.x, p.y);
+  for (const p of bridgeProps) {
+    addDeckTiles(p.type, p.x, p.y);
+    // 位置補正を終えた橋の欄干と両岸を予約する。補正前の位置だけの
+    // 予約では、新しい岸へ建物やその扉の前庭が置かれてしまう。
+    const b = deckBounds(p.type, p.x, p.y);
+    const horizontal = p.type === 'bridge-h';
+    for (let y = b.y0 - (horizontal ? 0 : 2); y <= b.y1 + (horizontal ? 0 : 2); y++) {
+      for (let x = b.x0 - (horizontal ? 2 : 0); x <= b.x1 + (horizontal ? 2 : 0); x++) {
+        if (inC(x, y)) bridgeSideReserve.add(id(x, y));
+      }
+    }
+    // 両岸へ横から曲がって入る所もあける。板の外側にある欄干の柱と
+    // 隣の小物が近すぎると、tile では通れても人物の足幅では通れない。
+    for (const [sx, sy, w, h] of propArt[p.look || p.type].solids || []) {
+      const x0 = Math.floor(p.x + sx / 16), x1 = Math.floor(p.x + (sx + w - 1) / 16);
+      const y0 = Math.floor(p.y + sy / 16), y1 = Math.floor(p.y + (sy + h - 1) / 16);
+      for (let y = y0 - 1; y <= y1 + 1; y++) for (let x = x0 - 1; x <= x1 + 1; x++) {
+        if (inC(x, y)) bridgeSideReserve.add(id(x, y));
+      }
+    }
+  }
   // 始点直下の通りに橋がかかる場合、口の絵を同じ水路の次のセルへ
   // ずらす。口は水路の端を示し続けるが、橋の deck と小物が重ならない。
   if (mouthProps.length) {

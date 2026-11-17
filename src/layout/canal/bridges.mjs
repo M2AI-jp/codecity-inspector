@@ -1,7 +1,5 @@
-import { OUT, WATER } from '../constants.mjs';
-
 export function placeBridges(S) {
-  const { canalCells, paved, id, roadDirAt, propArt, bridgeDeckCells, inC, bridgeCells, cols, foot, original, bridgeProps, crossings } = S;
+  const { canalCells, paved, id, roadDirAt, propArt, bridgeDeckCells, inC, bridgeCells, cols, bridgeProps, crossings } = S;
   const roadWater = new Set(canalCells.filter(([x, y]) => paved(id(x, y))).map(([x, y]) => id(x, y)));
   const waterRoadDir = new Map(canalCells.map(([x, y]) => [id(x, y), roadDirAt(x, y)]));
   const crossed = new Set();
@@ -50,21 +48,9 @@ export function placeBridges(S) {
       // bridge-h の deck は、水幅2マスと東西の通り1マスずつを覆う。
       // 絵の南側のアーチ面は deck の外側に置き、北側の水へはみ出させない。
       const py = (maxY - minY + 1) <= 2 ? maxY + 1 : Math.floor((minY + maxY) / 2) + 2;
-      const bridgeX = (px) => {
-        const b = deckBounds('bridge-h', px, py);
-        const cy = Math.floor((b.y0 + b.y1) / 2);
-        const inDeck = cx >= b.x0 && cx <= b.x1 &&
-          canalCells.some(([x, y]) => x >= b.x0 && x <= b.x1 && y >= b.y0 && y <= b.y1);
-        const roadEnds = paved(id(b.x0, cy)) && paved(id(b.x1, cy));
-        const clearSide = [b.x0 - 1, b.x1 + 1].every((x) =>
-          inC(x, b.y0) && inC(x, b.y1) &&
-          Array.from({ length: b.y1 - b.y0 + 1 }, (_, i) => id(x, b.y0 + i))
-            .every((k) => foot[k] < 0 && original[k] !== OUT && original[k] !== WATER));
-        return inDeck && roadEnds && clearSide;
-      };
-      const px = [0, -1, 1, -2, 2, -3, 3]
-        .map((dx) => cx + dx)
-        .find(bridgeX) ?? cx;
+      // 水幅2マスの両側へ1マスずつ掛ける。横へずらして建物を避けると
+      // 片岸が板から外れるため、建物側をこの帯の外へ再配置する。
+      const px = cx;
       bridgeProps.push({ type: 'bridge-h', x: px, y: py, look: 'bridge-h' });
       addDeckTiles('bridge-h', px, py);
       const deck = deckBounds('bridge-h', px, py);
