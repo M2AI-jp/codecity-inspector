@@ -24,8 +24,16 @@ const manifest = defaultManifest();
 const base = resolve('compare');
 function fixture(t) {
   mkdirSync(base, { recursive: true });
-  const dir = mkdtempSync(join(base, 'overlay-test-'));
-  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const temp = mkdtempSync(join(base, 'overlay-test-')), dir = join(temp, 'repo');
+  mkdirSync(dir, { recursive: true });
+  // 親の作業フォルダ（CI の clone など）を、見本のリポジトリとして拾わない（test/groups.test.mjs と同じ）
+  const previous = process.env.GIT_CEILING_DIRECTORIES;
+  process.env.GIT_CEILING_DIRECTORIES = temp;
+  t.after(() => {
+    if (previous === undefined) delete process.env.GIT_CEILING_DIRECTORIES;
+    else process.env.GIT_CEILING_DIRECTORIES = previous;
+    rmSync(temp, { recursive: true, force: true });
+  });
   return dir;
 }
 function simpleTown() {
