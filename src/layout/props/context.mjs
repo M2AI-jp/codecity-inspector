@@ -58,7 +58,7 @@ export function createPropsContext(P, F, rng, spawn, extra) {
       if ((x < t.stair.x || x >= t.stair.x + t.stair.w) && inC(x, fy)) blocked[id(x, fy)] = 1;
     }
   }
-  const flood = () => {
+  const flood = (extraBlocked) => {
     const seen = new Uint8Array(N);
     const q = [id(spawn.x, spawn.y)];
     seen[q[0]] = 1;
@@ -67,6 +67,7 @@ export function createPropsContext(P, F, rng, spawn, extra) {
       for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
         if (!walk(nx, ny)) continue;
         const n = id(nx, ny);
+        if (extraBlocked?.[n]) continue;
         if (!seen[n]) { seen[n] = 1; q.push(n); }
       }
     }
@@ -81,8 +82,8 @@ export function createPropsContext(P, F, rng, spawn, extra) {
   }
   S.reach = flood().count;
   const RING = [[-1, -1], [0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0]];
-  const locallySafe = (x, y) => {
-    const w = RING.map(([dx, dy]) => walk(x + dx, y + dy));
+  const locallySafe = (x, y, extraBlocked) => {
+    const w = RING.map(([dx, dy]) => walk(x + dx, y + dy) && !extraBlocked?.[id(x + dx, y + dy)]);
     if (w.every(Boolean)) return true;
     let runs = 0;
     for (let i = 0; i < 8; i++) {
@@ -94,23 +95,71 @@ export function createPropsContext(P, F, rng, spawn, extra) {
     return runs <= 1;
   };
   const lamps = [];
+  const solidEdges = new Uint8Array(N);
+  let hasSolidEdges = false;
+  const propVariants = new Map();
+  for (const [key, def] of Object.entries(propArt)) {
+    const type = key.replace(/-\d+$/, '');
+    if (!propVariants.has(type)) propVariants.set(type, []);
+    propVariants.get(type).push(def);
+  }
   const isPavedAt = (x, y) => inC(x, y) && (g[id(x, y)] === STREET || g[id(x, y)] === DIRT || g[id(x, y)] === PLAZA || g[id(x, y)] === WATER);
-  const tryProp = (type, tx, ty, force = false, look, size) => {
+  const tryProp = (type, tx, ty, force = false, look, size, offsetX = 0) => {
     if (!has(look || type) && !['lamp', 'tree', 'bush', 'barrel', 'crate', 'fence', 'bench', 'noticeboard', 'sacks', 'flowerpot', 'planter', 'cart'].includes(type)) return false;
     const [fw, fh] = size || propTiles(look || type, propArt);
     const tiles = [];
     for (let dy = 0; dy < fh; dy++) for (let dx = 0; dx < fw; dx++) tiles.push([tx + dx, ty + dy]);
     for (const [x, y] of tiles) if (!walk(x, y) || g[id(x, y)] === WATER || stairReserved[id(x, y)] || (reserved[id(x, y)] && !force) || (type === 'tree' && noTree[id(x, y)])) return false;
+    // 丸めた占有幅や壁寄せ後の足場から、solid が隣の歩行マスへ出ることがある。
+    // そのマスも到達性検査に含める。建物・既に塞がったマスは二重に数えない。
+    // 見た目の版は切り出し後の座標で決まるので、未指定なら各版の当たりを含める。
+    const ax = (tx + fw / 2 + offsetX) * 16, ay = (ty + fh) * 16;
+    const defs = look ? [propArt[look]] : propVariants.get(type) || [];
+    const occupied = new Set(tiles.map(([x, y]) => id(x, y)));
+    const edges = [];
+    for (const def of defs) for (const b of def?.solids || (def?.solid ? [def.solid] : [])) {
+      for (let y = Math.floor((ay + b[1]) / 16); y < Math.ceil((ay + b[1] + b[3]) / 16); y++) {
+        for (let x = Math.floor((ax + b[0]) / 16); x < Math.ceil((ax + b[0] + b[2]) / 16); x++) {
+          if (!walk(x, y) || occupied.has(id(x, y))) continue;
+          if (g[id(x, y)] === WATER || stairReserved[id(x, y)] || (reserved[id(x, y)] && !force)) return false;
+          occupied.add(id(x, y)); edges.push(id(x, y));
+        }
+      }
+    }
     // 木の樹冠は足元の2行上までかかる: すぐ上に通り・路地・広場がある所には植えない（歩く人を隠さない）
     if (type === 'tree' && !force) for (let y = ty - 2; y < ty; y++) for (let x = tx - 1; x <= tx + 1; x++) if (isPavedAt(x, y)) return false;
+    // 各マスを塞いでも周囲がつながるなら全体探索は不要。細い通路だけ flood で確かめる。
+    let physical = null;
+    if (hasSolidEdges || edges.length) {
+      const staged = [];
+      let safe = true;
+      for (const k of occupied) {
+        if (solidEdges[k]) continue;
+        if (!locallySafe(k % cols, Math.floor(k / cols), solidEdges)) { safe = false; break; }
+        solidEdges[k] = 1; staged.push(k);
+      }
+      for (const k of staged) solidEdges[k] = 0;
+      if (!safe) physical = flood(solidEdges);
+    }
     if (tiles.length === 1 && locallySafe(tx, ty)) blocked[id(tx, ty)] = 1;
     else {
       for (const [x, y] of tiles) blocked[id(x, y)] = 1;
       if (flood().count !== S.reach - tiles.length) { for (const [x, y] of tiles) blocked[id(x, y)] = 0; return false; }
     }
+    const added = edges.filter((k) => !solidEdges[k]);
+    for (const k of added) solidEdges[k] = 1;
+    if (physical) {
+      const covered = [...occupied].filter((k) => physical.seen[k]).length;
+      if (flood(solidEdges).count !== physical.count - covered) {
+        for (const [x, y] of tiles) blocked[id(x, y)] = 0;
+        for (const k of added) solidEdges[k] = 0;
+        return false;
+      }
+    }
+    hasSolidEdges ||= added.length > 0;
     S.reach -= tiles.length;
     if (type === 'lamp') lamps.push([tx, ty]);
-    props.push({ type, x: tx + fw / 2, y: ty + fh, ...(look ? { look } : {}), ...(size ? { w: fw } : {}) });
+    props.push({ type, x: tx + fw / 2 + offsetX, y: ty + fh, ...(look ? { look } : {}), ...(size ? { w: fw } : {}) });
     return true;
   };
   // 先に置いた建物の屋根・背の高い小物（足場・井戸小屋）の陰になる所か（そこに置いた札や材木は見えない）
