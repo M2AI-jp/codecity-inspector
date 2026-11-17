@@ -92,6 +92,9 @@ facts の形:
     variant: "house_s-2",              // 省略可。見た目の版（近くに同じ版が並ばないよう layout が選ぶ）。無ければ hash(id) で選ぶ
     x: 10, y: 8, w: 6, h: 4,           // footprint（壁の外周）。扉は下辺
     door: { x: 12, y: 11 },            // 扉のtile（footprintの最下段）
+                                       // 全建物の扉前2行（door.y+1..door.y+2）、扉幅＋左右1マス
+                                       // （door.x-1..door.x+選択版のdoor.w）に、他の建物のfootprint・
+                                       // 選択版の列別cover（town-grid.coverOf）を重ねない。
     district: "engine",               // group があればその値。無ければ従来のディレクトリ地区／施設用ID
     module: { ...RepoModel.modules[i] },  // 施設では kind = archetype、統計は根拠とまとめたモジュールのもの。
                                        // group は元の module または同じ担当だけをまとめた施設から引き継ぐ

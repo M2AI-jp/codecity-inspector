@@ -95,7 +95,7 @@ test('屋根が階段前を隠した配置候補を外して再配置し、役�
   ] };
   assert.ok(conflicts(bad).some((c) => c.x === 20 && c.y === 29 && c.kind === 'cover'));
   const debug = {}, town = layoutTown(repo, { debug });
-  assert.ok(debug.stairRetries > 0, '衝突を検出した候補だけを外す');
+  assert.ok(debug.placementRetries > 0, '衝突を検出した候補だけを外す');
   assert.deepEqual(conflicts(town), []);
   assert.equal(JSON.stringify(layoutTown(repo)), JSON.stringify(town), '再試行も決定的');
   const hall = town.buildings.find((b) => b.archetype === 'town_hall');

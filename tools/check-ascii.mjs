@@ -2,6 +2,7 @@ import { loadProps } from '../src/layout/manifest.mjs';
 import { deckTiles as deckCells, propCells, coverOf as roofCover, stairsOf, facesOf } from '../src/town-grid.mjs';
 import { stairClearanceConflicts, describeStairConflict } from '../src/stair-clearance.mjs';
 import { groupComponents, moduleGroup } from '../src/group-components.mjs';
+import { doorClearanceConflicts, describeDoorConflict } from '../src/door-clearance.mjs';
 
 // The complete --check used by ascii-town, also callable without spawning a process.
 export function checkAscii(town, manifest, { regenerate, repo } = {}) {
@@ -12,7 +13,10 @@ export function checkAscii(town, manifest, { regenerate, repo } = {}) {
   const faceCells = facesOf(town);
   const stairAt = stairsOf(town);
   const lines = [];
-  const problems = stairClearanceConflicts(town, manifest.archetypes, propArt).map(describeStairConflict);
+  const problems = [
+    ...stairClearanceConflicts(town, manifest.archetypes, propArt).map(describeStairConflict),
+    ...doorClearanceConflicts(town, manifest.archetypes).map(describeDoorConflict),
+  ];
   for (const u of town.unplaced || []) if (u.archetype === 'group') {
     if (typeof u.group !== 'string' || typeof u.reason !== 'string' || !u.reason.trim() ||
       !Number.isSafeInteger(u.pieces) || u.pieces < 0 ||
@@ -305,6 +309,6 @@ export function checkAscii(town, manifest, { regenerate, repo } = {}) {
   for (const r of town.ground) for (const ch of r) if (ch !== ' ') inside++;
   lines.push(`check: 歩行面 ${walkable}（石畳 ${streets}）, 建物の占有率 ${(100 * builtArea / Math.max(1, inside)).toFixed(1)}%（街の内側に対して）, 到達 ${q.length}, 水と水の間の陸帯 ${waterLandStripCount}`);
   if (problems.length) { lines.push(`問題 ${problems.length} 件:\n  ` + [...new Set(problems)].slice(0, 40).join('\n  ')); }
-  else lines.push('check: OK（階段と前後2行・重なり・隙間・屋根の余白・下の行・到達・決定性）');
+  else lines.push('check: OK（階段と前後2行・戸口前2行・重なり・隙間・屋根の余白・下の行・到達・決定性）');
   return { problems, lines, groups };
 }

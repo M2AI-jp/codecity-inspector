@@ -40,6 +40,7 @@ export function createTracks(S) {
     const denseX0 = Math.min(3, cols - 2), denseX1 = Math.max(denseX0, cols - 4);
     const denseWidth = denseX1 - denseX0 + 1;
     const rowCount = Math.max(2, Math.ceil((need + 5) / Math.max(12, denseWidth - 10)));
+    // 戸口前2行と屋根の余白を取れる候補列を用意する。
     const rowStep = Math.max(8, maxH + 3);
     const addDenseRow = (yb, flags = {}) => {
       const streetY = yb + 1;
@@ -83,7 +84,8 @@ export function createTracks(S) {
       denseTracks.push({ L, sd, dir: 1, x0, x1, cursor: x0, items: [], high: false, dense: true, ...flags });
       return true;
     };
-    const rowStep = C.count <= 10 ? Math.max(5, maxH) : Math.max(6, maxH + 1);
+    // 小さい街でも、前後の列をfootprintの高さだけで詰めない。
+    const rowStep = Math.max(8, maxH + 3);
     const rowCount = Math.max(1, Math.ceil((need + 5) / Math.max(12, x1 - x0 + 1 - 10)));
     for (let i = 0; i < rowCount; i++) addCompactRow(plaza.y0 - 1 - rowStep * (i + 1), i === 0 ? { compactOuter: true } : {});
     addCompactRow(plaza.y1 + rowStep, { compactOuter: true });
@@ -121,8 +123,10 @@ export function createTracks(S) {
     };
     addPlazaSide(-1);
     addPlazaSide(1);
-    addPlazaSide(-1, 5);
-    addPlazaSide(1, 5);
+    // 二列目にも戸口前の2行を残す。版の屋根との重なりは最終配置で検査する。
+    const sideStep = hall ? Math.max(8, maxH + 3) : maxH + 2;
+    addPlazaSide(-1, sideStep);
+    addPlazaSide(1, sideStep);
     if (fac.inn) {
       const side = fac.innSide, sx0 = side < 0 ? 1 : Math.min(cols - 2, px1 + 1), sx1 = side < 0 ? Math.min(cols - 2, px0 - 1) : cols - 2;
       if (sx1 - sx0 + 1 >= fac.inn.w) {

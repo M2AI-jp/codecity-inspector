@@ -8,7 +8,7 @@ export function createPlacement(S) {
   const { C, harbour, quay, id, road, plazaM, foot, front, roofZ, green, inG, pinned, rng, pcy, pcx, tracks } = S;
   const canalReserve = new Set((C.canalReserve || []).map(([x, y]) => `${x},${y}`));
   const reservedForCanal = (x, y) => canalReserve.has(`${x},${y}`);
-
+  const placedKeys = new Set();
   // footprint のすぐ下の行（と、通りまでの前庭）が通りにつながる位置か。
   // roofRows は外観の版の cover の最大値で、屋根が上の通り・建物を隠す余白だけを予約する。
   const fit = (t, x0, spec, setback, allowRoad = false) => {
@@ -17,7 +17,9 @@ export function createPlacement(S) {
     let smin = 1e9;
     for (let x = x0; x < x0 + w; x++) { const s = t.sd[x - t.x0]; if (s < 0) return null; smin = Math.min(smin, s); }
     const yb = smin - 1 - setback, y = yb - h + 1;
-    if (C.stairRejected?.has(placementKey(S.cols, S.rows, spec, x0, y))) return null;
+    if (C.rejectedPlacements?.has(placementKey(S.cols, S.rows, spec, x0, y))) return null;
+    const conflicts = C.rejectedDoorPairs?.get(placementKey(S.cols, S.rows, spec, x0, y));
+    if (conflicts && [...conflicts].some((key) => placedKeys.has(key))) return null;
     if (y < t.L.y0 + (t.L.closedTop ? 2 : 0) || y - roofRows < 1) return null;
     if (harbour && yb >= quay.top) return null;
     for (let x = x0; x < x0 + w; x++) {
@@ -46,6 +48,7 @@ export function createPlacement(S) {
   const hitsPinOther = (x0, y0, x1, y1) => pinned.some((p, i) => i !== S.pinOwner && x0 <= p[2] && x1 >= p[0] && y0 <= p[3] && y1 >= p[1]);
   const placed = [];
   const commit = (spec, t, pos, group) => {
+    placedKeys.add(placementKey(S.cols, S.rows, spec, pos.x, pos.y));
     const i = placed.length;
     for (let x = pos.x; x < pos.x + pos.w; x++) {
       for (let yy = pos.y; yy <= pos.yb; yy++) foot[id(x, yy)] = i;
