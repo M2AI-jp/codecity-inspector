@@ -1,5 +1,8 @@
 import { WINDOW, Y_WEIGHT, clamp } from '../constants.mjs';
 
+// 切り出し前の格子・建物・候補位置。同じ種を再試行するときも、他の候補は変えない。
+export const placementKey = (cols, rows, spec, x, y) => `${cols},${rows}:${spec.id}:${x},${y}`;
+
 export function createPlacement(S) {
   const { C, harbour, quay, id, road, plazaM, foot, front, roofZ, green, inG, pinned, rng, pcy, pcx, tracks } = S;
   const canalReserve = new Set((C.canalReserve || []).map(([x, y]) => `${x},${y}`));
@@ -7,11 +10,13 @@ export function createPlacement(S) {
 
   // footprint のすぐ下の行（と、通りまでの前庭）が通りにつながる位置か。
   // roofRows は外観の版の cover の最大値で、屋根が上の通り・建物を隠す余白だけを予約する。
-  const fit = (t, x0, w, h, setback, roofRows = 2, allowRoad = false) => {
+  const fit = (t, x0, spec, setback, allowRoad = false) => {
+    const { w, h, roofRows = 2 } = spec;
     if (x0 < t.x0 || x0 + w - 1 > t.x1) return null;
     let smin = 1e9;
     for (let x = x0; x < x0 + w; x++) { const s = t.sd[x - t.x0]; if (s < 0) return null; smin = Math.min(smin, s); }
     const yb = smin - 1 - setback, y = yb - h + 1;
+    if (C.stairRejected?.has(placementKey(S.cols, S.rows, spec, x0, y))) return null;
     if (y < t.L.y0 + (t.L.closedTop ? 2 : 0) || y - roofRows < 1) return null;
     if (harbour && yb >= quay.top) return null;
     for (let x = x0; x < x0 + w; x++) {
@@ -99,7 +104,7 @@ export function createPlacement(S) {
     for (let k = 0; k <= span; k++) {
       const x0 = t.dir < 0 ? t.cursor - k - s.w + 1 : t.cursor + k;
       if (t.dir < 0 ? x0 < t.x0 : x0 + s.w - 1 > t.x1) return null;
-      const pos = fit(t, x0, s.w, s.h, 0, s.roofRows, allowRoad || !!t.dense);
+      const pos = fit(t, x0, s, 0, allowRoad || !!t.dense);
       if (pos) return pos;
     }
     return null;

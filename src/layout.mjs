@@ -29,11 +29,27 @@ import { generate } from './layout/grid.mjs';
 import { loadArt, loadGround, loadProps, propTiles } from './layout/manifest.mjs';
 import { placeProps } from './layout/props.mjs';
 import { cmp, hash32, makeRng } from './layout/util.mjs';
+import { placementKey } from './layout/grid/placement.mjs';
+import { stairClearanceConflicts, describeStairConflict } from './stair-clearance.mjs';
 
 export { FACILITY_NAME, LANDMARK, aggregate, chooseCanalRoute, loadArt, loadProps, loadGround, propTiles };
 
 // ---------- 本体 ----------
 export function layoutTown(repo, opts = {}) {
+  // 版と水路に合わせた階段位置は配置後に決まる。実際に重なった候補だけを
+  // fit から外し、同じ種・順序で再試行する。重ならない街は従来の一回で返す。
+  const stairRejected = new Set();
+  for (let attempt = 0; attempt < 128; attempt++) {
+    const town = layoutAttempt(repo, opts, stairRejected);
+    if (town) {
+      if (opts.debug) opts.debug.stairRetries = attempt;
+      return town;
+    }
+  }
+  throw new Error('layoutTown: 階段と前後2行を隠さない建物配置を128回で確保できなかった');
+}
+
+function layoutAttempt(repo, opts, stairRejected) {
   const seed = hash32(`${repo.name}@${repo.head ?? 'worktree'}`);
   const art = opts.art ?? loadArt();
   const propArt = opts.props ?? loadProps();
@@ -151,7 +167,7 @@ export function layoutTown(repo, opts = {}) {
   let P = null, F = null, canal = null, lastCanalAttempt = null;
   const canalRequested = (repo.facilities || []).some((f) => f.archetype === 'well' && f.facts) &&
     !!propArt['bridge-h']?.deck && !!propArt['bridge-v']?.deck;
-  const C = { groups, maxH, need, seed, fac, harbour, gateRows, count: all.length };
+  const C = { groups, maxH, need, seed, fac, harbour, gateRows, count: all.length, stairRejected };
   for (let attempt = 0, scale = 1; attempt < 14 && !P; attempt++, scale *= 1.15) {
     // 施設ごとの置き場所の列を、試すたびに作り直す（generate は列を書き換える）
     const g2 = groups.map((g) => ({ ...g, items: [...g.items], ruins: [...g.ruins] }));
@@ -298,10 +314,27 @@ export function layoutTown(repo, opts = {}) {
       for (let y = stairY - 2; y <= stairY + 2; y++) {
         for (let dx = 0; dx < plazaTerrace.stair.w; dx++) if (blocked.has(P.id(x + dx, y))) return false;
       }
-      return true;
+      return stairClearanceConflicts({
+        stairs: [{ x, y: stairY, w: plazaTerrace.stair.w }],
+        props: [...(canal.mouthProps || []), ...(canal.bridgeProps || [])],
+      }, art, propArt).length === 0;
     };
     const safe = choices.find(clear);
     if (safe !== undefined) plazaTerrace.stair.x = safe;
+  }
+  // 最終の階段位置と、選んだ版の列ごとの cover で確かめる（格子内座標）。
+  const stairBuildings = P.placed.map((p) => ({
+    ...p, id: p.spec.id, archetype: p.spec.archetype, variant: variantOf.get(p)?.id,
+  }));
+  const stairConflicts = stairClearanceConflicts({
+    stairs: P.terraces.map((t) => ({ x: t.stair.x, y: t.y + t.h, w: t.stair.w })),
+    buildings: stairBuildings,
+  }, art, propArt);
+  if (stairConflicts.length) {
+    for (const { object: p } of stairConflicts) {
+      stairRejected.add(placementKey(P.cols, P.rows, p.spec, p.x, p.y));
+    }
+    return null;
   }
   const placedProps = placeProps(P, F, makeRng(seed ^ 0x9e3779b9), spawn, {
     propArt, landmarks, dock, bridgeProps: canal?.bridgeProps || [], mouthProps: canal?.mouthProps || [], bridgeCells: canal?.bridgeCells || [],
@@ -420,5 +453,7 @@ export function layoutTown(repo, opts = {}) {
     spawn: { x: spawn.x - x0, y: spawn.y - y0 },
   };
   placedProps.finishLawn(town, art);
+  const conflicts = stairClearanceConflicts(town, art, propArt);
+  if (conflicts.length) throw new Error(`layoutTown: ${describeStairConflict(conflicts[0])}`);
   return town;
 }

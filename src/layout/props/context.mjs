@@ -1,5 +1,6 @@
 import { DIRT, GRASS, OUT, PLAZA, STREET, WATER } from '../constants.mjs';
 import { propTiles } from '../manifest.mjs';
+import { stairClearance } from '../../stair-clearance.mjs';
 
 // 予約・当たり・到達数を共有する。tryProp と finishLawn も同じ状態を使う。
 export function createPropsContext(P, F, rng, spawn, extra) {
@@ -42,14 +43,16 @@ export function createPropsContext(P, F, rng, spawn, extra) {
     mark(noTree, p.x - 2, p.y - 1, p.x + p.w + 1, p.yb + 5);
   }
 
-  // 段の前の壁（face）は歩けない（階段の所だけ）。階段の上下は小物を置かない。
-  // 広場の南階段は、前（大通り側）・後ろ（広場側）を2行ずつあける。
+  // 段の前の壁（face）は歩けない（階段の所だけ）。
+  // 全階段の前後2行・左右1マスは、縁の柵など force の小物にも渡さない。
+  const stairReserved = new Uint8Array(N);
   for (const t of P.terraces) {
     const fy = t.y + t.h;
-    const clear = t.plaza ? 2 : 1;
+    const r = stairClearance({ ...t.stair, y: fy });
+    mark(reserved, r.x0, r.y0, r.x1, r.y1);
+    mark(stairReserved, r.x0, r.y0, r.x1, r.y1);
     for (let x = t.x; x < t.x + t.w; x++) {
-      if (x >= t.stair.x && x < t.stair.x + t.stair.w) mark(reserved, x, fy - clear, x, fy + clear);
-      else if (inC(x, fy)) blocked[id(x, fy)] = 1;
+      if ((x < t.stair.x || x >= t.stair.x + t.stair.w) && inC(x, fy)) blocked[id(x, fy)] = 1;
     }
   }
   const flood = () => {
@@ -94,7 +97,7 @@ export function createPropsContext(P, F, rng, spawn, extra) {
     const [fw, fh] = size || propTiles(look || type, propArt);
     const tiles = [];
     for (let dy = 0; dy < fh; dy++) for (let dx = 0; dx < fw; dx++) tiles.push([tx + dx, ty + dy]);
-    for (const [x, y] of tiles) if (!walk(x, y) || (reserved[id(x, y)] && !force) || (type === 'tree' && noTree[id(x, y)])) return false;
+    for (const [x, y] of tiles) if (!walk(x, y) || stairReserved[id(x, y)] || (reserved[id(x, y)] && !force) || (type === 'tree' && noTree[id(x, y)])) return false;
     // 木の樹冠は足元の2行上までかかる: すぐ上に通り・路地・広場がある所には植えない（歩く人を隠さない）
     if (type === 'tree' && !force) for (let y = ty - 2; y < ty; y++) for (let x = tx - 1; x <= tx + 1; x++) if (isPavedAt(x, y)) return false;
     if (tiles.length === 1 && locallySafe(tx, ty)) blocked[id(tx, ty)] = 1;

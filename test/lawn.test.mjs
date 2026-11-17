@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { analyzeRepository } from '../src/analyze.mjs';
 import { layoutTown, loadArt, loadProps } from '../src/layout.mjs';
 import { largestRectangle, limitLawns, visibleLawn } from '../src/lawn.mjs';
+import { stairClearanceConflicts, describeStairConflict } from '../src/stair-clearance.mjs';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const art = loadArt(), props = loadProps();
@@ -118,6 +119,7 @@ test('PR #9 の道場前に残った3×4を、歩ける土道1マスで割る', 
 test('種を固定した30個のリポジトリで芝生8マス以下と実際のPlayerの到達性を保つ', { timeout: 120000 }, async (t) => {
   const root = temporary(t), rng = random(0x9bd43a7), files = [];
   const env = { ...process.env,
+    GIT_CEILING_DIRECTORIES: root,
     GIT_AUTHOR_NAME: 'Lawn Test', GIT_AUTHOR_EMAIL: 'lawn@example.invalid',
     GIT_COMMITTER_NAME: 'Lawn Test', GIT_COMMITTER_EMAIL: 'lawn@example.invalid',
     GIT_AUTHOR_DATE: '2026-01-01T00:00:00Z', GIT_COMMITTER_DATE: '2026-01-01T00:00:00Z' };
@@ -145,11 +147,13 @@ test('種を固定した30個のリポジトリで芝生8マス以下と実際�
     files.push(file);
     await t.test(name, () => {
       assert.ok(maximum(town) <= 8, `${name}: 最大 ${maximum(town)}マス`);
+      const collisions = stairClearanceConflicts(town, art, props);
+      assert.equal(collisions.length, 0, collisions.map(describeStairConflict).join('\n'));
       assert.equal(JSON.stringify(layoutTown(model)), JSON.stringify(town), '同じ入力で同じ街');
       run(process.execPath, [join(ROOT, 'tools/lawn.mjs'), file, '--max', '8']);
     });
   }
   const result = run(process.execPath, [join(ROOT, 'tools/check-play.mjs'), ...files]);
   assert.equal(result.split('\n').filter((l) => l.includes('buildings,')).length, 30);
-  t.diagnostic('30街の lawn --max 8 と check-play: exit 0。一時リポジトリは t.after で削除。');
+  t.diagnostic('30街の階段と前後2行の検査・lawn --max 8・check-play: exit 0。一時リポジトリは t.after で削除。');
 });

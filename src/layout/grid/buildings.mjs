@@ -151,7 +151,7 @@ export function placeBuildings(S) {
         for (let k = 0; k <= WINDOW && (!best || k <= best.k); k++) {
           const x0 = t.dir < 0 ? t.cursor - k - s.w + 1 : t.cursor + k;
           if (t.dir < 0 ? x0 < t.x0 : x0 + s.w - 1 > t.x1) break;
-          let pos = fit(t, x0, s.w, s.h, setback, s.roofRows, !!t.dense);
+          let pos = fit(t, x0, s, setback, !!t.dense);
           if (pos) {
             // 同じ近さなら、直前の家と幅か下がり方が違うほう
             const same = last && last.w === s.w && last.yb === pos.yb;
@@ -160,7 +160,7 @@ export function placeBuildings(S) {
             // 交互の下がり方がこの列に入らない場合だけ、同じ下がり方を
             // 最後の手段として記録する。これで施設や細い街区を失わず、
             // 入る家並みでは 0/1 のばらつきを優先できる。
-            pos = fit(t, x0, s.w, s.h, 1 - setback, s.roofRows, !!t.dense);
+            pos = fit(t, x0, s, 1 - setback, !!t.dense);
             if (pos) {
               const same = last.w === s.w && last.yb === pos.yb;
               if (!fallback || k < fallback.k || (k === fallback.k && fallback.same && !same)) fallback = { i, s, pos, k, same };

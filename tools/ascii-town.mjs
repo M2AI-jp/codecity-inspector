@@ -12,6 +12,7 @@ import { analyzeRepository } from '../src/analyze.mjs';
 import { layoutTown, loadArt, loadProps, loadGround } from '../src/layout.mjs';
 
 import { townGrid, deckTiles as deckCells, propCells, coverOf as roofCover, stairsOf, facesOf } from '../src/town-grid.mjs';
+import { stairClearanceConflicts, describeStairConflict } from '../src/stair-clearance.mjs';
 
 const args = process.argv.slice(2);
 const mi = args.indexOf('--manifest');
@@ -44,7 +45,7 @@ console.log(`\n${town.repo.name} @ ${town.repo.head ?? '-'}: ${town.cols}×${tow
   JSON.stringify(kinds), JSON.stringify(arch), `小物 ${town.props.length}, 住人 ${town.residents.length}, 常連 ${(town.crowd || []).length}`);
 
 if (args.includes('--check')) {
-  const problems = [];
+  const problems = stairClearanceConflicts(town, manifest.archetypes, propArt).map(describeStairConflict);
   let waterLandStripCount = 0;
   const { cols, rows } = town;
   const foot = new Int32Array(cols * rows).fill(-1);
@@ -310,5 +311,5 @@ if (args.includes('--check')) {
   for (const r of town.ground) for (const ch of r) if (ch !== ' ') inside++;
   console.log(`check: 歩行面 ${walkable}（石畳 ${streets}）, 建物の占有率 ${(100 * builtArea / Math.max(1, inside)).toFixed(1)}%（街の内側に対して）, 到達 ${q.length}, 水と水の間の陸帯 ${waterLandStripCount}`);
   if (problems.length) { console.log(`問題 ${problems.length} 件:\n  ` + [...new Set(problems)].slice(0, 40).join('\n  ')); process.exit(1); }
-  console.log('check: OK（重なり・隙間・屋根の余白・下の行・到達・決定性）');
+  console.log('check: OK（階段と前後2行・重なり・隙間・屋根の余白・下の行・到達・決定性）');
 }
