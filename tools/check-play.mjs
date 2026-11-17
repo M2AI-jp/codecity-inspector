@@ -22,9 +22,9 @@
 // every stair (town.stairs) stood on, with the terrace wall solid as in web/world.js.
 // Exit code 1 if anything fails. Prints why (what blocks the door corridor).
 
-import { readFileSync, statSync } from 'node:fs';
+import { readFileSync, statSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const web = (m) => import(new URL(`../web/${m}`, import.meta.url).href);
@@ -36,18 +36,8 @@ const { World } = await web('world.js');
 const { Player } = await web('player.js');
 const { createResidents } = await web('residents.js');
 
-const args = process.argv.slice(2);
-const verbose = args.includes('-v');
-const mi = args.indexOf('--manifest');
-const manifestPath = resolve(mi >= 0 ? args[mi + 1] : `${ROOT}/art/game/manifest.json`);
-const targets = args.filter((a, i) => !a.startsWith('-') && args[i - 1] !== '--manifest');
-if (!targets.length) {
-  console.error('使い方: node tools/check-play.mjs <repo | town.json> [...] [--manifest path] [-v]');
-  process.exit(2);
-}
-
 // --- art: the same normalisation as web/assets.js loadArt(), geometry only -----------------
-function artFrom(m) {
+export function artFrom(m) {
   const stubSheet = { stub: true };
   const art = { tile: m.tile || 16, player: stubSheet, keepers: {}, townsfolk: [], archetypes: {}, props: {}, ground: {} };
   const ch = m.characters || {};
@@ -80,7 +70,7 @@ function artFrom(m) {
   return art;
 }
 
-async function townFor(target) {
+async function townFor(target, manifest) {
   const abs = resolve(target);
   if (statSync(abs).isDirectory()) {
     const { analyzeRepository } = await import('../src/analyze.mjs');
@@ -92,7 +82,7 @@ async function townFor(target) {
 }
 
 // --- the world as web/main.js builds it ------------------------------------------------------
-function buildWorld(town, art) {
+export function buildWorld(town, art) {
   const warns = [];
   const ow = console.warn;
   console.warn = (...a) => warns.push(a.join(' '));
@@ -296,12 +286,11 @@ function corridorReport(world, b) {
     `rects near corridor (footprint px): ${hits.join(' ') || '-'}; solid tiles: ${tiles.join(' ') || '-'}`;
 }
 
-const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
-const art = artFrom(manifest);
-let failed = 0;
-for (const target of targets) {
-  const t0 = performance.now();
-  const { town, repo } = await townFor(target);
+// Shared by the CLI and seed-fuzz: no I/O or process exit during a check.
+export function checkPlay(town, manifest, { repo = null, verbose = false, target = 'town', t0 = performance.now() } = {}) {
+  const art = artFrom(manifest);
+  const lines = [], log = (...args) => lines.push(args.join(' '));
+  let failed = 0;
   const { world, npcs, start, warns } = buildWorld(town, art);
   const { seen, count } = flood(world, start);
   const rows = [];
@@ -321,7 +310,7 @@ for (const target of targets) {
   const outdoor = npcs.keepers.filter((k) => k.outdoor);
   const farKeepers = outdoor.filter((k) => !nearSeen(world, seen, k.x, k.y, NEAR_KEEPER - 4));
   const lmCount = (town.landmarks || []).length;
-  if (outdoor.length < lmCount) console.log(`  x ${lmCount - outdoor.length} landmark keeper(s) were not created (town.landmarks has ${lmCount})`);
+  if (outdoor.length < lmCount) log(`  x ${lmCount - outdoor.length} landmark keeper(s) were not created (town.landmarks has ${lmCount})`);
   // terraces: the raised top can be reached, and every stair can be stood on (climbed from the square / street below)
   const ters = town.terraces || [], strs = town.stairs || [];
   const tileSeen = (tx0, ty0, tx1, ty1) => {
@@ -370,7 +359,7 @@ for (const target of targets) {
     shutGates.length + shutBridges.length + bridgePropGap + unplacedOutdoor.length + evidenceMissing.length + gatePropGap +
     canalUnplaced.length + (canalMissing ? 1 : 0);
   const ms = Math.round(performance.now() - t0);
-  console.log(`${town.repo?.name ?? target}: ${world.buildings.length} buildings, ${bad.length} not enterable, ` +
+  log(`${town.repo?.name ?? target}: ${world.buildings.length} buildings, ${bad.length} not enterable, ` +
     `${soft.length} only from part of the door front, ${noKeeper.length} without a keeper; ` +
     `outdoor keepers ${outdoor.length - farKeepers.length}/${outdoor.length} reachable; piers ${pierDecks.length - dryDecks.length}/${pierDecks.length} walkable; ` +
     `gates ${gates.length - shutGates.length}/${gates.length} passable both ways; unplaced outdoor ${unplacedOutdoor.length + evidenceMissing.length + gatePropGap}; ` +
@@ -378,26 +367,50 @@ for (const target of targets) {
     `canal ${town.canal ? `${town.canal.cells?.length || 0} cells/${town.canal.crossings?.length || 0} crossings` : 'none'}, unplaced canal ${canalUnplaced.length + (canalMissing ? 1 : 0)}; ` +
     `terraces ${ters.length - dryTer.length}/${ters.length} reachable, stairs ${strs.length - dryStair.length}/${strs.length} climbable; ` +
     `reachable feet px ${count} (${ms} ms)`);
-  for (const b of noKeeper) console.log(`  x ${b.id} ${b.arch ? b.arch.id : b.archetype} at (${b.x},${b.y}) has no keeper (no spot inside)`);
-  for (const k of farKeepers) console.log(`  x outdoor keeper ${k.name} of ${k.building.id} at (${(k.x / T).toFixed(2)},${(k.y / T).toFixed(2)}) cannot be reached for a talk`);
-  for (const d of dryDecks) console.log(`  x pier deck at px (${d.x},${d.y},${d.w},${d.h}) cannot be stepped onto`);
-  for (const { p, r } of shutGates) console.log(`  x ${p.type} at (${(p.x / T).toFixed(2)},${(p.y / T).toFixed(2)}): reach south=${r.southReach} north=${r.northReach}, walk south->north=${r.up} north->south=${r.down}`);
-  for (const { d, r } of shutBridges) console.log(`  x ${d.prop?.data?.type || d.prop?.type} at px (${d.x},${d.y},${d.w},${d.h}): sides=${!!r.sideA}/${!!r.sideB}, forward=${r.forward}, backward=${r.backward}`);
-  if (bridgePropGap) console.log(`  x ${bridgePropGap} canal crossing(s) have no bridge deck`);
-  for (const u of unplacedOutdoor) console.log(`  x unplaced ${u.archetype} ${u.name || ''}: ${u.reason}`);
-  for (const x of evidenceMissing) console.log(`  x missing ${x.archetype}: ${x.reason}`);
-  if (gatePropGap) console.log(`  x ${gatePropGap} gate landmark(s) have no passable gate prop`);
-  for (const u of canalUnplaced) console.log(`  x unplaced canal ${u.name || '水路'}: ${u.reason}`);
-  if (canalMissing) console.log('  x well evidence exists, but town.canal and unplaced canal are both missing');
-  for (const t of dryTer) console.log(`  x terrace top (${t.x},${t.y},${t.w},${t.h}) cannot be reached`);
-  for (const s2 of dryStair) console.log(`  x stair (${s2.x},${s2.y},${s2.w}) cannot be stood on`);
+  for (const b of noKeeper) log(`  x ${b.id} ${b.arch ? b.arch.id : b.archetype} at (${b.x},${b.y}) has no keeper (no spot inside)`);
+  for (const k of farKeepers) log(`  x outdoor keeper ${k.name} of ${k.building.id} at (${(k.x / T).toFixed(2)},${(k.y / T).toFixed(2)}) cannot be reached for a talk`);
+  for (const d of dryDecks) log(`  x pier deck at px (${d.x},${d.y},${d.w},${d.h}) cannot be stepped onto`);
+  for (const { p, r } of shutGates) log(`  x ${p.type} at (${(p.x / T).toFixed(2)},${(p.y / T).toFixed(2)}): reach south=${r.southReach} north=${r.northReach}, walk south->north=${r.up} north->south=${r.down}`);
+  for (const { d, r } of shutBridges) log(`  x ${d.prop?.data?.type || d.prop?.type} at px (${d.x},${d.y},${d.w},${d.h}): sides=${!!r.sideA}/${!!r.sideB}, forward=${r.forward}, backward=${r.backward}`);
+  if (bridgePropGap) log(`  x ${bridgePropGap} canal crossing(s) have no bridge deck`);
+  for (const u of unplacedOutdoor) log(`  x unplaced ${u.archetype} ${u.name || ''}: ${u.reason}`);
+  for (const x of evidenceMissing) log(`  x missing ${x.archetype}: ${x.reason}`);
+  if (gatePropGap) log(`  x ${gatePropGap} gate landmark(s) have no passable gate prop`);
+  for (const u of canalUnplaced) log(`  x unplaced canal ${u.name || '水路'}: ${u.reason}`);
+  if (canalMissing) log('  x well evidence exists, but town.canal and unplaced canal are both missing');
+  for (const t of dryTer) log(`  x terrace top (${t.x},${t.y},${t.w},${t.h}) cannot be reached`);
+  for (const s2 of dryStair) log(`  x stair (${s2.x},${s2.y},${s2.w}) cannot be stood on`);
   for (const x of [...bad, ...(verbose ? soft : [])]) {
     const b = x.b;
-    console.log(`  ${x.ok ? '~' : 'x'} ${b.id} ${b.arch ? b.arch.id : b.archetype} at (${b.x},${b.y}) ${b.module?.path ?? ''} [${b.module?.kind ?? ''}]` +
+    log(`  ${x.ok ? '~' : 'x'} ${b.id} ${b.arch ? b.arch.id : b.archetype} at (${b.x},${b.y}) ${b.module?.path ?? ''} [${b.module?.kind ?? ''}]` +
       `  reach: inside=${x.r.inside} floor=${x.r.floor} talk=${x.r.talk}  walk-in(-6,0,+6)=${x.w.map((v) => (v.ok ? 'ok' : `no@${v.end ?? v.why}`)).join(',')}` +
       `  click=${x.c.ok ? 'ok' : x.c.why}`);
-    if (!x.ok || verbose) console.log(`      ${corridorReport(world, b)}; nearest reachable to door: ${x.r.nearest ? `${x.r.nearest[0] - b.px},${x.r.nearest[1] - b.py}` : 'none'}`);
+    if (!x.ok || verbose) log(`      ${corridorReport(world, b)}; nearest reachable to door: ${x.r.nearest ? `${x.r.nearest[0] - b.px},${x.r.nearest[1] - b.py}` : 'none'}`);
   }
-  if (verbose) for (const w of new Set(warns)) console.log(`  warn: ${w}`);
+  if (verbose) for (const w of new Set(warns)) log(`  warn: ${w}`);
+  return { failed, lines, problems: lines.filter((line) => /^  x /.test(line)) };
 }
-process.exit(failed ? 1 : 0);
+
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  const args = process.argv.slice(2);
+  const verbose = args.includes('-v');
+  const mi = args.indexOf('--manifest');
+  const ti = args.indexOf('--town-out');
+  const manifestPath = resolve(mi >= 0 ? args[mi + 1] : `${ROOT}/art/game/manifest.json`);
+  const targets = args.filter((a, i) => !a.startsWith('-') && !['--manifest', '--town-out'].includes(args[i - 1]));
+  if (!targets.length || (ti >= 0 && (!args[ti + 1] || targets.length !== 1))) {
+    console.error('使い方: node tools/check-play.mjs <repo | town.json> [...] [--manifest path] [--town-out path (1 target)] [-v]');
+    process.exit(2);
+  }
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+  let failed = 0;
+  for (const target of targets) {
+    const t0 = performance.now();
+    const { town, repo } = await townFor(target, manifest);
+    if (ti >= 0) writeFileSync(resolve(args[ti + 1]), JSON.stringify(town, null, 1));
+    const result = checkPlay(town, manifest, { repo, verbose, target, t0 });
+    for (const line of result.lines) console.log(line);
+    failed += result.failed;
+  }
+  process.exitCode = failed ? 1 : 0;
+}

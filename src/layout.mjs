@@ -31,6 +31,7 @@ import { placeProps } from './layout/props.mjs';
 import { cmp, hash32, makeRng } from './layout/util.mjs';
 import { placementKey } from './layout/grid/placement.mjs';
 import { stairClearanceConflicts, describeStairConflict } from './stair-clearance.mjs';
+import { keepReachableTerraces } from './layout/terraces.mjs';
 
 export { FACILITY_NAME, LANDMARK, aggregate, chooseCanalRoute, loadArt, loadProps, loadGround, propTiles };
 
@@ -173,16 +174,22 @@ function layoutAttempt(repo, opts, stairRejected) {
     const g2 = groups.map((g) => ({ ...g, items: [...g.items], ruins: [...g.ruins] }));
     const firstP = generate({ ...C, groups: g2, fac: { ...fac, early: [...fac.early], late: [...fac.late] } }, scale);
     if (!firstP) continue;
-    let firstF = finalize(firstP, maxH, { scaffold: !!(propArt.scaffold || propArt['scaffold-2']), gateRows });
-    let firstCanal = buildCanal(firstP, firstF, repo, propArt);
+    const firstF = finalize(firstP, maxH, { scaffold: !!(propArt.scaffold || propArt['scaffold-2']), gateRows });
+    const beforeCanal = firstF.g.slice();
+    const firstCanal = buildCanal(firstP, firstF, repo, propArt);
     if (canalRequested) {
+      // 最終形の検査を通った港行きは、既に建物と橋の両岸を両立している。
+      if (firstCanal?.cells?.length && (firstCanal.to === 'harbour' || !firstP.quay)) {
+        P = firstP; F = firstF; canal = firstCanal;
+        break;
+      }
       // 水路が先に見つかった場合も、橋の deck と両端を建物が覆わないよう
       // 水路・橋の帯を予約して、同じ格子をもう一度建物へ渡す。
       // 最初の配置で水路を置けなかったときは、建物を無視した探索で帯を作る。
       let reserve = null;
       // 先に建物を無視した港行きも試す。最初の建物配置で外向きが
       // 見つかっても、港への道筋を建物の後から奪わない。
-      const openHarbour = buildCanal(firstP, firstF, repo, propArt, { ignoreBuildings: true, reserveOnly: true });
+      const openHarbour = buildCanal(firstP, { ...firstF, g: beforeCanal }, repo, propArt, { ignoreBuildings: true, reserveOnly: true });
       if (openHarbour?.to === 'harbour') {
         reserve = openHarbour;
       } else if (firstCanal?.cells?.length) {
@@ -204,7 +211,7 @@ function layoutAttempt(repo, opts, stairRejected) {
           ...C, groups: rg, canalReserve: reserve.reserveCells,
           fac: { ...fac, early: [...fac.early], late: [...fac.late] },
         }, scale);
-        if (reservedP) {
+        if (reservedP && facSpecs.every((s) => reservedP.placed.some((p) => p.spec.id === s.id))) {
           const reservedF = finalize(reservedP, maxH, { scaffold: !!(propArt.scaffold || propArt['scaffold-2']), gateRows });
           const reservedCanal = buildCanal(reservedP, reservedF, repo, propArt, {
             forcedStates: reserve.states, forcedPast: reserve.past, forcedTo: reserve.to,
@@ -215,7 +222,9 @@ function layoutAttempt(repo, opts, stairRejected) {
           }
         }
       }
-      lastCanalAttempt = { P: firstP, F: firstF, canal: firstCanal };
+      // 予約で固定施設が置けなくなる場合も、先に見つかった有効な街を
+      // 捨てない。最後の失敗候補で有効な水路を上書きしない。
+      if (!lastCanalAttempt?.canal?.cells?.length) lastCanalAttempt = { P: firstP, F: firstF, canal: firstCanal };
       continue;
     }
     P = firstP; F = firstF; canal = firstCanal;
@@ -322,6 +331,11 @@ function layoutAttempt(repo, opts, stairRejected) {
     const safe = choices.find(clear);
     if (safe !== undefined) plazaTerrace.stair.x = safe;
   }
+  const isolated = keepReachableTerraces(P, F, spawn, canal?.bridgeDeckCells);
+  if (isolated.length) {
+    for (const p of isolated) stairRejected.add(placementKey(P.cols, P.rows, p.spec, p.x, p.y));
+    return null;
+  }
   // 最終の階段位置と、選んだ版の列ごとの cover で確かめる（格子内座標）。
   const stairBuildings = P.placed.map((p) => ({
     ...p, id: p.spec.id, archetype: p.spec.archetype, variant: variantOf.get(p)?.id,
@@ -338,7 +352,7 @@ function layoutAttempt(repo, opts, stairRejected) {
   }
   const placedProps = placeProps(P, F, makeRng(seed ^ 0x9e3779b9), spawn, {
     propArt, landmarks, dock, bridgeProps: canal?.bridgeProps || [], mouthProps: canal?.mouthProps || [], bridgeCells: canal?.bridgeCells || [],
-    canalCells: canal?.cells || [],
+    bridgeDeckCells: canal?.bridgeDeckCells || [], canalCells: canal?.cells || [],
   });
   const placedFacilitySources = new Set(P.placed.map((p) => p.spec.sourceFacility).filter(Boolean));
   const placedLandmarkIds = new Set(placedProps.landmarks.map((l) => l.id));

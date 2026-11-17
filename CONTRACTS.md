@@ -118,6 +118,8 @@ facts の形:
   stairs: [{ x, y, w }],               // 階段（tile）。各 terrace に対応し、y は前の面の行（= その段の y+h）。
                                        // x..x+w-1 の段は歩ける。広場の南階段は広場幅に応じた4〜6マスで、上下2行を小物からあける
                                        // 全階段の x-1..x+w × y-2..y+2（前後2行・左右1マス）には建物の footprint・版の cover（town-grid.coverOf）・小物の占有を重ねない。
+                                       // 緑地の段は、切り出し・道路整理・水路の後にも上面と階段の前後が地図内に残り、広場から上れるときだけ作る。
+                                       // 成立しなければその緑地は平地とし、対応する terraces と stairs の両方を省略する。
                                        // 外部工務店（codecity.mjs が RepoModel.agents から layout のあとに足す）
   residents: [{ id: "r1", name: "amano", commits: 30, homes: ["b12", "b3"], look: 0,
                 lastCommit: { subject, date } | null }],             // contributors[].lastCommit

@@ -20,6 +20,8 @@ export function createPlacement(S) {
     if (y < t.L.y0 + (t.L.closedTop ? 2 : 0) || y - roofRows < 1) return null;
     if (harbour && yb >= quay.top) return null;
     for (let x = x0; x < x0 + w; x++) {
+      // 橋の欄干・取り付け道を、扉の直下へ重ねない。
+      if (reservedForCanal(x, yb + 1) || reservedForCanal(x, yb + 2)) return null;
       for (let yy = y; yy <= yb; yy++) {
         const k = id(x, yy);
         if (reservedForCanal(x, yy) || (!allowRoad && road[k] >= 0) || plazaM[k] || foot[k] >= 0 || front[k] || roofZ[k] || (harbour && green[k]) || (green[k] && !allowRoad)) return null;

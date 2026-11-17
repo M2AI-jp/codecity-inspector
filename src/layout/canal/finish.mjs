@@ -24,6 +24,7 @@ export function finishCanal(S) {
     for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
       if (!inG(nx, ny)) continue;
       const nk = id(nx, ny);
+      if (cells.has(nk)) continue; // 交差していた水セルも、最後まで水のまま残す
       if ((original[nk] === STREET || original[nk] === DIRT) &&
         !bridgeCells.has(nk) && foot[nk] < 0 && !buildingWalkRow[nk] && !front[nk] && !plazaM[nk] && !terraceMask[nk]) g[nk] = GRASS;
     }
@@ -53,7 +54,7 @@ export function finishCanal(S) {
     crossings: crossings.sort((a, b) => a.y - b.y || a.x - b.x),
     bridgeProps,
     mouthProps,
-    bridgeCells: [...bridgeCells].map((k) => [k % cols, (k / cols) | 0]),
+    bridgeCells: [...new Set([...bridgeCells, ...bridgeSideReserve])].map((k) => [k % cols, (k / cols) | 0]),
     bridgeDeckCells: [...bridgeDeckCells].map((k) => [k % cols, (k / cols) | 0]),
     bridgeReserveCells: bridgeReserveCells.map((k) => [k % cols, (k / cols) | 0]),
   };

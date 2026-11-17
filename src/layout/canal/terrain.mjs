@@ -123,6 +123,7 @@ export function prepareTerrain(S) {
     for (const [cx, cy] of cells) {
       if (!inC(cx, cy)) return false;
       const k = id(cx, cy);
+      if (opt.avoidCells?.has(k)) return false;
        const building = opt.ignoreBuildings ? fixedFoot[k] : foot[k] >= 0;
        const roof = opt.ignoreBuildings ? fixedRoof[k] : roofZ[k];
        const fore = opt.ignoreBuildings ? fixedFront[k] : front[k];

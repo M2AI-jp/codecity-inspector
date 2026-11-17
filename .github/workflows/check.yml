@@ -10,6 +10,9 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Check out the repository
         uses: actions/checkout@v4
@@ -22,24 +25,48 @@ jobs:
           node-version: '22'
 
       - name: Run tests
-        run: node --test test/*.test.mjs
+        run: |
+          mkdir -p compare/ci
+          node --test test/*.test.mjs 2>&1 | tee compare/ci/tests.log
 
       - name: Check state detection
-        run: node tools/check-state.mjs
+        if: ${{ !cancelled() }}
+        run: node tools/check-state.mjs 2>&1 | tee compare/ci/state.log
 
       - name: Generate the town
-        run: node codecity.mjs . --json town.json
+        if: ${{ !cancelled() }}
+        run: |
+          {
+            node --version
+            git --version
+            git rev-parse HEAD
+            git rev-parse --short HEAD
+            git status --short
+          } 2>&1 | tee compare/ci/environment.log
+          node codecity.mjs . --json compare/ci/town.json 2>&1 | tee compare/ci/generate.log
 
       - name: Check the ASCII town
-        run: node tools/ascii-town.mjs town.json --check
+        if: ${{ !cancelled() }}
+        run: node tools/ascii-town.mjs compare/ci/town.json --check 2>&1 | tee compare/ci/ascii.log
 
       - name: Check empty lawn rectangles
-        run: node tools/lawn.mjs town.json --max 8
+        if: ${{ !cancelled() }}
+        run: node tools/lawn.mjs compare/ci/town.json --max 8 2>&1 | tee compare/ci/lawn.log
 
       - name: Check playability
-        run: node tools/check-play.mjs .
+        if: ${{ !cancelled() }}
+        run: node tools/check-play.mjs . --town-out compare/ci/play-town.json 2>&1 | tee compare/ci/play.log
 
       - name: Check the generated manifest
+        if: ${{ !cancelled() }}
         run: |
-          node tools/build-manifest.mjs
-          git diff --exit-code art/game/manifest.json
+          node tools/build-manifest.mjs 2>&1 | tee compare/ci/manifest.log
+          git diff --exit-code 2>&1 | tee -a compare/ci/manifest.log
+
+      - name: Upload the failed town and check outputs
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: failed-town-${{ github.run_id }}-${{ github.run_attempt }}
+          path: compare/ci/
+          retention-days: 14
