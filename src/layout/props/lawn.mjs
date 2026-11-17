@@ -4,6 +4,10 @@ import { cmp, hash32 } from '../util.mjs';
 
 export function finishProps(S) {
   const { placed, crop, inC, isGrass, blocked, id, foot, tryProp, N, cols, P, reserved, g, roofZ, bridgeCells, canalCells, front, plazaM, out, propArt, props } = S;
+  const canalSide = new Set();
+  for (const [x, y] of canalCells) for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
+    if (inC(nx, ny)) canalSide.add(id(nx, ny));
+  }
   // 建物の裏に続く見える芝生は1行を目安にする。屋根の cover の外側で、
   // 2行以上の裸の草地が残る列には、木・茂み・鉢を1つ置いて帯を分ける。
   // 置ける場所だけを選ぶため、通路を塞いだときは tryProp の到達性検査で戻す。
@@ -87,7 +91,7 @@ export function finishProps(S) {
         // 1マスだけ土の小道にして芝生の帯を分ける（DIRTは歩ける）。
         let cut = false;
         for (let y = best.y0; y <= best.y1 && !cut; y++) for (let x = best.x0; x <= best.x1; x++) {
-          if (!isGrass(x, y) || blocked[id(x, y)] || reserved[id(x, y)] || foot[id(x, y)] >= 0) continue;
+          if (!isGrass(x, y) || blocked[id(x, y)] || reserved[id(x, y)] || foot[id(x, y)] >= 0 || canalSide.has(id(x, y))) continue;
           g[id(x, y)] = DIRT;
           cut = true;
           break;
@@ -105,7 +109,12 @@ export function finishProps(S) {
       for (let y = crop.y0; y <= crop.y1; y++) for (let x = crop.x0; x <= crop.x1; x++) lawnM[id(x, y)] = bare(x, y) ? 1 : 0;
       const best = largestRectangle(lawnM, cols, P.rows, crop);
       if (!best || best.a <= LAWN_MAX) break;
-      const x = Math.floor((best.x0 + best.x1) / 2), y = Math.floor((best.y0 + best.y1) / 2);
+      let x = Math.floor((best.x0 + best.x1) / 2), y = Math.floor((best.y0 + best.y1) / 2);
+      if (canalSide.has(id(x, y))) {
+        const safe = lawnCells(best).find(([, xx, yy]) => bare(xx, yy) && !canalSide.has(id(xx, yy)));
+        if (!safe) break;
+        [, x, y] = safe;
+      }
       if (!bare(x, y)) break;
       g[id(x, y)] = DIRT;
     }
@@ -124,10 +133,6 @@ export function finishProps(S) {
   // 切り出し・水路脇の草地復元も済んだ最終 Town を、CLI と同じ定義で検査する。
   // 既に8以下なら Town に一切書き込まない。小物は従来の予約・到達性検査を通す。
   out.finishLawn = (town, art) => {
-    const canalSide = new Set();
-    for (const [x, y] of canalCells) for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
-      if (inC(nx, ny)) canalSide.add(id(nx, ny));
-    }
     limitLawns(town, art, propArt, (rect) => {
       const cells = lawnCells({
         x0: rect.x0 + crop.x0, x1: rect.x1 + crop.x0,

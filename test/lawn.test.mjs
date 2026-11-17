@@ -8,6 +8,8 @@ import { analyzeRepository } from '../src/analyze.mjs';
 import { layoutTown, loadArt, loadProps } from '../src/layout.mjs';
 import { largestRectangle, limitLawns, visibleLawn } from '../src/lawn.mjs';
 import { stairClearanceConflicts, describeStairConflict } from '../src/stair-clearance.mjs';
+import { finishProps } from '../src/layout/props/lawn.mjs';
+import { CH, DIRT, GRASS, WATER } from '../src/layout/constants.mjs';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const art = loadArt(), props = loadProps();
@@ -90,6 +92,31 @@ test('8マス以下は1バイトも変えず、64個を超える空白もすべ�
   assert.ok(maximum(large) <= 8);
   assert.throws(() => limitLawns(emptyTown(['....', '....', '....'], { x: 0, y: 0 }),
     {}, {}, () => {}), /分割できなかった/);
+});
+
+test('水路脇で草地へ戻した道路を芝生の分割で土道へ戻さない', () => {
+  // homebrew head=000001e: 水路のために道路を草へ戻した後も road の印は残る。
+  // 予約地に小物を置けなくても、土の小道は水路から離れた行に作る。
+  const cols = 6, rows = 4, N = cols * rows, id = (x, y) => y * cols + x;
+  const crop = { x0: 0, y0: 0, x1: cols - 1, y1: rows - 1 };
+  const inC = (x, y) => x >= 0 && x < cols && y >= 0 && y < rows;
+  const g = Uint8Array.from({ length: N }, (_, k) => k < cols * 2 ? WATER : GRASS);
+  const canalCells = Array.from({ length: cols * 2 }, (_, k) => [k % cols, Math.floor(k / cols)]);
+  const propList = [], out = { props: propList };
+  finishProps({
+    cols, N, id, crop, inC, g, canalCells, out, props: propList,
+    P: { rows, road: new Int32Array(N) }, placed: [], bridgeCells: [], propArt: {},
+    foot: new Int32Array(N).fill(-1), blocked: new Uint8Array(N),
+    reserved: new Uint8Array(N).fill(1), roofZ: new Uint8Array(N),
+    front: new Uint8Array(N), plazaM: new Uint8Array(N),
+    isGrass: (x, y) => inC(x, y) && g[id(x, y)] === GRASS, tryProp: () => false,
+  });
+  const town = emptyTown(Array.from({ length: rows }, (_, y) =>
+    Array.from({ length: cols }, (_, x) => CH[g[id(x, y)]]).join('')), { x: 5, y: 3 });
+  out.finishLawn(town, {});
+  for (let x = 0; x < cols; x++) assert.equal(g[id(x, 2)], GRASS, `水路の隣 (${x},2)`);
+  assert.ok(Array.from(g.slice(cols * 3)).includes(DIRT), '水路から離れた行で芝生を分ける');
+  assert.ok(maximum(town) <= 8);
 });
 
 test('PR #9 の道場前に芝生が残った入力でも、8マス以下と到達性を保つ', (t) => {
