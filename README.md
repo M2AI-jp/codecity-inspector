@@ -25,5 +25,6 @@ env・secrets・config の根拠があり、橋の絵が揃っている街では
 - `node tools/check-state.mjs` — 一時リポジトリで道場の passed・failed・unverified 判定を確かめる
 - `node tools/build-manifest.mjs` — `art/game/` の画像と注釈から manifest.json を作り直す
 - `node tools/gallery.mjs gallery.html` — 素材のレビュー用ページを作る
+- GitHub Actions では、上記の検査を push と pull_request ごとに同じ順で走らせています。
 
 `art/approved/` はユーザーが承認した画像、`art/game/` は承認前の候補、`art/references/user-provided/` はユーザーの原画です。
