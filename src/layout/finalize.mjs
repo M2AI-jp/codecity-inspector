@@ -200,7 +200,7 @@ export function finalize(P, maxH, opt = {}) {
   let x0 = plaza.x0 - 3, x1 = plaza.x1 + 3, y0 = plaza.y0 - 5, y1 = plaza.y1 + 6;
   for (const p of placed) {
     x0 = Math.min(x0, p.x - 3); x1 = Math.max(x1, p.x + p.w + 2);
-    y0 = Math.min(y0, p.y - 4); y1 = Math.max(y1, p.yb + 4);
+    y0 = Math.min(y0, p.y - (p.spec.goalSite ? Math.max(4, p.spec.roofRows) : 4)); y1 = Math.max(y1, p.yb + 4);
   }
   // 門を置く余地: 南北の通りが街の外へ出る所の先に、両わきの建物（と屋根）より外へ、門の絵の高さ＋数行の土の道を残す。
   // 通りの端のすぐ外まで建物が並ぶ街では、切り出す範囲がその建物で止まり、門の立つ所が無くなっていた

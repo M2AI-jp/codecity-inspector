@@ -2095,6 +2095,15 @@
       "solid": [-31, -20, 62, 20],
       "light": [-6, -36, 28],
       "flicker": true
+    },
+    "castle-1": {
+      "src": "landmarks/castle-1.png",
+      "origin": [96, 224],
+      "solid": [-96, -96, 192, 96],
+      "light": null,
+      "flicker": false,
+      "size": [192, 224],
+      "bounds": [0, 66, 192, 158]
     }
   },
   "ground": {

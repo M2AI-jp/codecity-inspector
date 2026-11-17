@@ -11,7 +11,7 @@ export function canalReservationProblem(S) {
     const horizontal = bridge.type === 'bridge-h';
     const x0 = b.x0 - (horizontal ? 2 : 0), x1 = b.x1 + (horizontal ? 2 : 0);
     const y0 = b.y0 - (horizontal ? 0 : 2), y1 = b.y1 + (horizontal ? 0 : 2);
-    if (!placed.some((p) => p.spec.facility && x0 < p.x + p.w && x1 >= p.x &&
+    if (!placed.some((p) => (p.spec.facility || p.spec.goalSite) && x0 < p.x + p.w && x1 >= p.x &&
       y0 <= p.yb + 2 && y1 >= p.y - (p.spec.roofRows ?? 2))) continue;
     return {
       reason: '橋の予約帯が固定施設の建物・屋根・前庭に重なる',
@@ -30,6 +30,18 @@ export function canalProblem(S) {
     reason,
     cells: canalCells.filter(([x, y]) => x >= bounds.x0 && x <= bounds.x1 && y >= bounds.y0 && y <= bounds.y1),
   });
+  // Bridges and the mouth are placed before ordinary props. They must honor the
+  // same landmark roof/front reservation that tryProp will honor later.
+  const goals = S.placed.filter((b) => b.spec.goalSite);
+  for (const p of goals.length ? [...bridgeProps, ...mouthProps] : []) {
+    for (const [x, y] of propCells(p, propArt)) {
+      const goal = goals.find((b) => x >= b.x && x < b.x + b.w &&
+        y >= b.y - b.spec.roofRows && y <= b.yb + 2);
+      if (goal) return failed('橋または水路口が目的地の屋根・足元・前庭の予約に重なる', {
+        x0: goal.x - 2, x1: goal.x + goal.w + 1, y0: goal.y - goal.spec.roofRows - 2, y1: goal.yb + 4,
+      });
+    }
+  }
   for (const p of mouthProps) {
     const tiles = propCells(p, propArt);
     // 口は横2マスなので、東西向きの始点では水セルの外にもかかる。
@@ -72,6 +84,12 @@ export function canalProblem(S) {
     const ends = p.type === 'bridge-h' ? [[a.x0, c.y], [a.x1, c.y]] : [[c.x, a.y0], [c.x, a.y1]];
     if (ends.some(([x, y]) => ![STREET, DIRT].includes(g[id(x, y)]))) return failed('橋の両端が岸の通りに乗らない', a);
   }
+  return canalRoadSideProblem(canalCells, crossings, { g, id, inC });
+}
+
+// Gate paths are drawn after the canal. Castle layouts also recheck the finished
+// ground before accepting their plot, rather than accepting a broken canal bank.
+export function canalRoadSideProblem(canalCells, crossings, { g, id, inC }) {
   for (const [x, y] of canalCells) {
     if (g[id(x, y)] !== WATER) return { reason: '水路のセルが水でなくなった', cells: [[x, y]] };
     if (crossings.some((c) => Math.abs(c.x - x) + Math.abs(c.y - y) <= 2)) continue;

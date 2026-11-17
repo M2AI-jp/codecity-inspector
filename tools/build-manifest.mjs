@@ -9,6 +9,7 @@
 //   art/game/residents/contractor.png                               -> characters.contractor (外部工務店の代理人)
 //   art/game/props/<type>.png (+ <type>.json)                       -> props[type] (solid, light, flicker, layer, deck,
 //                                                                      solids, lights, opening)
+//   art/game/landmarks/<type>.png (+ <type>.json)                   -> props[type] (also size and opaque bounds)
 //   art/game/ground/<name>.png                                      -> ground[name]
 //   art/game/creatures/<name>.png (+ <name>.json)                   -> creatures[name]
 //
@@ -185,8 +186,8 @@ function people() {
 }
 
 // --- props -----------------------------------------------------------------------------
-function props() {
-  const dir = path.join(GAME, 'props');
+function props(folder = 'props') {
+  const dir = path.join(GAME, folder);
   const out = {};
   for (const f of list(dir, '.png')) {
     const type = f.replace(/\.png$/, '');
@@ -218,6 +219,16 @@ function props() {
     if (isBox(d.opening)) out[type].opening = d.opening.slice(0, 4);
     else if (d.opening !== undefined && d.opening !== null) warn(`props/${type}.json: opening は [x, y, w, h] の数の配列にする`);
     if (out[type].solids || out[type].opening) out[type].size = size.slice(0, 2);       // 絵の大きさ（layout が絵のかかる範囲を測る）
+    if (folder === 'landmarks') {
+      const im = decodePNG(fs.readFileSync(abs));
+      let x0 = im.width, y0 = im.height, x1 = -1, y1 = -1;
+      for (let y = 0; y < im.height; y++) for (let x = 0; x < im.width; x++) {
+        if (!im.data[(y * im.width + x) * 4 + 3]) continue;
+        x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y);
+      }
+      out[type].size = size.slice(0, 2);
+      out[type].bounds = [x0, y0, x1 - x0 + 1, y1 - y0 + 1];
+    }
   }
   for (const f of list(dir, '.json')) {
     if (!fs.existsSync(path.join(dir, f.replace(/\.json$/, '.png')))) warn(`props/${f}: 対応する png がありません`);
@@ -253,7 +264,7 @@ const manifest = {
   tile: 16,
   characters: { player: PLAYER, keepers, townsfolk, ...(contractor ? { contractor } : {}) },
   archetypes: buildings(),
-  props: props(),
+  props: { ...props(), ...props('landmarks') },
   ground: ground(),
   creatures: creatures(),
 };

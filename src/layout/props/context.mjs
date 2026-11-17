@@ -25,8 +25,14 @@ export function createPropsContext(P, F, rng, spawn, extra) {
   for (let dx = -1; dx <= 1; dx++) for (let dy = 0; dy <= 1; dy++) reserved[id(spawn.x + dx, spawn.y + dy)] = 1;
   // 施設の扉の前（扉の列の左右2、扉の列の通りが続く所まで 2〜5行）には何も置かない。まわりには木を置かない（主要施設を隠さない）
   const noTree = new Uint8Array(N);
+  const goalReserved = new Uint8Array(N);
   for (const [x, y] of bridgeCells) if (inC(x, y)) noTree[id(x, y)] = 1;
   const mark = (arr, x0, y0, x1, y1) => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (inC(x, y)) arr[id(x, y)] = 1; };
+  for (const p of placed.filter((p) => p.spec.goalSite)) {
+    // Some props (e.g. fences) overhang their occupied tile by a pixel.
+    mark(goalReserved, p.x - 1, p.y - p.spec.roofRows, p.x + p.w, p.yb + 3);
+    mark(noTree, p.x - 1, p.y - p.spec.roofRows, p.x + p.w, p.yb + 3);
+  }
   // 水路口は props の先頭に置くだけでなく、後から置く花壇・柵などの
   // 候補からも外す。深い広場では口が南の段の近くへ来るため、これを
   // 予約しないと花壇の絵が水路口のタイルに重なる。
@@ -109,7 +115,7 @@ export function createPropsContext(P, F, rng, spawn, extra) {
     const [fw, fh] = size || propTiles(look || type, propArt);
     const tiles = [];
     for (let dy = 0; dy < fh; dy++) for (let dx = 0; dx < fw; dx++) tiles.push([tx + dx, ty + dy]);
-    for (const [x, y] of tiles) if (!walk(x, y) || g[id(x, y)] === WATER || stairReserved[id(x, y)] || (reserved[id(x, y)] && !force) || (type === 'tree' && noTree[id(x, y)])) return false;
+    for (const [x, y] of tiles) if (!walk(x, y) || g[id(x, y)] === WATER || stairReserved[id(x, y)] || goalReserved[id(x, y)] || (reserved[id(x, y)] && !force) || (type === 'tree' && noTree[id(x, y)])) return false;
     // 丸めた占有幅や壁寄せ後の足場から、solid が隣の歩行マスへ出ることがある。
     // そのマスも到達性検査に含める。建物・既に塞がったマスは二重に数えない。
     // 見た目の版は切り出し後の座標で決まるので、未指定なら各版の当たりを含める。
@@ -121,7 +127,7 @@ export function createPropsContext(P, F, rng, spawn, extra) {
       for (let y = Math.floor((ay + b[1]) / 16); y < Math.ceil((ay + b[1] + b[3]) / 16); y++) {
         for (let x = Math.floor((ax + b[0]) / 16); x < Math.ceil((ax + b[0] + b[2]) / 16); x++) {
           if (!walk(x, y) || occupied.has(id(x, y))) continue;
-          if (g[id(x, y)] === WATER || stairReserved[id(x, y)] || (reserved[id(x, y)] && !force)) return false;
+          if (g[id(x, y)] === WATER || stairReserved[id(x, y)] || goalReserved[id(x, y)] || (reserved[id(x, y)] && !force)) return false;
           occupied.add(id(x, y)); edges.push(id(x, y));
         }
       }

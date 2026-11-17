@@ -1,4 +1,5 @@
 import { openSync, fstatSync, readSync, closeSync } from 'node:fs';
+import { GOAL_ART } from './goal.mjs';
 
 export const MAX_BYTES = 1_000_000;
 const object = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -60,10 +61,14 @@ export function validateOverlay(input) {
       return fail('invalid record state');
     }
     if (scope === 'people' && v.look !== undefined && (!Number.isSafeInteger(v.look) || v.look < 0)) return fail('invalid look');
+    if (scope === 'goal' && v.look !== undefined) {
+      if (typeof v.look !== 'string') return fail('invalid look');
+      if (!Object.hasOwn(GOAL_ART, v.look)) return fail('unknown goal look');
+    }
     return { id: key, ...(scope === 'markers' ? { kind: v.kind } : {}),
       ...(scope === 'markers' && v.kind === 'record' ? { state: v.state } : {}),
       at: { ...v.at }, [name]: v[name], lines: [...(v.lines || [])],
-      ...(scope === 'people' && v.look !== undefined ? { look: v.look } : {}) };
+      ...(['people', 'goal'].includes(scope) && v.look !== undefined ? { look: v.look } : {}) };
   };
   for (const [scope, limit] of [['markers', 2000], ['people', 100]]) {
     if (input[scope] !== undefined && !Array.isArray(input[scope])) throw new Error(`overlay: ${scope} must be an array`);

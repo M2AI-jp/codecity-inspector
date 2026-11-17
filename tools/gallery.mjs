@@ -79,13 +79,19 @@ const pdir = path.join(ART, 'game', 'props');
 const props = list(pdir, /\.png$/).map((f) => ({ code: code('物', f.replace(/\.png$/, '')), name: f.replace(/\.png$/, ''), sub: PROP_MEANING[f.replace(/\.png$/, '')] || '', img: uri(path.join(pdir, f)), scale: 3 }));
 sections.push({ id: 'props', title: '小物', note: '', items: props });
 
+// landmarks (goal markers an overlay asks for; not enterable buildings)
+const LANDMARK_MEANING = { 'castle-1': '城 — 外の道具（gridhub など）が示す、いちばん奥の目的地（入れない目印）' };
+const ldir = path.join(ART, 'game', 'landmarks');
+const landmarks = list(ldir, /\.png$/).map((f) => ({ code: code('印', f.replace(/\.png$/, '')), name: f.replace(/\.png$/, ''), sub: LANDMARK_MEANING[f.replace(/\.png$/, '')] || '', img: uri(path.join(ldir, f)), scale: 2 }));
+if (landmarks.length) sections.push({ id: 'landmarks', title: '目印', note: 'overlay の goal に look があるときだけ町に置く目印。', items: landmarks });
+
 // ground
 const gdir = path.join(ART, 'game', 'ground');
 const ground = list(gdir, /\.png$/).map((f) => ({ code: code('地', f.replace(/\.png$/, '')), name: f.replace(/\.png$/, ''), img: uri(path.join(gdir, f)), scale: 2, tile: true }));
 sections.push({ id: 'ground', title: '地面', note: '継ぎ目なしで敷き詰める地面の素材（2×2で並べて表示）。', items: ground });
 
 const player = approved.length ? uri(path.join(ART, 'approved', approved[0])) : '';
-const total = bitems.length + people.length + creatures.length + props.length + ground.length;
+const total = bitems.length + people.length + creatures.length + props.length + landmarks.length + ground.length;
 
 const card = (it) => {
   const label = `<div class="cap"><span class="code">${esc(it.code)}</span><span class="nm">${esc(it.name)}</span>${it.sub ? `<span class="sub">${esc(it.sub)}</span>` : ''}</div>`;

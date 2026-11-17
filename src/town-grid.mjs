@@ -4,7 +4,7 @@ import { propTiles } from './layout/manifest.mjs';
 const LETTER = { workshop: 'W', shop: 'S', house: 'H', ruin: 'R', town_hall: 'G', inn: 'Y', pub: 'P', warehouse: 'K', watchtower: 'M', dojo: 'D', dock: 'Q', repair: 'E' };
 const PROP = { tree: 'T', bush: '*', barrel: 'o', crate: 'x', fence: '=', bench: 'n', lamp: 'i', well: 'O', noticeboard: 'N',
   sacks: '%', flowerpot: 'f', planter: 'v', cart: 'c', wellhouse: '&', pier: '|', boat: '^', 'bridge-h': '─', 'bridge-v': '│',
-  'canal-mouth': '∩', scaffold: '!', 'sign-works': '$', 'sign-passed': '✓', 'sign-failed': '×', 'sign-unverified': '?', lumber: '_', gate: '[' };
+  'canal-mouth': '∩', scaffold: '!', 'sign-works': '$', 'sign-passed': '✓', 'sign-failed': '×', 'sign-unverified': '?', lumber: '_', gate: '[', castle: 'C' };
 // 桟橋（deck のある小物）は水の上の板: 板の tile を数える。ほかは layout と同じ tile の大きさ
 export function deckTiles(p, propArt) {
   const d = propArt[p.look || p.type]?.deck;
