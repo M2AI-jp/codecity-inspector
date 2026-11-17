@@ -1,0 +1,45 @@
+name: Check
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run tests
+        run: node --test test/*.test.mjs
+
+      - name: Check state detection
+        run: node tools/check-state.mjs
+
+      - name: Generate the town
+        run: node codecity.mjs . --json town.json
+
+      - name: Check the ASCII town
+        run: node tools/ascii-town.mjs town.json --check
+
+      - name: Check empty lawn rectangles
+        run: node tools/lawn.mjs town.json --max 8
+
+      - name: Check playability
+        run: node tools/check-play.mjs .
+
+      - name: Check the generated manifest
+        run: |
+          node tools/build-manifest.mjs
+          git diff --exit-code art/game/manifest.json
