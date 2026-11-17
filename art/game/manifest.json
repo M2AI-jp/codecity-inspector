@@ -136,6 +136,25 @@
           }
         }
       },
+      "repair": {
+        "src": "residents/keeper-repair.png",
+        "frame": [32, 32],
+        "pivot": [16, 31],
+        "anims": {
+          "idle": {
+            "down": [0],
+            "left": [4],
+            "right": [8],
+            "up": [12]
+          },
+          "walk": {
+            "down": [1, 2, 3, 0],
+            "left": [5, 6, 7, 4],
+            "right": [9, 10, 11, 8],
+            "up": [13, 14, 15, 12]
+          }
+        }
+      },
       "ruin": {
         "src": "residents/keeper-ruin.png",
         "frame": [32, 32],
