@@ -1,5 +1,25 @@
 import { DIRT, STREET, WATER, OUT } from '../constants.mjs';
 
+// 建物を動かすための水路予約でも、固定施設の場所は奪わない。
+// 水セルが施設を避けていても、橋の板と両岸の予約帯が屋根や前庭に
+// 重なると、次の generate が船着場などを置けず格子全体を広げてしまう。
+export function canalReservationProblem(S) {
+  const { placed, bridgeProps, deckBounds, canalCells } = S;
+  for (const bridge of bridgeProps) {
+    const b = deckBounds(bridge.type, bridge.x, bridge.y);
+    const horizontal = bridge.type === 'bridge-h';
+    const x0 = b.x0 - (horizontal ? 2 : 0), x1 = b.x1 + (horizontal ? 2 : 0);
+    const y0 = b.y0 - (horizontal ? 0 : 2), y1 = b.y1 + (horizontal ? 0 : 2);
+    if (!placed.some((p) => p.spec.facility && x0 < p.x + p.w && x1 >= p.x &&
+      y0 <= p.yb + 2 && y1 >= p.y - (p.spec.roofRows ?? 2))) continue;
+    return {
+      reason: '橋の予約帯が固定施設の建物・屋根・前庭に重なる',
+      cells: canalCells.filter(([x, y]) => x >= x0 && x <= x1 && y >= y0 && y <= y1),
+    };
+  }
+  return null;
+}
+
 // 経路探索後に橋を寄せた結果も検査する。失敗した候補を採用せず、
 // layout の既存の格子再試行へ戻す（地面への反映は成功時だけ）。
 export function canalProblem(S) {

@@ -6,7 +6,7 @@ import { prepareCrossings } from './canal/crossings.mjs';
 import { placeBridges } from './canal/bridges.mjs';
 import { adjustBridges } from './canal/adjust.mjs';
 import { finishCanal } from './canal/finish.mjs';
-import { canalProblem } from './canal/validate.mjs';
+import { canalProblem, canalReservationProblem } from './canal/validate.mjs';
 
 export { chooseCanalRoute } from './canal/route.mjs';
 
@@ -36,10 +36,9 @@ export function buildCanal(P, F, repo, propArt, opt = {}) {
     placeBridges(S);
     adjustBridges(S);
     const result = finishCanal(S);
-    if (opt.reserveOnly) return result;
-    problem = canalProblem(S);
+    problem = opt.reserveOnly ? canalReservationProblem(S) : canalProblem(S);
     if (!problem) {
-      F.g.set(working.g);
+      if (!opt.reserveOnly) F.g.set(working.g);
       return result;
     }
     if (opt.forcedStates || !problem.cells.length) break;
