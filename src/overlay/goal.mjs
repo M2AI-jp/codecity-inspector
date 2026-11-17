@@ -1,5 +1,17 @@
 // A goal reserves a plot, never an enterable Town.building.
 export const GOAL_ART = { castle: 'castle-1' };
+export const GOAL_SITE_REASONS = {
+  layout: 'layout could not reserve a goal site',
+  distance: 'reserved goal site is more than 24 tiles from the resolved target',
+  footprint: 'footprint overlaps unavailable ground, an object or a reservation',
+  front: 'front two rows overlap unavailable ground, an object or a reservation',
+  sides: 'side clearance overlaps unavailable ground, an object or a reservation',
+  roof: 'roof clearance overlaps unavailable ground, an object or a reservation',
+  level: 'footprint crosses a terrace edge',
+  collision: 'footprint, front or sides intersect a solid',
+  'tile-path': 'footprint disconnects tile paths',
+  reach: 'footprint disconnects reachable feet positions or the front is unreachable',
+};
 
 export function goalPlot(look, props) {
   const key = GOAL_ART[look], art = props?.[key];

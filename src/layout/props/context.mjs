@@ -30,8 +30,8 @@ export function createPropsContext(P, F, rng, spawn, extra) {
   const mark = (arr, x0, y0, x1, y1) => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (inC(x, y)) arr[id(x, y)] = 1; };
   for (const p of placed.filter((p) => p.spec.goalSite)) {
     // Some props (e.g. fences) overhang their occupied tile by a pixel.
-    mark(goalReserved, p.x - 1, p.y - p.spec.roofRows, p.x + p.w, p.yb + 1);
-    mark(noTree, p.x - 1, p.y - p.spec.roofRows, p.x + p.w, p.yb + 1);
+    mark(goalReserved, p.x - 1, p.y - p.spec.roofRows, p.x + p.w, p.yb + 3);
+    mark(noTree, p.x - 1, p.y - p.spec.roofRows, p.x + p.w, p.yb + 3);
   }
   // 水路口は props の先頭に置くだけでなく、後から置く花壇・柵などの
   // 候補からも外す。深い広場では口が南の段の近くへ来るため、これを

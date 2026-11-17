@@ -3,12 +3,14 @@ import { moduleGroup } from '../../group-components.mjs';
 import { hash32 } from '../util.mjs';
 import { doorClearance } from '../../door-clearance.mjs';
 import { coverOf } from '../../town-grid.mjs';
+import { stairClearance } from '../../stair-clearance.mjs';
 
 // 切り出し前の格子・建物・候補位置。同じ種を再試行するときも、他の候補は変えない。
 export const placementKey = (cols, rows, spec, x, y) => `${cols},${rows}:${spec.id}:${x},${y}`;
 
 export function createPlacement(S) {
   const { C, harbour, quay, id, road, plazaM, foot, front, roofZ, green, inG, pinned, rng, pcy, pcx, tracks } = S;
+  const hasGoal = C.fac?.early?.some((s) => s.goalSite);
   const canalReserve = new Set((C.canalReserve || []).map(([x, y]) => `${x},${y}`));
   const reservedForCanal = (x, y) => canalReserve.has(`${x},${y}`);
   const shapes = new Map();
@@ -21,7 +23,9 @@ export function createPlacement(S) {
       const v = C.doorVariants?.get(spec.id) || vs[hash32(spec.id) % vs.length];
       const b = { archetype: spec.archetype, variant: v?.id,
         door: { x: clamp(v?.doorX ?? spec.doorDx, 0, spec.w - 1), y: spec.h - 1 } };
-      shapes.set(spec.id, { approach: doorClearance(b, C.art), cover: coverOf(b, C.art) });
+      shapes.set(spec.id, { approach: spec.goalSite
+        ? { x0: 0, x1: spec.w - 1, y0: spec.h, y1: spec.h + 1 } : doorClearance(b, C.art),
+        cover: spec.goalSite ? Array(spec.w).fill(spec.roofRows) : coverOf(b, C.art) });
     }
     const { approach: r, cover } = shapes.get(spec.id);
     return {
@@ -71,6 +75,25 @@ export function createPlacement(S) {
     if (reservedStairs.some((r) => coversApproach(candidate, r))) return null;
     if (placed.some((p) => coversApproach(candidate, p.clearance.approach) ||
       coversApproach(p.clearance, candidate.approach))) return null;
+    // Overlay landmarks also leave the entire first front row of every building
+    // clear. Ordinary door clearance alone covers only the doorway columns.
+    const firstRow = (b) => ({ x0: b.x, x1: b.x + b.w - 1, y0: b.y + b.h, y1: b.y + b.h });
+    if (hasGoal && placed.some((p) => (spec.goalSite && coversApproach(candidate, firstRow(p))) ||
+      (p.spec.goalSite && coversApproach(p.clearance, firstRow(candidate))))) return null;
+    if (spec.goalSite) {
+      if (S.terraces.some((t) => coversApproach({ ...candidate, h: h + 2 }, stairClearance({ ...t.stair, y: t.y + t.h })))) return null;
+      const level = (x, yy) => S.terraces.filter((t) => x >= t.x && x < t.x + t.w && yy >= t.y && yy < t.y + t.h).length;
+      const baseLevel = level(x0 + 1, y);
+      for (let yy = y; yy < y + h; yy++) for (let x = x0 + 1; x < x0 + w - 1; x++) {
+        if (level(x, yy) !== baseLevel) return null;
+      }
+      // The front and sides must not straddle a retaining wall, even when its
+      // stair happens to be elsewhere on the same terrace.
+      for (const t of S.terraces) {
+        const fy = t.y + t.h;
+        if (fy >= y && fy <= yb + 2 && t.x < x0 + w && t.x + t.w > x0) return null;
+      }
+    }
     return { x: x0, y, w, h, yb };
   };
   // 予約した所（役場・船着場）には、その建物しか置かない
@@ -82,7 +105,8 @@ export function createPlacement(S) {
     for (let x = pos.x; x < pos.x + pos.w; x++) {
       for (let yy = pos.y; yy <= pos.yb; yy++) foot[id(x, yy)] = i;
       for (let yy = pos.y - (spec.roofRows ?? 2); yy < pos.y; yy++) roofZ[id(x, yy)] = 1;
-      for (let yy = pos.yb + 1; yy < t.sd[x - t.x0]; yy++) front[id(x, yy)] = 1;
+      const end = spec.goalSite ? Math.max(t.sd[x - t.x0], pos.yb + 3) : t.sd[x - t.x0];
+      for (let yy = pos.yb + 1; yy < end; yy++) front[id(x, yy)] = 1;
     }
     const p = { spec, ...pos, track: t, group, sd: Array.from({ length: pos.w }, (_, k) => t.sd[pos.x + k - t.x0]) };
     p.clearance = clearanceBuilding(spec, pos);

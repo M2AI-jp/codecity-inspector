@@ -35,6 +35,7 @@ import { doorClearanceConflicts, describeDoorConflict } from './door-clearance.m
 import { keepReachableTerraces } from './layout/terraces.mjs';
 import { moduleGroup, groupComponents } from './group-components.mjs';
 import { goalPlot } from './overlay/goal.mjs';
+import { canalRoadSideProblem } from './layout/canal/validate.mjs';
 
 export { FACILITY_NAME, LANDMARK, aggregate, chooseCanalRoute, loadArt, loadProps, loadGround, propTiles };
 
@@ -184,7 +185,7 @@ function layoutAttempt(repo, opts, rejectedPlacements, doorVariants, stairReserv
   const plot = goalPlot(opts.goalLook, propArt);
   const goalSpec = plot ? {
     id: '$goal-site', archetype: 'goal-site', goalSite: true,
-    w: plot.w + 2, h: plot.h + 2, roofRows: plot.roofRows,
+    w: plot.w + 2, h: plot.h, roofRows: plot.roofRows,
     doorDx: Math.floor((plot.w + 2) / 2), module: { kind: 'landmark' }, angle: -Math.PI / 2,
   } : null;
   if (goalSpec) fac.early.unshift(goalSpec);
@@ -204,7 +205,8 @@ function layoutAttempt(repo, opts, rejectedPlacements, doorVariants, stairReserv
   };
   const canalRequested = (repo.facilities || []).some((f) => f.archetype === 'well' && f.facts) &&
     !!propArt['bridge-h']?.deck && !!propArt['bridge-v']?.deck;
-  const C = { groups, maxH, need, seed, fac, harbour, gateRows, count: all.length, rejectedPlacements, doorVariants, stairReservations, art };
+  const C = { groups, maxH, need, seed, fac, harbour, gateRows, count: all.length, rejectedPlacements, doorVariants, stairReservations, art,
+    goalAt: opts.goalAt };
   const hasGroups = (repo.modules || []).some((m) => moduleGroup(m) !== undefined);
   // 通常の格子で担当が収まらない場合だけ、横幅の違う候補も調べる。
   // 戸口・階段を空けた結果、長い担当が途中で切れるのを避ける。未指定の街の候補は変えない。
@@ -407,11 +409,14 @@ function layoutAttempt(repo, opts, rejectedPlacements, doorVariants, stairReserv
     ...p, id: p.spec.id, archetype: p.spec.archetype, variant: variantOf.get(p)?.id,
     door: { x: p.doorCol, y: p.yb },
   }));
+  const clearanceArt = goalSpec ? { ...art, 'goal-site': {
+    variants: [{ cover: Array(goalSpec.w).fill(goalSpec.roofRows) }],
+  } } : art;
   const stairConflicts = stairClearanceConflicts({
     stairs: P.terraces.map((t) => ({ x: t.stair.x, y: t.y + t.h, w: t.stair.w })),
     buildings: placedBuildings,
-  }, art, propArt);
-  const doorConflicts = doorClearanceConflicts({ buildings: placedBuildings }, art);
+  }, clearanceArt, propArt);
+  const doorConflicts = doorClearanceConflicts({ buildings: placedBuildings }, clearanceArt);
   if (stairConflicts.length || doorConflicts.length) {
     for (const { stair, object: p } of stairConflicts) {
       if (!hasGroups) {
@@ -441,6 +446,13 @@ function layoutAttempt(repo, opts, rejectedPlacements, doorVariants, stairReserv
     bridgeDeckCells: canal?.bridgeDeckCells || [], canalCells: canal?.cells || [],
     hasReadme: !!(repo.readme?.title?.trim() || repo.readme?.excerpt?.trim()),
   });
+  if (goalSpec && canal?.cells?.length && canalRoadSideProblem(canal.cells, canal.crossings, {
+    g: F.g, id: P.id, inC: (x, y) => x >= F.crop.x0 && x <= F.crop.x1 && y >= F.crop.y0 && y <= F.crop.y1,
+  })) {
+    const p = P.placed.find((p) => p.spec.goalSite);
+    rejectedPlacements.add(placementKey(P.cols, P.rows, p.spec, p.x, p.y));
+    return null;
+  }
   const placedFacilitySources = new Set(P.placed.map((p) => p.spec.sourceFacility).filter(Boolean));
   const placedLandmarkIds = new Set(placedProps.landmarks.map((l) => l.id));
   const unplaced = [];

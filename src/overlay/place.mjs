@@ -9,13 +9,13 @@ import { propCells, coverOf } from '../town-grid.mjs';
 import { loadProps } from '../layout/manifest.mjs';
 import { hash32 } from '../layout/util.mjs';
 import { KEEPER_BOX } from '../../web/config.js';
-import { GOAL_ART, goalPlot, goalGeometry } from './goal.mjs';
+import { GOAL_ART, GOAL_SITE_REASONS, goalPlot, goalGeometry } from './goal.mjs';
 
 export const defaultManifest = () => JSON.parse(readFileSync(new URL('../../art/game/manifest.json', import.meta.url), 'utf8'));
 const sign = (p) => ['sign-passed', 'sign-failed', 'sign-unverified'].includes(p.type);
 const hash = (v) => createHash('sha256').update(JSON.stringify(v)).digest('hex');
 export const layoutKey = (overlay) => hash({ seed: overlay.seed, groups: overlay.groups,
-  ...(overlay.goal?.look ? { goalLook: overlay.goal.look } : {}) });
+  ...(overlay.goal?.look ? { goalLook: overlay.goal.look, goalAt: overlay.goal.at } : {}) });
 const xy = (x, y) => `${x},${y}`;
 
 function cutCandidates(world) {
@@ -87,7 +87,7 @@ export function placeOverlay(base, overlay, manifest = defaultManifest()) {
   const clearRects = (rs) => rs.every((r) => !world.boxHits(r.x, r.y, r.x + r.w, r.y + r.h) &&
     !addedRects.some((o) => r.x < o.x + o.w && r.x + r.w > o.x && r.y < o.y + o.h && r.y + r.h > o.y));
   const accessible = (seen, extra = []) => [...targets, ...extra].every((p) => reach.near(seen, p.x * 16, p.y * 16));
-  const reject = (v, scope, reason) => town.unplaced.push({ overlay: true, scope, id: v.id, reason });
+  const reject = (v, scope, reason, detail = {}) => town.unplaced.push({ overlay: true, scope, id: v.id, reason, ...detail });
   const nearby = (target, radius = 6) => {
     const out = [];
     for (let y = Math.max(0, Math.floor(target.y) - radius); y <= Math.min(town.rows - 1, Math.floor(target.y) + radius); y++) {
@@ -123,25 +123,39 @@ export function placeOverlay(base, overlay, manifest = defaultManifest()) {
     const g = overlay.goal, key = GOAL_ART[g.look], def = manifest.props?.[key];
     const target = resolveAt(town, g.at, { kind: 'goal' });
     let reason = target.reason || (!goalPlot(g.look, manifest.props) ? `missing solid goal art: ${key}` : null);
+    const detail = { part: 'landmark', look: g.look };
     if (!reason) {
+      const distance = town.goalSite && Math.hypot(town.goalSite.x - target.x, town.goalSite.y - target.y);
       const site = town.goalSite?.look === g.look &&
-        Math.hypot(town.goalSite.x - target.x, town.goalSite.y - target.y) <= 24 ? town.goalSite : null;
+        distance <= 24 ? town.goalSite : null;
+      detail.site = { stage: site ? 'candidate' : town.goalSite ? 'distance' : 'layout',
+        ...(distance !== undefined ? { distance } : {}) };
+      detail.attempts = {};
       // Prefer the plot reserved by layout. Direct placeOverlay callers may use
       // existing open land. Never move or erase buildings, props or terraces.
       const candidates = [...(site ? [site] : []), ...nearby(target, 16).map((p) => ({ x: p.x - .5, y: p.y }))];
       for (const pos of candidates) {
         const prop = { type: 'castle', look: key, x: pos.x, y: pos.y, overlayId: `goal:${g.id}` };
         const geo = goalGeometry(prop, def), cells = propCells(prop, propArt);
-        if (![...cells, ...geo.clearance, ...geo.cells(geo.image)].every(([x, y]) => cellOK(x, y))) continue;
+        const failed = (stage) => {
+          detail.attempts[stage] = (detail.attempts[stage] || 0) + 1;
+          if (pos === site) detail.site.stage = stage;
+        };
+        const blocked = [
+          ['footprint', cells], ['front', geo.cells(geo.front)],
+          ['sides', geo.sides.flatMap(geo.cells)], ['roof', geo.cells(geo.image)],
+        ].find(([, tiles]) => !tiles.every(([x, y]) => cellOK(x, y)));
+        if (blocked) { failed(blocked[0]); continue; }
         // The solid footprint must sit on one level, never across a terrace edge.
         const level = ([x, y]) => (town.terraces || []).filter((t) => x >= t.x && x < t.x + t.w && y >= t.y && y < t.y + t.h).length;
-        if (new Set(cells.map(level)).size !== 1) continue;
+        if (new Set(cells.map(level)).size !== 1) { failed('level'); continue; }
         const label = { x: pos.x, y: pos.y + 11 / 16 };
         const frontPoints = geo.cells(geo.front).map(([x, y]) => ({ x: x * 16 + 8, y: y * 16 + 11 }));
         const clear = [geo.foot, geo.front, ...geo.sides];
-        if (!clearRects(clear) || !keepTilePaths(cells)) continue;
+        if (!clearRects(clear)) { failed('collision'); continue; }
+        if (!keepTilePaths(cells)) { failed('tile-path'); continue; }
         if (!reach.attempt([geo.foot], (seen) => accessible(seen, [label]) &&
-          frontPoints.every((p) => seen[p.y * reach.W + p.x]))) continue;
+          frontPoints.every((p) => seen[p.y * reach.W + p.x]))) { failed('reach'); continue; }
         keepTilePaths(cells, true); addedRects.push(geo.foot);
         for (const [x, y] of [...cells, ...geo.cells(geo.image)]) occupied.add(xy(x, y));
         for (const [x, y] of geo.clearance) reserved.add(xy(x, y));
@@ -152,7 +166,10 @@ export function placeOverlay(base, overlay, manifest = defaultManifest()) {
       }
       if (!data.goal) reason = 'no safe level space for goal landmark and clear front';
     }
-    if (reason) reject(g, 'goal', reason);
+    if (reason) {
+      if (detail.site) detail.site.reason = GOAL_SITE_REASONS[detail.site.stage];
+      reject(g, 'goal', reason, detail);
+    }
   }
   let cuts;
   for (const m of overlay.markers) {
@@ -218,8 +235,10 @@ export function placeOverlay(base, overlay, manifest = defaultManifest()) {
     const person = { ...p, look: p.look ?? hash32(p.id), ...pos };
     data.people.push(person); targets.push(person); occupied.add(xy(Math.floor(pos.x), Math.floor(pos.y)));
   }
-  if (overlay.goal && !overlay.goal.look) {
-    const g = overlay.goal, target = resolveAt(town, g.at, { kind: 'goal', markers: data.markers });
+  if (overlay.goal && !data.goal) {
+    // A landmark is optional. Its diagnostic must not erase a reachable label.
+    const { look, ...g } = overlay.goal;
+    const target = resolveAt(town, g.at, { kind: 'goal', markers: data.markers });
     const pos = !target.reason && nearby(target).map((p) => ({ x: p.x, y: p.y - 5 / 16 })).find((p) =>
       cellOK(Math.floor(p.x), Math.floor(p.y)) && reach.seen[Math.round(p.y * 16) * reach.W + Math.round(p.x * 16)]);
     if (pos) data.goal = { ...g, ...pos };

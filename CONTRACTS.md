@@ -321,8 +321,9 @@ record は `sign-passed`・`sign-failed`・`sign-unverified`、board は `notice
 gate は `gate` と門番の絵。歩行グラフ上の候補を絞り、実際の足元の 1px グラフでその tile を除くとほかの到達可能な位置が切り離されることを確かめる。通過可能な門と到達可能な門番を置ける切断点がなければ unplaced。
 people は townsfolk の `look % 絵の数`、look 省略時は id の固定 hash。
 goal.look は任意で、現在は `"castle"` だけ。省略時は絵も当たりも持たず、歩ける位置と DOM の名札だけで、従来の Town JSON とバイト単位で一致する。未知の文字列は `unknown goal look`、文字列以外は `invalid look` として goal 全体を unplaced にする。
-`"castle"` 指定時だけ layout は城の足元12×6マス・左右各1マス・前2行と屋根の余白を目印用に予約する。その区画は Town.buildings に入れず、配置した絵は `props` の `type: "castle", look: "castle-1", overlayId: "goal:<id>"` として持つ。城は固い足元を持ち、内部や deck を持たない。予約により町の配置は変わり得る。予約地は at の解決位置から24マス以内で試し、既存の空き場所も16マスの範囲で近い順に試す。
-城の足元は一つの高さの面に収める。絵の不透明部分・足元・前2行と左右1マスを、建物・屋根・既存小物・人・出発点・戸口・階段の予約と重ねない。城をほかの overlay より先に置き、前庭と左右の空きを後続の物・人にも予約する。名札は城の前の歩ける位置に置く。足元の追加で既存の到達領域を切り離さず、前2行の全マスの足元位置に出発点から到達できるときだけ採用する。段・空き場所・絵が足りなければ goal 全体を理由付き unplaced にする。check-play と seed-fuzz の `goal` は名札への到達数、`goalFront` は城前の到達マス数（幅14マス×2行＝28マス）を数える。
+`"castle"` 指定時だけ layout は城の足元12×6マス・左右各1マス・前2行と屋根の余白を目印用に予約する。足元の6行と前庭の2行は別に扱い、前庭を固い足元として街区の高さに加えない。固定施設の配置後、通常建物より先に、`goal.at` の対応先に近い候補を24マス以内で探す（未配置の通常建物・group は広場を仮の対応先とする）。建物正面の最初の1行・戸口前2行・階段の前後2行を屋根も含めて確保し、屋根を切り出し範囲に残す。その区画は Town.buildings に入れず、配置した絵は `props` の `type: "castle", look: "castle-1", overlayId: "goal:<id>"` として持つ。城は固い足元を持ち、内部や deck を持たない。予約により町の配置は変わり得る。placeOverlay は最終の at の解決位置から24マス以内の goalSite を優先し、既存の空き場所も16マスの範囲で近い順に試す。
+城の足元は一つの高さの面に収める。絵の不透明部分・足元・前2行と左右1マスを、建物・屋根・既存小物・人・出発点・戸口・階段の予約と重ねない。城をほかの overlay より先に置き、前庭と左右の空きを後続の物・人にも予約する。名札は城の前の歩ける位置に置く。足元の追加で既存の到達領域を切り離さず、前2行の全マスの足元位置に出発点から到達できるときだけ採用する。
+段・空き場所・絵が足りず城を置けない場合は、同じ id・at・label・lines の goal を look なしと同じ手順で名札だけ配置する。配置済み goal には `look`・`landmark`・`front` を付けず、城の props も追加しない。城だけの未配置を `{ overlay: true, scope: "goal", id, part: "landmark", look: "castle", reason, ... }` として Town.unplaced と overlay.unplaced の両方に残す。名札も配置できない場合だけ goal を null にし、`part` の無い goal 全体の診断を別に追加する。検証で拒否した不正な goal は従来どおり全体が未配置になる。check-play と seed-fuzz の `goal` は名札への到達数（名札だけの場合も1）、`goalFront` は実際に置いた城前の到達マス数（幅14マス×2行＝28マス）を数える。
 
 1 戸口に物は 1 個まで。あふれた物は同じ district 内で元の戸口に近い順に試す。
 戸口の前 2 行・実際の扉の幅＋左右 1 マス、建物正面の最初の 1 行、階段の前後 2 行＋左右 1 マス、建物・屋根・既存小物・人・出発点を避ける。
@@ -337,17 +338,20 @@ Town は配置済みの物を `props` にも持ち、`overlayId` で通常の小
 
 ```js
 {
-  version: 1, layoutKey: "<seed/groups と指定時の goal.look の SHA-256>", revision: "<配置結果の SHA-256>",
+  version: 1, layoutKey: "<seed/groups と look 指定時の goal.look/at の SHA-256>", revision: "<配置結果の SHA-256>",
   source: { tool, name, seq }, title: { text, sub }, // 入力にある場合だけ
   hideDojoSigns: true,
   markers: [{ id, kind, state, at, label, lines, x, y, building /* 戸口を使用したとき */, keeper /* gate だけ */ }],
   people: [{ id, name, at, look, lines, x, y }],
   goal: { id, at, label, lines, x, y,
-          look: "castle",                     // 以下3欄は look 指定時だけ
+          look: "castle",                     // 以下3欄は城を実際に配置できた場合だけ
           landmark: { x, y, look: "castle-1" }, // 絵の足元。名札の x/y とは別
           front: { x, y, w, h: 2 } } | null,  // 城前の歩ける範囲（tile）
   props: [{ type, look, x, y, overlayId }], // overlay の物と、表示する道場の元の札
-  unplaced: [{ overlay: true, scope: "markers" | "people" | "goal" | "title", id, index, reason }]
+  unplaced: [{ overlay: true, scope: "markers" | "people" | "goal" | "title", id, index, reason,
+              part: "landmark", look: "castle", // 城だけの失敗時のみ。goal の名札の有無とは別
+              site: { stage, reason, distance }, // 空間探索の失敗時のみ。distance は予約地がある場合だけ
+              attempts: { [stage]: count } }]   // 候補が最初に落ちた段階ごとの数
 }
 ```
 
@@ -355,9 +359,10 @@ x/y は tile 単位の足元。keeper は `{ x, y }`。building・state・index�
 `Town.unplaced` にも同じ診断を追加する。入力の `unplaced` は producer の旧診断なので採用しない。
 主な reason は `unknown kind`、`duplicate id`、各文字・個数の limit、`invalid at`、`invalid record state`、`invalid look`、`missing art: …`、`missing townsfolk art`、`building not found`、`group has no building`、`marker not placed`、`no safe free doorway in district`、`no safe space near plaza or landmark`、`no safe walkable cut point for gate and keeper`、`no safe reachable space for person`、`no reachable goal location`。
 城の reason は `unknown goal look`、`missing solid goal art: castle-1`、`no safe level space for goal landmark and clear front`。
+城の空間探索診断の `site.stage` は予約地についての最初の失敗段階で、`layout`（区画なし）、`distance`（最終の at から24マス超）、`footprint`・`front`・`sides`・`roof`（足元・前2行・左右・屋根が地面の外／物／予約と重なる）、`level`（段の境）、`collision`（実際の当たりとの衝突）、`tile-path`（tile 歩行面の分断）、`reach`（1px 足元到達領域の分断または城前の到達不能）。`site.reason` はその説明。`attempts` は予約地と近傍の候補ごとに、最初に失敗した段階を1回だけ数える。区画なし・距離超過は候補を試す前の判断なので attempts には入らない。絵や at の解決に失敗して探索しない場合は site・attempts を付けない。
 
 serve は指定ファイルだけを 750ms 間隔で監視し、`/overlay.json` の取得時にも再確認する。ブラウザは 2 秒ごとに取得し、ID ごとに位置・内容が変わった物と人だけを差し替える。変わらない描画オブジェクト・人物・建物・地面を保持する。
 移動・追加する物がプレイヤーや歩行中の住人に重なる場合は、次の取得まで適用を待つ。
-seed・groups・goal.look が変わった場合は町と地面を再生成し、layoutKey の変化でブラウザを再読み込みする。城の追加・取り除きでも予約地を作り直す。title・source・状態・会話の変更では再読み込みしない。
+seed・groups・goal.look、または look 指定時の goal.at が変わった場合は町と地面を再生成し、layoutKey の変化でブラウザを再読み込みする。城の追加・取り除き・指定先の変更でも予約地を作り直す。title・source・状態・会話の変更では再読み込みしない。
 ライブ中の不正ファイルは `/overlay.json` を HTTP 422 `{ version: 1, error: "理由" }` にし、最後の正しい町を保つ。正しいファイルへ戻すと更新を再開する。
 Host の確認、GET/HEAD、localhost の listen、web/art だけの静的配信は従来と同じ。要求 URL から別の overlay ファイルを選ぶ仕組みはない。

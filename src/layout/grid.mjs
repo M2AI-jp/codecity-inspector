@@ -5,6 +5,7 @@ import { createTracks } from './grid/tracks.mjs';
 import { createPlacement } from './grid/placement.mjs';
 import { placeNeighbors } from './grid/neighbors.mjs';
 import { placeBuildings } from './grid/buildings.mjs';
+import { placeGoal } from './grid/goal.mjs';
 
 // 通り・街区・面・建物の順で、同じ乱数生成器と格子を引き継ぐ。
 export function generate(C, scale) {
@@ -14,6 +15,7 @@ export function generate(C, scale) {
   createTracks(S);
   createPlacement(S);
   if (!placeNeighbors(S)) return null;
+  if (!placeGoal(S)) return null;
   if (!placeBuildings(S)) return null;
   const { cols, rows, N, id, inG, cx, aN, aS, dirS, Htop, road, pieces, plazaM, plaza, hall, quay,
     leaves, tracks, placed, foot, roofZ, front, green, pcx, pcy, kx0, kx1, U, squares, courts, terraces, groupUnplaced } = S;

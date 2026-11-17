@@ -11,6 +11,7 @@ import { layoutTown, loadArt, loadProps, loadGround } from '../src/layout.mjs';
 import { artFrom, buildWorld, checkPlay } from '../tools/check-play.mjs';
 import { checkSeed, fuzzSeeds } from '../tools/seed-fuzz.mjs';
 import { propCells } from '../src/town-grid.mjs';
+import { resolveAt } from '../src/overlay/resolve.mjs';
 
 const manifest = defaultManifest();
 const goal = { at: { landmark: 'town_hall' }, label: '完了', lines: ['城の候補'], look: 'castle' };
@@ -36,6 +37,7 @@ test('goal.look: omitted stays absent; unknown strings and invalid types are dia
   }
   assert.notEqual(layoutKey(overlay(plain)), layoutKey(overlay()));
   assert.equal(layoutKey(overlay()), layoutKey(overlay({ ...goal, label: '別の名札' })));
+  assert.notEqual(layoutKey(overlay()), layoutKey(overlay({ ...goal, at: { path: 'src' } })));
 });
 
 test('goal.look: castle is solid, not a building or a deck, with reachable label and clear front', () => {
@@ -75,22 +77,50 @@ test('goal.look: castle is solid, not a building or a deck, with reachable label
   assert.deepEqual(checkPlay(badLabel, manifest).overlay.goal, { reachable: 0, total: 1 }, 'the label must itself be on walkable ground');
 });
 
-test('goal.look: missing art, insufficient space and terrace edges remain explained unplaced', () => {
+test('goal.look: missing art, insufficient space and terrace edges preserve the plain label', () => {
+  const { look, ...plain } = goal;
+  const labelSurvives = (base, art = manifest) => {
+    const result = placeOverlay(base, overlay(), art);
+    assert.deepEqual(result.overlay.goal, placeOverlay(base, overlay(plain), art).overlay.goal);
+    assert.ok(result.overlay.goal);
+    assert.equal(Object.hasOwn(result.overlay.goal, 'look'), false);
+    assert.equal(result.props.some((p) => p.overlayId === 'goal:$goal'), false);
+    const diagnostic = result.overlay.unplaced.find((u) => u.scope === 'goal');
+    assert.equal(diagnostic.id, result.overlay.goal.id);
+    assert.equal(diagnostic.part, 'landmark');
+    assert.equal(diagnostic.look, 'castle');
+    assert.ok(result.unplaced.includes(diagnostic));
+    assert.deepEqual(checkPlay(result, art).overlay.goal, { reachable: 1, total: 1 });
+    return result;
+  };
   const noArt = structuredClone(manifest); delete noArt.props['castle-1'];
-  const missing = placeOverlay(openTown(), overlay(), noArt);
-  assert.equal(missing.overlay.goal, null);
+  const missing = labelSurvives(openTown(), noArt);
   assert.match(missing.overlay.unplaced[0].reason, /missing solid goal art/);
   const tiny = openTown(); tiny.cols = 10; tiny.rows = 10; tiny.ground = Array(10).fill('+'.repeat(10)); tiny.spawn = { x: 5, y: 5 };
-  const narrow = placeOverlay(tiny, overlay(), manifest);
-  assert.equal(narrow.overlay.goal, null);
+  const narrow = labelSurvives(tiny);
   assert.match(narrow.overlay.unplaced[0].reason, /no safe level space/);
+  assert.equal(narrow.overlay.unplaced[0].site.stage, 'layout');
+  assert.ok(narrow.overlay.unplaced[0].attempts.footprint > 0);
   const stepped = openTown();
   // Every six-row footprint crosses a raised edge.
-  stepped.terraces = Array.from({ length: 16 }, (_, i) => ({ x: 0, y: i * 2, w: 40, h: 1 }));
-  stepped.stairs = stepped.terraces.map((t) => ({ x: 0, y: t.y + 1, w: 40 }));
-  const result = placeOverlay(stepped, overlay(), manifest);
-  assert.equal(result.overlay.goal, null);
+  stepped.spawn.x = 35; // A narrow flat strip still has room for the plain label.
+  stepped.terraces = Array.from({ length: 16 }, (_, i) => ({ x: 0, y: i * 2, w: 30, h: 1 }));
+  stepped.stairs = stepped.terraces.map((t) => ({ x: 0, y: t.y + 1, w: 1 }));
+  const result = labelSurvives(stepped);
   assert.match(result.overlay.unplaced[0].reason, /no safe level space/);
+});
+
+test('goal.look: an unreachable label is diagnosed separately from its missing landmark', () => {
+  const town = openTown();
+  town.ground = Array(town.rows).fill(' '.repeat(town.cols));
+  const result = placeOverlay(town, overlay(), manifest);
+  assert.equal(result.overlay.goal, null);
+  assert.equal(result.overlay.unplaced.length, 2);
+  const [landmark, label] = result.overlay.unplaced;
+  assert.equal(landmark.part, 'landmark');
+  assert.equal(Object.hasOwn(label, 'part'), false);
+  assert.equal(label.reason, 'no reachable goal location');
+  assert.equal(landmark.id, label.id);
 });
 
 test('goal.look: layout reserves a plot without introducing an enterable castle; fuzz counts fronts', () => {
@@ -107,11 +137,42 @@ test('goal.look: layout reserves a plot without introducing an enterable castle;
   const result = checkSeed(repo, manifest, { overlay: input });
   assert.equal(result.problems.length, 0, result.problems.join('\n'));
   assert.ok(result.town.overlay.goal, JSON.stringify(result.town.unplaced));
+  assert.equal(result.town.overlay.goal.look, 'castle');
+  assert.equal(result.town.overlay.goal.landmark.x, result.town.goalSite.x);
+  assert.equal(result.town.overlay.goal.landmark.y, result.town.goalSite.y);
+  const target = resolveAt(result.town, goal.at, { kind: 'goal' });
+  assert.ok(Math.hypot(result.town.goalSite.x - target.x, result.town.goalSite.y - target.y) <= 24);
   assert.equal(result.town.buildings.length, plain.buildings.length);
   assert.ok(result.town.buildings.every((b) => b.archetype !== 'goal-site' && b.archetype !== 'castle'));
   const fuzz = fuzzSeeds(repo, manifest, { count: 3, overlay: input });
   assert.equal(fuzz.failed, 0, JSON.stringify(fuzz.results));
   assert.ok(fuzz.results.some((r) => r.overlay?.goalFront?.reachable === 28));
+});
+
+test('goal.look: memo-sized plots keep the castle on the reserved site and preserve canal banks', () => {
+  const modules = [
+    ['.', 'house', 9, 970], ['.local', 'house', 2, 69],
+    ['.local/maps', 'house', 2, 2], ['.local/outputs', 'house', 25, 335],
+    ['checks', 'house', 15, 1342], ['src', 'house', 2, 304], ['web', 'shop', 6, 259],
+  ].map(([path, kind, files, lines]) => ({
+    path, kind, files, lines, bytes: lines * 20, recent: 0, commits: 0, authors: [], languages: {}, topFiles: [],
+  }));
+  const repo = { name: 'memo', head: 'fixture', modules, contributors: [],
+    facilities: ['town_hall', 'inn', 'well', 'gate'].map((archetype) => ({
+      archetype, reason: 'fixture', evidence: ['src/server/main.mjs'], evidenceCount: 1, merged: [],
+      facts: archetype === 'well' ? { envInCode: [{ name: 'MEMO_DATA_DIR', files: ['src/server/main.mjs'] }] } : {},
+    })),
+  };
+  for (const seed of ['memo', 'memo@fuzz:0000015', 'memo@fuzz:000007b', 'memo@fuzz:0000085']) {
+    const input = overlay(goal, { seed, groups: [
+      { id: 'store', label: '倉庫番', paths: ['src/**'] }, { id: 'ui', label: '絵師', paths: ['web/**'] },
+    ] });
+    const result = checkSeed(repo, manifest, { overlay: input }), town = result.town;
+    assert.equal(result.problems.length, 0, `${seed}: ${result.problems.join('\n')}`);
+    assert.equal(town.overlay.goal?.look, 'castle', seed);
+    assert.deepEqual(town.overlay.goal.landmark, { x: town.goalSite.x, y: town.goalSite.y, look: 'castle-1' }, seed);
+    assert.deepEqual(result.play.overlay.goalFront, { reachable: 28, total: 28 });
+  }
 });
 
 test('goal.look: an unplaceable plot preserves retry state and leaves an explained goal', (t) => {
@@ -154,13 +215,57 @@ test('goal.look: an unplaceable plot preserves retry state and leaves an explain
     assert.equal(JSON.stringify(town), JSON.stringify(plain));
     assert.equal(JSON.stringify(layoutTown(repo, { ...opts, goalLook: 'castle' })), JSON.stringify(town));
     const placed = placeOverlay(town, overlay(), manifest);
-    assert.equal(placed.overlay.goal, null);
+    assert.ok(placed.overlay.goal);
+    assert.equal(Object.hasOwn(placed.overlay.goal, 'look'), false);
     const unplaced = placed.overlay.unplaced.filter((u) => u.scope === 'goal');
-    assert.deepEqual(unplaced, [{ overlay: true, scope: 'goal', id: '$goal',
-      reason: 'no safe level space for goal landmark and clear front' }]);
+    assert.equal(unplaced.length, 1);
+    assert.equal(unplaced[0].part, 'landmark');
+    assert.equal(unplaced[0].site.stage, 'layout');
+    assert.equal(unplaced[0].reason, 'no safe level space for goal landmark and clear front');
     assert.ok(placed.unplaced.includes(unplaced[0]), 'the diagnostic must also be visible in Town.unplaced');
     assert.equal(placed.props.some((p) => p.overlayId === 'goal:$goal'), false);
   }
+});
+
+test('goal.look: a temporary memo-shaped fixture keeps its label when the castle cannot fit', (t) => {
+  const base = fileURLToPath(new URL('../compare/', import.meta.url));
+  mkdirSync(base, { recursive: true });
+  const temp = mkdtempSync(join(base, 'memo-goal-')), root = join(temp, 'memo');
+  t.after(() => rmSync(temp, { recursive: true, force: true }));
+  // The test owns its tiny repository; it never reads or writes gridhub's example.
+  for (const file of ['src/server/main.mjs', 'src/store/memo-store.mjs', 'web/app.mjs', 'checks/GOAL.mjs']) {
+    const path = join(root, file);
+    mkdirSync(join(path, '..'), { recursive: true });
+    writeFileSync(path, 'export const memo = [];\n');
+  }
+  const previous = process.env.GIT_CEILING_DIRECTORIES;
+  let model;
+  try {
+    process.env.GIT_CEILING_DIRECTORIES = base;
+    model = analyzeRepository(root);
+  } finally {
+    if (previous === undefined) delete process.env.GIT_CEILING_DIRECTORIES;
+    else process.env.GIT_CEILING_DIRECTORIES = previous;
+  }
+  assert.equal(model.head, null);
+  const art = structuredClone(manifest);
+  // Public geometry input forces a no-plot case regardless of the surrounding git state.
+  Object.assign(art.props['castle-1'], { solid: [-1024, -96, 2048, 96],
+    origin: [1024, 224], size: [2048, 224], bounds: [0, 0, 2048, 224] });
+  const input = overlay({ ...goal, id: 'memo-goal' }, { seed: 'memo' });
+  const result = checkSeed(model, art, { overlay: input });
+  assert.equal(result.problems.length, 0, result.problems.join('\n'));
+  assert.equal(result.town.goalSite, undefined);
+  assert.equal(result.town.overlay.goal.id, 'memo-goal');
+  assert.equal(result.town.overlay.goal.label, '完了');
+  assert.equal(Object.hasOwn(result.town.overlay.goal, 'look'), false);
+  const [diagnostic] = result.town.overlay.unplaced;
+  assert.equal(diagnostic.scope, 'goal');
+  assert.equal(diagnostic.id, 'memo-goal');
+  assert.equal(diagnostic.part, 'landmark');
+  assert.equal(diagnostic.site.stage, 'layout');
+  assert.ok(result.town.unplaced.includes(diagnostic));
+  assert.deepEqual(result.play.overlay.goal, { reachable: 1, total: 1 });
 });
 
 test('goal.look: sidecar and generated manifest keep the supplied candidate as a non-walkable landmark', () => {
