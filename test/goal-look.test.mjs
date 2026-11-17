@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { analyzeRepository } from '../src/analyze.mjs';
 import { validateOverlay } from '../src/overlay/read.mjs';
 import { placeOverlay, defaultManifest, layoutKey } from '../src/overlay/place.mjs';
 import { goalGeometry } from '../src/overlay/goal.mjs';
@@ -109,6 +112,55 @@ test('goal.look: layout reserves a plot without introducing an enterable castle;
   const fuzz = fuzzSeeds(repo, manifest, { count: 3, overlay: input });
   assert.equal(fuzz.failed, 0, JSON.stringify(fuzz.results));
   assert.ok(fuzz.results.some((r) => r.overlay?.goalFront?.reachable === 28));
+});
+
+test('goal.look: an unplaceable plot preserves retry state and leaves an explained goal', (t) => {
+  const base = fileURLToPath(new URL('../compare/', import.meta.url));
+  mkdirSync(base, { recursive: true });
+  const temp = mkdtempSync(join(base, 'goal-fallback-')), root = join(temp, 'goal-retry-town');
+  t.after(() => rmSync(temp, { recursive: true, force: true }));
+  for (let i = 0; i < 16; i++) {
+    const dir = join(root, `part${i}`);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, 'index.mjs'), 'export const answer = 42;\n' + '// fixture line\n'.repeat(99 + i * 20));
+  }
+  const previous = process.env.GIT_CEILING_DIRECTORIES;
+  let model;
+  try {
+    process.env.GIT_CEILING_DIRECTORIES = base;
+    model = analyzeRepository(root);
+  } finally {
+    if (previous === undefined) delete process.env.GIT_CEILING_DIRECTORIES;
+    else process.env.GIT_CEILING_DIRECTORIES = previous;
+  }
+  assert.equal(model.head, null, 'the fixture must not inherit the enclosing repository');
+  assert.equal(model.modules.length, 16);
+  const props = loadProps(manifest);
+  // Public input only: a 128-tile plot cannot fit any of this fixture's grids.
+  // Keep the real manifest/images and all layout functions untouched.
+  props['castle-1'] = { ...props['castle-1'], solid: [-1024, -96, 2048, 96],
+    origin: [1024, 224], size: [2048, 224], bounds: [0, 0, 2048, 224] };
+  const opts = { seed: 'fallback-retry:0', props };
+  for (const grouped of [false, true]) {
+    const repo = structuredClone(model);
+    if (grouped) for (const m of repo.modules) m.group = 'team';
+    const plainDebug = {}, debug = {};
+    const plain = layoutTown(repo, { ...opts, debug: plainDebug });
+    assert.ok(plainDebug.placementRetries > 0, 'the fallback town itself must need an outer retry');
+    const town = layoutTown(repo, { ...opts, goalLook: 'castle', debug });
+    assert.equal(Object.hasOwn(town, 'goalSite'), false, 'the unplaceable plot must reach the fallback');
+    assert.ok(debug.placementRetries < 128);
+    assert.equal(debug.placementRetries, plainDebug.placementRetries, 'fallback retries retain the same exclusions and reservations');
+    assert.equal(JSON.stringify(town), JSON.stringify(plain));
+    assert.equal(JSON.stringify(layoutTown(repo, { ...opts, goalLook: 'castle' })), JSON.stringify(town));
+    const placed = placeOverlay(town, overlay(), manifest);
+    assert.equal(placed.overlay.goal, null);
+    const unplaced = placed.overlay.unplaced.filter((u) => u.scope === 'goal');
+    assert.deepEqual(unplaced, [{ overlay: true, scope: 'goal', id: '$goal',
+      reason: 'no safe level space for goal landmark and clear front' }]);
+    assert.ok(placed.unplaced.includes(unplaced[0]), 'the diagnostic must also be visible in Town.unplaced');
+    assert.equal(placed.props.some((p) => p.overlayId === 'goal:$goal'), false);
+  }
 });
 
 test('goal.look: sidecar and generated manifest keep the supplied candidate as a non-walkable landmark', () => {

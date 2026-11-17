@@ -292,7 +292,8 @@ function layoutAttempt(repo, opts, rejectedPlacements, doorVariants, stairReserv
   }
   if (!P && bestGroupAttempt) ({ P, F, canal } = bestGroupAttempt);
   if (!P && lastCanalAttempt) ({ P, F, canal } = lastCanalAttempt);
-  if (!P && goalSpec) return layoutAttempt(repo, { ...opts, goalLook: undefined }, stairRejected);
+  // 城を外した町の再試行にも、同じ除外候補・戸口の版・階段予約を引き継ぐ。
+  if (!P && goalSpec) return layoutAttempt(repo, { ...opts, goalLook: undefined }, rejectedPlacements, doorVariants, stairReservations);
   if (!P) throw new Error('layoutTown: 建物を配置できなかった');
   const gateArt = landmarks.some((l) => l.data.archetype === 'gate') && propArt.gate;
   if (opts.debug) opts.debug.P = P;                  // 調べる道具のため（通り・街区の中身）
