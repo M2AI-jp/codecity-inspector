@@ -14,7 +14,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { decodePNG, encodePNG } from '../tools/png.mjs';
 
-export const GROUND_VERSION = 19;          // 見た目を変えたら上げる（キャッシュの鍵に入る）
+export const GROUND_VERSION = 20;          // 見た目を変えたら上げる（キャッシュの鍵に入る）
 const T = 16;
 const DEFAULT_ART = path.resolve(import.meta.dirname, '../art/game');
 const TEX_NAMES = ['street', 'grass', 'dirt', 'plaza', 'moss'];
@@ -950,9 +950,18 @@ export function renderGround(town, artDir = DEFAULT_ART) {
     }
     const bare = new Uint8Array(N); // 小石とその影も、描き直した土の画素の内側だけ
     for (const { tx, ty, v, start, span, left, right } of lanes) {
-      for (let ly = 0; ly < T; ly++) for (let lx = 0; lx < T; lx++) {
-        const x = tx * T + lx, y = ty * T + ly, i = y * W + x, o = i * 4;
-        if (cls[i] !== DIRT || pud[i]) continue; // 路地の口にこぼれた石・水たまりを残す
+      // ぼかしで幅の外へにじんだ土も草の縁に含める（明るい1pxの線を残さない）。
+      // 幅2マスの内側は広げず、草に接する外側だけ最大3px描き直す。
+      const lo = left && (v ? tx : ty) * T === start ? 3 : 0;
+      const hi = right && ((v ? tx : ty) + 1) * T === start + span ? 3 : 0;
+      const x0 = Math.max(0, tx * T - (v ? lo : 0)), x1 = Math.min(W, (tx + 1) * T + (v ? hi : 0));
+      const y0 = Math.max(0, ty * T - (v ? 0 : lo)), y1 = Math.min(H, (ty + 1) * T + (v ? 0 : hi));
+      for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
+        const i = y * W + x, o = i * 4;
+        if (cls[i] !== DIRT || pud[i] || flg[i] & F_FOOT) continue; // 石・水たまり・建物の足元を残す
+        if ((x >> 4) !== tx || (y >> 4) !== ty) {
+          if (!grassy(tcl(x >> 4, y >> 4))) continue;
+        }
         const along = v ? y : x, across = (v ? x : y) + 0.5 - start;
         const wander = Math.round((vnoise(along / 13, start / 19, SEED + 721) - 0.5) * 3);
         const centre = span / 2 + wander;
