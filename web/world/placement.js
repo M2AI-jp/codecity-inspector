@@ -140,6 +140,7 @@ export function propDef(world, type, ax, ay) {
 }
 
 export function addProp(world, p, index) {
+  const rectStart = world.rects.length, lightStart = world.lights.length;
   // lookはmanifestの名前そのもの（桟橋の板など、layoutが形を見て選んだもの）。
   const def = (p.look && world.art.props[p.look]) || world.propDef(p.type, Math.round(p.x * T), Math.round(p.y * T));
   if (!def) warnOnce(`prop:${p.look || p.type}`, `prop "${p.look || p.type}" が manifest にありません（描画しません）`);
@@ -161,4 +162,8 @@ export function addProp(world, p, index) {
     world.lights.push({ x: lx, y: ly, poolY: ly + Math.max(0, ay - ly) * 0.6, footY: ay, r: l[2], kind: def.flicker ? 'flame' : 'steady', seed: 1000 + index + i * 7919, building: null });
   });
   world.props.push(prop);
+  if (p.overlayId) {
+    for (const r of world.rects.slice(rectStart)) r.overlayProp = p.overlayId;
+    for (const l of world.lights.slice(lightStart)) l.overlayProp = p.overlayId;
+  }
 }

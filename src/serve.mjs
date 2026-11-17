@@ -26,7 +26,7 @@ function localHost(header) {
 }
 
 // ground: 地面の PNG（Buffer）。渡されなければ起動時にここで作る（キャッシュがあれば読むだけ）。
-export async function serveTown(town, { port = 4317, host = '127.0.0.1', ground } = {}) {
+export async function serveTown(town, { port = 4317, host = '127.0.0.1', ground, overlaySession } = {}) {
   const body = JSON.stringify(town);
   let groundBody = ground ?? null;
   if (!groundBody) {
@@ -41,8 +41,15 @@ export async function serveTown(town, { port = 4317, host = '127.0.0.1', ground 
     let path;
     try { path = decodeURIComponent(new URL(req.url, 'http://x').pathname); } catch { return send(400, 'bad request'); }
     if (req.method !== 'GET' && req.method !== 'HEAD') return send(405, 'method not allowed');
-    if (path === '/town.json') return send(200, body, TYPES['.json']);
-    if (path === '/ground.png') return groundBody ? send(200, groundBody, TYPES['.png']) : send(404, 'ground.png を作れなかった');
+    if (path === '/overlay.json' && overlaySession) {
+      const result = overlaySession.response();
+      return send(result.status, JSON.stringify(result.body), TYPES['.json']);
+    }
+    if (path === '/town.json') return send(200, overlaySession ? JSON.stringify(overlaySession.town) : body, TYPES['.json']);
+    if (path === '/ground.png') {
+      const current = overlaySession?.ground ?? groundBody;
+      return current ? send(200, current, TYPES['.png']) : send(404, 'ground.png を作れなかった');
+    }
     if (path === '/') path = '/web/index.html';
     const top = path.split('/')[1];
     if (top !== 'web' && top !== 'art') return send(404, 'not found');
@@ -55,6 +62,8 @@ export async function serveTown(town, { port = 4317, host = '127.0.0.1', ground 
       send(404, path === '/web/index.html' ? 'web/index.html がまだありません（/town.json は配信中）' : 'not found');
     }
   });
+  overlaySession?.start((next) => groundPNG(next).buffer);
+  server.on('close', () => overlaySession?.close());
   return new Promise((ok, fail) => {
     const listen = (p) => server.listen(p, host);
     server.on('error', (e) => {

@@ -1,16 +1,20 @@
 #!/usr/bin/env node
-// node codecity.mjs <repoPath> [--port N] [--json out.json] [--ground out.png]
+// node codecity.mjs <repoPath> [--overlay overlay.json] [--port N] [--json out.json] [--ground out.png]
 import { writeFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { analyzeRepository, agentForAuthor } from './src/analyze.mjs';
+import { analyzeRepository } from './src/analyze.mjs';
 import { layoutTown } from './src/layout.mjs';
-import { findCreatures } from './src/creatures.mjs';
+import { readOverlay } from './src/overlay/read.mjs';
+import { applyGroups } from './src/overlay/groups.mjs';
+import { placeOverlay } from './src/overlay/place.mjs';
+import { populateTown } from './src/overlay/town.mjs';
+import { createOverlaySession } from './src/overlay/live.mjs';
 
 const args = process.argv.slice(2);
 const opt = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : undefined; };
-const repoPath = args.find((a, i) => !a.startsWith('--') && !['--port', '--json', '--ground'].includes(args[i - 1]));
+const repoPath = args.find((a, i) => !a.startsWith('--') && !['--port', '--json', '--ground', '--overlay'].includes(args[i - 1]));
 if (!repoPath) {
-  console.error('使い方: node codecity.mjs <リポジトリ> [--port 4317] [--json town.json] [--ground ground.png]');
+  console.error('使い方: node codecity.mjs <リポジトリ> [--overlay overlay.json] [--port 4317] [--json town.json] [--ground ground.png]');
   process.exit(2);
 }
 const port = Number(opt('--port') ?? 4317);
@@ -23,43 +27,24 @@ try { if (!statSync(repoPath).isDirectory()) throw new Error(); } catch {
   process.exit(2);
 }
 
+let overlay;
+const overlayFile = opt('--overlay');
+try { if (args.includes('--overlay')) overlay = readOverlay(overlayFile); }
+catch (e) { console.error(e.message); process.exit(1); }
 const t0 = Date.now();
-const model = analyzeRepository(repoPath);
+const moduleFiles = new Map();
+const model = analyzeRepository(repoPath, overlay ? { onModules(_modules, groups) {
+  for (const g of groups) moduleFiles.set(g.path, g.files.map((f) => f.path));
+} } : undefined);
 const t1 = Date.now();
-const town = layoutTown(model);
-town.groundImage = '/ground.png';          // 地面の1枚画像（cols*16 × rows*16 px、serve.mjs が配信）
+const arrange = (input) => layoutTown(input ? applyGroups(model, input.groups, moduleFiles) : model,
+  input ? { seed: input.seed } : {});
+const baseTown = arrange(overlay);
 const t2 = Date.now();
-// 小さな生き物（鳩＝依存、犬＝bot、猫＝決まった時間・裏で動く仕事と廃屋）。根拠が無ければ置かない
-const t3 = Date.now();
-try { town.creatures = findCreatures(resolve(repoPath), model, town); }
-catch (e) { town.creatures = []; console.warn(`生き物を探せなかった: ${e.message}`); }
-// 犬になった bot は、人の姿では歩かせない（同じ bot が二重に現れない）
-const dogNames = new Set(town.creatures.filter((c) => c.kind === 'dog').map((c) => String(c.name).replace(/-preview$/i, '').toLowerCase()));
-if (dogNames.size) town.residents = town.residents.filter((r) => !dogNames.has(String(r.name).replace(/\[bot\]$/i, '').replace(/-preview$/i, '').toLowerCase()));
-// 外部工務店（コードを書く外部エージェント）: 工事した建物（モジュール・施設がそのモジュールを含む建物）を歩く代理人。
-// 作者そのものがエージェント（copilot-swe-agent[bot] など）の住人は、代理人と二重に現れないよう歩かせない
-{
-  const idOf = new Map();
-  for (const b of town.buildings) {
-    if (!b.facility && b.module) idOf.set(b.module.path, b.id);
-    for (const m of (b.module && b.module.merged) || []) if (!idOf.has(m)) idOf.set(m, b.id);
-    for (const m of (b.facility && b.facility.merged) || []) if (!idOf.has(m)) idOf.set(m, b.id);
-  }
-  const hall = town.buildings.find((b) => b.facility && b.facility.archetype === 'town_hall');
-  town.contractors = (model.agents || []).map((a, i) => {
-    const homes = [];
-    for (const m of a.modules || []) {
-      const id = idOf.get(m);
-      if (id && !homes.includes(id)) homes.push(id);
-      if (homes.length >= 4) break;
-    }
-    // 工事した建物が街に無ければ、工事報告を届ける役場のまわり
-    if (!homes.length && hall) homes.push(hall.id);
-    return { id: `a${i + 1}`, name: a.name, commits: a.commits, recent: a.recent, homes, last: a.last || null };
-  }).filter((c) => c.homes.length);
-  const agentNames = new Set((model.contributors || []).filter((c) => c.agent).map((c) => c.name));
-  if (town.contractors.length) town.residents = town.residents.filter((r) => !agentNames.has(r.name) && !agentForAuthor(r.name));
-}
+populateTown(baseTown, model, repoPath);
+const creatureMs = Date.now() - t2;
+const makeBase = (input) => populateTown(arrange(input), model, repoPath);
+const town = overlay ? placeOverlay(baseTown, overlay) : baseTown;
 // 住人の数は bot を犬にしたあとの数（街を歩く人の数）
 const kinds = {};
 for (const b of town.buildings) kinds[b.module.kind] = (kinds[b.module.kind] || 0) + 1;
@@ -69,7 +54,7 @@ console.log(`${model.name}${model.head ? ` @ ${model.head}` : ''}: モジュー�
 const ck = {};
 for (const c of town.creatures) ck[c.kind] = (ck[c.kind] || 0) + 1;
 if (town.contractors.length) console.log(`外部工務店 ${town.contractors.map((c) => `${c.name} ${c.commits}件`).join('、')}`);
-console.log(`生き物 ${town.creatures.length}${town.creatures.length ? ` (${Object.entries(ck).map(([k, n]) => `${k} ${n}`).join(', ')})` : ''}（${Date.now() - t3}ms）`);
+console.log(`生き物 ${town.creatures.length}${town.creatures.length ? ` (${Object.entries(ck).map(([k, n]) => `${k} ${n}`).join(', ')})` : ''}（${creatureMs}ms）`);
 
 // 地面の画像（キャッシュがあれば読むだけ）
 const loadGround = async () => {
@@ -94,6 +79,7 @@ if (groundOut || out) {                    // 書き出して終わる
   let ground;
   try { ground = await loadGround(); } catch (e) { console.warn(`地面の画像を作れなかった: ${e.message}`); }
   const { serveTown } = await import('./src/serve.mjs');
-  const { url } = await serveTown(town, { port, ground });
+  const overlaySession = overlay ? createOverlaySession({ file: resolve(overlayFile), overlay, baseTown, town, makeBase }) : null;
+  const { url } = await serveTown(town, { port, ground, overlaySession });
   console.log(`街を開く: ${url}`);
 }

@@ -14,7 +14,7 @@ import { historyStats, buildModules } from './analyze/stats.mjs';
 export { agentForAuthor };
 
 // ---------- 本体 ----------
-export function analyzeRepository(rootPath) {
+export function analyzeRepository(rootPath, { onModules } = {}) {
   const root = resolve(rootPath);
   const name = basename(root);
   // bare リポジトリ（作業ツリーなし）も HEAD から読む（objects/ などの git の中身を街にしない）
@@ -36,6 +36,7 @@ export function analyzeRepository(rootPath) {
   const dirty = isGit && head ? dirtyFiles(root, bare) : null;
   const { keyer, stats, latestTime, people, crews } = historyStats(root, history, groups, ownerOf, grafts);
   const modules = buildModules(groups, stats, keyer);
+  onModules?.(modules, groups);
   const refTime = referenceTime(root, isGit, head, latestTime, dirty);
   classifyModules(modules, groups, readText, refTime);
 

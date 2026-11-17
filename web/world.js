@@ -6,6 +6,7 @@ import { addFloorWalls, floorReach, floorSpots } from './world/floor.js';
 import { computeNav, navPoint, buildNav, navFree } from './world/navigation.js';
 import { pathInto, nearestFree, findPath, sweepFree, smoothPath } from './world/path.js';
 import { boxHits, feetHit, buildingAtPx } from './world/collision.js';
+import { addOverlayPeople } from './overlay-world.js';
 
 const T = TILE;
 
@@ -50,6 +51,7 @@ export class World {
     this.deckTile = new Uint8Array(n);
     (town.props || []).forEach((p, i) => this.addProp(p, i));
     this.applyDecks();
+    addOverlayPeople(this, town.overlay);
     this.buildNav();
   }
 
