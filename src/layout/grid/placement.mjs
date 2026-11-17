@@ -12,6 +12,7 @@ export function createPlacement(S) {
   const canalReserve = new Set((C.canalReserve || []).map(([x, y]) => `${x},${y}`));
   const reservedForCanal = (x, y) => canalReserve.has(`${x},${y}`);
   const shapes = new Map();
+  const reservedStairs = [...(C.stairReservations?.get(`${S.cols},${S.rows}`)?.values() || [])];
   const clearanceBuilding = (spec, pos) => {
     // 初回も版の選択開始位置で測る。最終の近隣比較で版が変わって衝突した
     // 場合だけ layoutTown が版を固定し、次の試行ではその実寸を使う。
@@ -67,6 +68,7 @@ export function createPlacement(S) {
     // 安い格子検査を通った候補だけ、既存の戸口と候補の戸口を双方向に検査する。
     // 現在の placed だけを見るので、group の仮置きを巻き戻しても予約が残らない。
     const candidate = clearanceBuilding(spec, { x: x0, y });
+    if (reservedStairs.some((r) => coversApproach(candidate, r))) return null;
     if (placed.some((p) => coversApproach(candidate, p.clearance.approach) ||
       coversApproach(p.clearance, candidate.approach))) return null;
     return { x: x0, y, w, h, yb };
