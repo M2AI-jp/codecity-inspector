@@ -394,6 +394,7 @@ function layoutAttempt(repo, opts, stairRejected) {
   const placedProps = placeProps(P, F, makeRng(seed ^ 0x9e3779b9), spawn, {
     propArt, landmarks, dock, bridgeProps: canal?.bridgeProps || [], mouthProps: canal?.mouthProps || [], bridgeCells: canal?.bridgeCells || [],
     bridgeDeckCells: canal?.bridgeDeckCells || [], canalCells: canal?.cells || [],
+    hasReadme: !!(repo.readme?.title?.trim() || repo.readme?.excerpt?.trim()),
   });
   const placedFacilitySources = new Set(P.placed.map((p) => p.spec.sourceFacility).filter(Boolean));
   const placedLandmarkIds = new Set(placedProps.landmarks.map((l) => l.id));

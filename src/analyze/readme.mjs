@@ -42,6 +42,7 @@ export function parseReadme(root, rootFiles, readText) {
     para.push(c);
   }
   let excerpt = para.join(' ');
+  if (!title && !excerpt) return null;
   const chars = Array.from(excerpt);
   if (chars.length > 300) excerpt = chars.slice(0, 299).join('') + '…';
   return { title: title || basename(root), excerpt };
