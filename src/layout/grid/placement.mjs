@@ -1,5 +1,6 @@
 import { WINDOW, Y_WEIGHT, clamp } from '../constants.mjs';
 import { moduleGroup } from '../../group-components.mjs';
+import { doorClearanceConflicts } from '../../door-clearance.mjs';
 
 // 切り出し前の格子・建物・候補位置。同じ種を再試行するときも、他の候補は変えない。
 export const placementKey = (cols, rows, spec, x, y) => `${cols},${rows}:${spec.id}:${x},${y}`;
@@ -9,6 +10,13 @@ export function createPlacement(S) {
   const canalReserve = new Set((C.canalReserve || []).map(([x, y]) => `${x},${y}`));
   const reservedForCanal = (x, y) => canalReserve.has(`${x},${y}`);
   const placedKeys = new Set();
+  const clearanceBuilding = (spec, pos) => {
+    const v = C.doorVariants?.get(spec.id);
+    if (!v) return null;
+    return { id: spec.id, archetype: spec.archetype, variant: v.id,
+      x: pos.x, y: pos.y, w: spec.w, h: spec.h,
+      door: { x: pos.x + clamp(v.doorX ?? spec.doorDx, 0, spec.w - 1), y: pos.y + spec.h - 1 } };
+  };
   // footprint のすぐ下の行（と、通りまでの前庭）が通りにつながる位置か。
   // roofRows は外観の版の cover の最大値で、屋根が上の通り・建物を隠す余白だけを予約する。
   const fit = (t, x0, spec, setback, allowRoad = false) => {
@@ -20,6 +28,9 @@ export function createPlacement(S) {
     if (C.rejectedPlacements?.has(placementKey(S.cols, S.rows, spec, x0, y))) return null;
     const conflicts = C.rejectedDoorPairs?.get(placementKey(S.cols, S.rows, spec, x0, y));
     if (conflicts && [...conflicts].some((key) => placedKeys.has(key))) return null;
+    const candidate = clearanceBuilding(spec, { x: x0, y });
+    if (candidate && placed.some((p) => p.clearance &&
+      doorClearanceConflicts({ buildings: [candidate, p.clearance] }, C.art).length)) return null;
     if (y < t.L.y0 + (t.L.closedTop ? 2 : 0) || y - roofRows < 1) return null;
     if (harbour && yb >= quay.top) return null;
     for (let x = x0; x < x0 + w; x++) {
@@ -56,6 +67,7 @@ export function createPlacement(S) {
       for (let yy = pos.yb + 1; yy < t.sd[x - t.x0]; yy++) front[id(x, yy)] = 1;
     }
     const p = { spec, ...pos, track: t, group, sd: Array.from({ length: pos.w }, (_, k) => t.sd[pos.x + k - t.x0]) };
+    p.clearance = clearanceBuilding(spec, pos);
     t.items.push(p);
     placed.push(p);
     return p;

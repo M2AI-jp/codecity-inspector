@@ -6,6 +6,17 @@ import { Lighting } from './lighting.js';
 
 const T = TILE;
 const B_KIND = 0, P_KIND = 1, C_KIND = 2;
+const opacityMasks = new WeakMap();
+
+// 外観の透明な余白や薄い影だけでは人物を隠したことにしない。
+export function opaqueInBox(data, width, height, x0, y0, x1, y1) {
+  const left = Math.max(0, Math.floor(x0)), right = Math.min(width, Math.ceil(x1));
+  const top = Math.max(0, Math.floor(y0)), bottom = Math.min(height, Math.ceil(y1));
+  for (let y = top; y < bottom; y++) for (let x = left; x < right; x++) {
+    if (data[(y * width + x) * 4 + 3] >= 128) return true;
+  }
+  return false;
+}
 
 function shadowSprite() {
   const c = document.createElement('canvas');
@@ -169,7 +180,18 @@ export class Renderer {
     if (!a || !a.exterior || b.open > 0.5) return false;
     const ix = b.px - a.exteriorOrigin[0], iy = b.py - a.exteriorOrigin[1];
     const x0 = p.rx - 10, x1 = p.rx + 10, y0 = p.ry - 26, y1 = p.ry;
-    return x1 > ix && x0 < ix + a.exterior.width && y1 > iy && y0 < iy + a.exterior.height;
+    const image = a.exterior;
+    if (!(x1 > ix && x0 < ix + image.width && y1 > iy && y0 < iy + image.height)) return false;
+    let mask = opacityMasks.get(image);
+    if (!mask) {
+      const canvas = document.createElement('canvas');
+      canvas.width = image.width; canvas.height = image.height;
+      const context = canvas.getContext('2d');
+      context.drawImage(image, 0, 0);
+      mask = context.getImageData(0, 0, image.width, image.height).data;
+      opacityMasks.set(image, mask);
+    }
+    return opaqueInBox(mask, image.width, image.height, x0 - ix, y0 - iy, x1 - ix, y1 - iy);
   }
 
   // a prop with an opening (the gate) hides the player walking behind its lintel or pillars; seen

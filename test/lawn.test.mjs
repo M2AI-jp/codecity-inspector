@@ -92,7 +92,7 @@ test('8マス以下は1バイトも変えず、64個を超える空白もすべ�
     {}, {}, () => {}), /分割できなかった/);
 });
 
-test('PR #9 の道場前に残った3×4を、歩ける土道1マスで割る', (t) => {
+test('PR #9 の道場前に芝生が残った入力でも、8マス以下と到達性を保つ', (t) => {
   // 9bd43a7 の配置に必要な名前・種・モジュールの規模だけ。実装ファイルはfixtureに含めない。
   const modules = [
     ['.', 'workshop', 7, 501], ['.github', 'workshop', 1, 45], ['art', 'house', 1, 0],
@@ -108,9 +108,9 @@ test('PR #9 の道場前に残った3×4を、歩ける土道1マスで割る', 
     archetype, merged: archetype === 'dojo' ? ['test'] : [], evidence: [], evidenceCount: 1, facts: {},
   }));
   const town = layoutTown({ name: 'codecity-inspector', head: '9bd43a7', modules, facilities });
+  // 戸口前の確保で建物の位置は変わる。以前の絶対座標ではなく、
+  // 同じ入力の全芝生と実際のPlayerの到達性を引き続き検査する。
   assert.ok(maximum(town) <= 8);
-  assert.equal(town.ground[17][8], ':');
-  assert.equal(town.props.some((p) => p.x >= 7 && p.x < 10 && p.y > 16 && p.y <= 20), false);
   const file = join(temporary(t), 'ci.json');
   writeFileSync(file, JSON.stringify(town));
   run(process.execPath, [join(ROOT, 'tools/check-play.mjs'), file]);
