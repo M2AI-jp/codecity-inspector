@@ -1,4 +1,5 @@
 import { DIRT, STREET, WATER, OUT } from '../constants.mjs';
+import { propCells } from '../../town-grid.mjs';
 
 // 建物を動かすための水路予約でも、固定施設の場所は奪わない。
 // 水セルが施設を避けていても、橋の板と両岸の予約帯が屋根や前庭に
@@ -20,15 +21,26 @@ export function canalReservationProblem(S) {
   return null;
 }
 
-// 経路探索後に橋を寄せた結果も検査する。失敗した候補を採用せず、
+// 経路探索後に橋と水路口を寄せた結果も検査する。失敗した候補を採用せず、
 // layout の既存の格子再試行へ戻す（地面への反映は成功時だけ）。
 export function canalProblem(S) {
-  const { bridgeProps, deckBounds, canalCells, crossings, g, id, inC, foot, propArt, buildingWalkRow } = S;
+  const { bridgeProps, mouthProps, deckBounds, canalCells, crossings, g, id, inC, foot, propArt, buildingWalkRow } = S;
   const bounds = bridgeProps.map((p) => deckBounds(p.type, p.x, p.y));
   const failed = (reason, bounds) => ({
     reason,
     cells: canalCells.filter(([x, y]) => x >= bounds.x0 && x <= bounds.x1 && y >= bounds.y0 && y <= bounds.y1),
   });
+  for (const p of mouthProps) {
+    const tiles = propCells(p, propArt);
+    // 口は横2マスなので、東西向きの始点では水セルの外にもかかる。
+    // adjustBridges が移動先を見つけられず元の口を残した場合も拒否する。
+    if (tiles.some(([x, y]) => !inC(x, y) || foot[id(x, y)] >= 0 || g[id(x, y)] === OUT)) {
+      return failed('水路の口を建物・街の外に重ねずに置けない', {
+        x0: Math.min(...tiles.map(([x]) => x)), x1: Math.max(...tiles.map(([x]) => x)),
+        y0: Math.min(...tiles.map(([, y]) => y)), y1: Math.max(...tiles.map(([, y]) => y)),
+      });
+    }
+  }
   for (let i = 0; i < bounds.length; i++) {
     const a = bounds[i];
     for (let j = i + 1; j < bounds.length; j++) {

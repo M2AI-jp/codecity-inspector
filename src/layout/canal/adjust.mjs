@@ -68,6 +68,15 @@ export function adjustBridges(S) {
         if (inC(x, y)) bridgeSideReserve.add(id(x, y));
       }
     }
+    // 両岸へ横から曲がって入る所もあける。板の外側にある欄干の柱と
+    // 隣の小物が近すぎると、tile では通れても人物の足幅では通れない。
+    for (const [sx, sy, w, h] of propArt[p.look || p.type].solids || []) {
+      const x0 = Math.floor(p.x + sx / 16), x1 = Math.floor(p.x + (sx + w - 1) / 16);
+      const y0 = Math.floor(p.y + sy / 16), y1 = Math.floor(p.y + (sy + h - 1) / 16);
+      for (let y = y0 - 1; y <= y1 + 1; y++) for (let x = x0 - 1; x <= x1 + 1; x++) {
+        if (inC(x, y)) bridgeSideReserve.add(id(x, y));
+      }
+    }
   }
   // 始点直下の通りに橋がかかる場合、口の絵を同じ水路の次のセルへ
   // ずらす。口は水路の端を示し続けるが、橋の deck と小物が重ならない。

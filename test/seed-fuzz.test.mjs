@@ -63,6 +63,67 @@ test('一度解析した見本リポジトリの40種でCI検査と階段の上�
   t.diagnostic(`40種、階段${stairs}列の上下移動、緑地の段が残る街${greens}件`);
 });
 
+test('東向きの水路口が建物に重なる種と、橋の柱脇がふさがる種を再検査する', { timeout: 30000 }, (t) => {
+  mkdirSync(base, { recursive: true });
+  const temp = mkdtempSync(join(base, 'canal-seed-test-')), root = join(temp, 'gridhub');
+  t.after(() => rmSync(temp, { recursive: true, force: true }));
+  // 報告された街と同じ地区・建物サイズを作る。実リポジトリやその内容には依存しない。
+  // 名前も種の一部なので gridhub に固定し、ファイルはすべて一時フォルダで生成する。
+  const modules = [
+    ['.', 6, 762], ['.claude', 1, 50], ['.masume', 1, 833],
+    ['.masume/maps', 24, 24], ['.masume/outputs', 149, 33825], ['bin', 2, 235],
+    ['demos', 19, 2661], ['docs', 27, 3669], ['examples/kakeibo', 58, 30153],
+    ['examples/memo', 61, 3281], ['examples/omikuji', 46, 29812], ['quests', 12, 4136],
+    ['site', 31, 1416], ['src', 2, 321], ['src/commands', 31, 1382], ['src/engine', 24, 4899],
+    ['src/linear', 6, 636], ['src/mcp', 3, 513], ['src/party', 5, 1001], ['src/quest', 8, 1311],
+    ['src/server', 4, 1801], ['tests', 10, 1514], ['tests/e2e', 128, 17366], ['tools', 1, 189],
+    ['web', 2, 427], ['web/assets', 41, 865], ['web/board', 57, 21214], ['web/fixtures', 6, 20009],
+  ];
+  for (const [path, count, lines] of modules) {
+    mkdirSync(join(root, path), { recursive: true });
+    for (let i = 0; i < count; i++) {
+      let file = `sample${i}.txt`, text = 'sample\n'.repeat(i === 0 ? lines - count + 1 : 1);
+      if (path === 'tests' || path === 'tests/e2e') file = `sample${i}.test.js`;
+      if ((path === 'site' || path === 'web') && i < 2) file = `sample${i}.html`;
+      if (path === '.' && i === 0) {
+        file = 'package.json';
+        text = '{"name":"gridhub","version":"1.0.0","main":"index.js","scripts":{"test":"node --test"}}\n';
+      }
+      if (path === 'src/server' && i === 0) {
+        file = 'index.js';
+        text = "import http from 'node:http';http.createServer(()=>{}).listen(3000);\nprocess.env.SAMPLE_ROUTE;\n" + text;
+      }
+      if (path === 'src/engine' && i === 0) {
+        file = 'index.js';
+        text = 'process.env.SAMPLE_ONE;process.env.SAMPLE_TWO;process.env.SAMPLE_THREE;\n' + text;
+      }
+      if (path === 'src/linear' && i === 0) {
+        file = 'index.js';
+        text = "fetch('https://api.openai.com/v1/models');\n" + text;
+      }
+      writeFileSync(join(root, path, file), text);
+    }
+  }
+  const env = { ...process.env, GIT_CEILING_DIRECTORIES: base,
+    GIT_AUTHOR_NAME: 'Seed Test', GIT_AUTHOR_EMAIL: 'seed@example.invalid',
+    GIT_COMMITTER_NAME: 'Seed Test', GIT_COMMITTER_EMAIL: 'seed@example.invalid',
+    GIT_AUTHOR_DATE: '2026-01-01T00:00:00Z', GIT_COMMITTER_DATE: '2026-01-01T00:00:00Z' };
+  for (const args of [['init', '-q', '--initial-branch=main'], ['add', '.'], ['commit', '-qm', 'Create canal seed fixture']]) {
+    const r = spawnSync('git', ['-C', root, '-c', 'commit.gpgsign=false', '-c', 'core.hooksPath=/dev/null', ...args], { encoding: 'utf8', env });
+    assert.ifError(r.error); assert.equal(r.status, 0, r.stdout + r.stderr);
+  }
+  const repo = analyzeRepository(root);
+  for (const start of [0x21, 0x36]) {
+    const report = fuzzSeeds(repo, manifest, { start, count: 1, onResult(result, checks) {
+      assert.deepEqual(result.problems, [], `head=${result.head} seed=${result.seed}\n${result.problems.join('\n')}`);
+      assert.ok(checks.town.props.some((p) => p.type === 'canal-mouth'), '口を削除して通過させない');
+      assert.ok(checks.town.canal?.crossings.length > 0, '橋を含む水路が置かれる');
+      assert.deepEqual(checks.town.canal.past, ['src/engine'], '設定地区を経由する');
+    } });
+    assert.equal(report.failed, 0);
+  }
+});
+
 test('切り出しや水路で階段の前後を失った緑地だけを平地に戻す', () => {
   const make = () => {
     const cols = 20, rows = 16, id = (x, y) => y * cols + x;
