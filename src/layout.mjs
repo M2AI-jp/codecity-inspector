@@ -391,7 +391,7 @@ export function layoutTown(repo, opts = {}) {
     .map(({ b, k }, i) => ({ id: `c${i + 1}`, home: b.id, look: hash32(`crowd:${b.id}:${k}`) % 16, fact: k }));
 
   const shift = (o) => ({ ...o, x: o.x - x0, y: o.y - y0 });
-  return {
+  const town = {
     version: 1,
     repo: { name: repo.name, head: repo.head ?? null, branch: repo.branch ?? null, readme: repo.readme ?? null,
       latestCommitDate: repo.latestCommitDate ?? null, recentDays: RECENT_DAYS },
@@ -419,4 +419,6 @@ export function layoutTown(repo, opts = {}) {
     crowd,
     spawn: { x: spawn.x - x0, y: spawn.y - y0 },
   };
+  placedProps.finishLawn(town, art);
+  return town;
 }

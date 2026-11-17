@@ -9,7 +9,9 @@
 // --check: 重なり・版ごとの屋根の余白・footprint の下の行（幅いっぱい歩けて広場から届く）・同じ入力で同じ出力になるか。問題があれば終了コード1
 import { readFileSync } from 'node:fs';
 import { analyzeRepository } from '../src/analyze.mjs';
-import { layoutTown, loadArt, loadProps, loadGround, propTiles } from '../src/layout.mjs';
+import { layoutTown, loadArt, loadProps, loadGround } from '../src/layout.mjs';
+
+import { townGrid, deckTiles as deckCells, propCells, coverOf as roofCover, stairsOf, facesOf } from '../src/town-grid.mjs';
 
 const args = process.argv.slice(2);
 const mi = args.indexOf('--manifest');
@@ -23,71 +25,15 @@ let town, model = null;
 if (target.endsWith('.json')) town = JSON.parse(readFileSync(target, 'utf8'));
 else { model = analyzeRepository(target); town = layoutTown(model, lopts); }
 
-const LETTER = { workshop: 'W', shop: 'S', house: 'H', ruin: 'R', town_hall: 'G', inn: 'Y', pub: 'P', warehouse: 'K', watchtower: 'M', dojo: 'D', dock: 'Q', repair: 'E' };
-const PROP = { tree: 'T', bush: '*', barrel: 'o', crate: 'x', fence: '=', bench: 'n', lamp: 'i', well: 'O', noticeboard: 'N',
-  sacks: '%', flowerpot: 'f', planter: 'v', cart: 'c', wellhouse: '&', pier: '|', boat: '^', 'bridge-h': '─', 'bridge-v': '│',
-  'canal-mouth': '∩', scaffold: '!', 'sign-works': '$', 'sign-passed': '✓', 'sign-failed': '×', 'sign-unverified': '?', lumber: '_', gate: '[' };
 const propArt = lopts.props;
-// 桟橋（deck のある小物）は水の上の板: 板の tile を数える。ほかは layout と同じ tile の大きさ
-const deckTiles = (p) => {
-  const d = propArt[p.look || p.type]?.deck;
-  if (!d) return null;
-  const x0 = Math.floor((p.x * 16 + d[0]) / 16), x1 = Math.floor((p.x * 16 + d[0] + d[2] - 1) / 16);
-  const y0 = Math.floor((p.y * 16 + d[1]) / 16), y1 = Math.floor((p.y * 16 + d[1] + d[3] - 1) / 16);
-  const out = [];
-  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) out.push([x, y]);
-  return out;
-};
-const grid = town.ground.map((r) => [...r]);
-// 柱の箱（solids）のある小物（門）は、柱の tile だけ。くぐれる所（opening）の列は歩ける
-const solidsTiles = (p) => {
-  const a = propArt[p.look || p.type];
-  if (!a?.solids) return null;
-  const fx = Math.round(p.x * 16), fy = Math.round(p.y * 16), op = a.opening;
-  const opCols = new Set();
-  if (op) for (let x = Math.floor((fx + op[0]) / 16); x <= Math.floor((fx + op[0] + op[2] - 1) / 16); x++) opCols.add(x);
-  const out = [];
-  for (const sb of a.solids) {
-    for (let y = Math.floor((fy + sb[1]) / 16); y <= Math.floor((fy + sb[1] + sb[3] - 1) / 16); y++)
-      for (let x = Math.floor((fx + sb[0]) / 16); x <= Math.floor((fx + sb[0] + sb[2] - 1) / 16); x++)
-        if (!opCols.has(x) && !out.some(([a2, b2]) => a2 === x && b2 === y)) out.push([x, y]);
-  }
-  return out;
-};
-const propTilesOf = (p) => {
-  const deck = deckTiles(p);
-  if (deck) return deck;
-  const pil = solidsTiles(p);
-  if (pil) return pil;
-  if (p.type === 'boat') return [[Math.floor(p.x), Math.floor(p.y - 0.01)]];
-  let [w, h] = propTiles(p.look || p.type, propArt);
-  if (Number.isInteger(p.w) && p.w > 0) w = p.w;                  // layout が絵より細く場所を取った（足場）
-  const tx = Math.floor(p.x - w / 2 + 0.5), ty = Math.round(p.y - h);
-  const out = [];
-  for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) out.push([tx + dx, ty + dy]);
-  return out;
-};
-const coverOf = (b) => {
-  const vs = manifest.archetypes?.[b.archetype]?.variants || [];
-  const v = vs.find((x) => x.id === b.variant) || vs[0];
-  return Array.isArray(v?.cover) ? v.cover : null;
-};
-if (!args.includes('--no-props')) for (const p of town.props) for (const [x, y] of propTilesOf(p)) if (grid[y]?.[x] !== undefined) grid[y][x] = PROP[p.type] || '?';
-for (const l of town.landmarks || []) if (l.keeper && grid[Math.floor(l.keeper.y - 0.01)]?.[Math.floor(l.keeper.x)] !== undefined) grid[Math.floor(l.keeper.y - 0.01)][Math.floor(l.keeper.x)] = 'k';
-// 段の前の壁（階段の所を除く）
-const stairAt = new Set((town.stairs || []).flatMap((s) => Array.from({ length: s.w }, (_, i) => `${s.x + i},${s.y}`)));
-const faceCells = (town.terraces || []).flatMap((t) => Array.from({ length: t.w }, (_, i) => [t.x + i, t.y + t.h])).filter(([x, y]) => !stairAt.has(`${x},${y}`));
-for (const [x, y] of faceCells) if (grid[y]?.[x] !== undefined) grid[y][x] = '"';
-for (const k of stairAt) { const [x, y] = k.split(',').map(Number); if (grid[y]?.[x] !== undefined) grid[y][x] = ';'; }
+const deckTiles = (p) => deckCells(p, propArt);
+const propTilesOf = (p) => propCells(p, propArt);
+const coverOf = (b) => roofCover(b, manifest.archetypes);
+const stairAt = stairsOf(town), faceCells = facesOf(town);
 const districts = [...new Set(town.buildings.map((b) => b.district))].sort();
 const DL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 const byDistrict = args.includes('--districts');
-for (const b of town.buildings) {
-  const L = byDistrict ? DL[districts.indexOf(b.district) % DL.length] : LETTER[b.module.kind] || '?';
-  for (let y = b.y; y < b.y + b.h; y++) for (let x = b.x; x < b.x + b.w; x++) grid[y][x] = L;
-  grid[b.door.y][b.door.x] = L.toLowerCase();
-}
-grid[town.spawn.y][town.spawn.x] = '@';
+const grid = townGrid(town, propArt, { noProps: args.includes('--no-props'), byDistrict });
 console.log(grid.map((r) => r.join('')).join('\n'));
 if (byDistrict) console.log(districts.map((d, i) => `${DL[i % DL.length]}=${d}`).join('  '));
 
