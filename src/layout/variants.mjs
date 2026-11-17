@@ -41,4 +41,36 @@ export function separateNearbyVariants(placed, variantOf, art, stairs = []) {
       }
     }
   } while (changed); // Each change strictly reduces the total number of equal neighbouring pairs.
+
+  // With only two looks, changing one house in 2–1–1–2 merely moves the duplicate.
+  // Colour the whole connected component when it is bipartite, trying the assignment
+  // with fewer changes first. An odd cycle or unsafe doorway keeps the current choice.
+  const seen = new Set();
+  for (const root of ordered) {
+    const vs = art[root.spec.archetype]?.variants || [];
+    if (vs.length !== 2 || seen.has(root)) continue;
+    const component = [root], parity = new Map([[root, 0]]);
+    let bipartite = true;
+    seen.add(root);
+    for (let i = 0; i < component.length; i++) for (const q of neighbours.get(component[i])) {
+      if (parity.has(q)) {
+        if (parity.get(q) === parity.get(component[i])) bipartite = false;
+      } else {
+        parity.set(q, 1 - parity.get(component[i]));
+        seen.add(q); component.push(q);
+      }
+    }
+    if (!bipartite || !component.some((p) => neighbours.get(p).some((q) => variantOf.get(q)?.id === variantOf.get(p)?.id))) continue;
+    const options = [0, 1].map((flip) => new Map(component.map((p) => [p, vs[parity.get(p) ^ flip]])));
+    const edits = (option) => component.filter((p) => option.get(p).id !== variantOf.get(p)?.id);
+    options.sort((a, b) => edits(a).length - edits(b).length);
+    for (const option of options) {
+      const ids = new Set(edits(option).map((p) => p.spec.id));
+      const buildings = ordered.map((p) => building(p, option.get(p) || variantOf.get(p)));
+      if (doorClearanceConflicts({ buildings }, art).some((c) => ids.has(c.door.id) || ids.has(c.object.id))) continue;
+      if (stairClearanceConflicts({ buildings, stairs }, art, {}).some((c) => ids.has(c.object.id))) continue;
+      for (const [p, v] of option) variantOf.set(p, v);
+      break;
+    }
+  }
 }

@@ -23,3 +23,11 @@ test('外接矩形の距離を使い、階段を隠す版には差し替えな�
   assert.equal(selected.get(a).id,'ruin-1');
   assert.equal(selected.get(b).id,'ruin-1');
 });
+
+test('2–1–1–2の並びは隣へ重複を押し出さず、連続した棟をまとめて選ぶ', () => {
+  const vs=[1,2].map(n=>({id:`workshop-${n}`,doorX:1,doorW:1,cover:[0,0,0,0]}));
+  const placed=[0,5,10,15].map((x,i)=>({x,y:10,w:4,h:3,yb:12,spec:{id:`b${i}`,archetype:'workshop',doorDx:1}}));
+  const selected=new Map(placed.map((p,i)=>[p,vs[[1,0,0,1][i]]]));
+  separateNearbyVariants(placed,selected,{workshop:{variants:vs}});
+  for(let i=1;i<placed.length;i++)assert.notEqual(selected.get(placed[i]).id,selected.get(placed[i-1]).id);
+});
