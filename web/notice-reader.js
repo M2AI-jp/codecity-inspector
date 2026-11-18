@@ -8,11 +8,22 @@ export function noticeRegion(player, height) {
   return { top, height: Math.max(0, Math.floor(Math.min(height / 2 - 2 * margin, room))) };
 }
 
-// The original contents and typography stay intact. Only narrow screens get a scroll window
-// and paging controls; wide screens keep the original panel's size and position.
+// Keep the original wide-screen rectangle unless it covers the sprite. If the opposite
+// edge has too little room, keep all text in the panel's native scroll area.
+export function wideNoticeRegion(panel, player, height, edges = { top: 32, bottom: 18 }) {
+  if (panel.x >= player.x + player.w || panel.x + panel.w <= player.x ||
+      panel.y >= player.y + player.h || panel.y + panel.h <= player.y) return null;
+  const top = panel.y + panel.h / 2 >= height / 2;
+  const room = top ? player.y - 8 - edges.top : height - edges.bottom - player.y - player.h - 8;
+  return { top, height: Math.max(0, Math.min(panel.h, Math.floor(room))) };
+}
+
+// The original contents and typography stay intact. Narrow screens get paging controls;
+// wide screens retain their normal layout whenever it clears the player.
 export class NoticeReader {
-  constructor(panel) {
+  constructor(panel, edges = { top: 32, bottom: 18 }) {
     this.panel = panel;
+    this.edges = edges;
     panel.classList.add('notice-reader');
     this.content = document.createElement('div');
     this.content.className = 'notice-content';
@@ -44,7 +55,43 @@ export class NoticeReader {
     return this.mobile && this.panel.classList.contains('show') && !this.panel.closest('.intro, .roster-open');
   }
 
-  reset() { this.content.scrollTop = 0; }
+  reset() {
+    this.content.scrollTop = this.panel.scrollTop = 0;
+    this.wideRect = null;
+    if (!this.mobile) this.clearPlacement(); // let the next notice measure its normal height
+  }
+
+  clearPlacement() {
+    for (const name of ['top', 'bottom', 'max-height', 'overflow-y', 'pointer-events']) this.panel.style.removeProperty(name);
+  }
+
+  updateWide(player) {
+    // Remeasure only when content, viewport or the normal docking classes change.
+    // In particular, scrolling a constrained panel must not reset on every frame.
+    const key = `${innerWidth}/${innerHeight}/${this.panel.className}/${this.panel.parentElement?.className}`;
+    if (!this.wideRect || this.wideKey !== key) {
+      const scroll = this.panel.scrollTop;
+      this.clearPlacement();
+      const r = this.panel.getBoundingClientRect();
+      // offsetTop excludes the notice's brief entrance transform.
+      this.wideRect = { x: r.x, y: this.panel.offsetTop, w: r.width, h: r.height };
+      this.wideKey = key;
+      this.wideScroll = scroll;
+    }
+    const region = wideNoticeRegion(this.wideRect, player, innerHeight, this.edges);
+    if (!region) this.clearPlacement();
+    else {
+      const style = this.panel.style;
+      for (const [key, value] of Object.entries({
+        top: region.top ? `${this.edges.top}px` : 'auto',
+        bottom: region.top ? 'auto' : `${this.edges.bottom}px`,
+        maxHeight: `${region.height}px`, overflowY: 'auto', pointerEvents: 'auto',
+      })) {
+        if (style[key] !== value) style[key] = value;
+      }
+    }
+    if (this.wideScroll != null) { this.panel.scrollTop = this.wideScroll; this.wideScroll = null; }
+  }
 
   turn(direction) {
     if (!this.active()) return;
@@ -71,9 +118,12 @@ export class NoticeReader {
     if (mobile !== this.mobile) {
       this.mobile = mobile;
       this.panel.classList.toggle('mobile', mobile);
-      if (!mobile) {
-        for (const name of ['top', 'bottom', 'max-height']) this.panel.style.removeProperty(name);
-      }
+      this.clearPlacement();
+      this.wideRect = null;
+    }
+    if (!mobile) {
+      if (this.panel.classList.contains('show')) this.updateWide(playerRect(view, player));
+      return;
     }
     if (!this.active()) return;
     const region = noticeRegion(playerRect(view, player), innerHeight);
