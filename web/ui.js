@@ -4,6 +4,7 @@
 import { KIND_JA, fmtInt, langName } from './util.js';
 import { keeperLines, keeperOffer, residentBubble, contractorBubble, rosterPages, whenJa, shortSubject } from './dialogue.js';
 import { placeBubble, playerRect } from './screen-space.js';
+import { NoticeReader } from './notice-reader.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -36,6 +37,7 @@ export class UI {
     this.rosterOpen = false;
     this.rosterTab = 0;
     this.offerReady = false;
+    this.noticeReader = new NoticeReader(this.el.notice);
     this.initRoster();
     window.addEventListener('keydown', (e) => this.onKey(e));
     this.curBuilding = null;
@@ -192,6 +194,7 @@ export class UI {
   // and Esc closes it. Arrow keys left and right are lent to the roster only while it is open (see
   // main.js input.blockKey); ↑ ↓ and WASD always walk, and walking away closes the roster.
   onKey(e) {
+    if (e.defaultPrevented) return;
     if (this.rosterOpen) {
       const n = (this.rosterPagesList || []).length || 1;
       if (e.code === 'ArrowLeft' || e.code === 'KeyQ') { this.rosterTab = (this.rosterTab + n - 1) % n; this.renderRoster(); e.preventDefault(); }
@@ -350,17 +353,21 @@ export class UI {
       placeBubble(bub, x, y, below, playerRect(v, s.player));
     }
 
-    // noticeboard (README)
+    // README boards and the dojo's recorded status sign
     const showNotice = !!s.notice && !s.keeper;
-    if (showNotice !== this.noticeShown) {
+    if (showNotice !== this.noticeShown || (showNotice && s.notice !== this.noticeFor)) {
       this.noticeShown = showNotice;
+      this.noticeFor = showNotice ? s.notice : null;
       if (showNotice) {
         const r = s.notice;
-        this.el.notice.innerHTML = `<div class="label">掲示板</div>${r.title ? `<div class="title">${esc(r.title)}</div>` : ''}${r.excerpt ? `<p>${esc(r.excerpt)}</p>` : ''}`;
+        const lines = r.lines || (r.excerpt ? [r.excerpt] : []);
+        this.noticeReader.content.innerHTML = `<div class="label">${esc(r.label || '掲示板')}</div>${r.title ? `<div class="title">${esc(r.title)}</div>` : ''}${lines.map((line) => `<p>${esc(line)}</p>`).join('')}`;
+        this.noticeReader.reset();
         this.el.notice.classList.add('show');
         this.panelH = this.el.notice.offsetHeight;
       } else this.el.notice.classList.remove('show');
     }
+    this.noticeReader.update(s.view, s.player);
 
     // controls hint fades after the player has moved around for a bit; never covers a dialogue
     if (this.el.hint) {

@@ -3,6 +3,7 @@ import { TILE, KEEPER_BOX, FEET_W, FEET_H, FEET_UP } from './config.js';
 import { overlayPeople, addOverlayPeople, reindexOverlayRects } from './overlay-world.js';
 import { strHash } from './util.js';
 import { placeBubble, playerRect } from './screen-space.js';
+import { NoticeReader } from './notice-reader.js';
 
 export function diffById(previous, next, key = 'id') {
   const before = new Map(previous.map((v) => [v[key], v])), after = new Map(next.map((v) => [v[key], v]));
@@ -35,6 +36,7 @@ export class Overlay {
     this.panel = document.createElement('section'); this.panel.id = 'overlay-notice'; this.panel.setAttribute('aria-live', 'polite');
     this.heading = document.createElement('div'); this.heading.className = 'overlay-heading';
     this.body = document.createElement('div'); this.panel.append(this.heading, this.body);
+    this.reader = new NoticeReader(this.panel);
     this.goalTag = document.createElement('div'); this.goalTag.id = 'overlay-goal';
     document.getElementById('ui').append(this.panel, this.goalTag);
     this.title();
@@ -129,9 +131,11 @@ export class Overlay {
       this.body.replaceChildren(...(item?.lines || []).map((line) => {
         const p = document.createElement('p'); p.textContent = line; return p;
       }));
+      this.reader.reset();
     }
     const lower = (player.ry - view.camY) * view.cssPerPx < window.innerHeight / 2;
     this.panel.classList.toggle('bottom', lower);
+    this.reader.update(view, player);
     const g = this.data.goal;
     const x = g ? (g.x * TILE - view.camX) * view.cssPerPx : -100;
     const y = g ? (g.y * TILE - view.camY) * view.cssPerPx : -100;

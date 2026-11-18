@@ -13,6 +13,7 @@ import { Input } from './input.js';
 import { Smoke } from './effects.js';
 import { UI, showError } from './ui.js';
 import { createOverlay } from './overlay.js';
+import { dojoNotice } from './notices.js';
 
 const T = TILE;
 const params = new URLSearchParams(location.search);
@@ -105,6 +106,7 @@ async function boot() {
 
   const noticeboards = world.props.filter((p) => p.type === 'noticeboard' && !p.data.overlayId);
   const readme = town.repo && town.repo.readme;
+  const dojoSign = dojoNotice(town);
 
   // ---- view sizing: integer device pixels; narrow windows show a closer view ------------
   const view = { vw: 480, vh: 270, scale: 1, cssPerPx: 1, camX: 0, camY: 0 };
@@ -274,6 +276,10 @@ async function boot() {
     }
     uiState.walker = uiState.keeper ? null : nearest(movers, NEAR_RESIDENT);   // one speaker at a time: the keeper's dialogue wins
     uiState.notice = readme && noticeboards.length && nearest(noticeboards, NEAR_NOTICE) ? readme : null;
+    if (!uiState.notice && dojoSign) {
+      const signs = world.props.filter((p) => /^sign-(passed|failed|unverified)$/.test(p.type) && !p.data.overlayId);
+      if (nearest(signs, NEAR_NOTICE)) uiState.notice = dojoSign;
+    }
     uiState.dt = frameDt;
     uiState.playerMoved = playerMoved;
     const pet = uiState.keeper ? null : creatures.pick(player, uiState.walker);   // a creature nearer than the resident
