@@ -1,29 +1,15 @@
-// DOM overlay (Japanese): repo badge, keeper dialogue (typewriter), building facts, resident
-// bubble, noticeboard. Everything opens and closes by proximity; no key is needed.
-
-import { KIND_JA, fmtInt, langName } from './util.js';
-import { keeperLines, keeperOffer, residentBubble, contractorBubble, rosterPages, whenJa, shortSubject } from './dialogue.js';
-import { placeBubble, playerRect } from './screen-space.js';
+// DOM UI entry: keep public state, event registration and per-frame ordering together.
 import { NoticeReader } from './notice-reader.js';
-
-const $ = (id) => document.getElementById(id);
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-
-// Long paths wrap into a tall column in the narrow facts panel (and push its last rows off the
-// bottom): keep the end of the path (the file / folder name) and elide the front.
-function fitPath(p, max) {
-  p = String(p ?? '');
-  if (p.length <= max) return p;
-  const segs = p.split('/');
-  let out = segs.pop();
-  if (out.length > max) return `${out.slice(0, Math.ceil(max / 2) - 1)}…${out.slice(-Math.floor(max / 2))}`;
-  while (segs.length && out.length + segs[segs.length - 1].length + 3 <= max) out = `${segs.pop()}/${out}`;
-  return segs.length ? `…/${out}` : out;
-}
-
-const TYPE_CPS = 30;          // typewriter characters per second
-const FACT_TRIM = 10;         // facts panel: how many trim steps there are (factsHTML)
-const VISIBLE_LINES = 3;
+import { $, esc } from './ui/dom.js';
+import { showIntro, renderRepo } from './ui/arrival.js';
+import { showBuilding, factsHTML } from './ui/building-facts.js';
+import { openDialogue, closeDialogue, setOffer, skip, tickDialogue, renderDialogue } from './ui/dialogue-panel.js';
+import { initRoster, openRoster, closeRoster, renderRoster } from './ui/roster.js';
+import { onKey } from './ui/keyboard.js';
+import { layout } from './ui/layout.js';
+import { updateBubble } from './ui/bubble.js';
+import { updateNotice } from './ui/notice.js';
+import { updateHint } from './ui/hint.js';
 
 export class UI {
   constructor(town) {
@@ -56,269 +42,24 @@ export class UI {
     this.showIntro();
   }
 
-  // --- arrival intro -------------------------------------------------------------
-  // The town's name, a few true counts from town.json and the controls, centred over the running
-  // town for ~3 s (fade in 0.4 s, hold, fade out 0.8 s). Any key, click or movement removes it at once.
-  showIntro() {
-    const el = $('intro');
-    if (!el) return;
-    const t = this.town, r = t.repo || {};
-    el.querySelector('.intro-title').textContent = r.name ? `${r.name} の街` : 'CodeCity';
-    const hall = (t.buildings || []).find((b) => b.facility && b.facility.archetype === 'town_hall');
-    const commits = hall && hall.facility.facts && hall.facility.facts.commits;
-    const facts = [];
-    if (t.buildings && t.buildings.length) facts.push(`建物 ${fmtInt(t.buildings.length)}`);
-    if (t.residents && t.residents.length) facts.push(`住人 ${fmtInt(t.residents.length)}`);     // named contributors
-    if (t.crowd && t.crowd.length) facts.push(`町の人 ${fmtInt(t.crowd.length)}`);               // ambient townsfolk
-    if (commits > 0) facts.push(`コミット ${fmtInt(commits)}`);                                   // non-merge, as at the town hall
-    el.querySelector('.intro-sub').textContent = facts.join('・');
+  // Public methods keep the same UI instance as the shared state of every panel.
+  showIntro() { return showIntro(this); }
+  renderRepo() { return renderRepo(this); }
+  showBuilding(b) { return showBuilding(this, b); }
+  factsHTML(b, t) { return factsHTML(this, b, t); }
+  openDialogue(keeper) { return openDialogue(this, keeper); }
+  closeDialogue() { return closeDialogue(this); }
+  setOffer(on) { return setOffer(this, on); }
+  onKey(e) { return onKey(this, e); }
+  initRoster() { return initRoster(this); }
+  openRoster(keeper) { return openRoster(this, keeper); }
+  closeRoster() { return closeRoster(this); }
+  renderRoster() { return renderRoster(this); }
+  skip() { return skip(this); }
+  tickDialogue(dt) { return tickDialogue(this, dt); }
+  renderDialogue(full) { return renderDialogue(this, full); }
 
-    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const timers = [], root = $('ui');
-    const done = () => {
-      if (!this.introOn) return;
-      this.introOn = false;
-      timers.forEach(clearTimeout);
-      window.removeEventListener('keydown', done, true);
-      window.removeEventListener('pointerdown', done, true);
-      el.classList.remove('on', 'show', 'out');
-      root.classList.remove('intro');
-    };
-    this.dismissIntro = done;
-    this.introOn = true;
-    window.addEventListener('keydown', done, true);
-    window.addEventListener('pointerdown', done, true);
-    root.classList.add('intro');
-    el.classList.add('on');
-    void el.offsetWidth;                                        // start the fade from opacity 0
-    el.classList.add('show');
-    timers.push(setTimeout(() => el.classList.add('out'), reduce ? 3000 : 2200));
-    timers.push(setTimeout(done, 3000));
-  }
-
-  renderRepo() {
-    const r = this.town.repo || {};
-    const branch = r.branch ? esc(r.branch) : '';
-    const head = r.head ? esc(String(r.head).slice(0, 7)) : '';
-    const sub = branch || head ? `<div class="sub">${branch}${branch && head ? ' ・ ' : ''}${head}</div>` : '';
-    this.el.repo.innerHTML = `<div class="name">${esc(r.name || 'CodeCity')}</div>${sub}`;
-    this.el.repo.classList.add('show');
-  }
-
-  // --- building facts (secondary panel) -------------------------------------
-  // The panel never clips: on a short or narrow window the lower-priority rows are trimmed first
-  // (FACT_TRIM, one step at a time) until it fits; only if it still does not fit does it scroll.
-  showBuilding(b) {
-    const el = this.el.stats;
-    if (!b || !b.module) { el.classList.remove('show'); return; }
-    el.classList.remove('scroll');
-    let t = 0;
-    for (;;) {
-      el.innerHTML = this.factsHTML(b, t);
-      if (el.scrollHeight <= el.clientHeight + 1 || t >= FACT_TRIM) break;
-      t++;
-    }
-    if (el.scrollHeight > el.clientHeight + 1) { el.classList.add('scroll'); el.scrollTop = 0; }
-    el.classList.add('show');
-  }
-
-  // t = how far to trim (0 = everything). Each step drops a little more of the least important.
-  factsHTML(b, t) {
-    const m = b.module;
-    const fac = b.data && b.data.facility;
-    const kind = KIND_JA[m.kind] || (fac && fac.name) || '建物';
-    const rows = [];
-    if (m.reason && (!b.keeper || fac)) rows.push(['なぜ' + kind + '？', esc(m.reason)]);   // the keeper says it otherwise
-    if (fac && fac.evidence && fac.evidence.length && t < 10) {
-      const ev = fac.evidence.filter((p) => p !== '.git').slice(0, t >= 2 ? 1 : 2);
-      const more = fac.evidenceCount > ev.length + (fac.evidence.includes('.git') ? 1 : 0) ? ` <span class="dim">ほか ${fmtInt(fac.evidenceCount - ev.length)}</span>` : '';
-      if (ev.length) rows.push(['根拠', ev.map((p) => `<div class="file" title="${esc(p)}">${esc(fitPath(p, 24))}</div>`).join('') + more]);
-    }
-    const merged = fac && fac.merged ? fac.merged.filter((p) => p !== m.path) : [];     // the header already names m.path
-    if (merged.length && t < 6) rows.push(['まとめた所', esc(merged.slice(0, 3).join('、'))]);
-    if (Number.isFinite(m.files) && t < 7) rows.push(['大きさ', `${fmtInt(m.files)} ファイル・${fmtInt(m.lines)} 行`]);
-    const langs = Object.entries(m.languages || {}).filter(([, n]) => n > 0).sort((a, c) => c[1] - a[1]).slice(0, 4);
-    if (langs.length && t < 3) rows.push(['言語', langs.map(([k, n]) => `${esc(langName(k))} ${fmtInt(n)}`).join('・')]);
-    const lc = m.lastCommit;
-    if (lc && t < 9) {
-      const when = whenJa(lc.date);          // same wording as the keeper, so the two never disagree
-      rows.push(['最近の変更', `「${esc(shortSubject(lc.subject || '', 34))}」<span class="dim">${esc(lc.author || '')}${when ? `・${esc(when)}` : ''}</span>`]);
-    }
-    const authors = (m.authors || []).slice(0, t >= 5 ? 1 : 2);
-    // counts are non-merge commits (as at the town hall); where history was read only up to a limit, say so
-    const hall = (this.town.buildings || []).find((x) => x.facility && x.facility.archetype === 'town_hall');
-    const win = hall && hall.facility.facts && hall.facility.facts.contributorsWindow;
-    if (authors.length && t < 8) rows.push(['よく触る人', authors.map((a) => `${esc(a.name)} <span class="dim">${fmtInt(a.commits)}回</span>`).join('、') + (win ? ` <span class="dim">（直近 ${fmtInt(win)} 件）</span>` : '')]);
-    const files = (m.topFiles || []).slice(0, t >= 1 ? 1 : 2);
-    const short = (fp) => (m.path && m.path !== '.' && String(fp).startsWith(`${m.path}/`) ? String(fp).slice(m.path.length + 1) : fp);
-    if (files.length && t < 4) rows.push(['大きいファイル', files.map((f) => `<div class="file">${esc(fitPath(short(f.path), 24))} <span class="dim">${fmtInt(f.lines)}行</span></div>`).join('')]);
-    return `<div class="head"><span class="kind kind-${esc(m.kind)}">${esc(kind)}</span><span class="path" title="${esc(m.path)}">${esc(m.path === '.' ? '（ルート）' : fitPath(m.path, 40))}</span></div>` +
-      `<div class="grid">${(fac ? rows.filter(([k]) => k !== '大きいファイル' && k !== '言語' && (k !== '大きさ' || (fac.merged && fac.merged.length))) : rows).map(([k, v]) => `<div class="k">${k}</div><div class="v">${v}</div>`).join('')}</div>`;
-  }
-
-  // --- keeper dialogue ---------------------------------------------------------
-  openDialogue(keeper) {
-    const b = keeper.building;
-    let st = this.dlgStates.get(b.id);
-    if (!st) {
-      st = { lines: keeperLines(b, keeper, this.town), line: 0, chars: 0, wait: 0.35, offer: keeperOffer(b) };
-      this.dlgStates.set(b.id, st);
-    }
-    this.dlg = st;
-    this.dlgKeeper = keeper;
-    this.el.dlgName.textContent = keeper.name;
-    this.el.dialogue.classList.add('show');
-    this.renderDialogue(true);
-  }
-
-  closeDialogue() {
-    this.dlg = null;
-    this.dlgKeeper = null;
-    this.setOffer(false);
-    this.closeRoster();
-    this.el.dialogue.classList.remove('show');
-  }
-
-  // The keeper's last line offers something (the pub master: 「名簿を見ていくかい？」): a button
-  // under the text, or Enter / Space. Walking away simply closes it.
-  setOffer(on) {
-    if (on === this.offerReady) return;
-    this.offerReady = on;
-    const c = this.el.dlgChoice;
-    if (!c) return;
-    c.innerHTML = on ? '<button type="button" class="choice">▶ 名簿をみる</button><span class="key">Enter</span>' : '';
-    c.classList.toggle('show', on);
-  }
-
-  // Keys: Enter / Space read on (or take the offer); with the roster open, ← → / Q E turn the pages
-  // and Esc closes it. Arrow keys left and right are lent to the roster only while it is open (see
-  // main.js input.blockKey); ↑ ↓ and WASD always walk, and walking away closes the roster.
-  onKey(e) {
-    if (e.defaultPrevented) return;
-    if (this.rosterOpen) {
-      const n = (this.rosterPagesList || []).length || 1;
-      if (e.code === 'ArrowLeft' || e.code === 'KeyQ') { this.rosterTab = (this.rosterTab + n - 1) % n; this.renderRoster(); e.preventDefault(); }
-      else if (e.code === 'ArrowRight' || e.code === 'KeyE') { this.rosterTab = (this.rosterTab + 1) % n; this.renderRoster(); e.preventDefault(); }
-      else if (e.code === 'Escape') { this.closeRoster(); e.preventDefault(); }
-      return;
-    }
-    if (e.code !== 'Enter' && e.code !== 'NumpadEnter' && e.code !== 'Space') return;
-    if (this.offerReady && this.dlgKeeper) { this.openRoster(this.dlgKeeper); e.preventDefault(); }
-    else if (this.dlg) { this.skip(); e.preventDefault(); }
-  }
-
-  // --- 接続者ギルドの名簿（an SFC-style window over the town） ------------------------
-  initRoster() {
-    const r = this.el.roster;
-    if (!r) return;
-    r.innerHTML = '<div class="roster-head"><div class="roster-title">接続者ギルドの名簿</div>' +
-      '<button type="button" class="roster-close" aria-label="とじる">×</button></div>' +
-      '<div class="roster-tabs" role="tablist"></div><div class="roster-body"></div>' +
-      '<div class="roster-foot"><span class="keys">← → か Q・E でページをめくる　Esc でとじる</span><span class="touch">上の札を押すとページが変わります</span></div>';
-    // clicks inside the window never walk the player or skip the dialogue
-    r.addEventListener('pointerdown', (e) => e.stopPropagation());
-    // buttons give the focus back, so Space / Enter never "click" a button left focused
-    r.addEventListener('click', (e) => {
-      const t = e.target.closest('[data-tab]');
-      if (t) { this.rosterTab = Number(t.dataset.tab) || 0; this.renderRoster(); return; }
-      if (e.target.closest('.roster-close')) this.closeRoster();
-      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-    });
-    const c = this.el.dlgChoice;
-    if (c) {
-      c.addEventListener('pointerdown', (e) => e.stopPropagation());
-      c.addEventListener('click', (e) => {
-        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-        if (e.target.closest('.choice') && this.dlgKeeper) this.openRoster(this.dlgKeeper);
-      });
-    }
-  }
-
-  openRoster(keeper) {
-    const b = keeper && keeper.building;
-    const fac = b && ((b.data && b.data.facility) || b.facility);
-    if (!fac || !this.el.roster) return;
-    this.rosterPagesList = rosterPages(fac, this.town);
-    if (this.rosterTab >= this.rosterPagesList.length) this.rosterTab = 0;
-    this.rosterOpen = true;
-    if (this.input) {                  // a held ← / → stops here instead of running on under the window
-      const h = this.input.held, l = this.input.latched;
-      h.left = h.right = l.left = l.right = false;
-    }
-    this.renderRoster();
-    this.el.roster.classList.add('show');
-    (this.root || $('ui')).classList.add('roster-open');
-  }
-
-  closeRoster() {
-    if (!this.rosterOpen) return;
-    this.rosterOpen = false;
-    this.el.roster.classList.remove('show');
-    (this.root || $('ui')).classList.remove('roster-open');
-  }
-
-  renderRoster() {
-    const pages = this.rosterPagesList || [];
-    const i = Math.max(0, Math.min(pages.length - 1, this.rosterTab));
-    const r = this.el.roster;
-    r.querySelector('.roster-tabs').innerHTML = pages.map((p, k) =>
-      `<button type="button" class="tab${k === i ? ' on' : ''}" data-tab="${k}" role="tab" aria-selected="${k === i}">${esc(p.label)}</button>`).join('');
-    const pg = pages[i];
-    const body = r.querySelector('.roster-body');
-    if (!pg) { body.innerHTML = ''; return; }
-    const rows = pg.rows.length ? pg.rows.map((x) => `<div class="row${x.badge ? '' : ' nobadge'}${x.dim ? ' dim' : ''}${pg.stack ? ' stack' : ''}">` +
-      (x.badge ? `<span class="badge">${esc(x.badge)}</span>` : '') +
-      `<div class="t">${esc(x.title)}</div>${x.sub ? `<div class="s">${esc(x.sub)}</div>` : ''}</div>`).join('')
-      : `<div class="empty">${esc(pg.empty)}</div>`;
-    body.innerHTML = `${pg.intro ? `<div class="intro">${esc(pg.intro)}</div>` : ''}<div class="rows">${rows}</div>`;
-    body.scrollTop = 0;
-  }
-
-  skip() {
-    const st = this.dlg;
-    if (!st) return;
-    const cur = st.lines[st.line];
-    if (cur && st.chars < cur.length) st.chars = cur.length;
-    else if (st.line < st.lines.length - 1) { st.line++; st.chars = 0; st.wait = 0; }
-    this.renderDialogue(true);
-  }
-
-  tickDialogue(dt) {
-    const st = this.dlg;
-    if (!st) return;
-    const cur = st.lines[st.line];
-    if (!cur) return;
-    if (st.chars < cur.length) {
-      if (st.wait > 0) { st.wait -= dt; return; }
-      const before = Math.floor(st.chars);
-      st.chars = Math.min(cur.length, st.chars + dt * TYPE_CPS);
-      if (Math.floor(st.chars) !== before) this.renderDialogue(false);
-      if (st.chars >= cur.length) st.wait = 1.1 + cur.length * 0.035;
-    } else if (st.line < st.lines.length - 1) {
-      st.wait -= dt;
-      if (st.wait <= 0) { st.line++; st.chars = 0; st.wait = 0; this.renderDialogue(true); }
-    }
-  }
-
-  renderDialogue(full) {
-    const st = this.dlg;
-    if (!st) return;
-    const keep = window.innerHeight < 720 ? 2 : VISIBLE_LINES;      // short windows: fewer lines
-    const from = Math.max(0, st.line - (keep - 1));
-    let html = '';
-    for (let i = from; i <= st.line; i++) {
-      const text = i < st.line ? st.lines[i] : st.lines[i].slice(0, Math.floor(st.chars));
-      html += `<p class="${i < st.line ? 'old' : 'cur'}">${esc(text)}</p>`;
-    }
-    const done = st.line >= st.lines.length - 1 && st.chars >= (st.lines[st.line] || '').length;
-    html += `<div class="more ${done ? 'done' : ''}">${st.line + 1} / ${st.lines.length}</div>`;
-    this.el.dlgText.innerHTML = html;
-    this.setOffer(!!st.offer && done);
-    this.panelH = this.el.dialogue.offsetHeight;
-  }
-
-  // --- per-frame update --------------------------------------------------------
-  // s: { building, keeper, walker, notice, view:{camX,camY,scale} , dt, playerMoved }
+  // s: { building, keeper, walker, notice, view, dt, playerMoved, player }
   update(s) {
     if (this.introOn && s.playerMoved) this.dismissIntro();
     if (s.building !== this.curBuilding) { this.curBuilding = s.building; this.showBuilding(s.building); }
@@ -330,81 +71,12 @@ export class UI {
 
     this.layout(s);
 
-    // resident bubble
-    const w = s.walker;
-    const bub = this.el.bubble;
-    if (w !== this.bubbleFor) {
-      this.bubbleFor = w;
-      if (w) {
-        const t = w.contractor ? contractorBubble(w.def, this.town) : residentBubble(w.local ? w : (w.def || w), this.town);
-        bub.innerHTML = `<div><span class="who">${esc(t.name)}</span><span class="sep">─</span>${esc(t.line)}</div>` +
-          (t.more ? `<div class="more">${esc(t.more)}</div>` : '') + (t.note ? [].concat(t.note).map((n) => `<div class="note">${esc(n)}</div>`).join('') : '');
-        bub.classList.toggle('wrap', !!t.note);
-        bub.classList.add('show');
-      } else bub.classList.remove('show');
-    }
-    if (w) {
-      // above the resident's head, or under their feet when the player stands above them,
-      // so the bubble never sits on the player
-      const v = s.view;
-      const below = s.player.ry < w.ry - 4;
-      const x = (Math.round(w.rx) - v.camX) * v.cssPerPx;
-      const y = (Math.round(w.ry) + (below ? 4 : -34) - v.camY) * v.cssPerPx;
-      placeBubble(bub, x, y, below, playerRect(v, s.player));
-    }
-
-    // README boards and the dojo's recorded status sign
-    const showNotice = !!s.notice && !s.keeper;
-    if (showNotice !== this.noticeShown || (showNotice && s.notice !== this.noticeFor)) {
-      this.noticeShown = showNotice;
-      this.noticeFor = showNotice ? s.notice : null;
-      if (showNotice) {
-        const r = s.notice;
-        const lines = r.lines || (r.excerpt ? [r.excerpt] : []);
-        this.noticeReader.content.innerHTML = `<div class="label">${esc(r.label || '掲示板')}</div>${r.title ? `<div class="title">${esc(r.title)}</div>` : ''}${lines.map((line) => `<p>${esc(line)}</p>`).join('')}`;
-        this.noticeReader.reset();
-        this.el.notice.classList.add('show');
-        this.panelH = this.el.notice.offsetHeight;
-      } else this.el.notice.classList.remove('show');
-    }
-    this.noticeReader.update(s.view, s.player);
-
-    // controls hint fades after the player has moved around for a bit; never covers a dialogue
-    if (this.el.hint) {
-      if (this.hintTime < 6 && s.playerMoved) this.hintTime += s.dt;
-      const want = this.hintTime < 6 && !this.dlg && !this.noticeShown && !this.introOn;   // the intro already shows the controls
-      if (want !== this.hintShown) { this.hintShown = want; this.el.hint.classList.toggle('show', want); }
-    }
+    updateBubble(this, s);
+    updateNotice(this, s);
+    updateHint(this, s);
   }
 
-  // Panels never cover the player: the dialogue / noticeboard dock on the screen edge opposite
-  // the player's vertical position, the facts panel on the side opposite their horizontal
-  // position, and the corner badges hide while the player is under them. Classes only change
-  // when the player crosses a threshold (with hysteresis), so the DOM is not touched per frame.
-  layout(s) {
-    const v = s.view, p = s.player;
-    const W = window.innerWidth, H = window.innerHeight;
-    const px = (Math.round(p.rx) - v.camX) * v.cssPerPx;
-    const py = (Math.round(p.ry) - 14 - v.camY) * v.cssPerPx;      // body centre
-    const r = 18 * v.cssPerPx;                                       // player sprite half-size
-    let dock = this.dock || 'bottom', side = this.side || 'right';
-    // dock where the panel actually fits without reaching the player
-    const ph = this.panelH || 160;
-    const below = H - 18 - (py + r), above = (py - r) - 32;
-    if (dock === 'bottom' && below < ph + 8 && above > below) dock = 'top';
-    else if (dock === 'top' && above < ph + 8 && below > above) dock = 'bottom';
-    if (side === 'right' && px > W * 0.56) side = 'left'; else if (side === 'left' && px < W * 0.44) side = 'right';
-    const underTL = px - r < 380 && py - r < 90;
-    const underBL = px - r < 760 && py + r > H - 70;
-    const ui = this.root || (this.root = document.getElementById('ui'));
-    if (dock !== this.dock) { ui.classList.toggle('dock-top', dock === 'top'); this.dock = dock; }
-    if (side !== this.side) { ui.classList.toggle('side-left', side === 'left'); this.side = side; }
-    const talking = !!this.dlg || this.noticeShown;
-    if (talking !== this.talking) { ui.classList.toggle('talking', talking); this.talking = talking; }
-    if (underTL !== this.underTL) { ui.classList.toggle('under-tl', underTL); this.underTL = underTL; }
-    if (underBL !== this.underBL) { ui.classList.toggle('under-bl', underBL); this.underBL = underBL; }
-  }
-
+  layout(s) { return layout(this, s); }
   fps(text) { if (this.el.fps) this.el.fps.textContent = text; }
 }
 
