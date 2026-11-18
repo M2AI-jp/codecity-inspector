@@ -20,7 +20,7 @@ export const fuzzHead = (index) => index.toString(16).padStart(7, '0');
 
 export function checkSeed(repo, manifest, { layout = layoutTown, overlay } = {}) {
   if (overlay) repo = groupOverlayModel(repo, overlay);
-  const options = { art: loadArt(manifest), props: loadProps(manifest), ground: loadGround(manifest), ...(overlay ? { seed: overlay.seed, goalLook: overlay.goal?.look, goalAt: overlay.goal?.at } : {}) };
+  const options = { art: loadArt(manifest), props: loadProps(manifest), ground: loadGround(manifest), ...(overlay ? { overlay: true, seed: overlay.seed, goalLook: overlay.goal?.look, goalAt: overlay.goal?.at } : {}) };
   const generate = () => { const town = layout(repo, options); return overlay ? placeOverlay(town, overlay, manifest) : town; };
   const town = generate();
   const ascii = checkAscii(town, manifest, { repo, regenerate: generate });

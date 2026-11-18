@@ -5,7 +5,7 @@ import { xy } from './space.mjs';
 // 城を先に試し、採用した足元・屋根・前庭を後続の物と人のために予約する。
 export function placeLandmark(S) {
   const { town, overlay, manifest, data, nearby, propArt, cellOK, clearRects, keepTilePaths,
-    reach, accessible, addedRects, occupied, reserved, targets, reject } = S;
+    reach, accessible, addedRects, reservedRects, occupied, reserved, targets, reject } = S;
   if (overlay.goal?.look) {
     const g = overlay.goal, key = GOAL_ART[g.look], def = manifest.props?.[key];
     const target = resolveAt(town, g.at, { kind: 'goal' });
@@ -44,6 +44,8 @@ export function placeLandmark(S) {
         if (!reach.attempt([geo.foot], (seen) => accessible(seen, [label]) &&
           frontPoints.every((p) => seen[p.y * reach.W + p.x]))) { failed('reach'); continue; }
         keepTilePaths(cells, true); addedRects.push(geo.foot);
+        // Tile reservations alone miss signs/boards whose solids overhang a tile.
+        reservedRects.push(geo.front, ...geo.sides);
         for (const [x, y] of [...cells, ...geo.cells(geo.image)]) occupied.add(xy(x, y));
         for (const [x, y] of geo.clearance) reserved.add(xy(x, y));
         data.goal = { ...g, ...label, landmark: { x: pos.x, y: pos.y, look: key },
