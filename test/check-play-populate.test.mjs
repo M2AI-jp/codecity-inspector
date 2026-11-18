@@ -54,9 +54,11 @@ test('check-play builds exactly the CLI Town, with bot/agent deduplication befor
     goal: { at: { landmark: 'town_hall' }, label: 'Goal', look: 'castle' } }));
   for (const overlay of [undefined, readOverlay(overlayFile)]) {
     const { town } = await townFor(repo, manifest, overlay);
-    const cli = execFileSync(process.execPath, [join(root, 'codecity.mjs'), repo,
-      ...(overlay ? ['--overlay', overlayFile] : []), '--json', '/dev/stdout'], { encoding: 'utf8' });
-    const cliJSON = cli.slice(cli.indexOf('{\n'), cli.lastIndexOf('}') + 1);
+    // /dev/stdout は CI（Linux・パイプ）で開けないことがあるので、一時ファイルに書いて読む
+    const out = join(dir, overlay ? 'cli-overlay.json' : 'cli.json');
+    execFileSync(process.execPath, [join(root, 'codecity.mjs'), repo,
+      ...(overlay ? ['--overlay', overlayFile] : []), '--json', out], { encoding: 'utf8' });
+    const cliJSON = readFileSync(out, 'utf8').trimEnd();
     const hash = (s) => createHash('sha256').update(s).digest('hex');
     assert.equal(hash(JSON.stringify(town, null, 1)), hash(cliJSON));
     assert.equal(town.groundImage, '/ground.png');
