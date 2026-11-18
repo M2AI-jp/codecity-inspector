@@ -316,7 +316,7 @@ glob は `/` 区切りで、`*` は区切り内の任意の長さ、`?` は区�
 | `{ landmark }` | town_hall・well・gate のそば。対象が無ければ town_hall → well → spawn |
 | `{ marker }` | people だけ。配置済み marker のそば。未配置の marker なら人も理由付き unplaced |
 
-overlay 向けの Town を生成するときは `layoutTown(model, { overlay: true, ... })` を使う。layout は、後で消せる道場の状態札の下のマスも常設の歩行面へつながるように小物を置き、芝生の仕上げではその札を除いた面積を測る。札自体とその位置は base Town に残し、record を外したときに同じ札を戻せるようにする。overlay なしではこの配置条件を追加しない。
+overlay 向けの Town を生成するときは `layoutTown(model, { overlay: true, ... })` を使う。CLI・check-play・seed-fuzz は、このオプションの生成に `src/overlay/layout-options.mjs` の `overlayLayoutOptions(overlay)` を使う。layout は、後で消せる道場の状態札の下のマスも常設の歩行面へつながるように小物を置き、芝生の仕上げではその札を除いた面積を測る。札自体とその位置は base Town に残し、record を外したときに同じ札を戻せるようにする。overlay なしではこの配置条件を追加しない。
 
 record は `sign-passed`・`sign-failed`・`sign-unverified`、board は `noticeboard`。
 検証を通った record が 1 個以上ある間は、置けない record も含めて、道場自身の状態札を隠す。record がなくなれば元の道場の札を戻す。道場の facts は変更しない。

@@ -2,6 +2,7 @@
 import { readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { placeOverlay } from '../../src/overlay/place.mjs';
+import { overlayLayoutOptions } from '../../src/overlay/layout-options.mjs';
 import { analyzeOverlayModel, groupOverlayModel } from '../../src/overlay/model.mjs';
 
 export async function townFor(target, manifest, overlay) {
@@ -10,7 +11,7 @@ export async function townFor(target, manifest, overlay) {
     const { analyzeRepository } = await import('../../src/analyze.mjs');
     const { layoutTown, loadArt, loadProps, loadGround } = await import('../../src/layout.mjs');
     const repo = overlay ? groupOverlayModel(analyzeOverlayModel(abs), overlay) : analyzeRepository(abs);
-    const town = layoutTown(repo, { art: loadArt(manifest), props: loadProps(manifest), ground: loadGround(manifest), ...(overlay ? { overlay: true, seed: overlay.seed, goalLook: overlay.goal?.look, goalAt: overlay.goal?.at } : {}) });
+    const town = layoutTown(repo, { art: loadArt(manifest), props: loadProps(manifest), ground: loadGround(manifest), ...overlayLayoutOptions(overlay) });
     return { town: overlay ? placeOverlay(town, overlay, manifest) : town, repo };
   }
   const town = JSON.parse(readFileSync(abs, 'utf8'));
