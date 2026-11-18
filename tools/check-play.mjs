@@ -3,7 +3,7 @@
 // node tools/check-play.mjs <repo | town.json> [...] [--overlay file]
 //   [--manifest art/game/manifest.json] [--town-out path (1 target)] [-v]
 // Exit 1 on unreachable floors, keepers, terraces, stairs, decks or overlay objects,
-// or failed keyboard/click building entry and bidirectional gate/bridge crossings.
+// or failed keyboard/click building entry, gate/bridge crossings, walker routes or creature placement/talk.
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -36,7 +36,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
   let failed = 0;
   for (const target of targets) {
     const t0 = performance.now();
-    const { town, repo } = await townFor(target, manifest, overlay);
+    const { town, repo, warnings = [] } = await townFor(target, manifest, overlay);
+    for (const warning of warnings) console.warn(`warn: ${warning}`);
     if (ti >= 0) writeFileSync(resolve(args[ti + 1]), JSON.stringify(town, null, 1));
     const result = checkPlay(town, manifest, { repo, verbose, target, t0 });
     for (const line of result.lines) console.log(line);
