@@ -31,7 +31,11 @@ export class Walker extends Character {
     this.wanderLeft = 0;
     this.solid = false;
     const b = homes[this.homeIdx];
-    const start = world.nearestFree(Math.floor(b.doorOutside.x / T) + Math.floor(this.rng() * 5) - 2, Math.floor(b.doorOutside.y / T) + 1 + Math.floor(this.rng() * 2), 6);
+    const sx = Math.floor(b.doorOutside.x / T) + Math.floor(this.rng() * 5) - 2, sy = Math.floor(b.doorOutside.y / T) + 1 + Math.floor(this.rng() * 2);
+    // 戸口と同じ道のつながりに出す。柵や小物に囲まれた1マスや、切り離された桟橋に出ると、どこへも道を引けない。
+    const door = world.nearestFree(Math.floor(b.doorOutside.x / T), Math.floor((b.doorOutside.y - 3) / T), 2);
+    const comp = door && world.navComp ? world.navComp[door[1] * world.cols + door[0]] : -1;
+    const start = (comp >= 0 && world.nearestFree(sx, sy, 6, comp)) || world.nearestFree(sx, sy, 6);
     if (start) { const p = world.navPoint(start[0], start[1]); this.x = p.x; this.y = p.y; } else { this.x = b.doorOutside.x; this.y = b.doorOutside.y; }
     this.prevX = this.x; this.prevY = this.y; this.rx = this.x; this.ry = this.y;
     this.facing = DIRS4[Math.floor(this.rng() * 4)];
