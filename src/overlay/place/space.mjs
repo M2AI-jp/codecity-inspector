@@ -1,6 +1,7 @@
 import { artFrom, buildWorld } from '../geometry.mjs';
 import { reachGrid } from '../reach.mjs';
 import { tileReach } from '../tile-reach.mjs';
+import { navGuard } from '../nav-guard.mjs';
 import { propCells, coverOf } from '../../town-grid.mjs';
 import { loadProps } from '../../layout/manifest.mjs';
 // 既存の占有・戸口・階段を先に予約し、後続の配置が同じ到達領域を守る。
@@ -10,6 +11,10 @@ export function prepareSpace(S) {
   const { town, manifest } = S;
   const { world, start } = buildWorld(town, artFrom(manifest));
   const reach = reachGrid(world, start);
+  // 1px の足元に加え、ゲームの道案内の格子でも出発点からの道を切り離さない（1px に通った候補だけ確かめる）。
+  const keepNav = navGuard(town, manifest), pixelAttempt = reach.attempt;
+  reach.attempt = (rects, test = () => true, commit = true) =>
+    pixelAttempt(rects, (seen) => test(seen) && keepNav(rects, commit), commit);
   const propArt = loadProps(manifest), occupied = new Set(), reserved = new Set(), doors = new Set(), targets = [], addedRects = [], reservedRects = [];
   const keepTilePaths = tileReach(town, propArt);
   const reserve = (x0, y0, x1, y1, set = reserved) => {
