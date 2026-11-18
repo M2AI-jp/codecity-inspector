@@ -1,5 +1,5 @@
 // Load the town and art, then build the world and its inhabitants in boot order.
-import { TILE, NEAR_KEEPER, KEEPER_BOX } from './config.js';
+import { TILE, NEAR_KEEPER } from './config.js';
 import { loadJSON, loadArt, loadImage, warnOnce, toCanvas, cleanMagenta, buildSheet } from './assets.js';
 import { parseGround, composeGround } from './ground.js';
 import { World } from './world.js';
@@ -68,9 +68,8 @@ export async function prepareTown({ params, DEBUG, TOWN_URL, MANIFEST_URL }) {
 
   const npcs = createResidents(town, world, art, DEBUG);
   const creatures = createCreatures(town, world, await loadCreatureArt(manifest, MANIFEST_URL));   // pass-through, never solid
-  // keepers stand still: make them solid for everyone and refresh navigation around them
-  for (const k of npcs.keepers) world.addRect(k.x + KEEPER_BOX[0], k.y + KEEPER_BOX[1], KEEPER_BOX[2], KEEPER_BOX[3], 'npc');
-  if (npcs.keepers.length || town.overlay) world.computeNav();
+  // keepers stand still: createResidents already made them solid and refreshed navigation
+  // before any walker chose where to start
   // the keeper answers as soon as you step in: one standing further back than NEAR_KEEPER from the
   // spot just inside the door (behind a shop counter) still speaks from there
   for (const k of npcs.keepers) {

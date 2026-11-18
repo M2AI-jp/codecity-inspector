@@ -1,5 +1,6 @@
 // 住人・番人・町の人を作る入口。公開名と生成順を保つ。
 import { strHash } from './util.js';
+import { KEEPER_BOX } from './config.js';
 import { MAT } from './ground.js';
 import { Walker } from './residents/walker.js';
 import { KEEPER_ROLE, KEEPER_STAND_IN, kindOf, Keeper, LandmarkKeeper, keeperSheet } from './residents/keeper.js';
@@ -30,6 +31,10 @@ export function createResidents(town, world, art, debug) {
     if (!sheet && !debug) continue;
     out.keepers.push(new LandmarkKeeper(kind, sheet, l, world, strHash(`keeper:${l.id}`)));
   }
+  // 番人は立ち止まる: 歩く人を作る前に、番人の当たりを足して道案内を作り直す。
+  // 先に作ると、外に立つ番人（井戸・門など）と同じ所に町の人が出て、重なったまま動けなくなる。
+  for (const k of out.keepers) world.addRect(k.x + KEEPER_BOX[0], k.y + KEEPER_BOX[1], KEEPER_BOX[2], KEEPER_BOX[3], 'npc');
+  if (out.keepers.length || town.overlay) world.computeNav();
   const folk = art.townsfolk.filter(Boolean);
   const byId = new Map(world.buildings.map((b) => [b.id, b]));
   // 外部工務店の代理人: its own picture, else a townsperson's look (warned once)

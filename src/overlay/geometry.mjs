@@ -2,7 +2,6 @@
 import { World } from '../../web/world.js';
 import { parseGround } from '../../web/ground.js';
 import { createResidents } from '../../web/residents.js';
-import { KEEPER_BOX } from '../../web/config.js';
 
 export function artFrom(m) {
   const stubSheet = { stub: true };
@@ -44,9 +43,8 @@ export function buildWorld(town, art) {
   let world, npcs;
   try {
     world = new World(town, art, parseGround(town));
+    // 番人の当たりと道案内の作り直しは、歩く人を作る前に createResidents の中で行う。
     npcs = createResidents(town, world, art, false);
-    for (const k of npcs.keepers) world.addRect(k.x + KEEPER_BOX[0], k.y + KEEPER_BOX[1], KEEPER_BOX[2], KEEPER_BOX[3], 'npc');
-    if (npcs.keepers.length || town.overlay) world.computeNav();
   } finally { console.warn = ow; }
   const spawn = town.spawn || { x: town.cols / 2, y: town.rows / 2 };
   let [sx, sy] = [Math.floor(spawn.x), Math.floor(spawn.y)];
