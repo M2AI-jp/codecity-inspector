@@ -36,7 +36,7 @@ export class Overlay {
     this.panel = document.createElement('section'); this.panel.id = 'overlay-notice'; this.panel.setAttribute('aria-live', 'polite');
     this.heading = document.createElement('div'); this.heading.className = 'overlay-heading';
     this.body = document.createElement('div'); this.panel.append(this.heading, this.body);
-    this.reader = new NoticeReader(this.panel);
+    this.reader = new NoticeReader(this.panel, { top: 18, bottom: 18 });
     this.goalTag = document.createElement('div'); this.goalTag.id = 'overlay-goal';
     document.getElementById('ui').append(this.panel, this.goalTag);
     this.title();
