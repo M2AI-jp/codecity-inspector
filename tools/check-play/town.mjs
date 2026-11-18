@@ -10,7 +10,7 @@ export async function townFor(target, manifest, overlay) {
     const { analyzeRepository } = await import('../../src/analyze.mjs');
     const { layoutTown, loadArt, loadProps, loadGround } = await import('../../src/layout.mjs');
     const repo = overlay ? groupOverlayModel(analyzeOverlayModel(abs), overlay) : analyzeRepository(abs);
-    const town = layoutTown(repo, { art: loadArt(manifest), props: loadProps(manifest), ground: loadGround(manifest), ...(overlay ? { seed: overlay.seed, goalLook: overlay.goal?.look, goalAt: overlay.goal?.at } : {}) });
+    const town = layoutTown(repo, { art: loadArt(manifest), props: loadProps(manifest), ground: loadGround(manifest), ...(overlay ? { overlay: true, seed: overlay.seed, goalLook: overlay.goal?.look, goalAt: overlay.goal?.at } : {}) });
     return { town: overlay ? placeOverlay(town, overlay, manifest) : town, repo };
   }
   const town = JSON.parse(readFileSync(abs, 'utf8'));

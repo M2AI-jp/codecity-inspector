@@ -38,7 +38,7 @@ const model = analyzeRepository(repoPath, overlay ? { onModules(_modules, groups
 } } : undefined);
 const t1 = Date.now();
 const arrange = (input) => layoutTown(input ? applyGroups(model, input.groups, moduleFiles) : model,
-  input ? { seed: input.seed, goalLook: input.goal?.look, goalAt: input.goal?.at } : {});
+  input ? { overlay: true, seed: input.seed, goalLook: input.goal?.look, goalAt: input.goal?.at } : {});
 const baseTown = arrange(overlay);
 const t2 = Date.now();
 populateTown(baseTown, model, repoPath);

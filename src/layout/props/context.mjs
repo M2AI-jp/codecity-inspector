@@ -100,6 +100,28 @@ export function createPropsContext(P, F, rng, spawn, extra) {
     }
     return runs <= 1;
   };
+  // Native dojo signs may disappear during an overlay update. Their exposed
+  // tiles must still join the persistent walking surface after every placement.
+  const removable = new Set();
+  const removableConnected = () => {
+    const pending = new Set(removable);
+    while (pending.size) {
+      const first = pending.values().next().value, q = [first];
+      pending.delete(first);
+      let connected = false;
+      for (let i = 0; i < q.length; i++) {
+        const x = q[i] % cols, y = Math.floor(q[i] / cols);
+        for (const [nx, ny] of [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]]) {
+          if (!inC(nx, ny)) continue;
+          const k = id(nx, ny);
+          if (pending.delete(k)) q.push(k);
+          if (!removable.has(k) && walk(nx, ny)) connected = true;
+        }
+      }
+      if (!connected) return false;
+    }
+    return true;
+  };
   const lamps = [];
   const solidEdges = new Uint8Array(N);
   let hasSolidEdges = false;
@@ -161,6 +183,14 @@ export function createPropsContext(P, F, rng, spawn, extra) {
         for (const k of added) solidEdges[k] = 0;
         return false;
       }
+    }
+    if (removable.size && !removableConnected()) {
+      for (const [x, y] of tiles) blocked[id(x, y)] = 0;
+      for (const k of added) solidEdges[k] = 0;
+      return false;
+    }
+    if (extra.overlay && ['sign-passed', 'sign-failed', 'sign-unverified'].includes(type)) {
+      for (const [x, y] of tiles) removable.add(id(x, y));
     }
     hasSolidEdges ||= added.length > 0;
     S.reach -= tiles.length;

@@ -1,0 +1,924 @@
+{
+  "model": {
+    "name": "overlay-regression",
+    "head": "0000000",
+    "readme": {
+      "title": "Fixture",
+      "excerpt": "Synthetic regression fixture"
+    },
+    "modules": [
+      {
+        "path": ".",
+        "kind": "workshop",
+        "files": 6,
+        "lines": 762,
+        "bytes": 80356,
+        "languages": {
+          "md": 3,
+          "none": 2,
+          "json": 1
+        },
+        "commits": 54,
+        "recent": 54,
+        "reason": "fixture",
+        "authors": [],
+        "topFiles": [],
+        "lastCommit": null
+      },
+      {
+        "path": ".claude",
+        "kind": "workshop",
+        "files": 1,
+        "lines": 50,
+        "bytes": 918,
+        "languages": {
+          "json": 1
+        },
+        "commits": 3,
+        "recent": 3,
+        "reason": "fixture",
+        "authors": [],
+        "topFiles": [],
+        "lastCommit": null
+      },
+      {
+        "path": ".masume",
+        "kind": "house",
+        "files": 1,
+        "lines": 833,
+        "bytes": 577003,
+        "languages": {
+          "jsonl": 1
+        },
+        "commits": 53,
+        "recent": 53,
+        "reason": "fixture",
+        "authors": [],
+        "topFiles": [],
+        "lastCommit": null
+      },
+      {
+        "path": ".masume/maps",
+        "kind": "house",
+        "files": 24,
+        "lines": 24,
+        "bytes": 1325799,
+        "languages": {
+          "json": 24
+        },
+        "commits": 23,
+        "recent": 23,
+        "reason": "fixture",
+        "authors": [],
+        "topFiles": [],
+        "lastCommit": null
+      },
+      {
+        "path": ".masume/outputs",
+        "kind": "house",
+        "files": 149,
+        "lines": 33825,
+        "bytes": 2117068,
+        "languages": {
+          "log": 149
+        },
+        "commits": 29,
+        "recent": 29,
+        "reason": "fixture",
+        "authors": [],
+        "topFiles": [],
+        "lastCommit": null
+      },
+      {
+        "path": "bin",
+        "kind": "workshop",
+        "files": 2,
+        "lines": 236,
+        "bytes": 23665,
+        "languages": {
+          "js": 2
+        },
+        "commits": 18,
+        "recent": 18,
+        "reason": "fixture",
+        "authors": [],
+        "topFiles": [],
+        "lastCommit": null
+      },
+      {
+        "path": "demos",
+        "kind": "house",
+        "files": 19,
+        "lines": 2661,
+        "bytes": 198774,
+        "languages": {
+          "mjs": 6,
+          "json": 4,
+          "log": 3,
+          "md": 3,
+          "jsonl": 1,
+          "none": 1,
+          "txt": 1
+        },
+        "commits": 1,
+        "recent": 1,
+        "reason": "fixture",
+        "authors": [],
+        "topFiles": [],
+        "lastCommit": null
+      },
+      {
+        "path": "docs",
+        "kind": "house",
+        "files": 27,
+        "lines": 3723,
+        "bytes": 10457768,
+        "languages": {
+          "png": 14,
+          "md": 7,
+          "mjs": 5,
+          "html": 1
+        },
+        "commits": 70,
+        "recent": 70,
+        "reason": "fixture",
+        "authors": [],
+        "topFiles": [],
+        "lastCommit": null
+      },
+      {
+        "path": "examples/kakeibo",
+        "kind": "house",
+        "files": 58,
+        "lines": 30153,
+        "bytes": 1819149,
+        "languages": {
+          "log": 25,
+          "mjs": 21,
+          "md": 5,
+          "json": 4,
+          "jsonl": 1,
+          "none": 1,
+          "txt": 1
+        },
+        "commits": 2,
+        "recent": 2,
+        "reason": "fixture",
+        "authors": [],
+        "topFiles": [],
+        "lastCommit": null
+      },
+      {
+        "path": "examples/memo",
+        "kind": "house",
+        "files": 61,
+        "lines": 3281,
+        "bytes": 208259,
+        "languages": {
+          "log": 26,
+          "mjs": 21,
+          "md": 5,
+          "json": 4,
+          "css": 1,
+          "html": 1,
+          "jsonl": 1,
+          "none": 1,
+          "txt": 1
+        },
+        "commits": 2,
+        "recent": 2,
+        "reason": "fixture",
+        "authors": [],
+        "topFiles": [],
+        "lastCommit": null
+      },
+      {
+        "path": "examples/omikuji",
+        "kind": "house",
+        "files": 46,
+        "lines": 29812,
+        "bytes": 1862436,
+        "languages": {
+          "log": 21,
+          "mjs": 17,
+          "json": 3,
+          "md": 3,
+          "jsonl": 1,
+          "txt": 1
+        },
+        "commits": 2,
+        "recent": 2,
+        "reason": "fixture",
+        "authors": [],
+        "topFiles": [],
+        "lastCommit": null
+      },
+      {
+        "path": "mac",
+        "group": "mac",
+        "kind": "house",
+        "files": 5,
+        "lines": 780,
+        "bytes": 147205,
+        "languages": {
+          "mjs": 1,
+          "plist": 1,
+          "png": 1,
+          "sh": 1,
+          "swift": 1
+        },
+        "commits": 8,
+        "recent": 8,
+        "reason": "fixture",
+        "authors": [],
+        "topFiles": [],
+        "lastCommit": null
+      },
+      {
+        "path": "quests",
+        "group": "gmkit",
+        "kind": "house",
+        "files": 12,
+        "lines": 4136,
+        "bytes": 202998,
+        "languages": {
+          "mjs": 6,
+          "json": 4,
+          "md": 2
+        },
+        "commits": 28,
+        "recent": 28,
+        "reason": "fixture",
+        "authors": [],
+        "topFiles": [],
+        "lastCommit": null
+      },
+      {
+        "path": "site",
+        "group": "site",
+        "kind": "shop",
+        "files": 31,
+        "lines": 1416,
+        "bytes": 2949556,
+        "languages": {
+          "svg": 23,
+          "png": 5,
+          "html": 2,
+          "css": 1
+        },
+        "commits": 11,
+        "recent": 11,
+        "reason": "fixture",
+        "authors": [],
+        "topFiles": [],
+        "lastCommit": null
+      },
+      {
+        "path": "src",
+        "group": "gmkit",
+        "kind": "house",
+        "files": 2,
+        "lines": 321,
+        "bytes": 14039,
+        "languages": {
+          "js": 2
+        },
+        "commits": 2,
+        "recent": 2,
+        "reason": "fixture",
+        "authors": [],
+        "topFiles": [],
+        "lastCommit": null
+      },
+      {
+        "path": "src/commands",
+        "group": "server",
+        "kind": "house",
+        "files": 32,
+        "lines": 1439,
+        "bytes": 73683,
+        "languages": {
+          "js": 32
+        },
+        "commits": 22,
+        "recent": 22,
+        "reason": "fixture",
+        "authors": [],
+        "topFiles": [],
+        "lastCommit": null
+      },
+      {
+        "path": "src/engine",
+        "group": "engine",
+        "kind": "house",
+        "files": 25,
+        "lines": 5219,
+        "bytes": 278991,
+        "languages": {
+          "js": 25
+        },
+        "commits": 33,
+        "recent": 33,
+        "reason": "fixture",
+        "authors": [],
+        "topFiles": [],
+        "lastCommit": null
+      },
+      {
+        "path": "src/linear",
+        "group": "gmkit",
+        "kind": "house",
+        "files": 6,
+        "lines": 636,
+        "bytes": 26641,
+        "languages": {
+          "js": 6
+        },
+        "commits": 4,
+        "recent": 4,
+        "reason": "fixture",
+        "authors": [],
+        "topFiles": [],
+        "lastCommit": null
+      },
+      {
+        "path": "src/mcp",
+        "group": "server",
+        "kind": "house",
+        "files": 3,
+        "lines": 513,
+        "bytes": 27037,
+        "languages": {
+          "js": 3
+        },
+        "commits": 10,
+        "recent": 10,
+        "reason": "fixture",
+        "authors": [],
+        "topFiles": [],
+        "lastCommit": null
+      },
+      {
+        "path": "src/party",
+        "group": "party",
+        "kind": "house",
+        "files": 5,
+        "lines": 1001,
+        "bytes": 54843,
+        "languages": {
+          "js": 5
+        },
+        "commits": 11,
+        "recent": 11,
+        "reason": "fixture",
+        "authors": [],
+        "topFiles": [],
+        "lastCommit": null
+      },
+      {
+        "path": "src/quest",
+        "group": "teller",
+        "kind": "house",
+        "files": 8,
+        "lines": 1311,
+        "bytes": 75761,
+        "languages": {
+          "js": 8
+        },
+        "commits": 17,
+        "recent": 17,
+        "reason": "fixture",
+        "authors": [],
+        "topFiles": [],
+        "lastCommit": null
+      },
+      {
+        "path": "src/server",
+        "group": "server",
+        "kind": "house",
+        "files": 5,
+        "lines": 1952,
+        "bytes": 81605,
+        "languages": {
+          "js": 5
+        },
+        "commits": 19,
+        "recent": 19,
+        "reason": "fixture",
+        "authors": [],
+        "topFiles": [],
+        "lastCommit": null
+      },
+      {
+        "path": "tests",
+        "kind": "house",
+        "files": 11,
+        "lines": 1588,
+        "bytes": 74013,
+        "languages": {
+          "mjs": 10,
+          "csv": 1
+        },
+        "commits": 18,
+        "recent": 18,
+        "reason": "fixture",
+        "authors": [],
+        "topFiles": [],
+        "lastCommit": null
+      },
+      {
+        "path": "tests/e2e",
+        "kind": "house",
+        "files": 129,
+        "lines": 17922,
+        "bytes": 1063357,
+        "languages": {
+          "mjs": 129
+        },
+        "commits": 59,
+        "recent": 59,
+        "reason": "fixture",
+        "authors": [],
+        "topFiles": [],
+        "lastCommit": null
+      },
+      {
+        "path": "tools",
+        "group": "site",
+        "kind": "workshop",
+        "files": 1,
+        "lines": 189,
+        "bytes": 11453,
+        "languages": {
+          "mjs": 1
+        },
+        "commits": 3,
+        "recent": 3,
+        "reason": "fixture",
+        "authors": [],
+        "topFiles": [],
+        "lastCommit": null
+      },
+      {
+        "path": "web",
+        "group": "board",
+        "kind": "shop",
+        "files": 2,
+        "lines": 427,
+        "bytes": 43140,
+        "languages": {
+          "html": 2
+        },
+        "commits": 25,
+        "recent": 25,
+        "reason": "fixture",
+        "authors": [],
+        "topFiles": [],
+        "lastCommit": null
+      },
+      {
+        "path": "web/assets",
+        "group": "assets",
+        "kind": "shop",
+        "files": 41,
+        "lines": 865,
+        "bytes": 50294,
+        "languages": {
+          "svg": 36,
+          "json": 4,
+          "html": 1
+        },
+        "commits": 5,
+        "recent": 5,
+        "reason": "fixture",
+        "authors": [],
+        "topFiles": [],
+        "lastCommit": null
+      },
+      {
+        "path": "web/board",
+        "group": "board",
+        "kind": "shop",
+        "files": 57,
+        "lines": 21351,
+        "bytes": 1042963,
+        "languages": {
+          "js": 55,
+          "css": 2
+        },
+        "commits": 41,
+        "recent": 41,
+        "works": {
+          "dirty": 4
+        },
+        "reason": "fixture",
+        "authors": [],
+        "topFiles": [],
+        "lastCommit": null
+      },
+      {
+        "path": "web/fixtures",
+        "group": "board",
+        "kind": "shop",
+        "files": 6,
+        "lines": 20009,
+        "bytes": 476654,
+        "languages": {
+          "json": 4,
+          "mjs": 2
+        },
+        "commits": 8,
+        "recent": 8,
+        "reason": "fixture",
+        "authors": [],
+        "topFiles": [],
+        "lastCommit": null
+      }
+    ],
+    "facilities": [
+      {
+        "archetype": "town_hall",
+        "name": "town_hall",
+        "reason": "fixture",
+        "evidence": [
+          ".git"
+        ],
+        "evidenceCount": 2,
+        "merged": [],
+        "commits": 146,
+        "recent": 146,
+        "authors": [],
+        "facts": {}
+      },
+      {
+        "archetype": "inn",
+        "name": "inn",
+        "reason": "fixture",
+        "evidence": [
+          "src/server/index.js"
+        ],
+        "evidenceCount": 3,
+        "merged": [],
+        "commits": 50,
+        "recent": 50,
+        "authors": [],
+        "facts": {}
+      },
+      {
+        "archetype": "pub",
+        "name": "pub",
+        "reason": "fixture",
+        "evidence": [
+          "src/linear/client.js"
+        ],
+        "evidenceCount": 1,
+        "merged": [],
+        "commits": 2,
+        "recent": 2,
+        "authors": [],
+        "facts": {}
+      },
+      {
+        "archetype": "dojo",
+        "name": "dojo",
+        "reason": "fixture",
+        "evidence": [
+          "tests/"
+        ],
+        "evidenceCount": 140,
+        "merged": [
+          "tests",
+          "tests/e2e"
+        ],
+        "commits": 59,
+        "recent": 59,
+        "authors": [],
+        "facts": {
+          "state": "unverified"
+        }
+      },
+      {
+        "archetype": "well",
+        "name": "well",
+        "reason": "fixture",
+        "evidence": [
+          "mac/GridHub.swift"
+        ],
+        "evidenceCount": 8,
+        "merged": [],
+        "commits": 30,
+        "recent": 30,
+        "authors": [],
+        "facts": {
+          "envInCode": [
+            {
+              "name": "CONFIG_0",
+              "files": [
+                "src/commands/app.js",
+                "src/commands/serve.js",
+                "src/server/index.js"
+              ]
+            },
+            {
+              "name": "CONFIG_1",
+              "files": [
+                "src/engine/remote.js",
+                "src/server/index.js"
+              ]
+            },
+            {
+              "name": "CONFIG_2",
+              "files": [
+                "mac/GridHub.swift"
+              ]
+            },
+            {
+              "name": "CONFIG_3",
+              "files": [
+                "src/engine/store.js"
+              ]
+            },
+            {
+              "name": "CONFIG_4",
+              "files": [
+                "src/engine/runner.js"
+              ]
+            },
+            {
+              "name": "CONFIG_5",
+              "files": [
+                "mac/icon.mjs"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "archetype": "dock",
+        "name": "dock",
+        "reason": "fixture",
+        "evidence": [
+          "mac/Info.plist"
+        ],
+        "evidenceCount": 6,
+        "merged": [
+          "mac"
+        ],
+        "commits": 25,
+        "recent": 25,
+        "authors": [],
+        "facts": {}
+      },
+      {
+        "archetype": "gate",
+        "name": "gate",
+        "reason": "fixture",
+        "evidence": [
+          "src/server/index.js"
+        ],
+        "evidenceCount": 4,
+        "merged": [],
+        "commits": 50,
+        "recent": 50,
+        "authors": [],
+        "facts": {}
+      }
+    ],
+    "contributors": []
+  },
+  "overlay": {
+    "version": 1,
+    "seed": "gridhub",
+    "markers": [
+      {
+        "id": "B18",
+        "kind": "record",
+        "state": "unverified",
+        "at": {
+          "path": "web/board/app.js"
+        },
+        "label": "B18",
+        "lines": []
+      },
+      {
+        "id": "B19",
+        "kind": "record",
+        "state": "unverified",
+        "at": {
+          "path": "web/board/app.js"
+        },
+        "label": "B19",
+        "lines": []
+      },
+      {
+        "id": "W1",
+        "kind": "record",
+        "state": "unverified",
+        "at": {
+          "path": "site/engineers.html"
+        },
+        "label": "W1",
+        "lines": []
+      },
+      {
+        "id": "W2",
+        "kind": "record",
+        "state": "unverified",
+        "at": {
+          "path": "site/engineers.html"
+        },
+        "label": "W2",
+        "lines": []
+      },
+      {
+        "id": "board-board",
+        "kind": "board",
+        "at": {
+          "group": "board"
+        },
+        "label": "board-board",
+        "lines": []
+      },
+      {
+        "id": "board-engine",
+        "kind": "board",
+        "at": {
+          "group": "engine"
+        },
+        "label": "board-engine",
+        "lines": []
+      },
+      {
+        "id": "board-server",
+        "kind": "board",
+        "at": {
+          "group": "server"
+        },
+        "label": "board-server",
+        "lines": []
+      },
+      {
+        "id": "board-teller",
+        "kind": "board",
+        "at": {
+          "group": "teller"
+        },
+        "label": "board-teller",
+        "lines": []
+      },
+      {
+        "id": "board-party",
+        "kind": "board",
+        "at": {
+          "group": "party"
+        },
+        "label": "board-party",
+        "lines": []
+      },
+      {
+        "id": "board-gmkit",
+        "kind": "board",
+        "at": {
+          "group": "gmkit"
+        },
+        "label": "board-gmkit",
+        "lines": []
+      },
+      {
+        "id": "board-assets",
+        "kind": "board",
+        "at": {
+          "group": "assets"
+        },
+        "label": "board-assets",
+        "lines": []
+      },
+      {
+        "id": "board-player",
+        "kind": "board",
+        "at": {
+          "group": "player"
+        },
+        "label": "board-player",
+        "lines": []
+      },
+      {
+        "id": "board-mac",
+        "kind": "board",
+        "at": {
+          "group": "mac"
+        },
+        "label": "board-mac",
+        "lines": []
+      },
+      {
+        "id": "board-site",
+        "kind": "board",
+        "at": {
+          "group": "site"
+        },
+        "label": "board-site",
+        "lines": []
+      }
+    ],
+    "people": [
+      {
+        "id": "board",
+        "at": {
+          "group": "board"
+        },
+        "name": "board",
+        "lines": [],
+        "look": 0
+      },
+      {
+        "id": "engine",
+        "at": {
+          "group": "engine"
+        },
+        "name": "engine",
+        "lines": [],
+        "look": 1
+      },
+      {
+        "id": "server",
+        "at": {
+          "group": "server"
+        },
+        "name": "server",
+        "lines": [],
+        "look": 2
+      },
+      {
+        "id": "teller",
+        "at": {
+          "group": "teller"
+        },
+        "name": "teller",
+        "lines": [],
+        "look": 3
+      },
+      {
+        "id": "party",
+        "at": {
+          "group": "party"
+        },
+        "name": "party",
+        "lines": [],
+        "look": 4
+      },
+      {
+        "id": "gmkit",
+        "at": {
+          "group": "gmkit"
+        },
+        "name": "gmkit",
+        "lines": [],
+        "look": 5
+      },
+      {
+        "id": "assets",
+        "at": {
+          "group": "assets"
+        },
+        "name": "assets",
+        "lines": [],
+        "look": 6
+      },
+      {
+        "id": "player",
+        "at": {
+          "group": "player"
+        },
+        "name": "player",
+        "lines": [],
+        "look": 7
+      },
+      {
+        "id": "mac",
+        "at": {
+          "group": "mac"
+        },
+        "name": "mac",
+        "lines": [],
+        "look": 8
+      },
+      {
+        "id": "site",
+        "at": {
+          "group": "site"
+        },
+        "name": "site",
+        "lines": [],
+        "look": 9
+      }
+    ],
+    "goal": {
+      "at": {
+        "landmark": "town_hall"
+      },
+      "label": "Goal",
+      "lines": []
+    }
+  }
+}

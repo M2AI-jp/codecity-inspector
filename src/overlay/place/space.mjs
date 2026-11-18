@@ -10,7 +10,7 @@ export function prepareSpace(S) {
   const { town, manifest } = S;
   const { world, start } = buildWorld(town, artFrom(manifest));
   const reach = reachGrid(world, start);
-  const propArt = loadProps(manifest), occupied = new Set(), reserved = new Set(), doors = new Set(), targets = [], addedRects = [];
+  const propArt = loadProps(manifest), occupied = new Set(), reserved = new Set(), doors = new Set(), targets = [], addedRects = [], reservedRects = [];
   const keepTilePaths = tileReach(town, propArt);
   const reserve = (x0, y0, x1, y1, set = reserved) => {
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) set.add(xy(x, y));
@@ -34,9 +34,9 @@ export function prepareSpace(S) {
     return (def?.solids || (def?.solid ? [def.solid] : [])).map(([x, y, w, h]) => ({ x: p.x * 16 + x, y: p.y * 16 + y, w, h }));
   };
   const clearRects = (rs) => rs.every((r) => !world.boxHits(r.x, r.y, r.x + r.w, r.y + r.h) &&
-    !addedRects.some((o) => r.x < o.x + o.w && r.x + r.w > o.x && r.y < o.y + o.h && r.y + r.h > o.y));
+    ![...addedRects, ...reservedRects].some((o) => r.x < o.x + o.w && r.x + r.w > o.x && r.y < o.y + o.h && r.y + r.h > o.y));
   const accessible = (seen, extra = []) => [...targets, ...extra].every((p) => reach.near(seen, p.x * 16, p.y * 16));
   const reject = (v, scope, reason, detail = {}) => town.unplaced.push({ overlay: true, scope, id: v.id, reason, ...detail });
   Object.assign(S, { world, reach, propArt, occupied, reserved, doors, targets, addedRects,
-    keepTilePaths, cellOK, boxes, clearRects, accessible, reject });
+    reservedRects, keepTilePaths, cellOK, boxes, clearRects, accessible, reject });
 }

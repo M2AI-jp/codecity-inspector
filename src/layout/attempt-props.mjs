@@ -7,9 +7,9 @@ import { canalRoadSideProblem } from './canal/validate.mjs';
 // 小物を同じ乱数列で置き、城の予約と水路を再検査して未配置の理由を集める。
 export function placeAttemptProps(S) {
   const { P, F, seed, spawn, propArt, landmarks, dock, canal, repo, goalSpec,
-    rejectedPlacements, byPath, lms, facSpecs, art, water } = S;
+    rejectedPlacements, byPath, lms, facSpecs, art, water, opts } = S;
   const placedProps = placeProps(P, F, makeRng(seed ^ 0x9e3779b9), spawn, {
-    propArt, landmarks, dock, bridgeProps: canal?.bridgeProps || [], mouthProps: canal?.mouthProps || [], bridgeCells: canal?.bridgeCells || [],
+    overlay: opts.overlay, propArt, landmarks, dock, bridgeProps: canal?.bridgeProps || [], mouthProps: canal?.mouthProps || [], bridgeCells: canal?.bridgeCells || [],
     bridgeDeckCells: canal?.bridgeDeckCells || [], canalCells: canal?.cells || [],
     hasReadme: !!(repo.readme?.title?.trim() || repo.readme?.excerpt?.trim()),
   });

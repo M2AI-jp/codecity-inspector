@@ -133,7 +133,12 @@ export function finishProps(S) {
   // 切り出し・水路脇の草地復元も済んだ最終 Town を、CLI と同じ定義で検査する。
   // 既に8以下なら Town に一切書き込まない。小物は従来の予約・到達性検査を通す。
   out.finishLawn = (town, art) => {
-    limitLawns(town, art, propArt, (rect) => {
+    // Measure the persistent scenery: hiding a dojo sign must not join two
+    // lawns into an oversized rectangle. Added props remain visible to each pass.
+    const lawnTown = S.extra?.overlay ? { ...town, get props() {
+      return town.props.filter((p) => !['sign-passed', 'sign-failed', 'sign-unverified'].includes(p.type));
+    } } : town;
+    limitLawns(lawnTown, art, propArt, (rect) => {
       const cells = lawnCells({
         x0: rect.x0 + crop.x0, x1: rect.x1 + crop.x0,
         y0: rect.y0 + crop.y0, y1: rect.y1 + crop.y0,
