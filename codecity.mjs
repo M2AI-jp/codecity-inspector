@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 import { analyzeRepository } from './src/analyze.mjs';
 import { layoutTown } from './src/layout.mjs';
 import { readOverlay } from './src/overlay/read.mjs';
+import { overlayLayoutOptions } from './src/overlay/layout-options.mjs';
 import { applyGroups } from './src/overlay/groups.mjs';
 import { placeOverlay } from './src/overlay/place.mjs';
 import { populateTown } from './src/overlay/town.mjs';
@@ -38,7 +39,7 @@ const model = analyzeRepository(repoPath, overlay ? { onModules(_modules, groups
 } } : undefined);
 const t1 = Date.now();
 const arrange = (input) => layoutTown(input ? applyGroups(model, input.groups, moduleFiles) : model,
-  input ? { overlay: true, seed: input.seed, goalLook: input.goal?.look, goalAt: input.goal?.at } : {});
+  overlayLayoutOptions(input));
 const baseTown = arrange(overlay);
 const t2 = Date.now();
 populateTown(baseTown, model, repoPath);
