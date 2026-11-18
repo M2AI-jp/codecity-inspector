@@ -106,7 +106,7 @@ async function boot() {
   const noticeboards = world.props.filter((p) => p.type === 'noticeboard' && !p.data.overlayId);
   const readme = town.repo && town.repo.readme;
 
-  // ---- view sizing: integer device-pixel scale, native view ~400-480 px wide --------------
+  // ---- view sizing: integer device pixels; narrow windows show a closer view ------------
   const view = { vw: 480, vh: 270, scale: 1, cssPerPx: 1, camX: 0, camY: 0 };
   let lastW = 0, lastH = 0, lastDpr = 0;
   function resize() {
@@ -114,7 +114,8 @@ async function boot() {
     lastW = window.innerWidth; lastH = window.innerHeight; lastDpr = dpr;
     const dw = Math.max(1, Math.round(window.innerWidth * dpr));
     const dh = Math.max(1, Math.round(window.innerHeight * dpr));
-    const scale = Math.max(1, Math.ceil(dw / NATIVE_TARGET_W));
+    const targetW = Math.max(12 * T, Math.min(NATIVE_TARGET_W, lastW / 2));
+    const scale = Math.max(Math.ceil(2 * dpr), Math.ceil(dw / targetW));
     view.scale = scale;
     view.vw = Math.ceil(dw / scale);
     view.vh = Math.ceil(dh / scale);
@@ -281,7 +282,7 @@ async function boot() {
     if (overlayNear) uiState.keeper = uiState.walker = uiState.notice = null;
     ui.update(uiState);
     overlay?.update(view, player, overlayNear);
-    creatures.bubble(view, player, pet);
+    creatures.bubble(view, player, overlayNear ? null : pet);
   }
 
   // ---- loop: fixed timestep, clamped dt, rAF with a setTimeout fallback -------------------

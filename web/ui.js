@@ -3,6 +3,7 @@
 
 import { KIND_JA, fmtInt, langName } from './util.js';
 import { keeperLines, keeperOffer, residentBubble, contractorBubble, rosterPages, whenJa, shortSubject } from './dialogue.js';
+import { placeBubble, playerRect } from './screen-space.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -337,7 +338,6 @@ export class UI {
           (t.more ? `<div class="more">${esc(t.more)}</div>` : '') + (t.note ? [].concat(t.note).map((n) => `<div class="note">${esc(n)}</div>`).join('') : '');
         bub.classList.toggle('wrap', !!t.note);
         bub.classList.add('show');
-        this.bubbleW = bub.offsetWidth;
       } else bub.classList.remove('show');
     }
     if (w) {
@@ -345,13 +345,9 @@ export class UI {
       // so the bubble never sits on the player
       const v = s.view;
       const below = s.player.ry < w.ry - 4;
-      const half = (this.bubbleW || 0) / 2 + 6;        // keep the whole bubble on screen near the edges
-      const x = Math.round(Math.max(half, Math.min(window.innerWidth - half, (Math.round(w.rx) - v.camX) * v.cssPerPx)));
-      const y = Math.round(((Math.round(w.ry) + (below ? 4 : -34) - v.camY) * v.cssPerPx));
-      if (x !== this.bubbleX || y !== this.bubbleY || below !== this.bubbleBelow) {
-        this.bubbleX = x; this.bubbleY = y; this.bubbleBelow = below;
-        bub.style.transform = `translate(${x}px, ${y}px) translate(-50%, ${below ? '0' : '-100%'})`;
-      }
+      const x = (Math.round(w.rx) - v.camX) * v.cssPerPx;
+      const y = (Math.round(w.ry) + (below ? 4 : -34) - v.camY) * v.cssPerPx;
+      placeBubble(bub, x, y, below, playerRect(v, s.player));
     }
 
     // noticeboard (README)

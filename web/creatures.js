@@ -6,6 +6,8 @@
 import { TILE } from './config.js';
 import { loadImage, toCanvas, cleanMagenta, warnOnce } from './assets.js';
 import { strHash, mulberry32 } from './util.js';
+import { creatureVoice } from './dialogue/creature-voices.js';
+import { placeBubble, playerRect } from './screen-space.js';
 
 const T = TILE;
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -311,14 +313,11 @@ export function createCreatures(town, world, sheets) {
   }
   for (const f of flocks.values()) for (const c of f) c.flock = f;
 
-  let el = null, cur = null, lastX = -1, lastY = -1, lastBelow = null, bw = 0;
+  let el = null, cur = null;
   const bubbleEl = () => {
     if (el) return el;
     el = document.createElement('div');
     el.id = 'creature-bubble';
-    el.style.cssText = 'position:absolute;left:0;top:0;max-width:min(460px,calc(100vw - 16px));width:max-content;background:rgba(12,13,22,0.88);padding:2px 9px 3px;'
-      + 'border-radius:2px;box-shadow:inset 0 0 0 2px rgba(170,200,214,0.4);font-size:15px;line-height:1.35;opacity:0;'
-      + 'transition:opacity 140ms ease-out;color:#ebe4d6;pointer-events:none;';
     (document.getElementById('ui') || document.body).appendChild(el);
     return el;
   };
@@ -344,13 +343,14 @@ export function createCreatures(town, world, sheets) {
       const b = bubbleEl();
       if (best !== cur) {
         cur = best;
+        document.getElementById('ui')?.classList.toggle('creature-talking', !!best);
         if (best) {
           const m = MEANING[best.kind](best.d);
-          b.innerHTML = `<div><span style="font-weight:700;color:#d8ecff">${KIND_JA[best.kind]}「${esc(best.name)}」</span>`
+          const voice = creatureVoice(best.d);
+          b.innerHTML = `<div><span style="font-weight:700;color:#d8ecff">${KIND_JA[best.kind]}「${esc(voice.name)}」</span>`
             + `<span style="color:#d6ccb8">（${esc(m)}）</span></div>`
-            + (best.d.reason ? `<div style="font-size:13px;color:#9d968a">${esc(best.d.reason)}</div>` : '');
+            + (voice.reason ? `<div class="evidence">${esc(voice.reason)}</div>` : '');
           b.style.opacity = '1';
-          bw = b.offsetWidth;
         } else b.style.opacity = '0';
       }
       if (best) {
@@ -358,12 +358,8 @@ export function createCreatures(town, world, sheets) {
         const head = best.sheet ? best.sheet.py + 3 : 18;
         // keep the whole bubble on screen (a long workflow name near the edge would run off it)
         const cx = (Math.round(best.rx) - view.camX) * view.cssPerPx;
-        const x = Math.round(Math.max(bw / 2 + 6, Math.min(window.innerWidth - bw / 2 - 6, cx)));
         const y = Math.round((Math.round(best.ry) + (below ? 5 : -head) - view.camY) * view.cssPerPx);
-        if (x !== lastX || y !== lastY || below !== lastBelow) {
-          lastX = x; lastY = y; lastBelow = below;
-          b.style.transform = `translate(${x}px, ${y}px) translate(-50%, ${below ? '0' : '-100%'})`;
-        }
+        placeBubble(b, cx, y, below, playerRect(view, player));
       }
     },
     get current() { return cur; },

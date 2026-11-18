@@ -2,6 +2,7 @@ import { Character } from './character.js';
 import { TILE, KEEPER_BOX, FEET_W, FEET_H, FEET_UP } from './config.js';
 import { overlayPeople, addOverlayPeople, reindexOverlayRects } from './overlay-world.js';
 import { strHash } from './util.js';
+import { placeBubble, playerRect } from './screen-space.js';
 
 export function diffById(previous, next, key = 'id') {
   const before = new Map(previous.map((v) => [v[key], v])), after = new Map(next.map((v) => [v[key], v]));
@@ -121,6 +122,7 @@ export class Overlay {
   }
   update(view, player, item) {
     this.panel.classList.toggle('show', !!item);
+    document.getElementById('ui')?.classList.toggle('overlay-talking', !!item);
     if (item !== this.active) {
       this.active = item;
       this.heading.textContent = item?.name || item?.label || '';
@@ -136,7 +138,7 @@ export class Overlay {
     this.goalTag.classList.toggle('show', !!g && x >= 0 && y >= 0 && x <= window.innerWidth && y <= window.innerHeight);
     if (g) {
       this.goalTag.textContent = g.label;
-      this.goalTag.style.transform = `translate(${Math.round(x)}px, ${Math.round(y - 18)}px) translate(-50%, -100%)`;
+      placeBubble(this.goalTag, x, y - 18, false, playerRect(view, player));
     }
   }
 }
