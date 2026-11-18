@@ -18,6 +18,22 @@ export function opaqueInBox(data, width, height, x0, y0, x1, y1) {
   return false;
 }
 
+function opacityMask(image) {
+  let mask = opacityMasks.get(image);
+  if (!mask) {
+    const canvas = document.createElement('canvas');
+    canvas.width = image.width; canvas.height = image.height;
+    const context = canvas.getContext('2d');
+    context.drawImage(image, 0, 0);
+    const data = context.getImageData(0, 0, image.width, image.height).data;
+    let first = 3;
+    while (first < data.length && data[first] < 128) first += 4;
+    mask = { data, top: Math.floor(first / 4 / image.width) };
+    opacityMasks.set(image, mask);
+  }
+  return mask;
+}
+
 function shadowSprite() {
   const c = document.createElement('canvas');
   c.width = 14; c.height = 5;
@@ -182,26 +198,26 @@ export class Renderer {
     const x0 = p.rx - 10, x1 = p.rx + 10, y0 = p.ry - 26, y1 = p.ry;
     const image = a.exterior;
     if (!(x1 > ix && x0 < ix + image.width && y1 > iy && y0 < iy + image.height)) return false;
-    let mask = opacityMasks.get(image);
-    if (!mask) {
-      const canvas = document.createElement('canvas');
-      canvas.width = image.width; canvas.height = image.height;
-      const context = canvas.getContext('2d');
-      context.drawImage(image, 0, 0);
-      mask = context.getImageData(0, 0, image.width, image.height).data;
-      opacityMasks.set(image, mask);
-    }
-    return opaqueInBox(mask, image.width, image.height, x0 - ix, y0 - iy, x1 - ix, y1 - iy);
+    return opaqueInBox(opacityMask(image).data, image.width, image.height, x0 - ix, y0 - iy, x1 - ix, y1 - iy);
   }
 
-  // a prop with an opening (the gate) hides the player walking behind its lintel or pillars; seen
-  // through the gap under the lintel, they need no ghost
+  // Called only after the player was drawn. Tall props use the same opaque-pixel test as roofs.
+  // Gates keep their clearance test: seen through the gap under the lintel, no ghost is needed.
   coversProp(p, pl) {
     const d = p.def;
-    if (!d || !d.image || !Array.isArray(d.opening)) return false;
+    if (!d || !d.image || p.layer === 'ground' || d.layer === 'ground') return false;
     const ix = p.x - d.origin[0], iy = p.y - d.origin[1];
     const x0 = pl.rx - 6, x1 = pl.rx + 6, y0 = pl.ry - 26, y1 = pl.ry;
     if (!(x1 > ix && x0 < ix + d.image.width && y1 > iy && y0 < iy + d.image.height)) return false;
+    if (!Array.isArray(d.opening)) {
+      const image = d.image;
+      const mask = opacityMask(image);
+      const back = d.solids?.length ? Math.min(...d.solids.map(s => s[1])) : (d.solid?.[1] ?? 0);
+      // Measure above the rear of the footprint, not the whole image: a deep flowerbed is low.
+      // Transparent padding and faint ground shadows do not contribute to the height.
+      if (d.origin[1] + back - mask.top <= 26) return false;
+      return opaqueInBox(mask.data, image.width, image.height, x0 - ix, y0 - iy, x1 - ix, y1 - iy);
+    }
     const o = d.opening, ox0 = p.x + o[0], ox1 = ox0 + o[2], oy0 = p.y + this.clearance(d);
     return !(x0 >= ox0 && x1 <= ox1 && y0 >= oy0);
   }
