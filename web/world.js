@@ -76,7 +76,7 @@ export class World {
   floorReach(b, free, extra) { return floorReach(this, b, free, extra); }
   floorSpots(b) { return floorSpots(this, b); }
   navFree(tx, ty) { return navFree(this, tx, ty); }
-  nearestFree(tx, ty, maxR = 12) { return nearestFree(this, tx, ty, maxR); }
+  nearestFree(tx, ty, maxR = 12, comp = -1) { return nearestFree(this, tx, ty, maxR, comp); }
   findPath(sx, sy, gx, gy, opts = {}) { return findPath(this, sx, sy, gx, gy, opts); }
   sweepFree(ax, ay, bx, by) { return sweepFree(this, ax, ay, bx, by); }
   smoothPath(fromX, fromY, tiles, endX, endY) { return smoothPath(this, fromX, fromY, tiles, endX, endY); }

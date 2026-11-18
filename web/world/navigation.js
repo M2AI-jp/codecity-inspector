@@ -78,6 +78,31 @@ export function computeNav(world) {
       }
     }
   }
+  labelNav(world);
+}
+
+// 辺でたどれるtileの塊に番号を付ける（ふさがったtileは -1）。A*が届くかどうかはこの番号と同じになる。
+// 町の人の出発点を家の戸口と同じ塊から選び、柵や小物に囲まれた1マス・切り離された桟橋に出さないために使う。
+function labelNav(world) {
+  const n = world.cols * world.rows, cols = world.cols;
+  if (!world.navComp || world.navComp.length !== n) world.navComp = new Int32Array(n);
+  const comp = world.navComp, stack = new Int32Array(n);
+  comp.fill(-1);
+  let id = 0;
+  for (let s = 0; s < n; s++) {
+    if (world.nav[s] || comp[s] >= 0) continue;
+    let top = 0;
+    stack[top++] = s; comp[s] = id;
+    while (top) {
+      const k = stack[--top], tx = k % cols, ty = (k / cols) | 0, e = world.edges[k];
+      for (let d = 0; d < 8; d++) {
+        if (!(e & (1 << d))) continue;
+        const m = (ty + DIRS[d][1]) * cols + tx + DIRS[d][0];
+        if (comp[m] < 0 && !world.nav[m]) { comp[m] = id; stack[top++] = m; }
+      }
+    }
+    id++;
+  }
 }
 
 // 歩けるtileの足元。ふさがったtileや範囲外なら中央を返す。
