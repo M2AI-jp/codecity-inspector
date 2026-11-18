@@ -19,3 +19,17 @@
 - ASCII の overlay: record は `✓`・`×`・`?`、board は `N`、gate は `[`、人は `p`、門番は `k`、goal は `◎`。
 
 見本リポジトリと生成物を作業ツリーから分離して検査するときは、`GIT_CEILING_DIRECTORIES="$PWD/compare"` と `TMPDIR="$PWD/compare/tmp"` を指定し、先に `mkdir -p compare/tmp` を実行する。追加の npm パッケージは不要。
+
+複数の overlay を同じリポジトリで検査する例（castle 版も別ファイルとして用意する）:
+
+```sh
+mkdir -p compare/tmp
+export GIT_CEILING_DIRECTORIES="$PWD/compare"
+export TMPDIR="$PWD/compare/tmp"
+for overlay in compare/inputs/memo-overlay*.json; do
+  name=$(basename "$overlay" .json)
+  node tools/seed-fuzz.mjs /path/to/examples/memo --overlay "$overlay" --count 200 --out "compare/fuzz/$name" || exit "$?"
+done
+```
+
+gridhub の2版と各 castle 版、homebrew／codecity-inspector の memo 版と castle 版も、入力先と出力先を分けて同じように回す。再現には保存された `model.json` を入力に使い、同じ overlay と `--start N --count 1` を渡す（N は10進数）。元の seed へ付く末尾は `@fuzz:0000000`〜`@fuzz:00000c7`。`report.json` の `failed` とプロセスの終了コードを両方確認する。
